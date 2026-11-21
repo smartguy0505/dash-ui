@@ -165,7 +165,7 @@
   Dash.pill = (text, tone, { dot = true, title } = {}) =>
     `<span class="pill${toneClass(tone)}"${title ? ` title="${esc(title)}"` : ''}>${dot ? '<span class="dot"></span>' : ''}${esc(text)}</span>`;
   Dash.tag = (text, tone, { title } = {}) => `<span class="tag${toneClass(tone)}"${title ? ` title="${esc(title)}"` : ''}>${esc(text)}</span>`;
-  // a signed change in its colour: Dash.chg(1.5, '+1.5 τ')
+  // a signed change in its colour: Dash.chg(1.5, '+1.5 GB')
   // eps: changes this small count as flat; title: a tooltip (e.g. what the change is made of)
   Dash.chg = (v, text = fmt.signed(v), { eps = 0, title } = {}) =>
     `<span class="chg ${fmt.dir(v, eps)}"${title ? ` title="${esc(title)}"` : ''}>${esc(text)}</span>`;
@@ -193,7 +193,7 @@
     });
   };
   // A sortable header cell; sort is { key, dir }. Clicks come back as [data-sort] (see Dash.sorter).
-  // options: num (right-aligned), title, cls, unit (shown after the label, not uppercased: 'τ'),
+  // options: num (right-aligned), title, cls, unit (shown after the label, not uppercased: 'ms'),
   // mark: false for a second column that sorts by the same key (only one header shows the arrow).
   // With key null the header is plain text (not sortable).
   Dash.th = (label, key, sort, { num = false, title, cls = '', unit, mark = true } = {}) => {
@@ -205,7 +205,7 @@
       + `<button type="button" data-sort="${esc(key)}"${title ? ` title="${esc(title)}"` : ''}>${text}</button></th>`;
   };
   // Sort state that remembers itself. A click on the sorted column flips it; a new column starts with its own direction.
-  // const sort = Dash.sorter({ key: 'value', dir: 'desc', store: 'wallets.sort', firstDir: { name: 'asc' } })
+  // const sort = Dash.sorter({ key: 'value', dir: 'desc', store: 'accounts.sort', firstDir: { name: 'asc' } })
   Dash.sorter = ({ key, dir = 'desc', store, firstDir = {} } = {}) => {
     const saved = store ? Dash.store.get(store) : null;
     const state = saved && saved.key && (saved.dir === 'asc' || saved.dir === 'desc') ? saved : { key, dir };
@@ -540,7 +540,7 @@
   // ---- controls
 
   // a segmented control (or a row of chips) as a single choice. Buttons carry data-value.
-  // const view = Dash.seg('filter', { store: 'wallets.filter', onChange: (v) => render() }); view.value
+  // const view = Dash.seg('filter', { store: 'accounts.filter', onChange: (v) => render() }); view.value
   Dash.seg = (target, { value, store, onChange } = {}) => {
     const node = el(target);
     const buttons = () => [...node.querySelectorAll('[data-value]')];

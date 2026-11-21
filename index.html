@@ -23,7 +23,7 @@
 <body>
 <header class="topbar">
   <div class="brand"><span class="mark">D</span><h1>dash-ui</h1></div>
-  <span class="sub">One kit for agent-dash, burst-dash, bm-dash, the payout and wallet dashboards</span>
+  <span class="sub">One look for all my dashboards</span>
   <div class="top-right">
     <div class="seg" role="group" aria-label="Theme">
       <button type="button" data-theme-set="system">Auto</button><button type="button" data-theme-set="light">Light</button><button type="button" data-theme-set="dark">Dark</button>
@@ -62,9 +62,9 @@
     <div class="panel hero">
       <div>
         <div class="kicker">Portfolio value</div>
-        <div class="big">$48,213 <small>· 271.48 τ</small></div>
-        <div class="hero-line">τ $177.60 · <b>3</b> wallets in the total</div>
-        <div class="row" style="margin-top:10px"><span class="pill lg up">▲ +4.1250 τ</span><span class="chg up">+$732.60</span><span class="muted">in the last 24 h</span></div>
+        <div class="big">$48,213 <small>· €44,469.84</small></div>
+        <div class="hero-line">EUR/USD 1.0842 · <b>3</b> accounts in the total</div>
+        <div class="row" style="margin-top:10px"><span class="pill lg up">▲ +675.70 €</span><span class="chg up">+$732.60</span><span class="muted">in the last 24 h</span></div>
       </div>
       <div>
         <div id="hero-split"></div>
@@ -75,7 +75,7 @@
       <div class="stat"><div class="label">Requests today</div><div class="value">1.84M</div><div class="note">+12% on yesterday</div></div>
       <div class="stat"><div class="label">p95 latency</div><div class="value">41 <small>ms</small></div><div class="note">target 60 ms</div></div>
       <div class="stat"><div class="label">Errors</div><div class="value tone bad">0.31%</div><div class="note">212 of 68,410</div></div>
-      <button type="button" class="stat" data-copy="5FakeHotkeyOnlyForTheDemoPage00000000000"><div class="label">Hotkey</div><div class="value mono" style="font-size:20px;line-height:1.7">5FakeH…000000</div><div class="note">click to copy</div></button>
+      <button type="button" class="stat" data-copy="key_demoOnlyForTheGalleryPage0000000000"><div class="label">API key</div><div class="value mono" style="font-size:20px;line-height:1.7">key_de…000000</div><div class="note">click to copy</div></button>
     </div>
   </section>
 
@@ -94,8 +94,8 @@
         <button type="button" class="pill teal"><span class="dot"></span>Filter: running <span class="n">7</span></button>
       </div>
       <div class="demo"><p class="demo-label">Tags: small facts</p>
-        <span class="tag">default</span><span class="tag plain">eth</span><span class="tag accent">Opus 5.5</span><span class="tag blue">acct-b</span>
-        <span class="tag ok">archive</span><span class="tag warn">probation</span><span class="tag bad">banned</span><span class="tag outline bad">banned</span>
+        <span class="tag">default</span><span class="tag plain">eu-west</span><span class="tag accent">Opus 5.5</span><span class="tag blue">acct-b</span>
+        <span class="tag ok">primary</span><span class="tag warn">probation</span><span class="tag bad">blocked</span><span class="tag outline bad">blocked</span>
         <span class="tag pink">ultra</span><span class="tag teal">SN 42</span>
       </div>
       <div class="demo"><p class="demo-label">Ranks, changes, chips</p>
@@ -105,16 +105,16 @@
       <div class="demo">
         <div class="chips" id="chips">
           <button type="button" class="chip" data-value="all">All <span>58</span></button>
-          <button type="button" class="chip" data-value="eth">Eth <span>12</span></button>
-          <button type="button" class="chip" data-value="base">Base <span>9</span></button>
-          <button type="button" class="chip" data-value="tao">Tao <span>6</span></button>
+          <button type="button" class="chip" data-value="eu">Europe <span>12</span></button>
+          <button type="button" class="chip" data-value="us">Americas <span>9</span></button>
+          <button type="button" class="chip" data-value="asia">Asia <span>6</span></button>
         </div>
-        <span class="chip"><b>bsc</b> <span>20%</span></span><span class="chip"><b>polygon</b> <span>15%</span></span>
+        <span class="chip"><b>eu-west</b> <span>30%</span></span><span class="chip"><b>us-east</b> <span>25%</span></span>
       </div>
       <div class="demo types"><p class="demo-label">Text</p>
         <div><span class="page-title" style="font-size:22px">Page title 22</span> · <b>Panel title 15</b> · body 15 · <span class="muted">muted</span> · <span class="faint">faint</span></div>
         <div><span class="section-title" style="display:inline">Section title</span> · <code>code</code> · <kbd>/</kbd> · <span class="num">1,234.56 tabular</span> · <a href="#labels">a link</a></div>
-        <ul class="facts"><li>eth · archive</li><li>p95 41 ms</li><li>since 09:14</li><li>3 restarts</li></ul>
+        <ul class="facts"><li>api · primary</li><li>p95 41 ms</li><li>since 09:14</li><li>3 restarts</li></ul>
       </div>
     </div>
   </section>
@@ -127,7 +127,7 @@
         <div class="panel-head"><h3>Buttons</h3></div>
         <div class="demo">
           <button type="button" class="btn">Refresh</button>
-          <button type="button" class="btn primary">Add wallet</button>
+          <button type="button" class="btn primary">Add account</button>
           <button type="button" class="btn primary blue">Save</button>
           <button type="button" class="btn ghost">Cancel</button>
           <button type="button" class="btn danger">Remove</button>
@@ -145,8 +145,8 @@
         </div>
         <div class="demo"><p class="demo-label">Segmented: soft (default), large, solid</p>
           <div class="seg" id="seg-range"><button type="button" data-value="24">24 h</button><button type="button" data-value="72">3 d</button><button type="button" data-value="168">7 d</button></div>
-          <div class="seg lg" role="tablist"><a href="#controls" aria-current="page">Routing</a><a href="#controls">Metagraph</a><a href="#controls">Payouts</a></div>
-          <div class="seg solid" id="seg-class"><button type="button" data-value="">All</button><button type="button" data-value="arch">Archive <span>41</span></button><button type="button" data-value="full">Full <span>17</span></button></div>
+          <div class="seg lg" role="tablist"><a href="#controls" aria-current="page">Overview</a><a href="#controls">Traffic</a><a href="#controls">Billing</a></div>
+          <div class="seg solid" id="seg-class"><button type="button" data-value="">All</button><button type="button" data-value="primary">Primary <span>41</span></button><button type="button" data-value="replica">Replica <span>17</span></button></div>
         </div>
       </div>
       <div class="panel">
@@ -156,10 +156,10 @@
             <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.6"/><path d="m11 11 3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
             <input class="input" type="search" placeholder="Search name or address" id="search-demo"><span class="count" id="search-count"></span>
           </label>
-          <select class="input" aria-label="Chain"><option>All chains</option><option>eth</option><option>base</option></select>
+          <select class="input" aria-label="Region"><option>All regions</option><option>eu-west</option><option>us-east</option></select>
         </div>
         <div class="field"><label for="f-name">Name</label><input class="input" id="f-name" value="Treasury"><div class="hint">Shown in the table; addresses stay as they are.</div></div>
-        <div class="field invalid"><label for="f-addr">Address</label><input class="input mono" id="f-addr" value="5Fake…bad"><div class="err">That isn’t a valid SS58 address.</div></div>
+        <div class="field invalid"><label for="f-addr">Account ID</label><input class="input mono" id="f-addr" value="acct_bad"><div class="err">That isn’t a valid account ID.</div></div>
         <div class="row">
           <label class="switch"><input type="checkbox" checked><span class="track"></span>Count in the total</label>
           <label class="switch blue"><input type="checkbox"><span class="track"></span>Alerts</label>
@@ -175,15 +175,15 @@
     <h2 class="section-title">Panels and cards</h2>
     <div class="banner" id="banner">
       <span class="badge"><i></i></span>
-      <div class="grow"><div class="banner-title" id="banner-title">No burst right now</div>
-        <div class="banner-text" id="banner-text">Last one ended <b>2.4 h ago</b> on eth-archive · 14 bursts in 3 days</div></div>
-      <button type="button" class="btn" id="banner-toggle">Simulate a burst</button>
+      <div class="grow"><div class="banner-title" id="banner-title">No incident right now</div>
+        <div class="banner-text" id="banner-text">Last one ended <b>2.4 h ago</b> on api-eu-west · 14 incidents in 3 days</div></div>
+      <button type="button" class="btn" id="banner-toggle">Simulate an incident</button>
     </div>
     <div class="grid" style="--cols:3">
       <div class="panel">
         <div class="panel-head"><h3>Panel</h3><span class="read">updated 14:05</span></div>
         <p style="margin:0 0 10px">A section with a head. The read on the right is muted, tabular.</p>
-        <div class="callout"><div class="callout-title">You</div>Check the payout dashboard after the update.</div>
+        <div class="callout"><div class="callout-title">You</div>Check the billing page after the update.</div>
         <div class="callout accent" style="margin-top:8px"><div class="callout-title">Claude</div>Done: 24/24 views equal.</div>
         <p class="panel-note">A note under a panel.</p>
       </div>
@@ -191,12 +191,12 @@
         <div class="panel-head"><h3>Needs attention</h3><span class="pill orange"><span class="dot pulse"></span>2 waiting</span></div>
         <div class="callout orange"><div class="callout-title">Waiting for</div>Approve <code>git push origin main</code></div>
         <div class="callout bad" style="margin-top:8px"><div class="callout-title">Error</div>Registry returned 503 (scoring not enabled)</div>
-        <div class="callout warn solid" style="margin-top:8px">2 nodes are on probation until 18:00 UTC.</div>
+        <div class="callout warn solid" style="margin-top:8px">2 servers are on probation until 18:00 UTC.</div>
       </div>
       <div class="panel">
         <div class="panel-head"><h3>Loading and empty</h3></div>
         <span class="skel wide"></span><span class="skel"></span><span class="skel mid"></span>
-        <div class="empty"><span class="empty-title">No wallets yet</span><p>Add an address to start watching it.</p><button type="button" class="btn primary">Add wallet</button></div>
+        <div class="empty"><span class="empty-title">No accounts yet</span><p>Add an account to start tracking it.</p><button type="button" class="btn primary">Add account</button></div>
       </div>
     </div>
     <div class="cards" style="margin-top:14px" id="cards"></div>
@@ -208,7 +208,7 @@
     <div class="section-head"><h2 class="section-title">Tables</h2><span class="sub">sortable headers, marked and sub rows, a pager; rows become cards on a phone</span></div>
     <div class="panel">
       <div class="toolbar">
-        <div class="seg" id="tbl-filter"><button type="button" data-value="all">All</button><button type="button" data-value="archive">Archive</button><button type="button" data-value="full">Full</button></div>
+        <div class="seg" id="tbl-filter"><button type="button" data-value="all">All</button><button type="button" data-value="primary">Primary</button><button type="button" data-value="replica">Replica</button></div>
         <span class="push sub" id="tbl-count"></span>
       </div>
       <div style="overflow-x:auto"><table class="table stack" id="tbl"></table></div>
@@ -216,16 +216,16 @@
     </div>
     <div class="table-wrap" style="margin-top:14px">
       <table class="table">
-        <thead><tr><th>#</th><th>Miner</th><th class="num">Share</th><th>Status</th><th class="num">Pay</th></tr></thead>
+        <thead><tr><th>#</th><th>Team</th><th class="num">Share</th><th>Status</th><th class="num">Bonus</th></tr></thead>
         <tbody>
-          <tr class="group"><td colspan="5">eth · archive pool <span class="muted">· top 5 paid</span></td></tr>
-          <tr class="marked gold"><td><span class="rank gold">1</span></td><td>UID 101</td><td class="num">31.2%</td><td><span class="tag ok">paid</span></td><td class="num">$412</td></tr>
-          <tr><td><span class="rank silver">2</span></td><td>UID 44</td><td class="num">22.8%</td><td><span class="tag ok">paid</span></td><td class="num">$301</td></tr>
-          <tr class="sub"><td></td><td>└ eth-archive-2</td><td class="num">12.0%</td><td>eligible</td><td class="num"></td></tr>
-          <tr class="sub"><td></td><td>└ eth-archive-3</td><td class="num">10.8%</td><td>eligible</td><td class="num"></td></tr>
-          <tr class="marked"><td><span class="rank bronze">3</span></td><td>UID 7 <span class="tag blue">yours</span></td><td class="num">14.1%</td><td><span class="tag ok">paid</span></td><td class="num">$186</td></tr>
-          <tr class="cut"><td><span class="rank">6</span></td><td>UID 210</td><td class="num">3.9%</td><td><span class="tag warn">outside</span></td><td class="num muted">—</td></tr>
-          <tr class="dim"><td><span class="rank">7</span></td><td>UID 88</td><td class="num">1.2%</td><td><span class="tag">ineligible</span></td><td class="num muted">—</td></tr>
+          <tr class="group"><td colspan="5">Europe · sales league <span class="muted">· top 5 get a bonus</span></td></tr>
+          <tr class="marked gold"><td><span class="rank gold">1</span></td><td>Lisbon</td><td class="num">31.2%</td><td><span class="tag ok">bonus</span></td><td class="num">$412</td></tr>
+          <tr><td><span class="rank silver">2</span></td><td>Porto</td><td class="num">22.8%</td><td><span class="tag ok">bonus</span></td><td class="num">$301</td></tr>
+          <tr class="sub"><td></td><td>└ Porto store 2</td><td class="num">12.0%</td><td>in the league</td><td class="num"></td></tr>
+          <tr class="sub"><td></td><td>└ Porto store 3</td><td class="num">10.8%</td><td>in the league</td><td class="num"></td></tr>
+          <tr class="marked"><td><span class="rank bronze">3</span></td><td>Madrid <span class="tag blue">yours</span></td><td class="num">14.1%</td><td><span class="tag ok">bonus</span></td><td class="num">$186</td></tr>
+          <tr class="cut"><td><span class="rank">6</span></td><td>Lyon</td><td class="num">3.9%</td><td><span class="tag warn">outside</span></td><td class="num muted">—</td></tr>
+          <tr class="dim"><td><span class="rank">7</span></td><td>Turin</td><td class="num">1.2%</td><td><span class="tag">not in the league</span></td><td class="num muted">—</td></tr>
         </tbody>
       </table>
     </div>
@@ -249,7 +249,7 @@
         <div class="gauges" id="gauges"></div>
       </div>
       <div class="panel">
-        <div class="panel-head"><h3>Score, last 30 epochs</h3><span class="read" id="spark-read"></span></div>
+        <div class="panel-head"><h3>Score, last 30 days</h3><span class="read" id="spark-read"></span></div>
         <div id="spark"></div>
         <div class="row" style="margin-top:14px" id="sparks-small"></div>
       </div>
@@ -269,9 +269,9 @@
       </div>
     </div>
     <div class="panel" style="margin-top:14px">
-      <div class="panel-head"><h3>Timeline</h3><span class="read">bursts (marks) during test runs (spans), last 72 h</span></div>
+      <div class="panel-head"><h3>Timeline</h3><span class="read">incidents (marks) during load tests (spans), last 72 h</span></div>
       <div class="lanes" id="lanes"></div>
-      <div class="legend" style="margin-top:12px"><span class="legend-item blue"><i style="opacity:.3"></i>test run</span><span class="legend-item bad"><i></i>burst</span><span class="legend-item warn"><i></i>burst, not scored</span></div>
+      <div class="legend" style="margin-top:12px"><span class="legend-item blue"><i style="opacity:.3"></i>load test</span><span class="legend-item bad"><i></i>incident</span><span class="legend-item warn"><i></i>incident, nobody paged</span></div>
     </div>
   </section>
 
@@ -285,7 +285,7 @@
         <button type="button" class="btn" id="b-notify">Notice in the corner</button>
         <button type="button" class="btn" id="b-dialog">Dialog</button>
         <button type="button" class="btn" id="b-drawer">Drawer</button>
-        <button type="button" class="btn" id="b-flash">Flash a value</button> <span class="num strong" id="flash-me">12.3456 τ</span>
+        <button type="button" class="btn" id="b-flash">Flash a value</button> <span class="num strong" id="flash-me">12.3456 GB</span>
       </div>
       <div class="demo"><p class="demo-label">Blurred IP addresses: click one (every copy of it unblurs)</p>
         <span id="ips"></span>
@@ -304,10 +304,10 @@
 
 <dialog class="dialog" id="dialog">
   <form class="dialog-body" method="dialog">
-    <h2>Add wallet</h2>
-    <p class="hint">Its balance shows up with the next block.</p>
-    <div class="field"><label for="d-name">Name</label><input class="input" id="d-name" placeholder="Treasury"></div>
-    <div class="field"><label for="d-addr">Address</label><input class="input mono" id="d-addr" placeholder="5…"><div class="err"></div></div>
+    <h2>Add account</h2>
+    <p class="hint">Its balance shows up with the next update.</p>
+    <div class="field"><label for="d-name">Name</label><input class="input" id="d-name" placeholder="Savings"></div>
+    <div class="field"><label for="d-addr">Account ID</label><input class="input mono" id="d-addr" placeholder="acct_…"><div class="err"></div></div>
     <label class="checkline"><input type="checkbox" checked>Count in the total</label>
     <div class="dialog-actions"><button type="button" class="btn ghost" data-dismiss>Cancel</button><button class="btn primary" value="ok">Add</button></div>
   </form>
@@ -315,12 +315,12 @@
 
 <dialog class="drawer" id="drawer">
   <div class="drawer-body">
-    <div class="drawer-head"><div><div class="kicker">Compare</div><h2 class="mono">UID 101</h2></div><button type="button" class="icon-btn" data-dismiss aria-label="Close">✕</button></div>
+    <div class="drawer-head"><div><div class="kicker">Compare</div><h2 class="mono">search</h2></div><button type="button" class="icon-btn" data-dismiss aria-label="Close">✕</button></div>
     <div class="stats" style="--stat-min:150px;margin:0">
       <div class="stat"><div class="label">Share</div><div class="value">31.2%</div></div>
       <div class="stat"><div class="label">Latency</div><div class="value">38 <small>ms</small></div></div>
     </div>
-    <div class="panel"><div class="panel-head"><h3>Nodes</h3></div><div class="tags"><span class="tag plain">eth-archive-1</span><span class="tag plain">eth-archive-2</span><span class="tag plain">base-1</span></div></div>
+    <div class="panel"><div class="panel-head"><h3>Servers</h3></div><div class="tags"><span class="tag plain">search-eu-west-1</span><span class="tag plain">search-eu-west-2</span><span class="tag plain">search-us-east-1</span></div></div>
   </div>
 </dialog>
 
@@ -336,8 +336,8 @@
   const syncSwatches = () => document.querySelectorAll('[data-token]').forEach((c) => { c.textContent = Dash.color(c.dataset.token); });
 
   // hero
-  $('hero-split').innerHTML = Dash.split([{ value: 48.2, tone: 'blue', label: 'Free' }, { value: 223.3, tone: 'teal', label: 'Staked' }]);
-  $('hero-legend').innerHTML = Dash.legend([{ label: 'Free', value: '48.20 τ', tone: 'blue' }, { label: 'Staked', value: '223.28 τ', tone: 'teal' }]);
+  $('hero-split').innerHTML = Dash.split([{ value: 7.89, tone: 'blue', label: 'Cash' }, { value: 36.58, tone: 'teal', label: 'Invested' }]);
+  $('hero-legend').innerHTML = Dash.legend([{ label: 'Cash', value: '€7,890', tone: 'blue' }, { label: 'Invested', value: '€36,580', tone: 'teal' }]);
 
   // labels
   $('ranks').innerHTML = [Dash.rank(1, 14), Dash.rank(2, 14), Dash.rank(3, 14), Dash.rank(6, 14), Dash.rank(null)].join('');
@@ -351,16 +351,16 @@
     const on = !$('banner').classList.contains('active');
     $('banner').classList.toggle('active', on);
     $('banner').classList.toggle('bad', on);
-    $('banner-title').textContent = on ? 'Burst on eth-archive now' : 'No burst right now';
-    $('banner-text').innerHTML = on ? 'Started <b>40 s ago</b> · 1,820 req/s from 2 testers' : 'Last one ended <b>2.4 h ago</b> on eth-archive · 14 bursts in 3 days';
-    $('banner-toggle').textContent = on ? 'End it' : 'Simulate a burst';
+    $('banner-title').textContent = on ? 'Incident on api-eu-west now' : 'No incident right now';
+    $('banner-text').innerHTML = on ? 'Started <b>40 s ago</b> · 1,820 errors/s seen by 2 probes' : 'Last one ended <b>2.4 h ago</b> on api-eu-west · 14 incidents in 3 days';
+    $('banner-toggle').textContent = on ? 'End it' : 'Simulate an incident';
   });
 
   // cards
   const CARDS = [
-    { name: 'eth-archive', where: 'eth · archive · 203.0.113.10', tone: 'ok', score: 0.91, rank: [2, 14], tags: [['acct-a', 'blue'], ['archive', 'ok']], wl: [['history', 0.97], ['heavy', 0.84], ['logs', 0.92]] },
-    { name: 'base-archive', where: 'base · archive · 203.0.113.24', tone: 'warn', score: 0.58, rank: [6, 11], tags: [['acct-b', 'blue'], ['probation', 'warn']], wl: [['history', 0.71], ['heavy', 0.38], ['logs', 0.66]], ring: true },
-    { name: 'tao-full', where: 'tao · full · 198.51.100.7', tone: 'ok', score: 0.88, rank: [1, 9], tags: [['acct-a', 'blue']], wl: [['state', 0.9], ['blocks', 0.86]] },
+    { name: 'api-eu-west', where: 'api · primary · 203.0.113.10', tone: 'ok', score: 0.91, rank: [2, 14], tags: [['team-a', 'blue'], ['primary', 'ok']], wl: [['reads', 0.97], ['writes', 0.84], ['search', 0.92]] },
+    { name: 'api-us-east', where: 'api · primary · 203.0.113.24', tone: 'warn', score: 0.58, rank: [6, 11], tags: [['team-b', 'blue'], ['probation', 'warn']], wl: [['reads', 0.71], ['writes', 0.38], ['search', 0.66]], ring: true },
+    { name: 'web-ap-south', where: 'web · replica · 198.51.100.7', tone: 'ok', score: 0.88, rank: [1, 9], tags: [['team-a', 'blue']], wl: [['pages', 0.9], ['assets', 0.86]] },
   ];
   $('cards').innerHTML = CARDS.map((c) => `
     <article class="card${c.ring ? ' ring warn' : ''}">
@@ -374,11 +374,11 @@
   for (const h of document.querySelectorAll('#cards .hbars')) h.style.setProperty('--hb-label', '70px');
 
   // table
-  const CHAINS = ['eth', 'base', 'tao', 'bsc', 'polygon', 'arbitrum'];
-  const NODES = Array.from({ length: 23 }, (_, i) => {
-    const chain = CHAINS[i % CHAINS.length];
-    const archive = i % 3 !== 2;
-    return { name: `${chain}-${archive ? 'archive' : 'full'}-${Math.floor(i / 6) + 1}`, chain, archive, ip: `203.0.113.${10 + i * 7}`,
+  const REGIONS = ['eu-west', 'us-east', 'ap-south', 'eu-north', 'us-west', 'sa-east'];
+  const SERVERS = Array.from({ length: 23 }, (_, i) => {
+    const region = REGIONS[i % REGIONS.length];
+    const primary = i % 3 !== 2;
+    return { name: `api-${region}-${Math.floor(i / 6) + 1}`, region, primary, ip: `203.0.113.${10 + i * 7}`,
       score: Math.round((0.35 + ((i * 37) % 60) / 100) * 1000) / 1000, p95: 18 + ((i * 53) % 70), share: ((i * 29) % 17) + 1, tested: Date.now() - ((i * 41) % 300) * 60e3 };
   });
   let page = 1;
@@ -386,21 +386,21 @@
   const sort = Dash.sorter({ key: 'score', dir: 'desc', store: 'gallery.sort', firstDir: { name: 'asc', p95: 'asc' } });
   const filter = Dash.seg('tbl-filter', { value: 'all', onChange: () => { page = 1; renderTable(); } });
   function renderTable() {
-    const rows = sort.apply(NODES.filter((n) => filter.value === 'all' || (filter.value === 'archive') === n.archive));
+    const rows = sort.apply(SERVERS.filter((n) => filter.value === 'all' || (filter.value === 'primary') === n.primary));
     const p = Dash.paginate(rows, page, perPage);
     page = p.page;
-    $('tbl-count').textContent = fmt.plural(rows.length, 'node');
-    $('tbl').innerHTML = `<thead><tr>${Dash.th('Node', 'name', sort)}${Dash.th('Chain', 'chain', sort)}<th>Address</th>${Dash.th('Score', 'score', sort, { num: true })}`
+    $('tbl-count').textContent = fmt.plural(rows.length, 'server');
+    $('tbl').innerHTML = `<thead><tr>${Dash.th('Server', 'name', sort)}${Dash.th('Region', 'region', sort)}<th>Address</th>${Dash.th('Score', 'score', sort, { num: true })}`
       + `${Dash.th('p95', 'p95', sort, { num: true, title: 'p95 latency, ms' })}<th class="hide-sm">Share</th>${Dash.th('Tested', 'tested', sort, { num: true })}</tr></thead><tbody>`
       + p.rows.map((n) => `<tr class="click${n.score < 0.5 ? ' marked bad' : ''}">
-          <td class="main" data-label="Node">${esc(n.name)} ${n.archive ? Dash.tag('archive', 'ok') : ''}</td>
-          <td data-label="Chain"><span class="tag plain">${esc(n.chain)}</span></td>
+          <td class="main" data-label="Server">${esc(n.name)} ${n.primary ? Dash.tag('primary', 'ok') : ''}</td>
+          <td data-label="Region"><span class="tag plain">${esc(n.region)}</span></td>
           <td data-label="Address" class="mono">${Dash.maskIps(n.ip)}</td>
           <td class="num" data-label="Score"><span class="tone ${n.score >= 0.8 ? 'ok' : n.score >= 0.5 ? '' : 'bad'}">${n.score.toFixed(3)}</span></td>
           <td class="num" data-label="p95">${n.p95} ms</td>
           <td class="hide-sm" style="min-width:140px"><div class="share">${Dash.bar(n.share / 17)}<span>${fmt.share(n.share / 1.7)}</span></div></td>
           <td class="num" data-label="Tested">${fmt.ago(n.tested)}</td></tr>`).join('') + '</tbody>';
-    $('tbl-pager').innerHTML = Dash.pager(p, { noun: 'node' });
+    $('tbl-pager').innerHTML = Dash.pager(p, { noun: 'server' });
   }
   Dash.on('tbl', 'click', '[data-sort]', (e, b) => { sort.toggle(b.dataset.sort); page = 1; renderTable(); });
   Dash.on('tbl-pager', 'click', '[data-page]', (e, b) => { page = Number(b.dataset.page); renderTable(); });
@@ -429,14 +429,14 @@
     + Dash.gauge(0.94, { name: 'Opus week', sub: '6% left' });
 
   const SCORES = Array.from({ length: 30 }, (_, i) => 0.62 + 0.25 * Math.sin(i / 5) + (i % 4) * 0.02);
-  $('spark').innerHTML = Dash.spark(SCORES, { labels: ['30 epochs ago', 'now'], height: 70 });
+  $('spark').innerHTML = Dash.spark(SCORES, { labels: ['30 days ago', 'now'], height: 70 });
   $('spark-read').textContent = `now ${SCORES[SCORES.length - 1].toFixed(3)}`;
   $('sparks-small').innerHTML = [['ok', 'up'], ['bad', 'down'], ['teal', 'flat']].map(([tone, kind], j) =>
     `<div style="flex:1;min-width:90px"><div class="sub">${kind}</div>${Dash.spark(Array.from({ length: 16 }, (_, i) => 5 + (j === 1 ? -i : j === 0 ? i : 0) * 0.4 + Math.sin(i * (j + 1)) * 0.9), { tone, height: 28, area: false })}</div>`).join('');
 
   $('hbars').innerHTML = Dash.hbars([
-    { label: 'bm-dash review', value: 812000, tone: 'accent' }, { label: 'wallet 24h change', value: 604000 }, { label: 'node rebuild', value: 377000 },
-    { label: 'payout pager', value: 120500, tone: 'teal' }, { label: 'other 6 agents', value: 88000, tone: 'idle' },
+    { label: 'api review', value: 812000, tone: 'accent' }, { label: 'billing 24h change', value: 604000 }, { label: 'image rebuild', value: 377000 },
+    { label: 'search pager', value: 120500, tone: 'teal' }, { label: 'other 6 agents', value: 88000, tone: 'idle' },
   ], { button: true });
 
   $('share-demo').innerHTML = Dash.bar(0.12, 'accent', { cls: 'thin' }) + '<span>12%</span>';
@@ -445,10 +445,10 @@
   const RANGE = 72 * 3600e3;
   const now = Date.now();
   const pos = (t) => ((t - (now - RANGE)) / RANGE) * 100;
-  const LANES = [['eth-archive', 'acct-a'], ['base-archive', 'acct-b'], ['tao-full', 'acct-a'], ['bsc-archive', 'acct-a']];
+  const LANES = [['api-eu-west', 'team-a'], ['api-us-east', 'team-b'], ['web-ap-south', 'team-a'], ['api-eu-north', 'team-a']];
   $('lanes').innerHTML = LANES.map(([name, acct], i) => {
     const spans = [10, 34, 58].map((h) => `<span class="span" style="left:${pos(now - (72 - h - i * 2) * 3600e3).toFixed(2)}%;width:${(2.5 / 72 * 100).toFixed(2)}%"></span>`).join('');
-    const marks = [11 + i, 35.5, 59 + i / 2].map((h, j) => `<span class="mark${j === 1 && i === 1 ? ' warn' : ''}" style="left:${pos(now - (72 - h) * 3600e3).toFixed(2)}%" title="burst ${j + 1}"></span>`).join('');
+    const marks = [11 + i, 35.5, 59 + i / 2].map((h, j) => `<span class="mark${j === 1 && i === 1 ? ' warn' : ''}" style="left:${pos(now - (72 - h) * 3600e3).toFixed(2)}%" title="incident ${j + 1}"></span>`).join('');
     return `<div class="lane-label">${esc(name)} <span>· ${esc(acct)}</span></div><div class="lane">${spans}${marks}</div>`;
   }).join('') + '<div></div><div class="lane-axis">' + [0, 24, 48, 72].map((h) =>
     `<span class="${h % 24 === 0 ? 'major' : ''}" style="left:${(h / 72 * 100).toFixed(2)}%;${h === 0 ? 'transform:none' : h === 72 ? 'transform:translateX(-100%)' : ''}">${h === 72 ? 'now' : `−${72 - h} h`}</span>`).join('') + '</div>';
@@ -464,12 +464,12 @@
   $('b-dialog').addEventListener('click', () => $('dialog').showModal());
   $('b-drawer').addEventListener('click', () => $('drawer').showModal());
   $('b-flash').addEventListener('click', () => Dash.flash('flash-me'));
-  $('ips').innerHTML = Dash.maskIps('eth-archive on 203.0.113.10, its tester 198.51.100.7, and again 203.0.113.10');
+  $('ips').innerHTML = Dash.maskIps('api-eu-west on 203.0.113.10, its probe 198.51.100.7, and again 203.0.113.10');
 
   // search count
   $('search-demo').addEventListener('input', (e) => {
     const q = e.target.value.trim().toLowerCase();
-    $('search-count').textContent = q ? `${NODES.filter((x) => x.name.includes(q)).length} match` : '';
+    $('search-count').textContent = q ? `${SERVERS.filter((x) => x.name.includes(q)).length} match` : '';
   });
 
   // theme: refresh the token values shown in the swatches

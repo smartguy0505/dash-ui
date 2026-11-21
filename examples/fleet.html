@@ -8,12 +8,12 @@
 <script src="../dash.js"></script>
 </head>
 <body>
-<!-- a burst-dash / bm-dash style page: a status banner, node cards, a timeline, and a leaderboard with view tabs,
-     expandable node rows and a compare drawer. Everything here is made up; IPs are from the documentation ranges. -->
+<!-- a fleet / leaderboard dashboard style page: a status banner, server cards, a timeline, and a leaderboard with view tabs,
+     expandable server rows and a compare drawer. Everything here is made up; IPs are from the documentation ranges. -->
 <header class="topbar">
-  <div class="brand"><span class="mark">bm</span><h1>Fleet</h1></div>
+  <div class="brand"><span class="mark">ops</span><h1>Fleet</h1></div>
   <nav class="seg lg" aria-label="Views" id="views">
-    <a href="#nodes" aria-current="page">Nodes</a><a href="#leaderboard">Leaderboard</a>
+    <a href="#servers" aria-current="page">Servers</a><a href="#leaderboard">Leaderboard</a>
   </nav>
   <div class="top-right"><span id="live"></span><button type="button" class="top-link">Log out</button></div>
 </header>
@@ -23,33 +23,33 @@
 
   <div class="stats" id="stats"></div>
 
-  <section class="section" id="nodes">
+  <section class="section" id="servers">
     <div class="section-head">
-      <h2 class="section-title">Nodes</h2>
-      <div class="seg push" id="node-sort"><button type="button" data-value="score">Score</button><button type="button" data-value="chain">Chain</button></div>
+      <h2 class="section-title">Servers</h2>
+      <div class="seg push" id="server-sort"><button type="button" data-value="score">Score</button><button type="button" data-value="region">Region</button></div>
     </div>
-    <div class="chips" style="margin-bottom:14px" id="pools"></div>
+    <div class="chips" style="margin-bottom:14px" id="regions"></div>
     <div class="cards" id="cards"></div>
   </section>
 
   <section class="panel section">
-    <div class="panel-head"><h3>Bursts and runs</h3><span class="sub">last 72 h, newest test first</span>
+    <div class="panel-head"><h3>Incidents and load tests</h3><span class="sub">last 72 h, newest test first</span>
       <div class="seg" id="tl-range"><button type="button" data-value="24">24 h</button><button type="button" data-value="72">3 d</button></div></div>
     <div class="lanes" id="lanes"></div>
-    <div class="legend" style="margin-top:12px"><span class="legend-item blue"><i style="opacity:.3"></i>test run</span><span class="legend-item bad"><i></i>burst</span><span class="legend-item warn"><i></i>burst, not scored</span></div>
+    <div class="legend" style="margin-top:12px"><span class="legend-item blue"><i style="opacity:.3"></i>load test</span><span class="legend-item bad"><i></i>incident</span><span class="legend-item warn"><i></i>incident, nobody paged</span></div>
   </section>
 
   <section class="section" id="leaderboard">
     <div class="section-head"><h2 class="section-title">Leaderboard</h2>
-      <div class="seg solid" id="cls"><button type="button" data-value="all">All</button><button type="button" data-value="archive">Archive</button><button type="button" data-value="full">Full</button></div>
+      <div class="seg solid" id="cls"><button type="button" data-value="all">All</button><button type="button" data-value="primary">Primary</button><button type="button" data-value="replica">Replica</button></div>
       <label class="search" style="max-width:260px"><span class="sr-only">Search</span>
         <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.6"/><path d="m11 11 3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-        <input class="input mono" type="search" id="lb-q" placeholder="UID or hotkey"></label>
+        <input class="input mono" type="search" id="lb-q" placeholder="Service or key"></label>
     </div>
     <div class="table-wrap open"><table class="table sticky" id="lb"></table></div>
   </section>
 
-  <footer class="footer"><p>Scores are routing scores; ranks move within minutes. IP addresses are blurred until clicked.</p></footer>
+  <footer class="footer"><p>Scores are health scores; ranks move within minutes. IP addresses are blurred until clicked.</p></footer>
 </main>
 
 <dialog class="drawer" id="drawer"><div class="drawer-body" id="drawer-body"></div></dialog>
@@ -57,51 +57,51 @@
 <script>
   const { $, esc, fmt } = Dash;
   const now = Date.now();
-  const CHAINS = ['eth', 'base', 'bsc', 'polygon', 'tao', 'arbitrum'];
-  const NODES = CHAINS.flatMap((chain, i) => [0, 1].slice(0, i % 2 ? 1 : 2).map((k) => {
+  const REGIONS = ['eu-west', 'us-east', 'ap-south', 'eu-north', 'us-west', 'sa-east'];
+  const SERVERS = REGIONS.flatMap((region, i) => [0, 1].slice(0, i % 2 ? 1 : 2).map((k) => {
     const score = Math.round((0.45 + ((i * 31 + k * 17) % 50) / 100) * 1000) / 1000;
-    return { key: `${chain}-${k}`, name: `${chain}-archive${k ? '-2' : ''}`, chain, acct: k ? 'acct-b' : 'acct-a', ip: `203.0.113.${20 + i * 11 + k}`,
-      score, rank: [1 + ((i + k * 3) % 7), 9 + i], wl: [['history', Math.min(1, score + 0.08)], ['heavy', score - 0.12], ['logs', Math.min(1, score + 0.02)]],
-      tested: now - (20 + i * 37 + k * 90) * 60e3, burstAt: now - (1 + i * 9 + k * 4) * 3600e3 };
+    return { key: `${region}-${k}`, name: `api-${region}${k ? '-2' : ''}`, region, acct: k ? 'team-b' : 'team-a', ip: `203.0.113.${20 + i * 11 + k}`,
+      score, rank: [1 + ((i + k * 3) % 7), 9 + i], wl: [['reads', Math.min(1, score + 0.08)], ['writes', score - 0.12], ['search', Math.min(1, score + 0.02)]],
+      tested: now - (20 + i * 37 + k * 90) * 60e3, incidentAt: now - (1 + i * 9 + k * 4) * 3600e3 };
   }));
-  let burst = null;
+  let incident = null; // the incident going on now
 
   function renderBanner() {
     const b = $('banner');
-    b.className = 'banner' + (burst ? ' active bad' : '');
-    b.innerHTML = burst
-      ? `<span class="badge"><i></i></span><div class="grow"><div class="banner-title">Burst on ${esc(burst.name)} now</div>
-          <div class="banner-text">Started <b>${fmt.ago(burst.at)}</b> · from ${Dash.maskIps('198.51.100.200')} and 1 more tester</div></div>`
-      : `<span class="badge"><i></i></span><div class="grow"><div class="banner-title">No burst right now</div>
-          <div class="banner-text">Last one ended <b>${fmt.ago(now - 2.4 * 3600e3)}</b> on eth-archive · ${NODES.length} nodes watched</div></div>`;
+    b.className = 'banner' + (incident ? ' active bad' : '');
+    b.innerHTML = incident
+      ? `<span class="badge"><i></i></span><div class="grow"><div class="banner-title">Incident on ${esc(incident.name)} now</div>
+          <div class="banner-text">Started <b>${fmt.ago(incident.at)}</b> · errors seen from ${Dash.maskIps('198.51.100.200')} and 1 more probe</div></div>`
+      : `<span class="badge"><i></i></span><div class="grow"><div class="banner-title">No incident right now</div>
+          <div class="banner-text">Last one ended <b>${fmt.ago(now - 2.4 * 3600e3)}</b> on api-eu-west · ${SERVERS.length} servers watched</div></div>`;
   }
 
   function renderStats() {
-    const avg = NODES.reduce((s, n) => s + n.score, 0) / NODES.length;
+    const avg = SERVERS.reduce((s, n) => s + n.score, 0) / SERVERS.length;
     $('stats').innerHTML = [
-      ['Nodes', NODES.length, `${new Set(NODES.map((n) => n.ip)).size} hosts`, ''],
-      ['Average score', avg.toFixed(3), 'routing score', avg >= 0.8 ? 'ok' : 'warn'],
-      ['Top 3 places', NODES.filter((n) => n.rank[0] <= 3).length, 'across all chains', ''],
-      ['Bursts, 3 days', 14, '2 not scored', ''],
+      ['Servers', SERVERS.length, `${new Set(SERVERS.map((n) => n.ip)).size} hosts`, ''],
+      ['Average score', avg.toFixed(3), 'health score', avg >= 0.8 ? 'ok' : 'warn'],
+      ['Top 3 places', SERVERS.filter((n) => n.rank[0] <= 3).length, 'across all regions', ''],
+      ['Incidents, 3 days', 14, '2 with nobody paged', ''],
     ].map(([k, v, note, tone]) => `<div class="stat"><div class="label">${esc(k)}</div><div class="value${tone ? ' tone ' + tone : ''}">${esc(v)}</div><div class="note">${esc(note)}</div></div>`).join('');
-    $('pools').innerHTML = [['bsc', 20], ['polygon', 15], ['tao', 15], ['eth', 10], ['base', 10], ['arbitrum', 5]]
+    $('regions').innerHTML = [['eu-west', 30], ['us-east', 25], ['ap-south', 15], ['eu-north', 12], ['us-west', 10], ['sa-east', 8]]
       .map(([c, p]) => `<span class="chip"><b>${c}</b> <span>${p}%</span></span>`).join('');
   }
 
-  const nodeSort = Dash.seg('node-sort', { value: 'score', store: 'example.fleet.sort', onChange: () => renderCards() });
+  const serverSort = Dash.seg('server-sort', { value: 'score', store: 'example.fleet.sort', onChange: () => renderCards() });
   function renderCards() {
-    const list = nodeSort.value === 'chain' ? Dash.sortBy(NODES, 'chain', 'asc') : Dash.sortBy(NODES, 'score', 'desc');
+    const list = serverSort.value === 'region' ? Dash.sortBy(SERVERS, 'region', 'asc') : Dash.sortBy(SERVERS, 'score', 'desc');
     $('cards').innerHTML = list.map((n) => {
       const tone = n.score >= 0.8 ? 'ok' : n.score >= 0.6 ? 'warn' : 'bad';
-      const active = burst && burst.key === n.key;
+      const active = incident && incident.key === n.key;
       return `<article class="card${active ? ' ring bad' : ''}">
-        <div class="card-head"><div class="grow"><div class="row" style="gap:2px 8px"><h3 class="card-title">${esc(n.name)}</h3>${Dash.rank(n.rank[0], n.rank[1], { title: `#${n.rank[0]} of ${n.rank[1]} on the ${n.chain} archive leaderboard` })}</div>
+        <div class="card-head"><div class="grow"><div class="row" style="gap:2px 8px"><h3 class="card-title">${esc(n.name)}</h3>${Dash.rank(n.rank[0], n.rank[1], { title: `#${n.rank[0]} of ${n.rank[1]} in ${n.region}` })}</div>
           <div class="card-sub mono">${Dash.maskIps(n.ip)}</div>
-          <div class="tags" style="margin-top:7px"><span class="tag plain">${esc(n.chain)}</span>${Dash.tag(n.acct, 'blue')}${n.score < 0.6 ? Dash.tag('probation', 'warn') : ''}</div></div>
+          <div class="tags" style="margin-top:7px"><span class="tag plain">${esc(n.region)}</span>${Dash.tag(n.acct, 'blue')}${n.score < 0.6 ? Dash.tag('probation', 'warn') : ''}</div></div>
           <span class="dot ${active ? 'bad pulse' : 'ok'}" style="margin-top:7px;width:9px;height:9px"></span></div>
         <div class="row" style="gap:2px 10px"><span class="big tone ${tone}" style="font-size:30px">${n.score.toFixed(3)}</span><span class="sub">tested ${fmt.ago(n.tested)}</span></div>
         <div style="--hb-label:64px;--hb-value:44px">${Dash.hbars(n.wl.map(([label, v]) => ({ label, value: v, text: v.toFixed(2), tone: v < 0.5 ? 'bad' : 'blue' })), { max: 1 })}</div>
-        <div class="card-foot">last burst ${fmt.ago(n.burstAt)}${active ? ' · <b class="tone bad">burst now</b>' : ''}</div>
+        <div class="card-foot">last incident ${fmt.ago(n.incidentAt)}${active ? ' · <b class="tone bad">incident now</b>' : ''}</div>
       </article>`;
     }).join('');
   }
@@ -111,64 +111,65 @@
     const range = Number(tlRange.value) * 3600e3;
     const pos = (t) => ((t - (now - range)) / range) * 100;
     const inRange = (t) => t >= now - range && t <= now;
-    const lanes = Dash.sortBy(NODES, 'tested', 'desc');
+    const lanes = Dash.sortBy(SERVERS, 'tested', 'desc');
     $('lanes').innerHTML = lanes.map((n, i) => {
       const runs = [8, 30, 55].map((h) => now - (72 - h - (i % 3)) * 3600e3).filter(inRange)
         .map((t) => `<span class="span" style="left:${pos(t).toFixed(2)}%;width:${(2.5 * 3600e3 / range * 100).toFixed(2)}%"></span>`).join('');
-      const marks = [n.burstAt, n.burstAt - 23 * 3600e3, n.burstAt - 47 * 3600e3].filter(inRange)
-        .map((t, j) => `<span class="mark${j === 2 && i % 4 === 1 ? ' warn' : ''}" style="left:${pos(t).toFixed(2)}%" title="${esc(Dash.hideIps(`burst at ${fmt.clock(t)} on ${n.ip}`))}"></span>`).join('');
+      const marks = [n.incidentAt, n.incidentAt - 23 * 3600e3, n.incidentAt - 47 * 3600e3].filter(inRange)
+        .map((t, j) => `<span class="mark${j === 2 && i % 4 === 1 ? ' warn' : ''}" style="left:${pos(t).toFixed(2)}%" title="${esc(Dash.hideIps(`incident at ${fmt.clock(t)} on ${n.ip}`))}"></span>`).join('');
       return `<div class="lane-label">${esc(n.name)} <span>· ${esc(n.acct)}</span></div><div class="lane">${runs}${marks}</div>`;
     }).join('') + '<div></div><div class="lane-axis">' + [0, 0.25, 0.5, 0.75, 1].map((f) =>
       `<span class="${f === 1 ? 'major' : ''}" style="left:${f * 100}%;${f === 0 ? 'transform:none' : f === 1 ? 'transform:translateX(-100%)' : ''}">${f === 1 ? 'now' : fmt.clock(now - (1 - f) * range)}</span>`).join('') + '</div>';
   }
 
-  // leaderboard: miners with their nodes underneath (click a row to open them)
-  const MINERS = Array.from({ length: 14 }, (_, i) => ({
-    uid: [101, 44, 7, 210, 88, 12, 301, 56, 19, 77, 140, 9, 233, 61][i], hotkey: '5DemoHotkey' + String(i).padStart(2, '0') + 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+  // leaderboard: services with their servers underneath (click a row to open them)
+  const NAMES = ['search', 'checkout', 'auth', 'images', 'billing', 'feeds', 'mail', 'maps', 'chat', 'video', 'docs', 'reports', 'notify', 'export'];
+  const SERVICES = NAMES.map((name, i) => ({
+    id: i + 1, name, key: 'key_demo' + String(i).padStart(2, '0') + 'x'.repeat(22),
     share: Math.round((31 - i * 2.1 + (i % 3)) * 10) / 10, p95: 30 + i * 6, rel: Math.max(0.5, 1 - i * 0.04), mine: i === 2,
-    nodes: Array.from({ length: 1 + (i % 3) }, (_, k) => ({ name: `${CHAINS[(i + k) % 6]}-node-${k + 1}`, archive: (i + k) % 3 !== 2, share: Math.round((10 - i * 0.6 - k) * 10) / 10 })),
-    banned: i === 11,
+    servers: Array.from({ length: 1 + (i % 3) }, (_, k) => ({ name: `${name}-${REGIONS[(i + k) % 6]}-${k + 1}`, primary: (i + k) % 3 !== 2, share: Math.round((10 - i * 0.6 - k) * 10) / 10 })),
+    blocked: i === 11,
   }));
-  const lbSort = Dash.sorter({ key: 'share', dir: 'desc', firstDir: { uid: 'asc', p95: 'asc' } });
+  const lbSort = Dash.sorter({ key: 'share', dir: 'desc', firstDir: { name: 'asc', p95: 'asc' } });
   const cls = Dash.seg('cls', { value: 'all', onChange: () => renderBoard() });
   const open = new Set();
   function renderBoard() {
     const q = $('lb-q').value.trim().toLowerCase();
-    const rows = lbSort.apply(MINERS.filter((m) => (cls.value === 'all' || m.nodes.some((n) => n.archive === (cls.value === 'archive')))
-      && (!q || String(m.uid).includes(q) || m.hotkey.toLowerCase().includes(q))));
-    const max = Math.max(...MINERS.map((m) => m.share));
-    $('lb').innerHTML = `<thead><tr><th class="num">#</th>${Dash.th('UID', 'uid', lbSort)}<th>Hotkey</th>${Dash.th('Share', 'share', lbSort, { num: true })}`
-      + `<th class="hide-sm" style="width:140px"></th>${Dash.th('p95', 'p95', lbSort, { num: true, title: 'p95 latency, ms' })}${Dash.th('Rel', 'rel', lbSort, { num: true, title: 'reliability' })}<th class="num">Nodes</th></tr></thead><tbody>`
+    const rows = lbSort.apply(SERVICES.filter((m) => (cls.value === 'all' || m.servers.some((n) => n.primary === (cls.value === 'primary')))
+      && (!q || m.name.includes(q) || m.key.toLowerCase().includes(q))));
+    const max = Math.max(...SERVICES.map((m) => m.share));
+    $('lb').innerHTML = `<thead><tr><th class="num">#</th>${Dash.th('Service', 'name', lbSort)}<th>Key</th>${Dash.th('Share', 'share', lbSort, { num: true })}`
+      + `<th class="hide-sm" style="width:140px"></th>${Dash.th('p95', 'p95', lbSort, { num: true, title: 'p95 latency, ms' })}${Dash.th('Rel', 'rel', lbSort, { num: true, title: 'reliability' })}<th class="num">Servers</th></tr></thead><tbody>`
       + rows.map((m, i) => {
         const rank = i + 1;
-        const head = `<tr class="click${m.mine ? ' marked ok' : ''}" data-uid="${m.uid}" aria-expanded="${open.has(m.uid)}">
-          <td class="num">${Dash.rank(rank)}</td><td><b>${m.uid}</b>${m.mine ? ' ' + Dash.tag('yours', 'ok') : ''}${m.banned ? ' ' + Dash.tag('banned', 'bad') : ''}</td>
-          <td class="mono" style="font-size:13px"><span title="${esc(m.hotkey)}">${esc(fmt.short(m.hotkey, 8, 4))}</span></td>
+        const head = `<tr class="click${m.mine ? ' marked ok' : ''}" data-id="${m.id}" aria-expanded="${open.has(m.id)}">
+          <td class="num">${Dash.rank(rank)}</td><td><b>${esc(m.name)}</b>${m.mine ? ' ' + Dash.tag('yours', 'ok') : ''}${m.blocked ? ' ' + Dash.tag('blocked', 'bad') : ''}</td>
+          <td class="mono" style="font-size:13px"><span title="${esc(m.key)}">${esc(fmt.short(m.key, 8, 4))}</span></td>
           <td class="num"><b>${fmt.pct(m.share)}</b></td><td class="hide-sm">${Dash.bar(m.share / max)}</td>
           <td class="num">${m.p95} ms</td><td class="num">${m.rel.toFixed(2)}</td>
-          <td class="num"><button type="button" class="btn sm" data-compare="${m.uid}">${m.nodes.length} · compare</button></td></tr>`;
-        const subs = open.has(m.uid) ? m.nodes.map((n) => `<tr class="sub"><td></td><td colspan="2">└ ${esc(n.name)} ${n.archive ? Dash.tag('archive', 'ok') : Dash.tag('full')}</td>
+          <td class="num"><button type="button" class="btn sm" data-compare="${m.id}">${m.servers.length} · compare</button></td></tr>`;
+        const subs = open.has(m.id) ? m.servers.map((n) => `<tr class="sub"><td></td><td colspan="2">└ ${esc(n.name)} ${n.primary ? Dash.tag('primary', 'ok') : Dash.tag('replica')}</td>
           <td class="num">${fmt.pct(n.share)}</td><td class="hide-sm"></td><td class="num">—</td><td class="num">—</td><td></td></tr>`).join('') : '';
         return head + subs;
       }).join('') + '</tbody>';
   }
   Dash.on('lb', 'click', '[data-sort]', (e, b) => { lbSort.toggle(b.dataset.sort); renderBoard(); });
-  Dash.on('lb', 'click', 'tr[data-uid]', (e, tr) => {
+  Dash.on('lb', 'click', 'tr[data-id]', (e, tr) => {
     if (e.target.closest('[data-compare], [data-copy]')) return;
-    const uid = Number(tr.dataset.uid);
-    open.has(uid) ? open.delete(uid) : open.add(uid);
+    const id = Number(tr.dataset.id);
+    open.has(id) ? open.delete(id) : open.add(id);
     renderBoard();
   });
   Dash.on('lb', 'click', '[data-compare]', (e, b) => {
-    const m = MINERS.find((x) => x.uid === Number(b.dataset.compare));
-    $('drawer-body').innerHTML = `<div class="drawer-head"><div><div class="kicker">Compare with the top</div><h2 class="mono">UID ${m.uid}</h2></div>
+    const m = SERVICES.find((x) => x.id === Number(b.dataset.compare));
+    $('drawer-body').innerHTML = `<div class="drawer-head"><div><div class="kicker">Compare with the top</div><h2 class="mono">${esc(m.name)}</h2></div>
         <button type="button" class="icon-btn" data-dismiss aria-label="Close">✕</button></div>
-      <div class="sub mono" style="word-break:break-all">${esc(m.hotkey)} ${Dash.copyButton(m.hotkey)}</div>
+      <div class="sub mono" style="word-break:break-all">${esc(m.key)} ${Dash.copyButton(m.key)}</div>
       <div class="stats" style="--stat-min:150px;margin:0">
-        <div class="stat"><div class="label">Share</div><div class="value">${fmt.pct(m.share)}</div><div class="note">top ${fmt.pct(MINERS[0].share)}</div></div>
-        <div class="stat"><div class="label">p95</div><div class="value">${m.p95} <small>ms</small></div><div class="note">top ${MINERS[0].p95} ms</div></div></div>
-      <div class="panel"><div class="panel-head"><h3>Share, last 20 epochs</h3></div>${Dash.spark(Array.from({ length: 20 }, (_, i) => m.share + Math.sin(i / 3) * 2), { labels: ['20 epochs ago', 'now'], height: 60 })}</div>
-      <div class="panel"><div class="panel-head"><h3>Nodes</h3></div><div class="tags">${m.nodes.map((n) => Dash.tag(n.name, 'plain')).join('')}</div></div>`;
+        <div class="stat"><div class="label">Share</div><div class="value">${fmt.pct(m.share)}</div><div class="note">top ${fmt.pct(SERVICES[0].share)}</div></div>
+        <div class="stat"><div class="label">p95</div><div class="value">${m.p95} <small>ms</small></div><div class="note">top ${SERVICES[0].p95} ms</div></div></div>
+      <div class="panel"><div class="panel-head"><h3>Share, last 20 days</h3></div>${Dash.spark(Array.from({ length: 20 }, (_, i) => m.share + Math.sin(i / 3) * 2), { labels: ['20 days ago', 'now'], height: 60 })}</div>
+      <div class="panel"><div class="panel-head"><h3>Servers</h3></div><div class="tags">${m.servers.map((n) => Dash.tag(n.name, 'plain')).join('')}</div></div>`;
     $('drawer').showModal();
   });
   $('lb-q').addEventListener('input', renderBoard);
@@ -179,9 +180,9 @@
     a.setAttribute('aria-current', 'page');
   });
 
-  // a burst starts a little after the page opens, then ends
-  setTimeout(() => { burst = { key: NODES[1].key, name: NODES[1].name, at: Date.now() }; renderBanner(); renderCards(); Dash.notify({ key: 'burst', title: NODES[1].name, status: 'burst started', tone: 'bad', ms: 6000 }); }, 2500);
-  setTimeout(() => { burst = null; renderBanner(); renderCards(); }, 14000);
+  // an incident starts a little after the page opens, then ends
+  setTimeout(() => { incident = { key: SERVERS[1].key, name: SERVERS[1].name, at: Date.now() }; renderBanner(); renderCards(); Dash.notify({ key: 'incident', title: SERVERS[1].name, status: 'incident started', tone: 'bad', ms: 6000 }); }, 2500);
+  setTimeout(() => { incident = null; renderBanner(); renderCards(); }, 14000);
 
   Dash.live('live', 'on', 'Live · refreshed just now');
   renderBanner();

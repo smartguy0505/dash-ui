@@ -9,9 +9,9 @@ Dashboards keep a copy of `dash.css` and `dash.js`; the first line of each file 
 
 ## 1.1.0 (2026-11-21)
 
-What the wallet dashboard needed when it moved onto the kit:
+What the balances dashboard needed when it moved onto the kit:
 
-- `.unit`: a unit after a number or in a table header (`Free <span class="unit">τ</span>`); headers don't uppercase it.
+- `.unit`: a unit after a number or in a table header (`Latency <span class="unit">ms</span>`); headers don't uppercase it.
 - `Dash.th(label, key, sort, { unit, mark })`: `unit` adds one; `mark: false` for a second column that sorts by the same key; `key` null gives a plain, unsortable header.
 - `Dash.chg(v, text, { eps, title })`: a small change counts as flat; a tooltip.
 - `fmt.signedUsd(n, d)`: fixed decimals (`+$732.60`).

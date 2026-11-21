@@ -1,6 +1,6 @@
 # dash-ui
 
-The look of agent-dash, burst-dash, bm-dash, the payout dashboard and the wallet dashboard as one kit:
+The look of my dashboards (an agent monitor, a fleet monitor, a leaderboard, a payout page and a balances page) as one kit:
 
 - **`dash.css`**: the colour tokens, light and dark, and every component;
 - **`dash.js`**: the formatters, small HTML builders, inline charts, toasts and fetch/poll helpers those pages kept rewriting.
@@ -11,8 +11,8 @@ It's plain CSS and one plain script: no build step, no dependencies, no framewor
 |---|---|
 | `index.html` | every component, with made-up data, light and dark |
 | `examples/overview.html` | an agent-dash style page: top-bar limits, a collapsible sidebar, donut, gauges, column chart, cards |
-| `examples/portfolio.html` | wallet and payout style: hero number, stats, toolbar, sortable paged table, editor dialog, live updates |
-| `examples/fleet.html` | burst-dash and bm-dash style: status banner, node cards, timeline lanes, leaderboard with node rows and a drawer |
+| `examples/portfolio.html` | balances and payout style: hero number, stats, toolbar, sortable paged table, editor dialog, live updates |
+| `examples/fleet.html` | fleet and leaderboard style: status banner, server cards, timeline lanes, leaderboard with server rows and a drawer |
 | `examples/login.html` | the sign-in page |
 | `examples/starter.html` | the smallest useful page; copy it to start a new dashboard |
 
@@ -56,7 +56,7 @@ ssh -L 8096:127.0.0.1:8096 <this server>         # from your machine, then open 
 
 Single-file dashboards, like agent-dash's `dashboard.html`, can paste `dash.css` into their `<style>` and `dash.js` into a `<script>`; nothing in either file refers to the other or to a path.
 
-**Copies and versions:** a dashboard keeps its own copy of the two files (the wallet dashboard has them in `public/dash-ui/`). The first line of each file names the version, and `CHANGELOG.md` says what each version added. Versions only add things, so a newer copy can replace an older one. When a page needs something the kit lacks, add it here, then copy the files again; don't edit a copy.
+**Copies and versions:** a dashboard keeps its own copy of the two files (the balances dashboard has them in `public/dash-ui/`). The first line of each file names the version, and `CHANGELOG.md` says what each version added. Versions only add things, so a newer copy can replace an older one. When a page needs something the kit lacks, add it here, then copy the files again; don't edit a copy.
 
 ## The look
 
@@ -81,9 +81,9 @@ Surfaces and text: `--bg`, `--card`, `--soft` (a block inside a card, table head
 | `blue` | `#2158d4` | `#7ba7ff` | working, links, focus, selection, default bars |
 | `ok` | `#16803c` | `#4ade80` | healthy, paid, up |
 | `warn` | `#b45309` | `#f0b04a` | stale, probation, outside the cut |
-| `bad` | `#c81e1e` | `#ff7d7d` | errors, bursts, banned, down |
+| `bad` | `#c81e1e` | `#ff7d7d` | errors, incidents, blocked, down |
 | `orange` | `#c2410c` | `#ff9b55` | needs you (agent-dash's "waiting"; deliberately not `warn`) |
-| `teal` | `#0f766e` | `#42d3bf` | staked, alpha, running |
+| `teal` | `#0f766e` | `#42d3bf` | a second series, running |
 | `purple` | `#6d3fd1` | `#b79dff` | shell |
 | `pink` | `#b5179e` | `#f28fd8` | ultra |
 | `gold` `silver` `bronze` | `#a16207` … | `#f0c04a` … | medals, USD |
@@ -104,16 +104,16 @@ Surfaces and text: `--bg`, `--card`, `--soft` (a block inside a card, table head
 
 | dash-ui | was |
 |---|---|
-| `--ok` | `--green` (payout, bm-dash) |
-| `--bad` | `--red` (payout, bm-dash), `--hot` (burst-dash), `--error` (agent-dash) |
-| `--warn` | `--amber` (payout, bm-dash) |
-| `--teal` | `--running` (agent-dash), `--alpha` (payout), `--staked` (wallet) |
+| `--ok` | `--green` (payout, leaderboard) |
+| `--bad` | `--red` (payout, leaderboard), `--hot` (fleet), `--error` (agent-dash) |
+| `--warn` | `--amber` (payout, leaderboard) |
+| `--teal` | `--running` (agent-dash), the second series colour (payout, balances) |
 | `--purple` | `--shell` (agent-dash) |
 | `--orange` | `--waiting` (agent-dash) |
-| `--blue` | `--busy` (agent-dash), `--free` (wallet) |
+| `--blue` | `--busy` (agent-dash), the first series colour (balances) |
 | `--pink` | `--ultra` (agent-dash) |
 | `--gold` | `--usd` (payout) |
-| `--mono` | `--font-mono` (payout, bm-dash) |
+| `--mono` | `--font-mono` (payout, leaderboard) |
 
 ## Layout
 
@@ -141,7 +141,7 @@ Surfaces and text: `--bg`, `--card`, `--soft` (a block inside a card, table head
 - `.stat`: `.label`, `.value` (with `small` for a unit) and `.note` (one line; `.note.wrap` may run to two). A `button.stat` can be clicked. `.stats.fixed` puts exactly `--stat-cols` (4) tiles across, two from 900 px down.
 - `.hero` and `.big`: the one big number on the page, with `.hero-line` under it.
 - `.ring`: an orange ring for something that needs attention. Add a tone to change the colour: `.ring bad`.
-- `.banner`: the status line with a big dot. `.active` pulses, so `.banner.active.bad` means a burst is on now. It holds `.badge`, `.banner-title` and `.banner-text`.
+- `.banner`: the status line with a big dot. `.active` pulses, so `.banner.active.bad` means an incident is on now. It holds `.badge`, `.banner-title` and `.banner-text`.
 - `.callout`: a soft block, or a tinted one with a tone, with a `.callout-title`. `.callout.solid` is coloured text on its own.
 - `.kv`: a definition grid. `.facts` is a line of facts with dots between them.
 - `.empty`, `.empty.boxed` (dashed) and `.empty-title`: empty states.
@@ -153,7 +153,7 @@ Surfaces and text: `--bg`, `--card`, `--soft` (a block inside a card, table head
 - `.rank`: "#2 of 14", in medal colours for the top three (`Dash.rank` builds it).
 - `.chip`: a pill with a border. A `button.chip` with `aria-pressed` is a choice. Group them in `.chips`, or `.chips.scroll` for one sideways-scrolling line.
 - `.chg` with `.up`, `.down` or `.flat`: a signed change in its colour.
-- Text utilities: `.muted`, `.faint`, `.strong`, `.sub`, `.mono`, `.num`, `.unit` (a unit after a number: `12.5 <span class="unit">τ</span>`), `.ellipsis`, `.clamp` (`--lines`), `.invisible` (hidden, keeps its space), `kbd`, `code`.
+- Text utilities: `.muted`, `.faint`, `.strong`, `.sub`, `.mono`, `.num`, `.unit` (a unit after a number: `12.5 <span class="unit">ms</span>`), `.ellipsis`, `.clamp` (`--lines`), `.invisible` (hidden, keeps its space), `kbd`, `code`.
 
 **Controls**
 - `.btn`: also `.primary` (text-coloured; `.primary.blue` for a blue one), `.ghost`, `.danger`, `.sm`, `.round` and `.block`. `.btn.busy` spins its icon.
@@ -162,7 +162,7 @@ Surfaces and text: `--bg`, `--card`, `--soft` (a block inside a card, table head
 - `.seg`: a segmented control.
   - Buttons with `aria-pressed` are a choice; links with `aria-current="page"` are views.
   - `.seg.lg` is for top-bar view tabs.
-  - `.seg.solid` is the bordered look from the payout and bm dashboards.
+  - `.seg.solid` is the bordered look from the payout and leaderboard dashboards.
   - A `<span>` inside a button holds a count.
 - `.input`: text, select and textarea. `.input.mono` is for addresses.
 - `.search` wraps an `.input` with an icon `svg` and an optional `.count`.
@@ -172,7 +172,7 @@ Surfaces and text: `--bg`, `--card`, `--soft` (a block inside a card, table head
 
 **Tables**
 - `.table` inside a `.panel` has a rounded header strip. Wrap it in `.table-wrap` to make the table its own card.
-- Sort headers: `<th aria-sort="descending"><button data-sort="key">` (`Dash.th` writes these). `th.num` and `td.num` align right. A `.unit` in a header isn't uppercased, so τ stays τ.
+- Sort headers: `<th aria-sort="descending"><button data-sort="key">` (`Dash.th` writes these). `th.num` and `td.num` align right. A `.unit` in a header isn't uppercased, so ms stays ms.
 - `.table.compact`: 8 px between columns instead of 12, for a table with many of them.
 - `td.actions` (and `th.actions`): a row's buttons, at the right and as narrow as they are. On a stacked card they sit in its top-right corner; `--actions-w` on the table (96 px) keeps the title clear of them.
 - Row states:
@@ -198,7 +198,7 @@ Surfaces and text: `--bg`, `--card`, `--soft` (a block inside a card, table head
 - `.donut` beside a `.legend.list`, in `.donut-wrap`.
 - `.gauges`, `.gauge`: half-circle gauges.
 - `.spark`: a sparkline, with `.spark-labels` under it.
-- `.lanes`: the burst-dash timeline. `.lane-label`, then a `.lane` with `.span` (a run) and `.mark` (a burst) placed with `left:%`, then a `.lane-axis`.
+- `.lanes`: the fleet dashboard's timeline. `.lane-label`, then a `.lane` with `.span` (a run) and `.mark` (an event) placed with `left:%`, then a `.lane-axis`.
 
 **Feedback**
 - `.toast` (`Dash.toast`): a short message at the bottom.
@@ -223,11 +223,11 @@ Builders return HTML strings, with every value escaped. Put them in with `innerH
 | `Dash.fmt.amount(n, d=4)`, `.signed(n, d=4)`, `.signedUsd(n, d?)`, `.dir(n, eps)` | `<0.0001`; `+1.2345` / `−0.0100` / `0`; `+$733` (`+$732.60` with `d` 2); `'up'` / `'down'` / `'flat'` |
 | `Dash.fmt.dur(ms)`, `.span(ms)`, `.ago(t)` | `3h 5m`; `2.7 h`; `just now` / `40 s ago` / `12 min ago` / `2.5 h ago` / `3 d ago` |
 | `Dash.fmt.clock(t)`, `.when(t)`, `.utc(t)` | `14:05`; `Nov 21, 14:05`; `Nov 21, 02:22 UTC` (ms, Date or ISO string) |
-| `Dash.fmt.short(s, 6, 6)`, `.plural(n, word)` | `5DemoP…GiaVwn`; `23 nodes` |
+| `Dash.fmt.short(s, 6, 6)`, `.plural(n, word)` | `acct_7…k2m9xq`; `23 servers` |
 | `Dash.pill(text, tone)`, `Dash.tag(text, tone)`, `Dash.chg(v, text, { eps, title })`, `Dash.rank(pos, of)`, `Dash.copyButton(text)` | small labels (`eps`: a change this small is flat) |
-| `Dash.sortBy(rows, key or fn, 'asc'/'desc')` | sorted copy: numbers as numbers, text by locale (`node-2` before `node-10`), blanks last both ways |
+| `Dash.sortBy(rows, key or fn, 'asc'/'desc')` | sorted copy: numbers as numbers, text by locale (`web-2` before `web-10`), blanks last both ways |
 | `Dash.sorter({ key, dir, store, firstDir })` | sort state: `.toggle(key)` flips or switches, `.apply(rows, getters)`, remembered under `store` |
-| `Dash.th(label, key, sort, { num, title, cls, unit, mark })` | a sortable header cell; `unit: 'τ'` after the label; `mark: false` for a second column with the same sort key; `key` null for a plain header |
+| `Dash.th(label, key, sort, { num, title, cls, unit, mark })` | a sortable header cell; `unit: 'ms'` after the label; `mark: false` for a second column with the same sort key; `key` null for a plain header |
 | `Dash.paginate(rows, page, perPage)`, `Dash.pager(p, { noun, sizes })`, `Dash.pageItems(page, pages)` | one page of rows; the pager (`[data-page]` clicks, `[data-per-page]` changes) |
 | `Dash.bar(frac, tone)`, `Dash.meter(frac, tone)`, `Dash.split(parts)`, `Dash.legend(items, { list, button })` | bars and legends (`parts`/`items`: `{ value, tone, label }`) |
 | `Dash.hbars(rows, { max, format, button })` | `{ label, value, tone, text, key }` per row |
@@ -259,12 +259,12 @@ Builders return HTML strings, with every value escaped. Put them in with `innerH
 | piece | from |
 |---|---|
 | tokens, `--c` tints, pills, dots, tags, callouts, sidebar and rail, donut, gauges, column chart, hbars, notices | agent-dash (`dashboard.html`) |
-| `data-theme` light/dark, banner, stats, cards, timeline lanes, table header strip, blurred IPs, sign-in with an error box | burst-dash |
-| hero, split bar, 24 h change pills, toolbar and search, switch, dialog editor, toast, flash, stacked phone rows | wallet dashboard |
+| `data-theme` light/dark, banner, stats, cards, timeline lanes, table header strip, blurred IPs, sign-in with an error box | fleet dashboard |
+| hero, split bar, 24 h change pills, toolbar and search, switch, dialog editor, toast, flash, stacked phone rows | balances dashboard |
 | pager and page numbers, chips, solid segmented control, ETag fetch, sparkline | payout dashboard |
-| sticky table header under the top bar, medals, banned tag, node sub-rows, drawer, skeletons, copy-hotkey feedback | bm-dash |
+| sticky table header under the top bar, medals, blocked tag, sub-rows, drawer, skeletons, copy feedback | leaderboard dashboard |
 
-Where the dashboards disagreed, this kit follows agent-dash and the wallet dashboard, which the user praised:
+Where the dashboards disagreed, this kit follows agent-dash and the balances dashboard, which the user praised:
 
 - the soft segmented control is the default (`.seg.solid` keeps the other look);
 - `.dot` is 8 px (9 px in `.live`);

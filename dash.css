@@ -1,4 +1,4 @@
-/* dash-ui 1.1.0: the look shared by agent-dash, burst-dash, bm-dash, the payout dashboard and the wallet dashboard.
+/* dash-ui 1.1.0: the look shared by my dashboards (agents, fleet, leaderboard, payouts, balances).
    Warm neutral backgrounds, white panels, tinted status colours, light and dark from the system setting
    (or data-theme="light|dark" on <html>). No build step, no dependencies: link this file, or paste it into a page.
 
@@ -58,7 +58,7 @@ a { color: var(--blue); text-underline-offset: 3px; }
 .muted { color: var(--muted); }
 .faint { color: var(--faint); }
 .invisible { visibility: hidden; } /* keeps its space, e.g. an .icon-btn-sized gap where a row has no button */
-.unit { color: var(--muted); font-weight: 500; } /* a unit after a number or in a header: 12.5 <span class="unit">τ</span> */
+.unit { color: var(--muted); font-weight: 500; } /* a unit after a number or in a header: 12.5 <span class="unit">ms</span> */
 .strong { color: var(--text); font-weight: 600; }
 .sub { color: var(--muted); font-size: 13px; }
 .ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -302,7 +302,7 @@ button.chip[aria-pressed="true"] span { color: inherit; opacity: .75; }
 .seg [aria-pressed="true"], .seg [aria-current="page"], .seg [aria-selected="true"] { background: var(--card); color: var(--text); box-shadow: 0 1px 2px rgb(0 0 0 / .1); }
 .seg.lg { padding: 3px; border-radius: 10px; }
 .seg.lg button, .seg.lg a { padding: 5px 14px; border-radius: 8px; font-size: 14px; }
-/* the solid look (payout and bm dashboards): a bordered strip, the choice in the text colour */
+/* the solid look (the payout and leaderboard dashboards): a bordered strip, the choice in the text colour */
 .seg.solid { padding: 3px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
 .seg.solid [aria-pressed="true"], .seg.solid [aria-current="page"], .seg.solid [aria-selected="true"] { background: var(--text); color: var(--card); box-shadow: none; }
 .seg.solid [aria-pressed="true"] span { color: inherit; opacity: .75; }
@@ -366,7 +366,7 @@ details > summary:hover { color: var(--text); }
 .table th button { padding: 0; border: 0; background: none; color: inherit; font: inherit; letter-spacing: inherit; text-align: inherit; text-transform: inherit; }
 .table th button:hover { color: var(--text); }
 .table th[aria-sort] { color: var(--text); }
-.table thead .unit { text-transform: none; letter-spacing: 0; } /* τ stays τ, not Τ */
+.table thead .unit { text-transform: none; letter-spacing: 0; } /* ms stays ms, not MS */
 /* .table.compact: tighter columns (8px each side) for a table with many of them */
 .table.compact { --cell-x: 8px; }
 :where(.table.compact) :is(th, td):first-child { padding-left: 14px; }
@@ -384,7 +384,7 @@ details > summary:hover { color: var(--text); }
 .table tr.marked td:first-child { box-shadow: inset 3px 0 0 var(--c); }
 :where(.table tr.marked) { --c: var(--blue); }
 .table tr.dim td { opacity: .55; }
-/* rows that belong to the row above (nodes under a miner, stakes under a wallet) */
+/* rows that belong to the row above (servers under a service, holdings under an account) */
 .table tr.sub td { padding-top: 6px; padding-bottom: 6px; background: color-mix(in srgb, var(--soft) 55%, var(--card)); color: var(--muted); font-size: 13px; }
 /* a heading row inside the body, and a dashed cut line */
 .table tr.group td { padding: 12px 12px 8px; background: var(--soft); color: var(--text); font-size: 13.5px; font-weight: 600; border-top: 1px solid var(--line); }
@@ -595,7 +595,7 @@ button.hbar:hover { background: var(--soft); }
   .grid > .span-2 { grid-column: auto; }
   .stats.fixed { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-/* .table.stack.stack-md: the same cards from 900 px down, for a table too wide for a tablet (the wallet dashboard's).
+/* .table.stack.stack-md: the same cards from 900 px down, for a table too wide for a tablet (the balances dashboard's).
    Keep these rules equal to the .table.stack ones below; a test compares them. */
 @media (max-width: 900px) {
   .table.stack-md thead { display: none; }

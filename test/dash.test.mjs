@@ -52,7 +52,7 @@ test('signed changes and their direction', () => {
   assert.equal(fmt.signedUsd(-0.004), '$0.00');
   assert.deepEqual([1, -1, 0, null].map((v) => fmt.dir(v)), ['up', 'down', 'flat', 'flat']);
   assert.equal(fmt.dir(0.00001, 0.00005), 'flat');
-  assert.equal(Dash.chg(-2, '−2 τ'), '<span class="chg down">−2 τ</span>');
+  assert.equal(Dash.chg(-2, '−2 GB'), '<span class="chg down">−2 GB</span>');
 });
 
 test('durations and times (milliseconds)', () => {
@@ -72,17 +72,17 @@ test('durations and times (milliseconds)', () => {
   assert.equal(fmt.utc(Date.UTC(2026, 10, 21, 2, 22)), 'Nov 21, 02:22 UTC');
   assert.equal(fmt.utc('2026-11-21T02:22:00Z'), 'Nov 21, 02:22 UTC');
   assert.equal(fmt.utc(null), '—');
-  assert.equal(fmt.short('5DemoP4mBncoyi8xS11ZJqzzoGs5CC4MyWwUcS6dRdGiaVwn'), '5DemoP…GiaVwn');
+  assert.equal(fmt.short('acct_7mbncoyi8xs11zjqzzogk2m9xq'), 'acct_7…k2m9xq');
   assert.equal(fmt.short('short'), 'short');
-  assert.equal(fmt.plural(1, 'node'), '1 node');
-  assert.equal(fmt.plural(1200, 'node'), '1,200 nodes');
+  assert.equal(fmt.plural(1, 'server'), '1 server');
+  assert.equal(fmt.plural(1200, 'server'), '1,200 servers');
 });
 
 test('sortBy: numbers, text, nulls last both ways, stable', () => {
   const rows = [{ k: 'b', v: 2 }, { k: 'a', v: null }, { k: 'c', v: 10 }, { k: 'd', v: 2 }, { k: 'e', v: '' }];
   assert.deepEqual(Dash.sortBy(rows, 'v', 'desc').map((r) => r.k), ['c', 'b', 'd', 'a', 'e']);
   assert.deepEqual(Dash.sortBy(rows, 'v', 'asc').map((r) => r.k), ['b', 'd', 'c', 'a', 'e']);
-  assert.deepEqual(Dash.sortBy([{ n: 'node-10' }, { n: 'Node-9' }, { n: 'node-2' }], 'n', 'asc').map((r) => r.n), ['node-2', 'Node-9', 'node-10']);
+  assert.deepEqual(Dash.sortBy([{ n: 'web-10' }, { n: 'Web-9' }, { n: 'web-2' }], 'n', 'asc').map((r) => r.n), ['web-2', 'Web-9', 'web-10']);
   assert.deepEqual(Dash.sortBy(rows, (r) => r.k.charCodeAt(0), 'asc').map((r) => r.k), ['a', 'b', 'c', 'd', 'e']);
   assert.equal(rows[0].k, 'b', 'the input is not reordered');
 });
@@ -109,8 +109,8 @@ test('paging', () => {
   assert.deepEqual([p.page, p.pages, p.from, p.to, p.total, p.rows.length], [3, 3, 21, 23, 23, 3]);
   assert.equal(Dash.paginate(rows, 99, 10).page, 3, 'page clamped to the last');
   assert.equal(Dash.paginate([], 1).from, 0);
-  const html = Dash.pager(p, { noun: 'node' });
-  assert.match(html, /21–23 of 23 nodes/);
+  const html = Dash.pager(p, { noun: 'server' });
+  assert.match(html, /21–23 of 23 servers/);
   assert.match(html, /aria-label="Page 3" aria-current="page"/);
   assert.match(html, /aria-label="Next page" disabled/);
   assert.equal(Dash.pager(Dash.paginate([], 1)), '');
@@ -125,7 +125,7 @@ test('builders escape their text', () => {
   assert.match(Dash.hbars([{ label: '<x>', value: 1 }]), /&lt;x&gt;/);
   assert.match(Dash.bars([{ label: '<x>', value: 1 }]), /&lt;x&gt;/);
   assert.equal(Dash.maskIps('<b> 203.0.113.10'), '&lt;b&gt; <span class="ip" data-ip="203.0.113.10" role="button" tabindex="0" aria-label="IP address, hidden. Press to show it" title="Click to show the IP">203.0.113.10</span>');
-  assert.equal(Dash.hideIps('node on 203.0.113.10'), 'node on (IP hidden)');
+  assert.equal(Dash.hideIps('web-1 on 203.0.113.10'), 'web-1 on (IP hidden)');
 });
 
 test('charts: sizes and shares are right', () => {
@@ -167,8 +167,8 @@ test('1.1 options: signedUsd digits, chg eps and title, th unit / mark / plain',
   assert.equal(fmt.signedUsd(-0.6, 0), '−$1');
   assert.equal(fmt.signedUsd(0.4, 0), '$0');
   assert.equal(Dash.chg(0.00003, '+0', { eps: 0.00005 }), '<span class="chg flat">+0</span>');
-  assert.equal(Dash.chg(-2, '−2', { title: 'free <1> · staked' }), '<span class="chg down" title="free &lt;1&gt; · staked">−2</span>');
-  assert.equal(Dash.th('Free', 'free', sort, { num: true, unit: 'τ' }), '<th class="num"><button type="button" data-sort="free">Free <span class="unit">τ</span></button></th>');
+  assert.equal(Dash.chg(-2, '−2', { title: 'cash <1> · invested' }), '<span class="chg down" title="cash &lt;1&gt; · invested">−2</span>');
+  assert.equal(Dash.th('Latency', 'p95', sort, { num: true, unit: 'ms' }), '<th class="num"><button type="button" data-sort="p95">Latency <span class="unit">ms</span></button></th>');
   assert.equal(Dash.th('Value', 'total', sort, { num: true, unit: '$', mark: false }), '<th class="num"><button type="button" data-sort="total">Value <span class="unit">$</span></button></th>');
   assert.equal(Dash.th('Share', null, sort, { title: 'of <all>' }), '<th title="of &lt;all&gt;">Share</th>');
   assert.equal(Dash.th('<b>', 'k', null, { unit: '<i>' }), '<th><button type="button" data-sort="k">&lt;b&gt; <span class="unit">&lt;i&gt;</span></button></th>');
