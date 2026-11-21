@@ -8,7 +8,7 @@
 <script src="../dash.js"></script>
 </head>
 <body>
-<!-- the smallest useful page: copy this file, point the two links at dash.css and dash.js, and replace load() -->
+<!-- the smallest useful page: copy this file, point the two links at dash.css and dash.js, and fetch your data in Dash.poll -->
 <header class="topbar">
   <div class="brand"><span class="mark">M</span><h1>My dashboard</h1></div>
   <span class="sub">what this page watches</span>
@@ -24,42 +24,33 @@
 </main>
 
 <script>
-  const { $, esc, fmt } = Dash;
+  const { esc, fmt } = Dash;
   const sort = Dash.sorter({ key: 'value', dir: 'desc', store: 'starter.sort', firstDir: { name: 'asc' } });
   let items = [];
 
-  // replace with: items = await Dash.api('api/items');
-  async function load() {
-    items = [
+  function render() {
+    Dash.render('stats', [
+      ['Items', fmt.int(items.length)],
+      ['Total', fmt.num(items.reduce((s, i) => s + i.value, 0), 1)],
+      ['Problems', fmt.int(items.filter((i) => i.status !== 'ok').length)],
+    ].map(([k, v]) => `<div class="stat"><div class="label">${esc(k)}</div><div class="value">${esc(v)}</div></div>`).join(''));
+    Dash.render('count', fmt.plural(items.length, 'item'));
+    Dash.render('table', `<thead><tr>${Dash.th('Name', 'name', sort)}${Dash.th('Value', 'value', sort, { num: true })}<th>Status</th>${Dash.th('Updated', 'at', sort, { num: true })}</tr></thead><tbody>`
+      + sort.apply(items).map((i) => `<tr><td class="main" data-label="Name">${esc(i.name)}</td><td class="num" data-label="Value">${fmt.num(i.value, 1)}</td>`
+        + `<td data-label="Status">${Dash.pill({ ok: 'Healthy', warn: 'Slow', bad: 'Down' }[i.status], i.status)}</td><td class="num" data-label="Updated">${fmt.ago(i.at)}</td></tr>`).join('')
+      + '</tbody>');
+  }
+  Dash.on('table', 'click', '[data-sort]', (e, b) => { sort.toggle(b.dataset.sort); render(); });
+
+  // every 15 s; the live status in the top bar follows on its own (Live, the error, or stale)
+  Dash.poll(async () => {
+    items = [ // replace with: items = await Dash.api('api/items');
       { name: 'atlas', value: 1234.5, status: 'ok', at: Date.now() - 40e3 },
       { name: 'boreal', value: 88.2, status: 'warn', at: Date.now() - 9 * 60e3 },
       { name: 'cirrus', value: 0, status: 'bad', at: Date.now() - 3 * 3600e3 },
     ];
-  }
-
-  function render() {
-    $('stats').innerHTML = [
-      ['Items', fmt.int(items.length)],
-      ['Total', fmt.num(items.reduce((s, i) => s + i.value, 0), 1)],
-      ['Problems', fmt.int(items.filter((i) => i.status !== 'ok').length)],
-    ].map(([k, v]) => `<div class="stat"><div class="label">${esc(k)}</div><div class="value">${esc(v)}</div></div>`).join('');
-    $('count').textContent = fmt.plural(items.length, 'item');
-    $('table').innerHTML = `<thead><tr>${Dash.th('Name', 'name', sort)}${Dash.th('Value', 'value', sort, { num: true })}<th>Status</th>${Dash.th('Updated', 'at', sort, { num: true })}</tr></thead><tbody>`
-      + sort.apply(items).map((i) => `<tr><td class="main" data-label="Name">${esc(i.name)}</td><td class="num" data-label="Value">${fmt.num(i.value, 1)}</td>`
-        + `<td data-label="Status">${Dash.pill({ ok: 'Healthy', warn: 'Slow', bad: 'Down' }[i.status], i.status)}</td><td class="num" data-label="Updated">${fmt.ago(i.at)}</td></tr>`).join('')
-      + '</tbody>';
-  }
-  Dash.on('table', 'click', '[data-sort]', (e, b) => { sort.toggle(b.dataset.sort); render(); });
-
-  Dash.poll(async () => {
-    try {
-      await load();
-      render();
-      Dash.live('live', 'on', 'Live', 'Updated ' + fmt.clock(Date.now()));
-    } catch (err) {
-      Dash.live('live', 'off', `Can’t reach the server (${err.message}), retrying…`);
-    }
-  }, 15000);
+    render();
+  }, 15000, { live: 'live' });
 </script>
 </body>
 </html>

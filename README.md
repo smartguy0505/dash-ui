@@ -43,18 +43,23 @@ ssh -L 8096:127.0.0.1:8096 <this server>         # from your machine, then open 
     <div class="panel"><div class="panel-head"><h3>Items</h3></div><table class="table stack" id="table"></table></div>
   </main>
   <script>
-    Dash.poll(async () => {
-      const items = await Dash.api('api/items');
-      // … render with Dash.esc / Dash.fmt …
-      Dash.live('live', 'on', 'Live');
-    }, 15000);
+    Dash.poll(async () => {                        // now, then every 15 s, again when the tab comes back
+      const items = await Dash.api('api/items');   // a failure shows in the top bar; it keeps retrying
+      Dash.render('table', items.map((i) => `<tr><td>${Dash.esc(i.name)}</td></tr>`).join(''));
+    }, 15000, { live: 'live' });                   // live: the top bar's status follows by itself
   </script>
 </body>
 ```
 
-`examples/starter.html` is this page, working.
+`examples/starter.html` is this page, working (with a sortable table and stat tiles).
 
-Single-file dashboards, like agent-dash's `dashboard.html`, can paste `dash.css` into their `<style>` and `dash.js` into a `<script>`; nothing in either file refers to the other or to a path.
+Three habits keep a dashboard short:
+
+- **`Dash.render(id, html)` instead of `innerHTML =`** for anything that refreshes. It writes only when the HTML changed, waits while the reader is selecting text there, and keeps the focused control (and what's typed in it), open `<details>` and inner scroll positions. Give elements that should keep their state an `id` or a `data-key`. Pass `{ force: true }` to write anyway.
+- **`Dash.poll(fn, ms, { live: 'live' })`** runs the top bar's status for you: Connecting…, Live, the error (and it keeps retrying), or "No update since 14:05" when updates stop.
+- **Attributes instead of handlers:** `data-copy`, `data-toggle-side`, `data-theme-set` and `data-dismiss` work with no code (see the end of the dash.js section).
+
+**A page that must be one file** (a server that sends only the page): put `<style id="dash-ui-css"></style>` and `<script id="dash-ui-js"></script>` in its `<head>`, then run `python3 tools/paste.py page.html` to fill them, and again after the kit changes. `--check` says whether a page's copy is current. Nothing in either file refers to the other or to a path.
 
 **Copies and versions:** a dashboard keeps its own copy of the two files (the balances dashboard has them in `public/dash-ui/`). The first line of each file names the version, and `CHANGELOG.md` says what each version added. Versions only add things, so a newer copy can replace an older one. When a page needs something the kit lacks, add it here, then copy the files again; don't edit a copy.
 
@@ -119,14 +124,14 @@ Surfaces and text: `--bg`, `--card`, `--soft` (a block inside a card, table head
 
 | class | what |
 |---|---|
-| `.topbar` | Slim, sticky top bar (static on phones). Holds `.brand` (`.mark` logo square, `h1`), `.sub`, `.top-right` (pushed right), `.top-link`, `.live`, `.topstat` (a reading with a `.meter`). |
+| `.topbar` | Slim, sticky top bar (static on phones; `.topbar.static-md` is static from 900 px down, for a page whose sidebar stacks on top there). Holds `.brand` (`.mark` logo square, `h1`), `.sub`, `.top-right` (pushed right), `.top-link`, `.live`, `.topstat` (a reading with a `.meter`). |
 | `.page` | The content column: 1320 px max, 24 px gutters. `.page.wide` is 1480 px, `.page.narrow` 1000 px. |
 | `.page-head`, `.page-title`, `.page-note` | Page heading, 22 px. |
 | `.section`, `.section-head`, `.section-title`, `.kicker` | Sections with small uppercase titles. |
 | `.shell` > `.sidebar` + `.content` | Sidebar layout. `.shell.collapsed` makes the sidebar a rail of icons; a `[data-toggle-side]` button switches it and it's remembered. Inside: `.side-head`, `.count-badge`, `.nav-item` (`.nav-icon`, `.nav-main` › `.nav-name` + `.nav-sub`, `.nav-meta`; `aria-current="true"` marks the selected item, `.attn` tints it). |
-| `.grid` | Equal columns: `style="--cols:3"`, `.span-2`. One column below 900 px. |
+| `.grid` | Equal columns: `style="--cols:3"`, `.span-2`. One column below 900 px. Panels in a grid of your own: add `grid` to it too, so the panels lose the margin they get when stacked. |
 | `.cards` | Auto-filling card grid, `--card-min` (300 px) per card. |
-| `.stats` | Auto-fitting stat tiles, `--stat-min` (180 px); two across on a phone. |
+| `.stats` | Auto-fitting stat tiles, `--stat-min` (180 px); two across on a phone (`--stat-min-sm`, 140 px; `100%` for one per row). |
 | `.toolbar` | Search, filters and buttons above a table. |
 | `.row`, `.vstack`, `.grow`, `.push` | Flex row, vertical stack, fill, push right. |
 | `.footer` | Muted small print. |
@@ -165,7 +170,7 @@ Surfaces and text: `--bg`, `--card`, `--soft` (a block inside a card, table head
   - `.seg.solid` is the bordered look from the payout and leaderboard dashboards.
   - A `<span>` inside a button holds a count.
 - `.input`: text, select and textarea. `.input.mono` is for addresses.
-- `.search` wraps an `.input` with an icon `svg` and an optional `.count`.
+- `.search` wraps an `.input` with an icon `svg` and an optional `.count` (typed text stops 100 px from the right; `--count-w` for a longer count).
 - `.field`: a label, an `.input`, then `.hint` or `.err`. `.field.invalid` turns it red.
 - `.switch`: `<label class="switch"><input type="checkbox"><span class="track"></span> Label</label>`.
 - `.checkline`, and `details > summary`.
@@ -192,7 +197,7 @@ Surfaces and text: `--bg`, `--card`, `--soft` (a block inside a card, table head
 - `.legend`: `.legend-item` (an `i` swatch, a name and `b` for the value). `.legend.list` puts one per line.
 - `.hbars`: a list of horizontal bars. `--hb-label` and `--hb-value` set the column widths.
 - `.chart`: a column chart with a value axis.
-  - Hovering a column puts its `title` in the `.chart-read` line above.
+  - `Dash.bars(points, { read: 'Total 2.1M' })` adds a `.chart-read` line above it: hovering a column shows that column's `title` there, and the text comes back when the pointer leaves.
   - A `.partial` column is the hour still running.
   - Inside a `.panel` under 480 px, the `.minor` x labels hide.
 - `.donut` beside a `.legend.list`, in `.donut-wrap`.
@@ -224,31 +229,33 @@ Builders return HTML strings, with every value escaped. Put them in with `innerH
 | `Dash.fmt.dur(ms)`, `.span(ms)`, `.ago(t)` | `3h 5m`; `2.7 h`; `just now` / `40 s ago` / `12 min ago` / `2.5 h ago` / `3 d ago` |
 | `Dash.fmt.clock(t)`, `.when(t)`, `.utc(t)` | `14:05`; `Nov 21, 14:05`; `Nov 21, 02:22 UTC` (ms, Date or ISO string) |
 | `Dash.fmt.short(s, 6, 6)`, `.plural(n, word)` | `acct_7…k2m9xq`; `23 servers` |
-| `Dash.pill(text, tone)`, `Dash.tag(text, tone)`, `Dash.chg(v, text, { eps, title })`, `Dash.rank(pos, of)`, `Dash.copyButton(text)` | small labels (`eps`: a change this small is flat) |
+| `Dash.pill(text, tone)`, `Dash.tag(text, tone)`, `Dash.chg(v, text, { eps, title })`, `Dash.rank(pos, of)` | small labels (`eps`: a change this small is flat) |
+| `Dash.copyButton(text, label, { quiet })` | a Copy button; it still says "Copied ✓" if a refresh redraws it in that moment; `quiet`: no toast |
 | `Dash.sortBy(rows, key or fn, 'asc'/'desc')` | sorted copy: numbers as numbers, text by locale (`web-2` before `web-10`), blanks last both ways |
 | `Dash.sorter({ key, dir, store, firstDir })` | sort state: `.toggle(key)` flips or switches, `.apply(rows, getters)`, remembered under `store` |
 | `Dash.th(label, key, sort, { num, title, cls, unit, mark })` | a sortable header cell; `unit: 'ms'` after the label; `mark: false` for a second column with the same sort key; `key` null for a plain header |
 | `Dash.paginate(rows, page, perPage)`, `Dash.pager(p, { noun, sizes })`, `Dash.pageItems(page, pages)` | one page of rows; the pager (`[data-page]` clicks, `[data-per-page]` changes) |
 | `Dash.bar(frac, tone)`, `Dash.meter(frac, tone)`, `Dash.split(parts)`, `Dash.legend(items, { list, button })` | bars and legends (`parts`/`items`: `{ value, tone, label }`) |
 | `Dash.hbars(rows, { max, format, button })` | `{ label, value, tone, text, key }` per row |
-| `Dash.bars(points, { height, ticks, labelEvery, minorEvery, format, max })` | column chart, `{ label, value, tone, title, partial }` per column |
+| `Dash.bars(points, { height, ticks, labelEvery, minorEvery, format, max, read })` | column chart, `{ label, value, tone, title, partial }` per column; `read`: a readout line for the hovered column |
 | `Dash.donut(segments, { center, sub })`, `Dash.gauge(frac, { name, sub, tone })`, `Dash.spark(values, { tone, height, area, labels })` | donut; gauge (ok → warn at 0.7 → bad at 0.9 unless a tone is given); sparkline |
 | `Dash.maskIps(text)`, `Dash.hideIps(text)` | blur IPv4 addresses (a click shows every copy of that address); `(IP hidden)` for tooltips |
 | `Dash.copy(text)` | clipboard with the old fallback for plain-HTTP pages; returns true/false |
 | `Dash.toast(msg, { tone, ms })` | short message |
 | `Dash.notify({ key, title, status, text, tone, onClick, ms, max })`, `Dash.notify.dismiss(key)` | alert in the corner |
 | `Dash.api(url, { method, json, etag, headers })` | fetch JSON. Errors carry `.status` and the server's `{ error }` text. A 401 goes to `Dash.config.loginUrl` when set. `etag: true` reuses the last body on a 304. |
-| `Dash.poll(fn, ms, { hiddenMs })` | run now and every `ms`, one at a time, again as soon as the tab is visible; `.now()`, `.stop()` |
+| `Dash.poll(fn, ms, { hiddenMs, live, staleAfter })` | run now and every `ms`, one at a time, again as soon as the tab is visible; `.now()`, `.stop()`. `live`: the id of a `.live` status it keeps right (stale after `staleAfter`, 3 × `ms`) |
+| `Dash.render(el, html, { force })` | refresh a part of the page without losing the reader's place (above); true when it wrote |
 | `Dash.socket(path, { onMessage, onState, retryMs })` | WebSocket that reconnects; close code 1008 goes to the login page |
 | `Dash.live(el, 'on'/'stale'/'off', text, title)` | the connection status |
-| `Dash.seg(el, { value, store, onChange })` | a `.seg` or `.chips` as one choice (`data-value` buttons); `.value`, `.set(v)` |
+| `Dash.seg(el, { value, store, onChange })` | a `.seg` or `.chips` as one choice (`data-value` buttons); `.value`, `.set(v)`. Reads a saved number or plain string too |
 | `Dash.theme.get/set/current()`, `Dash.color(name)` | light/dark; a token's current value (for a canvas) |
 | `Dash.flash(el)` | highlight a change |
 
 **Attributes that work with no code:**
-- `data-copy="text"`: copies the text, toasts "Copied", and the button says "Copied ✓" for a moment.
+- `data-copy="text"`: copies the text, toasts "Copied" (not with `data-quiet`), and the button says "Copied ✓" for a moment.
 - `data-theme-set`: switches light, dark or system.
-- `data-toggle-side`: collapses or expands the sidebar.
+- `data-toggle-side`: collapses or expands the sidebar, then fires `dash:side` on `document` (`e.detail.collapsed`) for a page that lays out by it.
 - `data-dismiss`: closes the dialog or drawer it's in, or removes the notice.
 - `.ip`: click or Enter shows that IP address everywhere on the page.
 
@@ -275,10 +282,12 @@ Where the dashboards disagreed, this kit follows agent-dash and the balances das
 
 1. Back up the page, then link `dash.css` and `dash.js` (or paste them in).
 2. Rename the colour variables with the table above, and delete the page's own `:root` blocks.
-3. Swap components one area at a time, checking with screenshots at 390, 860, 1200 and 1440 px in light and dark:
+3. Swap components one area at a time, checking with screenshots at 390, 860, 1200 and 1440 px in light and dark. Compare the old and the new page side by side with the same data: visible text, colours and column counts should match.
    - `.seg button.on` / `.active` become `aria-pressed="true"`;
    - `.leaderboard`, `.scroller` tables become `.table`;
-   - the page's own `esc`/`fmt*`/`ago`/`copy` helpers become `Dash.*`.
+   - the page's own `esc`/`fmt*`/`ago`/`copy` helpers become `Dash.*`;
+   - hand-written "keep focus / keep open details / don't refresh while selecting" code becomes `Dash.render`, and the try/catch around each fetch that sets the status becomes `Dash.poll(…, { live })`;
+   - a status that names a colour goes through a lookup table (`{ waiting: 'orange', … }[s] || 'idle'`), never straight into `class`: some status words are also kit classes (`.shell` is the sidebar layout).
 4. Keep the page's own `<style>` for what is really its own, such as a one-off grid of columns.
 
 ## Tests
@@ -289,7 +298,10 @@ node --test test/dash.test.mjs
 
 The tests cover the formatters, sorting, paging, escaping in every builder, and chart sizes. They also check that the two dark palettes in `dash.css` are equal, that every token has a dark value, and that every class used in the pages and in dash.js exists in `dash.css`. For layout, `test/screens.mjs` loads every page in headless Chromium at 390, 700, 860 and 1440 px, light and dark. It fails on a page wider than the window, a console error, or a stacked table whose rows aren't cards at the right widths (or whose `td.actions` left the card's corner). It needs Playwright, which the kit itself doesn't:
 
+`test/behaviour.mjs` checks in the same browser what a node test can't see: `Dash.render` keeping focus, typing, open details, scroll and a selection; the poll's live status; the chart readout; copy buttons across a redraw; the sidebar event; the search count; saved choices in `Dash.seg`; `.topbar.static-md` and phone tiles. `KIT=<dir>` serves `dash.css` and `dash.js` from another folder, to try a change.
+
 ```sh
 npm i --no-save playwright-core && npx playwright-core install --only-shell chromium
 npm run screens            # SHOTS=1 npm run screens also saves the screenshots to screens/
+npm run behaviour
 ```

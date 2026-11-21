@@ -237,7 +237,6 @@
     <div class="grid">
       <div class="panel">
         <div class="panel-head"><h3>Tokens per hour</h3><div class="seg" id="seg-hours"><button type="button" data-value="12">12 h</button><button type="button" data-value="24">24 h</button></div></div>
-        <div class="chart-read" id="bars-read">Total 2.1M · hover a bar</div>
         <div id="bars"></div>
       </div>
       <div class="panel">
@@ -414,10 +413,8 @@
   const hours = Dash.seg('seg-hours', { value: '24', onChange: renderBars });
   function renderBars() {
     const pts = HOURS.slice(-Number(hours.value)).map((x) => ({ label: String(x.h).padStart(2, '0') + ':00', value: x.v, partial: x.partial }));
-    $('bars').innerHTML = Dash.bars(pts, { labelEvery: 3, minorEvery: 6, ticks: 3 });
-    $('bars-read').textContent = `Total ${fmt.compact(pts.reduce((s, p) => s + p.value, 0))} · hover a bar`;
+    $('bars').innerHTML = Dash.bars(pts, { labelEvery: 3, minorEvery: 6, ticks: 3, read: `Total ${fmt.compact(pts.reduce((s, p) => s + p.value, 0))} · hover a bar` });
   }
-  Dash.on('bars', 'mouseover', '.chart-col', (e, c) => { $('bars-read').textContent = c.title; });
   renderBars();
 
   const STATUS = [{ label: 'Working', value: 5, tone: 'blue' }, { label: 'Needs you', value: 2, tone: 'orange' }, { label: 'Shell', value: 1, tone: 'purple' },

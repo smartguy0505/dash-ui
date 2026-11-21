@@ -1,4 +1,4 @@
-/* dash-ui 1.1.1 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
+/* dash-ui 1.2.0 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
    A plain script with no dependencies: a script tag for dash.js in <head> gives window.Dash, and puts the
    saved light/dark choice on the page before it paints. In Node, require('./dash.js') returns the same object
    (the parts that need a page are skipped).
@@ -8,7 +8,7 @@
 (function (root) {
   'use strict';
   const hasDom = typeof document !== 'undefined';
-  const Dash = { version: '1.1.1', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side' } };
+  const Dash = { version: '1.2.0', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side' } };
 
   // ---- basics
 
@@ -175,7 +175,14 @@
     const medal = ['', ' gold', ' silver', ' bronze'][pos] || '';
     return `<span class="rank${medal}"${title ? ` title="${esc(title)}"` : ''}>#${esc(pos)}${of ? `<span>of ${esc(of)}</span>` : ''}</span>`;
   };
-  Dash.copyButton = (text, label = 'Copy') => `<button type="button" class="btn sm" data-copy="${esc(text)}">${esc(label)}</button>`;
+  // a button that copies text (dash.js handles the click). It says "Copied ✓" for a moment, also when the page
+  // re-renders it in that moment. quiet: no "Copied" toast, the button alone says it.
+  const COPY_MS = 1400;
+  let lastCopy = { text: null, until: 0 };
+  Dash.copyButton = (text, label = 'Copy', { quiet = false } = {}) => {
+    const done = lastCopy.text === String(text) && Date.now() < lastCopy.until;
+    return `<button type="button" class="btn sm${done ? ' copied' : ''}" data-copy="${esc(text)}" data-label="${esc(label)}"${quiet ? ' data-quiet' : ''}>${done ? 'Copied ✓' : esc(label)}</button>`;
+  };
 
   // ---- tables: sorting and paging
 
@@ -288,7 +295,8 @@
     return 10 * p;
   };
   // column chart: [{ label, value, tone, title, partial }]; every Nth x label is shown (labelEvery), the rest only on hover
-  Dash.bars = (points, { height = 150, format = fmt.compact, max, ticks = 2, labelEvery = 1, minorEvery = 0 } = {}) => {
+  // read: a line above the chart that shows the hovered column's numbers, and this text otherwise (e.g. the total)
+  Dash.bars = (points, { height = 150, format = fmt.compact, max, ticks = 2, labelEvery = 1, minorEvery = 0, read } = {}) => {
     const top = max ?? Dash.niceMax(Math.max(0, ...points.map((p) => Number(p.value) || 0)));
     const grid = Array.from({ length: ticks }, (_, i) => {
       const v = (top * (i + 1)) / ticks;
@@ -307,7 +315,8 @@
       const minor = minorEvery && i % minorEvery !== 0 ? 'minor' : '';
       return `<span class="${[pos, minor].filter(Boolean).join(' ')}">${show ? `<b>${esc(p.label)}</b>` : ''}</span>`;
     }).join('');
-    return `<div class="chart"><div class="chart-plot" style="--chart-h:${height}px">${grid}<div class="chart-cols">${cols}</div></div><div class="chart-x">${xs}</div></div>`;
+    const head = read == null ? '' : `<div class="chart-read" data-default="${esc(read)}">${esc(read)}</div>`;
+    return `<div class="chart"${read == null ? '' : ' data-read'}>${head}<div class="chart-plot" style="--chart-h:${height}px">${grid}<div class="chart-cols">${cols}</div></div><div class="chart-x">${xs}</div></div>`;
   };
   // donut: [{ value, tone, label }] with a number in the middle
   Dash.donut = (segments, { center = '', sub = '', title = '' } = {}) => {
@@ -449,6 +458,49 @@
     for (const n of noticeBox.querySelectorAll('.notice')) if (n.dataset.notice === String(key)) n.remove();
   };
 
+  // ---- re-rendering without losing the reader's place
+
+  // Dash.render('list', html): put new HTML into a part of the page that refreshes. It
+  // - skips the write when the HTML is the same as last time (returns false);
+  // - skips it while the reader is selecting text in there (false; the next refresh tries again);
+  // - keeps the focused control (and what is typed in it, and the caret), which <details> are open, and how far
+  //   inner boxes are scrolled. Elements are matched by id, else data-key; a focused element with neither
+  //   is matched by its tag and data- attributes (a button with data-select="7" finds its new self).
+  // force: true writes anyway (after the reader clicked something, say). Returns true when it wrote.
+  const keyOf = (e) => (e.id ? '#' + e.id : e.dataset && e.dataset.key != null ? 'k:' + e.dataset.key : null);
+  const sigOf = (e) => e.tagName + [...e.attributes].filter((a) => a.name.startsWith('data-')).map((a) => `[${a.name}=${a.value}]`).sort().join('');
+  Dash.render = (target, html, { force = false } = {}) => {
+    const node = el(target);
+    if (!node) return false;
+    html = String(html);
+    if (!force && node.__dashHtml === html) return false;
+    const sel = getSelection();
+    if (!force && sel && !sel.isCollapsed && sel.rangeCount && (node.contains(sel.getRangeAt(0).commonAncestorContainer) || sel.containsNode(node, true))) return false;
+    const find = (k) => (k[0] === '#' ? node.querySelector('#' + CSS.escape(k.slice(1))) : node.querySelector(`[data-key="${CSS.escape(k.slice(2))}"]`));
+    const active = document.activeElement;
+    let focus = null;
+    if (active && active !== node && node.contains(active)) {
+      focus = { key: keyOf(active), sig: sigOf(active), tag: active.tagName };
+      if (active.tagName === 'TEXTAREA' || (active.tagName === 'INPUT' && /^(text|search|url|email|tel|password|number)$/.test(active.type))) focus.value = active.value;
+      try { if (typeof active.selectionStart === 'number') focus.caret = [active.selectionStart, active.selectionEnd]; } catch { /* not a text box */ }
+    }
+    const open = [...node.querySelectorAll('details')].map((d) => [keyOf(d), d.open]).filter(([k]) => k);
+    const scrolled = [...node.querySelectorAll('[id], [data-key]')].filter((e) => e.scrollTop || e.scrollLeft).map((e) => [keyOf(e), e.scrollTop, e.scrollLeft]);
+    node.innerHTML = html;
+    node.__dashHtml = html;
+    for (const [k, isOpen] of open) { const d = find(k); if (d && d.tagName === 'DETAILS') d.open = isOpen; }
+    for (const [k, top, left] of scrolled) { const e = find(k); if (e) { e.scrollTop = top; e.scrollLeft = left; } }
+    if (focus) {
+      const again = (focus.key && find(focus.key)) || [...node.querySelectorAll(focus.tag)].find((e) => sigOf(e) === focus.sig);
+      if (again) {
+        if (focus.value != null && 'value' in again) again.value = focus.value; // what the reader is typing
+        again.focus({ preventScroll: true });
+        if (focus.caret) try { again.setSelectionRange(...focus.caret); } catch { /* not a text box */ }
+      }
+    }
+    return true;
+  };
+
   // ---- talking to the server
 
   // fetch JSON. A 401 goes to Dash.config.loginUrl when one is set; other errors throw with .status and the
@@ -476,23 +528,43 @@
 
   // run fn now and then every ms, one run at a time; again right away when the tab comes back into view.
   // const poller = Dash.poll(refresh, 15000); poller.now(); poller.stop()
-  Dash.poll = (fn, ms, { hiddenMs = ms * 4 } = {}) => {
+  // live: the id of the top bar's live status. Dash.poll then keeps it right by itself: "Connecting…" until the
+  // first run, "Live" after each run that worked, the error after one that threw (it keeps retrying), and
+  // stale once no run has worked for staleAfter (default 3 × ms) while the page is in view.
+  Dash.poll = (fn, ms, { hiddenMs = ms * 4, live, staleAfter = ms * 3 } = {}) => {
     let timer = null;
     let running = false;
     let stopped = false;
+    let lastOk = 0;
+    let started = 0;
+    if (live && el(live) && !el(live).dataset.state) Dash.live(live, 'connecting', 'Connecting…');
     const run = async () => {
       clearTimeout(timer);
       if (running || stopped) return;
       running = true;
-      try { await fn(); } catch (err) { console.warn('Dash.poll:', err); } finally {
+      started = Date.now();
+      try {
+        await fn();
+        lastOk = Date.now();
+        if (live) Dash.live(live, 'on', 'Live', 'Updated ' + fmt.clock(lastOk));
+      } catch (err) {
+        console.warn('Dash.poll:', err);
+        if (live) Dash.live(live, 'off', `Can’t reach the server (${(err && err.message) || err}), retrying…`);
+      } finally {
         running = false;
         if (!stopped) timer = setTimeout(run, document.hidden ? hiddenMs : ms);
       }
     };
+    const staleTimer = live ? setInterval(() => {
+      const node = el(live);
+      // (a run that began just now, as when the tab comes back, gets its normal time first)
+      if (!node || document.hidden || !lastOk || node.dataset.state !== 'on' || Date.now() - lastOk <= staleAfter || (running && Date.now() - started < ms)) return;
+      Dash.live(live, 'stale', 'No update since ' + fmt.clock(lastOk), 'The last update that worked');
+    }, Math.min(ms, 5000)) : null;
     const onShow = () => { if (!document.hidden) run(); };
     document.addEventListener('visibilitychange', onShow);
     run();
-    return { now: run, stop() { stopped = true; clearTimeout(timer); document.removeEventListener('visibilitychange', onShow); } };
+    return { now: run, stop() { stopped = true; clearTimeout(timer); clearInterval(staleTimer); document.removeEventListener('visibilitychange', onShow); } };
   };
 
   // the live status in the top bar: Dash.live('live', 'on', 'Live') / 'stale' / 'off'
@@ -545,8 +617,12 @@
     const node = el(target);
     const buttons = () => [...node.querySelectorAll('[data-value]')];
     const values = buttons().map((b) => b.dataset.value);
-    let current = store && values.includes(Dash.store.get(store)) ? Dash.store.get(store)
-      : values.includes(value) ? value : (buttons().find((b) => b.getAttribute('aria-pressed') === 'true') || buttons()[0] || {}).dataset?.value;
+    // the saved choice: JSON (as Dash.store writes it), a number, or a plain string saved by an older page
+    let raw = null;
+    try { raw = store ? localStorage.getItem(store) : null; } catch { /* storage blocked */ }
+    const saved = raw == null ? undefined : [Dash.store.get(store), raw].map((v) => (v == null ? '' : String(v))).find((v) => values.includes(v));
+    let current = saved !== undefined ? saved
+      : value != null && values.includes(String(value)) ? String(value) : (buttons().find((b) => b.getAttribute('aria-pressed') === 'true') || buttons()[0] || {}).dataset?.value;
     const sync = () => buttons().forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.value === current)));
     sync();
     node.addEventListener('click', (e) => {
@@ -629,13 +705,22 @@
       } else if ((hit = t.closest('[data-theme-set]'))) {
         Dash.theme.set(hit.dataset.themeSet);
       } else if ((hit = t.closest('[data-copy]'))) {
-        const ok = await Dash.copy(hit.dataset.copy);
-        Dash.toast(ok ? 'Copied' : 'Couldn’t copy', { tone: ok ? '' : 'bad', ms: 1600 });
+        const text = hit.dataset.copy;
+        const ok = await Dash.copy(text);
+        if (!ok || !hit.hasAttribute('data-quiet')) Dash.toast(ok ? 'Copied' : 'Couldn’t copy', { tone: ok ? '' : 'bad', ms: 1600 });
         if (ok && !hit.classList.contains('copied')) {
           const label = hit.innerHTML;
+          lastCopy = { text, until: Date.now() + COPY_MS };
           hit.classList.add('copied');
           if (hit.classList.contains('btn')) hit.textContent = 'Copied ✓';
-          setTimeout(() => { hit.classList.remove('copied'); if (hit.classList.contains('btn')) hit.innerHTML = label; }, 1400);
+          setTimeout(() => {
+            hit.classList.remove('copied');
+            if (hit.classList.contains('btn')) hit.innerHTML = label;
+            // the same button drawn again by a re-render meanwhile
+            for (const b of document.querySelectorAll('[data-copy].copied')) {
+              if (b !== hit && b.dataset.copy === text) { b.classList.remove('copied'); if (b.classList.contains('btn')) b.textContent = b.dataset.label || 'Copy'; }
+            }
+          }, COPY_MS);
         }
       } else if ((hit = t.closest('[data-toggle-side]'))) {
         const shells = document.querySelectorAll('.shell');
@@ -643,6 +728,7 @@
         for (const s of shells) s.classList.toggle('collapsed', rail);
         hit.setAttribute('aria-expanded', String(!rail));
         Dash.store.set(Dash.config.sideKey, rail ? 'rail' : 'open');
+        document.dispatchEvent(new CustomEvent('dash:side', { detail: { collapsed: rail } })); // for pages that lay out by it
       } else if ((hit = t.closest('[data-dismiss]'))) {
         const box = hit.closest('dialog, .notice, [data-dismissable]');
         if (box && box.tagName === 'DIALOG') box.close(); else if (box) box.remove();
@@ -651,6 +737,16 @@
         const r = t.getBoundingClientRect();
         if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) t.close();
       }
+    });
+    // charts drawn with Dash.bars(points, { read }) (they carry data-read): the hovered column's title goes in
+    // their readout line, and the line's own text comes back when the pointer leaves. Other charts are left alone.
+    let reading = null;
+    document.addEventListener('mouseover', (e) => {
+      const col = e.target.closest && e.target.closest('.chart[data-read] .chart-col');
+      const chart = col ? col.closest('.chart') : null;
+      if (reading && reading !== chart) { const r = reading.querySelector('.chart-read'); if (r) r.textContent = r.dataset.default || ''; }
+      reading = chart;
+      if (col) { const r = chart.querySelector('.chart-read'); if (r) r.textContent = col.title; }
     });
     document.addEventListener('keydown', (e) => {
       const ip = e.target.closest && e.target.closest('.ip[data-ip]');

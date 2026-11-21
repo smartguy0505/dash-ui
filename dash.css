@@ -1,4 +1,4 @@
-/* dash-ui 1.1.1: the look shared by my dashboards (agents, fleet, leaderboard, payouts, balances).
+/* dash-ui 1.2.0: the look shared by my dashboards (agents, fleet, leaderboard, payouts, balances).
    Warm neutral backgrounds, white panels, tinted status colours, light and dark from the system setting
    (or data-theme="light|dark" on <html>). No build step, no dependencies: link this file, or paste it into a page.
 
@@ -322,6 +322,7 @@ textarea.input { min-height: 80px; resize: vertical; }
 .search svg { position: absolute; top: 50%; left: 11px; transform: translateY(-50%); color: var(--faint); pointer-events: none; }
 .search .input { padding-left: 33px; }
 .search .count { position: absolute; top: 50%; right: 11px; transform: translateY(-50%); color: var(--faint); font: 12.5px var(--mono); pointer-events: none; }
+.search:has(.count) .input { padding-right: var(--count-w, 100px); } /* typed text stops before the count ("1234 / 5678"); wider counts set --count-w */
 .field { margin-bottom: 12px; }
 .field > label, .field-label { display: block; margin-bottom: 4px; color: var(--muted); font-size: 13px; font-weight: 600; }
 .field .hint { margin-top: 3px; color: var(--muted); font-size: 12.5px; }
@@ -584,6 +585,7 @@ button.hbar:hover { background: var(--soft); }
 /* ---- smaller screens ---- */
 @media (max-width: 900px) {
   .shell { display: block; }
+  .topbar.static-md { position: static; } /* for a page that stacks its sidebar here: the bar scrolls away with it */
   .sidebar { position: static; height: auto; max-height: 45vh; border-right: 0; border-bottom: 1px solid var(--line); }
   .shell.collapsed .sidebar { display: flex; flex-wrap: wrap; gap: 2px; max-height: none; padding: 8px 12px; }
   .shell.collapsed .nav-item { width: 44px; }
@@ -621,7 +623,7 @@ button.hbar:hover { background: var(--soft); }
   .topbar .sub { display: none; }
   .top-right { margin-left: 0; }
   .page { padding: 16px 16px 40px; }
-  .stats { gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(140px, 100%), 1fr)); } /* two across on a phone */
+  .stats { gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(var(--stat-min-sm, 140px), 100%), 1fr)); } /* two across on a phone; --stat-min-sm: 100% for one */
   .stat { padding: 12px 14px; }
   .stat .value { font-size: 20px; }
   .big { font-size: 30px; }

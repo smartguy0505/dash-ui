@@ -2,6 +2,21 @@
 
 Dashboards keep a copy of `dash.css` and `dash.js`; the first line of each file says which version it is. Versions only add things: a page that worked with an older copy works the same with a newer one.
 
+## 1.2.0 (2026-11-21)
+
+Simpler pages: less code for the things every dashboard does. All of it is opt-in; pages that don't use it work as before.
+
+- `Dash.render(el, html, { force })`: refresh part of a page without losing the reader's place. It skips the write when nothing changed and while text is being selected there, and keeps focus (with what's typed and the caret), open `<details>` and inner scroll positions, matched by `id` or `data-key`.
+- `Dash.poll(fn, ms, { live, staleAfter })`: with `live`, the top bar's status follows by itself (Connecting…, Live, the error, "No update since …").
+- `Dash.bars(points, { read })`: a readout line that shows the hovered column, and its own text after.
+- `Dash.copyButton(text, label, { quiet })`: "Copied ✓" survives a redraw in that moment; `quiet` (`data-quiet`) skips the toast.
+- `data-toggle-side` fires `dash:side` (`detail.collapsed`).
+- `Dash.seg` reads a saved number or plain string; a number works as `value`.
+- `.topbar.static-md`, `--stat-min-sm` for phone tiles, `--count-w` for the search count.
+- Fixed: typed text in a `.search` ran under its `.count`.
+- `tools/paste.py`: fill a one-file page's `<style id="dash-ui-css">` and `<script id="dash-ui-js">`, or `--check` it.
+- `test/behaviour.mjs` (`npm run behaviour`): the above in a real browser. The starter page uses `Dash.render` and `Dash.poll`'s `live`.
+
 ## 1.1.1 (2026-11-21)
 
 - Light mode: `ok`, `warn`, `orange`, `gold` and `silver` are 5–8 % darker, `bronze` and `idle` 2 %, so text in a tinted pill, tag or rank (10–14 % tints) reaches WCAG AA, 4.5:1. Dark mode is unchanged. The contrast test now asks for 4.5 on those tints.

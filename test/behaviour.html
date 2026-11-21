@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Behaviour checks</title>
+<link rel="stylesheet" href="../dash.css">
+<script src="../dash.js"></script>
+</head>
+<!-- the page test/behaviour.mjs drives: one of each thing it checks, nothing else -->
+<body>
+<header class="topbar" id="bar-plain"><div class="brand"><h1>Plain bar</h1></div><div class="top-right"><span id="live"></span></div></header>
+<main class="page">
+  <div id="box"></div>
+  <p id="outside">Text outside the box, to select.</p>
+
+  <div class="panel"><div id="kit-chart"></div></div>
+  <div class="panel">
+    <div class="chart-read" id="own-read">own default</div>
+    <div class="chart" id="own-chart"><div class="chart-plot"><div class="chart-cols"><div class="chart-col" title="own col"><i style="height:50%"></i></div></div></div></div>
+  </div>
+
+  <div class="toolbar"><label class="search"><input class="input" id="search" placeholder="Search"><span class="count">128 / 4096</span></label></div>
+
+  <div class="seg" id="seg-a"><button type="button" data-value="24h">24h</button><button type="button" data-value="7d">7d</button></div>
+  <div class="seg" id="seg-b"><button type="button" data-value="7">7</button><button type="button" data-value="30">30</button></div>
+  <div class="seg" id="seg-c"><button type="button" data-value="x">x</button><button type="button" data-value="y">y</button></div>
+  <div class="seg" id="seg-d"><button type="button" data-value="1">1</button><button type="button" data-value="2">2</button></div>
+
+  <div id="copy-box"></div>
+
+  <div class="shell"><button type="button" class="side-toggle" data-toggle-side>side</button></div>
+
+  <div class="stats" id="stats-default"><div class="stat">a</div><div class="stat">b</div></div>
+  <div class="stats" id="stats-one" style="--stat-min-sm:100%"><div class="stat">a</div><div class="stat">b</div></div>
+</main>
+<header class="topbar static-md" id="bar-md"><div class="brand"><h1>Bar that scrolls away on tablets</h1></div></header>
+<div style="height:2000px"></div>
+<script>
+  // the poller the test steers: window.mode = 'ok' | 'fail' | 'hang'
+  window.mode = 'ok';
+  window.sideEvents = [];
+  document.addEventListener('dash:side', (e) => sideEvents.push(e.detail.collapsed));
+  document.getElementById('own-chart').addEventListener('mouseover', (e) => {
+    const c = e.target.closest('.chart-col');
+    if (c) document.getElementById('own-read').textContent = 'own: ' + c.title;
+  });
+  document.getElementById('kit-chart').innerHTML = Dash.bars([{ label: 'a', value: 3, title: 'col a' }, { label: 'b', value: 5, title: 'col b' }], { read: 'Total 8' });
+</script>
+</body>
+</html>

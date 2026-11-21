@@ -46,7 +46,6 @@
       </div>
       <div class="panel span-2">
         <div class="panel-head"><h3>Tokens per hour</h3><div class="seg" id="range"><button type="button" data-value="12">12 h</button><button type="button" data-value="24">24 h</button></div></div>
-        <div class="chart-read" id="read"></div>
         <div id="bars"></div>
       </div>
     </div>
@@ -111,10 +110,8 @@
   const range = Dash.seg('range', { value: '24', store: 'example.range', onChange: renderBars });
   function renderBars() {
     const pts = HOURS.slice(-Number(range.value));
-    $('bars').innerHTML = Dash.bars(pts, { labelEvery: 3, minorEvery: 6 });
-    $('read').textContent = `${fmt.compact(pts.reduce((s, p) => s + p.value, 0))} tokens in ${range.value} h`;
+    $('bars').innerHTML = Dash.bars(pts, { labelEvery: 3, minorEvery: 6, read: `${fmt.compact(pts.reduce((s, p) => s + p.value, 0))} tokens in ${range.value} h` });
   }
-  Dash.on('bars', 'mouseover', '.chart-col', (e, c) => { $('read').textContent = c.title; });
 
   Dash.live('live', 'on', 'Live', 'Updated just now');
   renderSidebar();
