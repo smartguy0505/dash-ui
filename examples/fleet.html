@@ -60,7 +60,7 @@
   const CHAINS = ['eth', 'base', 'bsc', 'polygon', 'tao', 'arbitrum'];
   const NODES = CHAINS.flatMap((chain, i) => [0, 1].slice(0, i % 2 ? 1 : 2).map((k) => {
     const score = Math.round((0.45 + ((i * 31 + k * 17) % 50) / 100) * 1000) / 1000;
-    return { key: `${chain}-${k}`, name: `${chain}-archive${k ? '-2' : ''}`, chain, acct: k ? 'sn19-1' : 'sn19', ip: `203.0.113.${20 + i * 11 + k}`,
+    return { key: `${chain}-${k}`, name: `${chain}-archive${k ? '-2' : ''}`, chain, acct: k ? 'acct-b' : 'acct-a', ip: `203.0.113.${20 + i * 11 + k}`,
       score, rank: [1 + ((i + k * 3) % 7), 9 + i], wl: [['history', Math.min(1, score + 0.08)], ['heavy', score - 0.12], ['logs', Math.min(1, score + 0.02)]],
       tested: now - (20 + i * 37 + k * 90) * 60e3, burstAt: now - (1 + i * 9 + k * 4) * 3600e3 };
   }));
@@ -84,7 +84,7 @@
       ['Top 3 places', NODES.filter((n) => n.rank[0] <= 3).length, 'across all chains', ''],
       ['Bursts, 3 days', 14, '2 not scored', ''],
     ].map(([k, v, note, tone]) => `<div class="stat"><div class="label">${esc(k)}</div><div class="value${tone ? ' tone ' + tone : ''}">${esc(v)}</div><div class="note">${esc(note)}</div></div>`).join('');
-    $('pools').innerHTML = [['bsc', 17.5], ['polygon', 17.5], ['tao', 15], ['eth', 10], ['base', 10], ['arbitrum', 5]]
+    $('pools').innerHTML = [['bsc', 20], ['polygon', 15], ['tao', 15], ['eth', 10], ['base', 10], ['arbitrum', 5]]
       .map(([c, p]) => `<span class="chip"><b>${c}</b> <span>${p}%</span></span>`).join('');
   }
 
@@ -124,7 +124,7 @@
 
   // leaderboard: miners with their nodes underneath (click a row to open them)
   const MINERS = Array.from({ length: 14 }, (_, i) => ({
-    uid: [129, 44, 7, 210, 88, 12, 301, 56, 19, 77, 140, 9, 233, 61][i], hotkey: '5DemoHotkey' + String(i).padStart(2, '0') + 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+    uid: [101, 44, 7, 210, 88, 12, 301, 56, 19, 77, 140, 9, 233, 61][i], hotkey: '5DemoHotkey' + String(i).padStart(2, '0') + 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
     share: Math.round((31 - i * 2.1 + (i % 3)) * 10) / 10, p95: 30 + i * 6, rel: Math.max(0.5, 1 - i * 0.04), mine: i === 2,
     nodes: Array.from({ length: 1 + (i % 3) }, (_, k) => ({ name: `${CHAINS[(i + k) % 6]}-node-${k + 1}`, archive: (i + k) % 3 !== 2, share: Math.round((10 - i * 0.6 - k) * 10) / 10 })),
     banned: i === 11,

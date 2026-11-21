@@ -152,6 +152,13 @@ test('charts: sizes and shares are right', () => {
   assert.match(Dash.spark([]), /<svg class="spark"/);
 });
 
+test('both files can be pasted inline into a page', () => {
+  const js = readFileSync(new URL('dash.js', root), 'utf8');
+  assert.doesNotMatch(js, /<\/script/i, 'dash.js would close an inline <script> early');
+  assert.doesNotMatch(js, /<!--/, 'dash.js has an HTML comment opener');
+  assert.doesNotMatch(css, /<\/style/i, 'dash.css would close an inline <style> early');
+});
+
 test('dash.css: the two dark palettes are the same', () => {
   const block = (re) => {
     const m = css.match(re);

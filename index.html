@@ -94,9 +94,9 @@
         <button type="button" class="pill teal"><span class="dot"></span>Filter: running <span class="n">7</span></button>
       </div>
       <div class="demo"><p class="demo-label">Tags: small facts</p>
-        <span class="tag">default</span><span class="tag plain">eth</span><span class="tag accent">Opus 5.5</span><span class="tag blue">sn19-1</span>
+        <span class="tag">default</span><span class="tag plain">eth</span><span class="tag accent">Opus 5.5</span><span class="tag blue">acct-b</span>
         <span class="tag ok">archive</span><span class="tag warn">probation</span><span class="tag bad">banned</span><span class="tag outline bad">banned</span>
-        <span class="tag pink">ultra</span><span class="tag teal">SN 19</span>
+        <span class="tag pink">ultra</span><span class="tag teal">SN 42</span>
       </div>
       <div class="demo"><p class="demo-label">Ranks, changes, chips</p>
         <span id="ranks" class="row"></span>
@@ -109,7 +109,7 @@
           <button type="button" class="chip" data-value="base">Base <span>9</span></button>
           <button type="button" class="chip" data-value="tao">Tao <span>6</span></button>
         </div>
-        <span class="chip"><b>bsc</b> <span>17.5%</span></span><span class="chip"><b>polygon</b> <span>17.5%</span></span>
+        <span class="chip"><b>bsc</b> <span>20%</span></span><span class="chip"><b>polygon</b> <span>15%</span></span>
       </div>
       <div class="demo types"><p class="demo-label">Text</p>
         <div><span class="page-title" style="font-size:22px">Page title 22</span> · <b>Panel title 15</b> · body 15 · <span class="muted">muted</span> · <span class="faint">faint</span></div>
@@ -219,7 +219,7 @@
         <thead><tr><th>#</th><th>Miner</th><th class="num">Share</th><th>Status</th><th class="num">Pay</th></tr></thead>
         <tbody>
           <tr class="group"><td colspan="5">eth · archive pool <span class="muted">· top 5 paid</span></td></tr>
-          <tr class="marked gold"><td><span class="rank gold">1</span></td><td>UID 129</td><td class="num">31.2%</td><td><span class="tag ok">paid</span></td><td class="num">$412</td></tr>
+          <tr class="marked gold"><td><span class="rank gold">1</span></td><td>UID 101</td><td class="num">31.2%</td><td><span class="tag ok">paid</span></td><td class="num">$412</td></tr>
           <tr><td><span class="rank silver">2</span></td><td>UID 44</td><td class="num">22.8%</td><td><span class="tag ok">paid</span></td><td class="num">$301</td></tr>
           <tr class="sub"><td></td><td>└ eth-archive-2</td><td class="num">12.0%</td><td>eligible</td><td class="num"></td></tr>
           <tr class="sub"><td></td><td>└ eth-archive-3</td><td class="num">10.8%</td><td>eligible</td><td class="num"></td></tr>
@@ -314,7 +314,7 @@
 
 <dialog class="drawer" id="drawer">
   <div class="drawer-body">
-    <div class="drawer-head"><div><div class="kicker">Compare</div><h2 class="mono">UID 129</h2></div><button type="button" class="icon-btn" data-dismiss aria-label="Close">✕</button></div>
+    <div class="drawer-head"><div><div class="kicker">Compare</div><h2 class="mono">UID 101</h2></div><button type="button" class="icon-btn" data-dismiss aria-label="Close">✕</button></div>
     <div class="stats" style="--stat-min:150px;margin:0">
       <div class="stat"><div class="label">Share</div><div class="value">31.2%</div></div>
       <div class="stat"><div class="label">Latency</div><div class="value">38 <small>ms</small></div></div>
@@ -357,9 +357,9 @@
 
   // cards
   const CARDS = [
-    { name: 'eth-archive', where: 'eth · archive · 203.0.113.10', tone: 'ok', score: 0.91, rank: [2, 14], tags: [['sn19', 'blue'], ['archive', 'ok']], wl: [['history', 0.97], ['heavy', 0.84], ['logs', 0.92]] },
-    { name: 'base-archive', where: 'base · archive · 203.0.113.24', tone: 'warn', score: 0.58, rank: [6, 11], tags: [['sn19-1', 'blue'], ['probation', 'warn']], wl: [['history', 0.71], ['heavy', 0.38], ['logs', 0.66]], ring: true },
-    { name: 'tao-full', where: 'tao · full · 198.51.100.7', tone: 'ok', score: 0.88, rank: [1, 9], tags: [['sn19', 'blue']], wl: [['state', 0.9], ['blocks', 0.86]] },
+    { name: 'eth-archive', where: 'eth · archive · 203.0.113.10', tone: 'ok', score: 0.91, rank: [2, 14], tags: [['acct-a', 'blue'], ['archive', 'ok']], wl: [['history', 0.97], ['heavy', 0.84], ['logs', 0.92]] },
+    { name: 'base-archive', where: 'base · archive · 203.0.113.24', tone: 'warn', score: 0.58, rank: [6, 11], tags: [['acct-b', 'blue'], ['probation', 'warn']], wl: [['history', 0.71], ['heavy', 0.38], ['logs', 0.66]], ring: true },
+    { name: 'tao-full', where: 'tao · full · 198.51.100.7', tone: 'ok', score: 0.88, rank: [1, 9], tags: [['acct-a', 'blue']], wl: [['state', 0.9], ['blocks', 0.86]] },
   ];
   $('cards').innerHTML = CARDS.map((c) => `
     <article class="card${c.ring ? ' ring warn' : ''}">
@@ -428,13 +428,13 @@
     + Dash.gauge(0.94, { name: 'Opus week', sub: '6% left' });
 
   const SCORES = Array.from({ length: 30 }, (_, i) => 0.62 + 0.25 * Math.sin(i / 5) + (i % 4) * 0.02);
-  $('spark').innerHTML = Dash.spark(SCORES, { labels: ['epoch 9428161', 'now'], height: 70 });
+  $('spark').innerHTML = Dash.spark(SCORES, { labels: ['30 epochs ago', 'now'], height: 70 });
   $('spark-read').textContent = `now ${SCORES[SCORES.length - 1].toFixed(3)}`;
   $('sparks-small').innerHTML = [['ok', 'up'], ['bad', 'down'], ['teal', 'flat']].map(([tone, kind], j) =>
     `<div style="flex:1;min-width:90px"><div class="sub">${kind}</div>${Dash.spark(Array.from({ length: 16 }, (_, i) => 5 + (j === 1 ? -i : j === 0 ? i : 0) * 0.4 + Math.sin(i * (j + 1)) * 0.9), { tone, height: 28, area: false })}</div>`).join('');
 
   $('hbars').innerHTML = Dash.hbars([
-    { label: 'bm-dash review', value: 812000, tone: 'accent' }, { label: 'wallet 24h change', value: 604000 }, { label: 'eth3 rebuild', value: 377000 },
+    { label: 'bm-dash review', value: 812000, tone: 'accent' }, { label: 'wallet 24h change', value: 604000 }, { label: 'node rebuild', value: 377000 },
     { label: 'payout pager', value: 120500, tone: 'teal' }, { label: 'other 6 agents', value: 88000, tone: 'idle' },
   ], { button: true });
 
@@ -444,7 +444,7 @@
   const RANGE = 72 * 3600e3;
   const now = Date.now();
   const pos = (t) => ((t - (now - RANGE)) / RANGE) * 100;
-  const LANES = [['eth-archive', 'sn19'], ['base-archive', 'sn19-1'], ['tao-full', 'sn19'], ['bsc-archive', 'sn19']];
+  const LANES = [['eth-archive', 'acct-a'], ['base-archive', 'acct-b'], ['tao-full', 'acct-a'], ['bsc-archive', 'acct-a']];
   $('lanes').innerHTML = LANES.map(([name, acct], i) => {
     const spans = [10, 34, 58].map((h) => `<span class="span" style="left:${pos(now - (72 - h - i * 2) * 3600e3).toFixed(2)}%;width:${(2.5 / 72 * 100).toFixed(2)}%"></span>`).join('');
     const marks = [11 + i, 35.5, 59 + i / 2].map((h, j) => `<span class="mark${j === 1 && i === 1 ? ' warn' : ''}" style="left:${pos(now - (72 - h) * 3600e3).toFixed(2)}%" title="burst ${j + 1}"></span>`).join('');

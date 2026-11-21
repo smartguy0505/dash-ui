@@ -73,7 +73,7 @@
     while (s.length < 48) { x = (Math.imul(x, 1103515245) + 12345) >>> 0; s += B58[(x >>> 16) % 58]; }
     return s;
   };
-  const NAMES = ['Treasury', 'Miner sn19', 'Miner sn19-1', 'Cold storage', 'Validator', 'Ops', 'Test', 'Staking A', 'Staking B', 'Old miner', 'Exchange in', 'Payroll', 'Grants', 'Reserve'];
+  const NAMES = ['Treasury', 'Miner A', 'Miner B', 'Cold storage', 'Validator', 'Ops', 'Test', 'Staking A', 'Staking B', 'Old miner', 'Exchange in', 'Payroll', 'Grants', 'Reserve'];
   const wallets = NAMES.map((name, i) => ({
     name, address: fake(i), total: i < 3 || i === 7, hidden: i === 12,
     free: Math.round(((i * 37) % 23) * 1000 + (i % 3) * 377) / 1000, staked: i % 4 === 3 ? 0 : Math.round(((i * 53) % 61) * 3100) / 1000,
