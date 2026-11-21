@@ -197,6 +197,11 @@ test('1.3: date, time, until', () => {
   assert.equal(fmt.date(Date.UTC(2020, 10, 21, 12), { utc: true }), 'Nov 21, 2020');
   assert.equal(fmt.date(Date.UTC(new Date().getUTCFullYear(), 2, 3, 12), { utc: true }), 'Mar 3');
   assert.equal(fmt.date('nope'), '—');
+  // the same reading as Dash.time: no zone = UTC, loose text = "—"
+  assert.equal(fmt.time('2026-11-21 14:05:09', { utc: true }), '14:05:09 UTC');
+  assert.equal(fmt.time('2026-11-21 14:05:09'), fmt.time(Dash.time('2026-11-21 14:05:09')));
+  assert.equal(fmt.date('yesterday <3'), '—');
+  assert.equal(fmt.time(1700000000, { utc: true }), '22:13:20 UTC'.replace('22:13:20', new Date(1700000000).toISOString().slice(11, 19)));
 });
 
 test('1.3: tone thresholds', () => {
@@ -220,6 +225,7 @@ test('1.3: rows: sum, groupBy, match, csv', () => {
     'a,b,c,d\r\n1,"x,y",\'=1+1,\r\n-2.5,"say ""hi""",\'@x,"line\nbreak"\r\n');
   assert.equal(Dash.csv([{ n: 'web' }], [{ key: 'n', label: 'Name' }, { key: 'up', label: 'Upper', value: (r) => r.n.toUpperCase() }]), 'Name,Upper\r\nweb,WEB\r\n');
   assert.equal(Dash.csv([]), '\r\n');
+  assert.equal(Dash.csv([{ a: '-3', b: '+1.5', c: '-1+2', d: '1e5', e: '-' }]), 'a,b,c,d,e\r\n-3,+1.5,\'-1+2,1e5,\'-\r\n');
 });
 
 test('1.3: the address as settings', () => {

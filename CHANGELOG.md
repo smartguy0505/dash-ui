@@ -2,6 +2,17 @@
 
 Dashboards keep a copy of `dash.css` and `dash.js`; the first line of each file says which version it is. Versions only add things: a page that worked with an older copy works the same with a newer one.
 
+## 1.3.1 (2026-11-21)
+
+Fixes in 1.3.0's new pieces, found by checking the paths around each one:
+
+- `Dash.table`: a row click while a refresh waits (the reader had text selected in the table) got the row of the new order, not the one on screen. Selecting text in a row no longer counts as clicking it. With `wrap: true`, the sideways scroll survives a refresh.
+- `Dash.search` with `store`: a remembered query is applied on load (`onChange` runs with it), not just put back in the box.
+- Tooltips inside an open dialog or drawer showed under it; they are drawn in the dialog now.
+- `Dash.fmt.date` and `.time` read times as `Dash.time` does (text without a zone is UTC; loose text is "—"), so they agree with `Dash.ago` and the timeline.
+- `Dash.csv`: text that is just a number (`-3`, `+1.5`) stays a number instead of getting a leading `'`.
+- Tests: 71 browser checks; a check that crashes prints a FAIL line.
+
 ## 1.3.0 (2026-11-21)
 
 More pieces, so a dashboard needs less of its own code. All additive.

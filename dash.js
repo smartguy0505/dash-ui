@@ -1,4 +1,4 @@
-/* dash-ui 1.3.0 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
+/* dash-ui 1.3.1 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
    A plain script with no dependencies: a script tag for dash.js in <head> gives window.Dash, and puts the
    saved light/dark choice on the page before it paints. In Node, require('./dash.js') returns the same object
    (the parts that need a page are skipped).
@@ -8,7 +8,7 @@
 (function (root) {
   'use strict';
   const hasDom = typeof document !== 'undefined';
-  const Dash = { version: '1.3.0', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side' } };
+  const Dash = { version: '1.3.1', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side' } };
 
   // ---- basics
 
@@ -171,17 +171,21 @@
     if (t == null || !valid(d)) return NONE;
     return d.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
   };
+  // fmt.date and fmt.time read t as Dash.time does (text without a zone is UTC; other text is "—"). The older
+  // clock, when and utc read text the browser's way, as they always have.
   // a date: Nov 21 (this year), Nov 21, 2025 (another year); { utc: true } for the date in UTC
   fmt.date = (t, { utc = false } = {}) => {
-    const d = dateOf(t);
-    if (t == null || !valid(d)) return NONE;
+    const ms = Dash.time(t);
+    if (!Number.isFinite(ms)) return NONE;
+    const d = new Date(ms);
     const year = utc ? d.getUTCFullYear() : d.getFullYear();
     return d.toLocaleDateString(utc ? 'en-US' : [], { month: 'short', day: 'numeric', ...(year !== new Date().getFullYear() ? { year: 'numeric' } : {}), ...(utc ? { timeZone: 'UTC' } : {}) });
   };
   // a time of day with seconds: 14:05:09; { seconds: false } for 14:05, { utc: true } for 14:05:09 UTC
   fmt.time = (t, { seconds = true, utc = false } = {}) => {
-    const d = dateOf(t);
-    if (t == null || !valid(d)) return NONE;
+    const ms = Dash.time(t);
+    if (!Number.isFinite(ms)) return NONE;
+    const d = new Date(ms);
     return d.toLocaleTimeString(utc ? 'en-US' : [], { hour: '2-digit', minute: '2-digit', ...(seconds ? { second: '2-digit' } : {}), hourCycle: 'h23', ...(utc ? { timeZone: 'UTC' } : {}) }) + (utc ? ' UTC' : '');
   };
   // how long until a time: in 45s, in 12m, in 3h 5m, in 2d 4h; "now" once it's here
@@ -232,14 +236,15 @@
     return out;
   };
   // rows as CSV text (Excel and Sheets read it): columns as for Dash.table ({ key, label, value }), or keys.
-  // Numbers stay plain numbers; text a spreadsheet would run as a formula (starting =, +, -, @) gets a leading '.
+  // Numbers stay plain numbers; text a spreadsheet would run as a formula (starting =, +, -, @, and not just a number)
+  // gets a leading '.
   Dash.csv = (rows, columns) => {
     const cols = (columns || Object.keys(rows[0] || {})).map((c) => (typeof c === 'string' ? { key: c, label: c } : c));
     const cell = (v) => {
       if (v == null || (typeof v === 'number' && !Number.isFinite(v))) return '';
       if (typeof v === 'number') return String(v);
       let t = v instanceof Date ? v.toISOString() : String(v);
-      if (/^[=+\-@\t\r]/.test(t)) t = "'" + t;
+      if (/^[=+\-@\t\r]/.test(t) && !/^[+-]?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i.test(t)) t = "'" + t; // (but -3 stays a number)
       return /[",\n\r]/.test(t) || t !== t.trim() ? `"${t.replace(/"/g, '""')}"` : t;
     };
     return [cols.map((c) => cell(c.label ?? c.key)), ...rows.map((r) => cols.map((c) => cell(c.value ? c.value(r) : r[c.key])))].map((l) => l.join(',')).join('\r\n') + '\r\n';
@@ -386,6 +391,7 @@
     const valueOf = (c, r) => (c.value ? c.value(r) : r[c.key]);
     let data = rows;
     let shown = [];
+    let next = []; // the rows of the HTML just built; they become shown once it is on the page
     let page = 1;
     let size = perPage;
     const cell = (c, r) => {
@@ -403,17 +409,23 @@
       const sorted = visible();
       const p = size ? Dash.paginate(sorted, page, size) : { rows: sorted };
       if (size) page = p.page;
-      shown = p.rows;
+      next = p.rows;
       const head = columns.map((c) => Dash.th(c.label, c.sort === false ? null : c.key, sorter, { num: c.num, title: c.title, cls: c.cls, unit: c.unit })).join('');
-      const body = shown.length ? shown.map((r, i) => {
+      const body = next.length ? next.map((r, i) => {
         const k = key == null ? null : typeof key === 'function' ? key(r) : r[key];
         const classes = [onRow ? 'click' : '', rowClass ? rowClass(r) : ''].filter(Boolean).join(' ');
         return `<tr data-i="${i}"${k != null ? ` data-key="${esc(k)}"` : ''}${classes ? ` class="${esc(classes)}"` : ''}${onRow ? ' tabindex="0"' : ''}>${columns.map((c) => cell(c, r)).join('')}</tr>`;
       }).join('') : `<tr class="empty-row"><td colspan="${columns.length}">${esc(empty)}</td></tr>`;
       const table = `<table class="table${cls ? ' ' + esc(cls) : ''}"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
-      return (wrap ? `<div class="table-wrap">${table}</div>` : table) + (size ? Dash.pager(p, { noun, sizes }) : '');
+      return (wrap ? `<div class="table-wrap" data-key="dash-table-wrap">${table}</div>` : table) + (size ? Dash.pager(p, { noun, sizes }) : '');
     };
-    const draw = (force = false) => Dash.render(node, html(), { force });
+    // (a refresh that waits for a selection leaves the old rows on screen, so clicks must still map to those)
+    const draw = (force = false) => {
+      const markup = html();
+      const wrote = Dash.render(node, markup, { force });
+      if (wrote || node.__dashHtml === markup) shown = next;
+      return wrote;
+    };
     const rowOf = (e) => {
       const tr = e.target.closest('tbody tr[data-i]');
       return tr && node.contains(tr) && !e.target.closest('a, button, input, select, textarea, label, summary') ? shown[Number(tr.dataset.i)] : null;
@@ -425,6 +437,8 @@
         draw(true);
         return;
       }
+      const sel = window.getSelection ? getSelection() : null;
+      if (sel && !sel.isCollapsed && node.contains(sel.anchorNode)) return; // the reader selected text, not a row
       const r = onRow && rowOf(e);
       if (r) onRow(r, e);
     });
@@ -1008,7 +1022,10 @@
   Dash.search = (target, { onChange, debounce = 120, key = '/', store } = {}) => {
     const input = el(target);
     let timer = null;
-    if (store) { const saved = Dash.store.get(store); if (typeof saved === 'string') input.value = saved; }
+    let restored = false;
+    if (store) { const saved = Dash.store.get(store); if (typeof saved === 'string' && saved) { input.value = saved; restored = true; } }
+    // a remembered query filters at once (on the next tick, once the page has the returned object)
+    if (restored && onChange) queueMicrotask(() => onChange(input.value.trim()));
     const fire = () => {
       clearTimeout(timer);
       if (store) Dash.store.set(store, input.value);
@@ -1096,6 +1113,9 @@
       tipEl.id = 'dash-tooltip';
       document.body.appendChild(tipEl);
     }
+    // an open modal dialog sits above everything else on the page, so the tooltip goes inside it
+    const host = target.closest('dialog[open]') || document.body;
+    if (tipEl.parentNode !== host) host.appendChild(tipEl);
     if (tipFor && tipFor !== target) tipFor.removeAttribute('aria-describedby');
     tipFor = target;
     tipEl.textContent = text;

@@ -185,7 +185,7 @@ Surfaces and text: `--bg`, `--card`, `--soft` (a block inside a card, table head
 - `.switch`: `<label class="switch"><input type="checkbox"><span class="track"></span> Label</label>`.
 - `.checkline`, and `details > summary`.
 - `.menu`: `<details class="menu"><summary class="btn">Actions</summary><div class="menu-list">…</div></details>`. The list holds buttons and links, `<hr>` and `.menu-label`; a tone on an item colours it (`class="bad"`). `.menu.end` opens leftwards. It closes on a click outside, on Escape and once an item is chosen. Inside a sideways-scrolling `.table-wrap` the list gets cut off, so keep menus out of scrolling boxes.
-- `data-tooltip="text"`: a tooltip on hover and keyboard focus, kept inside the window. Use it for a word or a line; a `title` is enough for long text.
+- `data-tooltip="text"`: a tooltip on hover and keyboard focus, kept inside the window, in an open dialog too. Use it for a word or a line; a `title` is enough for long text.
 
 **Tables**
 - `.table` inside a `.panel` has a rounded header strip. Wrap it in `.table-wrap` to make the table its own card.
@@ -241,14 +241,14 @@ Builders return HTML strings, with every value escaped. Put them in with `innerH
 | `Dash.fmt.amount(n, d=4)`, `.signed(n, d=4)`, `.signedUsd(n, d?)`, `.dir(n, eps)` | `<0.0001`; `+1.2345` / `−0.0100` / `0`; `+$733` (`+$732.60` with `d` 2); `'up'` / `'down'` / `'flat'` |
 | `Dash.fmt.dur(ms)`, `.span(ms)`, `.ago(t)` | `3h 5m`; `2.7 h`; `just now` / `40 s ago` / `12 min ago` / `2.5 h ago` / `3 d ago` |
 | `Dash.fmt.clock(t)`, `.when(t)`, `.utc(t)` | `14:05`; `Nov 21, 14:05`; `Nov 21, 02:22 UTC` (ms, Date or ISO string) |
-| `Dash.fmt.date(t, { utc })`, `.time(t, { seconds, utc })`, `.until(t)` | `Nov 21` (`Nov 21, 2025` in another year); `14:05:09`; `in 3h 5m` / `now` |
+| `Dash.fmt.date(t, { utc })`, `.time(t, { seconds, utc })`, `.until(t)` | `Nov 21` (`Nov 21, 2025` in another year); `14:05:09`; `in 3h 5m` / `now`. `date` and `time` read `t` as `Dash.time` does; the older `clock`, `when` and `utc` still read text the browser's way |
 | `Dash.time(x, { seconds })` | milliseconds from what a server sends: ms, a Date, ISO text (no zone = UTC), an HTTP date, or seconds with `seconds: true`; `NaN` for anything else |
 | `Dash.ago(t)`, `Dash.until(t)` | `<time>` that keeps itself current (`12 min ago`, `in 3h 5m`; updated every 15 s), the full time as its tooltip |
 | `Dash.fmt.short(s, 6, 6)`, `.plural(n, word)` | `acct_7…k2m9xq`; `23 servers` |
 | `Dash.tone(v, { 75: 'warn', 90: 'bad' }, base, { below })` | the tone of the highest threshold reached (`base`, `'ok'`, below them); `below: true` when lower is worse; `''` for no value |
 | `Dash.sum(rows, key)`, `Dash.groupBy(rows, key)` | a column's total (blanks count 0); rows by a key, in first-seen order (`key` may be a function) |
 | `Dash.match(row, query, fields)` | true when every word of the query is in one of the fields (any case) |
-| `Dash.csv(rows, columns)`, `Dash.download(name, content)` | rows as CSV (formula-looking text gets a leading `'`); hand the reader a file |
+| `Dash.csv(rows, columns)`, `Dash.download(name, content)` | rows as CSV (formula-looking text gets a leading `'`; text that is just a number, like `-3`, stays a number); hand the reader a file |
 | `Dash.pill(text, tone)`, `Dash.tag(text, tone)`, `Dash.chg(v, text, { eps, title })`, `Dash.rank(pos, of)` | small labels (`eps`: a change this small is flat) |
 | `Dash.stat(label, value, { unit, note, tone, title })` | a stat tile; `tone` colours the value |
 | `Dash.copyButton(text, label, { quiet })` | a Copy button; it still says "Copied ✓" if a refresh redraws it in that moment; `quiet`: no toast |
@@ -273,7 +273,7 @@ Builders return HTML strings, with every value escaped. Put them in with `innerH
 | `Dash.live(el, 'on'/'stale'/'off', text, title)` | the connection status |
 | `Dash.seg(el, { value, store, onChange })` | a `.seg` or `.chips` as one choice (`data-value` buttons); `.value`, `.set(v)`. Reads a saved number or plain string too |
 | `Dash.tabs(el, { value, store, hash, panels, onChange })` | a `.tabs` row: shows the `[data-tab]` panel of the chosen button; `hash: 'view'` keeps it in the address (`#view=list`); arrow keys move |
-| `Dash.search(input, { onChange, debounce, key, store })` | a search box: `onChange(query)` once typing pauses, Escape clears, `/` jumps to it; `.count(shown, total)` fills its `.count` |
+| `Dash.search(input, { onChange, debounce, key, store })` | a search box: `onChange(query)` once typing pauses, Escape clears, `/` jumps to it; `.count(shown, total)` fills its `.count`. With `store`, a remembered query is put back and `onChange` runs with it right after (on the next tick) |
 | `Dash.key(combo, fn, { inInputs })` | a shortcut (`'/'`, `'g'`, `'mod+k'`, `'shift+?'`) that stays quiet while the reader types; returns a remover |
 | `Dash.hash.get(key)`, `.set({ key: value }, { push })`, `.on(fn)`, `.parse`, `.format` | the part of the address after `#` as settings (`#view=list&id=7`); `null` removes a key |
 | `Dash.dialog({ title, text, body, actions, cancel, drawer, focus })` | a dialog made on the spot; resolves `{ value, fields }` (`value` null when cancelled; `fields`: the named inputs in `body`) |

@@ -38,7 +38,8 @@ const url = `http://127.0.0.1:${server.address().port}/test/behaviour.html`;
 const results = [];
 // a check that throws (a click that times out, say) still ends in a FAIL line and exit code 1
 process.on('uncaughtException', (e) => {
-  console.log(`FAIL crashed: ${String(e && e.message).split('\n')[0]}`);
+  console.log(`FAIL crashed: ${String(e && e.message).split("\n")[0]}`);
+  if (process.env.VERBOSE) console.log(e && e.stack);
   process.exit(1);
 });
 const check = (name, ok, detail = '') => results.push({ name, ok: Boolean(ok), detail });
@@ -320,7 +321,7 @@ const open = async ({ width = 1200, init, clock = false } = {}) => {
   const d1 = await res();
   await run("Dash.dialog({ title: 'Pick', body: '<select name=\"size\"><option>s</option><option selected>m</option></select>', actions: [{ label: 'Use', value: 'use', tone: 'warn' }] })");
   const toned = await tab.evaluate(() => [...document.querySelectorAll('dialog .btn')].pop().className);
-  await tab.click('dialog .btn.primary');
+  await tab.click('dialog button[value="use"]');
   const d2 = await res();
   check('dialog: an action with a tone is a primary button in it', toned === 'btn primary warn', toned);
   // last: the browser's "fill out this field" bubble stays a few seconds and covers the buttons under it
@@ -378,6 +379,71 @@ const open = async ({ width = 1200, init, clock = false } = {}) => {
       colours: [...document.querySelectorAll('#stacked .stacked u')].map((u) => getComputedStyle(u).backgroundColor) };
   });
   check('stacked columns: parts in proportion, the first at the bottom, in their tones', st.ratio > 2.7 && st.ratio < 3.3 && st.lowUnder && st.fill && st.colours[0] !== st.colours[1], JSON.stringify(st));
+  await tab.context().close();
+}
+
+// ---- 1.3.1: table rows while text is selected, a remembered search, tooltips in dialogs, a wrapped table's scroll
+{
+  const tab = await open({ init: () => localStorage.setItem('q.restored', JSON.stringify('eu')) });
+  await tab.evaluate(() => {
+    window.hits = [];
+    window.rows2 = Array.from({ length: 6 }, (_, i) => ({ id: i, name: 'item ' + i, v: i }));
+    window.T2 = Dash.table('tbl', { columns: [{ key: 'name', label: 'Name', main: true }, { key: 'v', label: 'Value', num: true }], rows: rows2, key: 'id', onRow: (r) => hits.push(r.id) });
+    const range = document.createRange();
+    range.selectNodeContents(document.querySelector('#tbl tbody td'));
+    getSelection().removeAllRanges(); getSelection().addRange(range);
+    T2.update(rows2.slice().reverse()); // skipped while text is selected there
+  });
+  await tab.click('#tbl tbody tr >> nth=0'); // the click clears the selection first
+  const r1 = await tab.evaluate(() => ({ hit: hits.at(-1), shown: document.querySelector('#tbl tbody td').textContent }));
+  check('table: a click while a refresh waits gets the row on screen', r1.shown === 'item ' + r1.hit, JSON.stringify(r1));
+
+  const box = await tab.locator('#tbl tbody tr >> nth=2 >> td >> nth=0').boundingBox();
+  const before = await tab.evaluate(() => hits.length);
+  await tab.mouse.move(box.x + 2, box.y + box.height / 2);
+  await tab.mouse.down();
+  await tab.mouse.move(box.x + box.width - 4, box.y + box.height / 2, { steps: 5 });
+  await tab.mouse.up();
+  const drag = await tab.evaluate(() => ({ n: hits.length, sel: String(getSelection()) }));
+  check('table: selecting text in a row is not a row click', drag.n === before && drag.sel.length > 0, JSON.stringify(drag));
+  await tab.evaluate(() => getSelection().removeAllRanges());
+
+  const restored = await tab.evaluate(async () => {
+    window.seen = [];
+    Dash.search('search2', { store: 'q.restored', onChange: (q) => seen.push(q) });
+    await new Promise((ok) => setTimeout(ok, 0));
+    return { box: document.getElementById('search2').value, seen };
+  });
+  check('search: a remembered query is applied on load', restored.box === 'eu' && JSON.stringify(restored.seen) === '["eu"]', JSON.stringify(restored));
+
+  await tab.evaluate(() => { Dash.dialog({ title: 'Pick', body: '<button type="button" class="btn" id="tip-in" data-tooltip="Inside the dialog">i</button>', cancel: 'Close' }); });
+  await tab.hover('#tip-in');
+  const inDlg = await tab.evaluate(() => {
+    const t = document.querySelector('.tooltip');
+    return { shown: !!t && !t.hidden, inside: !!t && !!t.closest('dialog[open]'), w: t ? t.getBoundingClientRect().width : 0 };
+  });
+  check('tooltip: shows above an open dialog (drawn inside it)', inDlg.shown && inDlg.inside && inDlg.w > 20, JSON.stringify(inDlg));
+  await tab.keyboard.press('Escape');
+  await tab.keyboard.press('Escape');
+  await tab.hover('#tip-left');
+  const back = await tab.evaluate(() => { const t = document.querySelector('.tooltip'); return { shown: !!t && !t.hidden, inBody: !!t && t.parentNode === document.body }; });
+  check('tooltip: still works after that dialog is gone', back.shown && back.inBody, JSON.stringify(back));
+
+  const scroll = await tab.evaluate(() => {
+    const host = document.createElement('div');
+    host.id = 'tbl-wide';
+    host.style.width = '300px';
+    document.querySelector('main').appendChild(host);
+    const cols = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth'].map((k) => ({ key: k, label: k + ' column label' }));
+    const make = (n) => [{ id: 1, first: 'a' + n, second: 'b', third: 'c', fourth: 'd', fifth: 'e', sixth: 'f' }];
+    const t = Dash.table('tbl-wide', { columns: cols, rows: make(1), cls: '', wrap: true, key: 'id' });
+    const wrap = host.querySelector('.table-wrap');
+    wrap.scrollLeft = 60;
+    t.update(make(2));
+    const after = host.querySelector('.table-wrap');
+    return { left: after.scrollLeft, wide: after.scrollWidth > after.clientWidth, redrawn: host.querySelector('tbody td').textContent };
+  });
+  check("table: wrap keeps its sideways scroll across a refresh", scroll.wide && scroll.left === 60 && scroll.redrawn === 'a2', JSON.stringify(scroll));
   await tab.context().close();
 }
 
