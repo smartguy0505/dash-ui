@@ -9,7 +9,8 @@
 </head>
 <body>
 <!-- a wallet / payout dashboard style page: hero number, stats, a toolbar, a sortable paged table, an editor dialog.
-     Balances tick every few seconds to show live updates. -->
+     Balances tick every few seconds to show live updates. The table is laid out like the wallet dashboard's with kit
+     classes only: .compact, .stack-md cards from 900 px, td.actions, units in the headers, stake positions in sub rows. -->
 <header class="topbar">
   <div class="brand"><span class="mark">τ</span><h1>Wallets</h1></div>
   <span class="sub">coldkey balances, live from the chain</span>
@@ -34,7 +35,7 @@
     </div>
   </section>
 
-  <div class="stats" id="stats"></div>
+  <div class="stats fixed" id="stats"></div>
 
   <div class="toolbar">
     <label class="search"><span class="sr-only">Search</span>
@@ -45,7 +46,7 @@
   </div>
 
   <div class="table-wrap">
-    <table class="table stack" id="table"></table>
+    <table class="table stack stack-md compact" id="table"></table>
     <div id="pager"></div>
   </div>
   <p class="footer">Values in USD use the average TAO price from two exchanges. Staked TAO is alpha × the subnet’s price now.</p>
@@ -79,7 +80,18 @@
     free: Math.round(((i * 37) % 23) * 1000 + (i % 3) * 377) / 1000, staked: i % 4 === 3 ? 0 : Math.round(((i * 53) % 61) * 3100) / 1000,
     chg: i % 5 === 4 ? -((i % 3) * 0.41 + 0.05) : ((i * 7) % 9) * 0.137,
   }));
+  const SUBNETS = [[3, 'Data', 0.105], [12, 'Compute', 0.41], [27, 'Storage', 0.233]];
+  wallets.forEach((w, i) => {
+    w.stakes = !w.staked ? [] : SUBNETS.filter((_, k) => (i + k) % 3 !== 0).map(([netuid, name, p], k, all) => ({ netuid, name, tao: w.staked / all.length, alpha: w.staked / all.length / p }));
+  });
+  const open = new Set();
   const value = (w) => w.free + w.staked;
+  const ICON = {
+    chev: '<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4.5 2.5 8 6l-3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    edit: '<svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M9.2 2.4L12.6 5.8L5.2 13.2H1.8V9.8L9.2 2.4Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>',
+    hide: '<svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M2 2.5L13 12.5M3.2 4.6C2.2 5.4 1.5 6.4 1.5 7.5c0 0 2.1 3.7 6 3.7.9 0 1.7-.2 2.4-.5M6.4 3.9c.36-.06.73-.1 1.1-.1 3.9 0 6 3.7 6 3.7a10 10 0 0 1-1.5 1.7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>',
+    remove: '<svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M3 4.2h9M5.8 4.2V3h3.4v1.2M4.4 4.2l.6 8h5l.6-8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  };
   const sort = Dash.sorter({ key: 'value', dir: 'desc', store: 'example.wallets.sort', firstDir: { name: 'asc' } });
   let page = 1;
   let perPage = 10;
@@ -98,16 +110,16 @@
     $('total-line').innerHTML = `<b>${inTotal.length}</b> of ${wallets.length} wallets in the total`;
     const dir = fmt.dir(chg, 0.00005);
     $('change').innerHTML = `<span class="pill lg ${dir}">${dir === 'down' ? '▼' : dir === 'up' ? '▲' : ''} ${fmt.signed(chg)} τ</span>`
-      + `<span class="chg ${dir}">${fmt.signedUsd(chg * price)}</span><span class="muted">in the last 24 h</span>`;
+      + `<span class="chg ${dir}">${fmt.signedUsd(chg * price, 2)}</span><span class="muted">in the last 24 h</span>`;
     $('split').innerHTML = Dash.split([{ value: free, tone: 'blue', label: 'Free' }, { value: staked, tone: 'teal', label: 'Staked' }]);
     $('parts').innerHTML = [['Free', free, 'blue'], ['Staked', staked, 'teal']].map(([k, v, tone]) =>
       `<div><dt class="legend-item ${tone}"><i></i>${k}</dt><dd style="font-size:19px">${fmt.num(v, 2)} τ</dd><dd class="muted" style="font-weight:400">${fmt.usd(v * price)} · ${fmt.share(v / (free + staked) * 100)}</dd></div>`).join('');
     $('stats').innerHTML = [
-      ['Wallets', wallets.length, `${wallets.filter((w) => w.hidden).length} hidden`],
+      ['Wallets', wallets.length, `${wallets.filter((w) => w.hidden).length} hidden · ${wallets.filter((w) => !w.total).length} left out of the total`, 'wrap'],
       ['Largest', fmt.num(Math.max(...inTotal.map(value)), 2) + ' τ', inTotal.slice().sort((a, b) => value(b) - value(a))[0].name],
       ['Staked share', fmt.share(staked / (free + staked) * 100), 'of the total'],
       ['Block', '#5,212,640', 'every 12 s'],
-    ].map(([k, v, n]) => `<div class="stat"><div class="label">${esc(k)}</div><div class="value">${esc(v)}</div><div class="note">${esc(n)}</div></div>`).join('');
+    ].map(([k, v, n, cls = '']) => `<div class="stat"><div class="label">${esc(k)}</div><div class="value">${esc(v)}</div><div class="note ${cls}">${esc(n)}</div></div>`).join('');
     for (const v of ['active', 'total', 'hidden', 'all']) {
       $('filter').querySelector(`[data-n="${v}"]`).textContent = wallets.filter((w) => ({ active: !w.hidden, total: w.total && !w.hidden, hidden: w.hidden, all: true })[v]).length;
     }
@@ -120,20 +132,37 @@
     const p = Dash.paginate(rows, page, perPage);
     page = p.page;
     const max = Math.max(...wallets.filter((w) => w.total).map(value), 0.0001);
-    $('table').innerHTML = `<thead><tr>${Dash.th('Name', 'name', sort)}<th>Address</th>${Dash.th('Free', 'free', sort, { num: true })}${Dash.th('Staked', 'staked', sort, { num: true })}`
-      + `${Dash.th('Value', 'value', sort, { num: true })}${Dash.th('24h', 'chg', sort, { num: true, title: 'Change in TAO over the last 24 hours' })}<th class="hide-sm">Share</th><th class="num">In total</th><th></th></tr></thead><tbody>`
-      + (p.rows.length ? p.rows.map((w) => `<tr data-address="${esc(w.address)}"${w.hidden ? ' class="dim"' : ''}>
-          <td class="main" data-label="">${esc(w.name)}${w.hidden ? ' ' + Dash.tag('hidden') : ''}</td>
+    const COLS = 10;
+    $('table').innerHTML = '<thead><tr>' + Dash.th('Name', 'name', sort) + Dash.th('Address', null, sort)
+      + Dash.th('Free', 'free', sort, { num: true, unit: 'τ' }) + Dash.th('Staked', 'staked', sort, { num: true, unit: 'τ' })
+      + Dash.th('Value', 'value', sort, { num: true, unit: 'τ' }) + Dash.th('Value', 'value', sort, { num: true, unit: '$', mark: false })
+      + Dash.th('24h', 'chg', sort, { num: true, unit: 'τ', title: 'Change in TAO over the last 24 hours' })
+      + Dash.th('Share', null, sort, { cls: 'hide-sm' }) + Dash.th('In total', null, sort, { num: true })
+      + '<th class="actions"><span class="sr-only">Actions</span></th></tr></thead><tbody>'
+      + (p.rows.length ? p.rows.map((w) => {
+        const isOpen = open.has(w.address);
+        const expand = w.stakes.length
+          ? `<button type="button" class="icon-btn" data-act="expand" aria-expanded="${isOpen}" aria-label="Stake positions of ${esc(w.name)}">${ICON.chev}</button>`
+          : '<span class="icon-btn invisible" aria-hidden="true"></span>';
+        let html = `<tr data-address="${esc(w.address)}"${w.hidden ? ' class="dim"' : ''}>
+          <td class="main">${expand} ${esc(w.name)}${w.hidden ? ' ' + Dash.tag('hidden') : ''}</td>
           <td data-label="Address"><span class="mono muted" title="${esc(w.address)}">${esc(fmt.short(w.address))}</span>
             <button type="button" class="icon-btn" data-copy="${esc(w.address)}" title="Copy address" aria-label="Copy address"><svg width="13" height="13" viewBox="0 0 15 15" fill="none"><rect x="5" y="5" width="8" height="8" rx="1.6" stroke="currentColor" stroke-width="1.3"/><path d="M10 5V3.6A1.6 1.6 0 0 0 8.4 2H3.6A1.6 1.6 0 0 0 2 3.6v4.8A1.6 1.6 0 0 0 3.6 10H5" stroke="currentColor" stroke-width="1.3"/></svg></button></td>
-          <td class="num" data-label="Free" data-cell="free">${w.free ? fmt.amount(w.free) : '<span class="faint">0</span>'}</td>
-          <td class="num" data-label="Staked">${w.staked ? fmt.amount(w.staked) : '<span class="faint">0</span>'}</td>
-          <td class="num" data-label="Value"><b>${fmt.amount(value(w))}</b><div class="sub">${fmt.usd(value(w) * price)}</div></td>
-          <td class="num" data-label="24h τ">${Dash.chg(w.chg)}</td>
-          <td class="hide-sm" style="min-width:120px">${w.total ? `<div class="share">${Dash.bar(value(w) / max, 'accent', { cls: 'thin' })}<span>${fmt.share(value(w) / max * 100)}</span></div>` : '<span class="faint">—</span>'}</td>
+          <td class="num" data-label="Free τ" data-cell="free">${w.free ? fmt.amount(w.free) : '<span class="faint">0</span>'}</td>
+          <td class="num" data-label="Staked τ">${w.staked ? fmt.amount(w.staked) : '<span class="faint">0</span>'}</td>
+          <td class="num" data-label="Value τ"><b>${fmt.amount(value(w))}</b></td>
+          <td class="num muted" data-label="Value $">${fmt.usd(value(w) * price, 2)}</td>
+          <td class="num" data-label="24h τ">${Dash.chg(w.chg, fmt.signed(w.chg), { eps: 0.00005, title: 'Free + staked TAO now, against this time yesterday' })}</td>
+          <td class="hide-sm" data-label="Share" style="min-width:120px">${w.total ? `<div class="share">${Dash.bar(value(w) / max, 'accent', { cls: 'thin' })}<span>${fmt.share(value(w) / max * 100)}</span></div>` : '<span class="faint">—</span>'}</td>
           <td class="num" data-label="In total"><label class="switch"><input type="checkbox" data-act="total"${w.total ? ' checked' : ''}><span class="track"></span><span class="sr-only">Count in the total</span></label></td>
-          <td class="num"><button type="button" class="btn sm" data-act="edit">Edit</button></td></tr>`).join('')
-        : '<tr class="empty-row"><td colspan="9">No wallets match that search.</td></tr>') + '</tbody>';
+          <td class="actions"><button type="button" class="icon-btn" data-act="edit" title="Edit" aria-label="Edit ${esc(w.name)}">${ICON.edit}</button><button type="button" class="icon-btn" data-act="hide" title="${w.hidden ? 'Show' : 'Hide'}" aria-label="${w.hidden ? 'Show' : 'Hide'} ${esc(w.name)}">${ICON.hide}</button><button type="button" class="icon-btn danger" data-act="remove" title="Remove" aria-label="Remove ${esc(w.name)}">${ICON.remove}</button></td></tr>`;
+        if (isOpen) {
+          html += `<tr class="sub"><td colspan="${COLS}">${w.stakes.map((st) => `<div class="row" style="padding:3px 0">${Dash.tag('SN' + st.netuid, 'teal')} ${esc(st.name)}
+            <span class="push num">${fmt.amount(st.alpha)} <span class="unit">α</span> · <b class="strong">${fmt.amount(st.tao)}</b> <span class="unit">τ</span></span></div>`).join('')}</td></tr>`;
+        }
+        return html;
+      }).join('')
+        : `<tr class="empty-row"><td colspan="${COLS}">No wallets match that search.</td></tr>`) + '</tbody>';
     $('pager').innerHTML = Dash.pager(p, { noun: 'wallet' });
   }
 
@@ -144,6 +173,10 @@
     render();
     Dash.toast(box.checked ? `${w.name} counts in the total` : `${w.name} left out of the total`);
   });
+  const walletOf = (el) => wallets.find((x) => x.address === el.closest('tr').dataset.address);
+  Dash.on('table', 'click', '[data-act="expand"]', (e, b) => { const w = walletOf(b); open.has(w.address) ? open.delete(w.address) : open.add(w.address); render(); });
+  Dash.on('table', 'click', '[data-act="hide"]', (e, b) => { const w = walletOf(b); w.hidden = !w.hidden; render(); Dash.toast(`${w.name} ${w.hidden ? 'hidden' : 'shown'}`); });
+  Dash.on('table', 'click', '[data-act="remove"]', (e, b) => { const w = walletOf(b); wallets.splice(wallets.indexOf(w), 1); render(); Dash.toast(`${w.name} removed`); });
   Dash.on('table', 'click', '[data-act="edit"]', (e, b) => openEditor(wallets.find((x) => x.address === b.closest('tr').dataset.address)));
   Dash.on('pager', 'click', '[data-page]', (e, b) => { page = Number(b.dataset.page); render(); });
   Dash.on('pager', 'change', '[data-per-page]', (e, s) => { perPage = Number(s.value); page = 1; render(); });

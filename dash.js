@@ -1,4 +1,4 @@
-/* dash-ui helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
+/* dash-ui 1.1.0 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
    A plain script with no dependencies: a script tag for dash.js in <head> gives window.Dash, and puts the
    saved light/dark choice on the page before it paints. In Node, require('./dash.js') returns the same object
    (the parts that need a page are skipped).
@@ -8,7 +8,7 @@
 (function (root) {
   'use strict';
   const hasDom = typeof document !== 'undefined';
-  const Dash = { version: '1.0.0', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side' } };
+  const Dash = { version: '1.1.0', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side' } };
 
   // ---- basics
 
@@ -95,11 +95,12 @@
     if (Math.abs(v) < 0.5 * 10 ** -d) return '0';
     return (v > 0 ? '+' : '−') + fmt.num(Math.abs(v), d);
   };
-  fmt.signedUsd = (n) => {
+  // a signed dollar change: +$733, −$12.35; d fixes the decimals (fmt.signedUsd(732.6, 2) → +$732.60)
+  fmt.signedUsd = (n, d) => {
     if (!isNum(n)) return NONE;
     const v = Number(n);
-    if (Math.abs(v) < 0.005) return '$0.00';
-    return (v > 0 ? '+' : '−') + fmt.usd(Math.abs(v));
+    if (Math.abs(v) < 0.5 * 10 ** -(d ?? 2)) return fmt.usd(0, d ?? 2);
+    return (v > 0 ? '+' : '−') + fmt.usd(Math.abs(v), d);
   };
   // 'up', 'down' or 'flat': the tone class for a change
   fmt.dir = (n, eps = 0) => (!isNum(n) || Math.abs(n) <= eps ? 'flat' : n > 0 ? 'up' : 'down');
@@ -165,7 +166,9 @@
     `<span class="pill${toneClass(tone)}"${title ? ` title="${esc(title)}"` : ''}>${dot ? '<span class="dot"></span>' : ''}${esc(text)}</span>`;
   Dash.tag = (text, tone, { title } = {}) => `<span class="tag${toneClass(tone)}"${title ? ` title="${esc(title)}"` : ''}>${esc(text)}</span>`;
   // a signed change in its colour: Dash.chg(1.5, '+1.5 τ')
-  Dash.chg = (v, text = fmt.signed(v)) => `<span class="chg ${fmt.dir(v)}">${esc(text)}</span>`;
+  // eps: changes this small count as flat; title: a tooltip (e.g. what the change is made of)
+  Dash.chg = (v, text = fmt.signed(v), { eps = 0, title } = {}) =>
+    `<span class="chg ${fmt.dir(v, eps)}"${title ? ` title="${esc(title)}"` : ''}>${esc(text)}</span>`;
   // a medal for the top three, a plain rank below: Dash.rank(2, 14) → "#2 of 14"
   Dash.rank = (pos, of, { title } = {}) => {
     if (!pos) return `<span class="rank"${title ? ` title="${esc(title)}"` : ''}>unranked</span>`;
@@ -190,11 +193,16 @@
     });
   };
   // A sortable header cell; sort is { key, dir }. Clicks come back as [data-sort] (see Dash.sorter).
-  Dash.th = (label, key, sort, { num = false, title, cls = '' } = {}) => {
-    const on = sort && sort.key === key;
+  // options: num (right-aligned), title, cls, unit (shown after the label, not uppercased: 'τ'),
+  // mark: false for a second column that sorts by the same key (only one header shows the arrow).
+  // With key null the header is plain text (not sortable).
+  Dash.th = (label, key, sort, { num = false, title, cls = '', unit, mark = true } = {}) => {
+    const on = mark && key != null && sort && sort.key === key;
     const classes = [num ? 'num' : '', cls].filter(Boolean).join(' ');
+    const text = esc(label) + (unit ? ` <span class="unit">${esc(unit)}</span>` : '');
+    if (key == null) return `<th${classes ? ` class="${esc(classes)}"` : ''}${title ? ` title="${esc(title)}"` : ''}>${text}</th>`;
     return `<th${classes ? ` class="${esc(classes)}"` : ''}${on ? ` aria-sort="${sort.dir === 'asc' ? 'ascending' : 'descending'}"` : ''}>`
-      + `<button type="button" data-sort="${esc(key)}"${title ? ` title="${esc(title)}"` : ''}>${esc(label)}</button></th>`;
+      + `<button type="button" data-sort="${esc(key)}"${title ? ` title="${esc(title)}"` : ''}>${text}</button></th>`;
   };
   // Sort state that remembers itself. A click on the sorted column flips it; a new column starts with its own direction.
   // const sort = Dash.sorter({ key: 'value', dir: 'desc', store: 'wallets.sort', firstDir: { name: 'asc' } })

@@ -1,4 +1,4 @@
-/* dash-ui: the look shared by agent-dash, burst-dash, bm-dash, the payout dashboard and the wallet dashboard.
+/* dash-ui 1.1.0: the look shared by agent-dash, burst-dash, bm-dash, the payout dashboard and the wallet dashboard.
    Warm neutral backgrounds, white panels, tinted status colours, light and dark from the system setting
    (or data-theme="light|dark" on <html>). No build step, no dependencies: link this file, or paste it into a page.
 
@@ -57,6 +57,8 @@ a { color: var(--blue); text-underline-offset: 3px; }
 .r, td.num, th.num { text-align: right; }
 .muted { color: var(--muted); }
 .faint { color: var(--faint); }
+.invisible { visibility: hidden; } /* keeps its space, e.g. an .icon-btn-sized gap where a row has no button */
+.unit { color: var(--muted); font-weight: 500; } /* a unit after a number or in a header: 12.5 <span class="unit">τ</span> */
 .strong { color: var(--text); font-weight: 600; }
 .sub { color: var(--muted); font-size: 13px; }
 .ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -95,6 +97,7 @@ a { color: var(--blue); text-underline-offset: 3px; }
 .live[data-state="stale"] .dot { --c: var(--warn); }
 .live[data-state="off"] { color: var(--bad); font-weight: 600; white-space: normal; }
 .live[data-state="off"] .dot { --c: var(--bad); }
+.live[data-state="connecting"] .dot { animation: pulse 1.4s ease-in-out infinite; }
 
 /* a reading in the top bar: name, small meter, value, note */
 .topstat { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
@@ -177,6 +180,9 @@ a { color: var(--blue); text-underline-offset: 3px; }
   text-overflow: ellipsis; white-space: nowrap; }
 .stat .value small { color: var(--muted); font-size: 14px; font-weight: 500; }
 .stat .note { overflow: hidden; color: var(--muted); font-size: 12.5px; text-overflow: ellipsis; white-space: nowrap; }
+.stat .note.wrap { white-space: normal; } /* a note that may run to two lines, e.g. a warning */
+/* .stats.fixed: exactly --stat-cols tiles across (4), two from 900 px down */
+.stats.fixed { grid-template-columns: repeat(var(--stat-cols, 4), minmax(0, 1fr)); }
 button.stat { width: 100%; text-align: left; color: inherit; }
 button.stat:hover { border-color: var(--blue); }
 .big { margin: 2px 0; font-size: 38px; font-weight: 700; line-height: 1.15; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
@@ -344,7 +350,7 @@ details > summary:hover { color: var(--text); }
    Sortable header: <th aria-sort="descending"><button data-sort="key">Name</button></th> (Dash.th writes it). */
 .table-wrap { position: relative; overflow-x: auto; } /* relative: an absolutely placed child (.sr-only) scrolls with it instead of widening the page */
 .table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 14px; font-variant-numeric: tabular-nums; }
-.table th, .table td { padding: 9px 12px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; vertical-align: middle; }
+.table th, .table td { padding: 9px var(--cell-x, 12px); border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; vertical-align: middle; }
 .table th.num, .table td.num { text-align: right; }
 .table thead th { border-bottom: 0; background: var(--soft); color: var(--muted); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
 .table thead th:first-child { border-radius: 8px 0 0 8px; }
@@ -360,6 +366,14 @@ details > summary:hover { color: var(--text); }
 .table th button { padding: 0; border: 0; background: none; color: inherit; font: inherit; letter-spacing: inherit; text-align: inherit; text-transform: inherit; }
 .table th button:hover { color: var(--text); }
 .table th[aria-sort] { color: var(--text); }
+.table thead .unit { text-transform: none; letter-spacing: 0; } /* τ stays τ, not Τ */
+/* .table.compact: tighter columns (8px each side) for a table with many of them */
+.table.compact { --cell-x: 8px; }
+:where(.table.compact) :is(th, td):first-child { padding-left: 14px; }
+:where(.table.compact) :is(th, td):last-child { padding-right: 10px; }
+/* td.actions: a row's buttons, as narrow as they are, at the right (on a card: in its top corner) */
+.table th.actions, .table td.actions { width: 1%; text-align: right; white-space: nowrap; }
+.table td .icon-btn { vertical-align: middle; } /* buttons (and button-sized gaps) centred on the text line */
 .table th[aria-sort] button::after { content: " ▼"; font-size: 9px; vertical-align: 1px; }
 .table th[aria-sort="ascending"] button::after { content: " ▲"; }
 /* sticky header under the top bar, for a long table on a page that scrolls (needs .table-wrap.open, which lets it overflow) */
@@ -579,6 +593,7 @@ button.hbar:hover { background: var(--soft); }
   .table-wrap.open { overflow-x: auto; } /* too narrow to hang out of its card: scroll it sideways instead */
   .table-wrap .table.sticky thead th { position: static; } /* (sticky inside a scroller would stick to the scroller) */
   .grid > .span-2 { grid-column: auto; }
+  .stats.fixed { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 /* .table.stack.stack-md: the same cards from 900 px down, for a table too wide for a tablet (the wallet dashboard's).
    Keep these rules equal to the .table.stack ones below; a test compares them. */
@@ -596,6 +611,10 @@ button.hbar:hover { background: var(--soft); }
   .table.stack-md tbody tr:hover td { background: none; }
   .table.stack-md tr.marked td:first-child { box-shadow: none; }
   .table.stack-md tr.marked { box-shadow: inset 3px 0 0 var(--c); padding-left: 10px; }
+  .table.stack-md tr:has(> td.actions) { position: relative; }
+  .table.stack-md td.actions { position: absolute; top: 8px; right: 14px; width: auto; padding: 0; }
+  .panel .table.stack-md td.actions { right: 0; }
+  .table.stack-md tr:has(> td.actions) td.main { padding-right: var(--actions-w, 96px); }
 }
 @media (max-width: 640px) {
   .topbar { position: static; padding: 10px 16px; gap: 6px 14px; } /* it wraps to two or three lines here: too tall to pin */
@@ -629,6 +648,10 @@ button.hbar:hover { background: var(--soft); }
   .table.stack tbody tr:hover td { background: none; }
   .table.stack tr.marked td:first-child { box-shadow: none; }
   .table.stack tr.marked { box-shadow: inset 3px 0 0 var(--c); padding-left: 10px; }
+  .table.stack tr:has(> td.actions) { position: relative; }
+  .table.stack td.actions { position: absolute; top: 8px; right: 14px; width: auto; padding: 0; }
+  .panel .table.stack td.actions { right: 0; }
+  .table.stack tr:has(> td.actions) td.main { padding-right: var(--actions-w, 96px); }
 }
 @media (min-width: 641px) { .show-sm { display: none !important; } }
 @media (prefers-reduced-motion: reduce) {

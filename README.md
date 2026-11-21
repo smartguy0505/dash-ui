@@ -56,6 +56,8 @@ ssh -L 8096:127.0.0.1:8096 <this server>         # from your machine, then open 
 
 Single-file dashboards, like agent-dash's `dashboard.html`, can paste `dash.css` into their `<style>` and `dash.js` into a `<script>`; nothing in either file refers to the other or to a path.
 
+**Copies and versions:** a dashboard keeps its own copy of the two files (the wallet dashboard has them in `public/dash-ui/`). The first line of each file names the version, and `CHANGELOG.md` says what each version added. Versions only add things, so a newer copy can replace an older one. When a page needs something the kit lacks, add it here, then copy the files again; don't edit a copy.
+
 ## The look
 
 These are the rules the five dashboards settled on and the user approved ("looks good, I like that style and color").
@@ -87,6 +89,8 @@ Surfaces and text: `--bg`, `--card`, `--soft` (a block inside a card, table head
 | `gold` `silver` `bronze` | `#a16207` … | `#f0c04a` … | medals, USD |
 | `idle` | `#6e6b64` | `#a7a59e` | idle, closed |
 | `neutral` | `--muted` | | default grey |
+
+**Contrast:** dark mode clears WCAG AA (4.5:1) for every tone. In light mode, the text inside a tinted pill or tag is just under it for `ok`, `warn`, `orange`, `gold` and `silver` (4.2–4.4:1), and `accent` (3.9:1) and `faint` (3.5:1) are not meant for body text. A test keeps these from getting worse.
 
 **How colour reaches a component:** every coloured component draws with one variable, `--c`, and a tone class sets it. So `<span class="pill ok">`, `<span class="tag teal">`, `<div class="panel ring bad">`, `<span class="bar warn">` and `<span class="dot orange">` all work the same way.
 
@@ -134,7 +138,7 @@ Surfaces and text: `--bg`, `--card`, `--soft` (a block inside a card, table head
 **Surfaces**
 - `.panel`: a section, with `.panel-head` (`h3`, `.read` on the right, or a `.seg`/`.btn` last) and `.panel-note`. `.panel.flush` has no padding.
 - `.card`: one of many in `.cards`, with `.card-head`, `.card-title`, `.card-sub` and `.card-foot`.
-- `.stat`: `.label`, `.value` (with `small` for a unit) and `.note`. A `button.stat` can be clicked.
+- `.stat`: `.label`, `.value` (with `small` for a unit) and `.note` (one line; `.note.wrap` may run to two). A `button.stat` can be clicked. `.stats.fixed` puts exactly `--stat-cols` (4) tiles across, two from 900 px down.
 - `.hero` and `.big`: the one big number on the page, with `.hero-line` under it.
 - `.ring`: an orange ring for something that needs attention. Add a tone to change the colour: `.ring bad`.
 - `.banner`: the status line with a big dot. `.active` pulses, so `.banner.active.bad` means a burst is on now. It holds `.badge`, `.banner-title` and `.banner-text`.
@@ -149,7 +153,7 @@ Surfaces and text: `--bg`, `--card`, `--soft` (a block inside a card, table head
 - `.rank`: "#2 of 14", in medal colours for the top three (`Dash.rank` builds it).
 - `.chip`: a pill with a border. A `button.chip` with `aria-pressed` is a choice. Group them in `.chips`, or `.chips.scroll` for one sideways-scrolling line.
 - `.chg` with `.up`, `.down` or `.flat`: a signed change in its colour.
-- Text utilities: `.muted`, `.faint`, `.strong`, `.sub`, `.mono`, `.num`, `.ellipsis`, `.clamp` (`--lines`), `kbd`, `code`.
+- Text utilities: `.muted`, `.faint`, `.strong`, `.sub`, `.mono`, `.num`, `.unit` (a unit after a number: `12.5 <span class="unit">τ</span>`), `.ellipsis`, `.clamp` (`--lines`), `.invisible` (hidden, keeps its space), `kbd`, `code`.
 
 **Controls**
 - `.btn`: also `.primary` (text-coloured; `.primary.blue` for a blue one), `.ghost`, `.danger`, `.sm`, `.round` and `.block`. `.btn.busy` spins its icon.
@@ -168,7 +172,9 @@ Surfaces and text: `--bg`, `--card`, `--soft` (a block inside a card, table head
 
 **Tables**
 - `.table` inside a `.panel` has a rounded header strip. Wrap it in `.table-wrap` to make the table its own card.
-- Sort headers: `<th aria-sort="descending"><button data-sort="key">` (`Dash.th` writes these). `th.num` and `td.num` align right.
+- Sort headers: `<th aria-sort="descending"><button data-sort="key">` (`Dash.th` writes these). `th.num` and `td.num` align right. A `.unit` in a header isn't uppercased, so τ stays τ.
+- `.table.compact`: 8 px between columns instead of 12, for a table with many of them.
+- `td.actions` (and `th.actions`): a row's buttons, at the right and as narrow as they are. On a stacked card they sit in its top-right corner; `--actions-w` on the table (96 px) keeps the title clear of them.
 - Row states:
   - `tr.marked`: a bar on the left plus a tint, blue unless a tone is added;
   - `tr.dim`;
@@ -199,7 +205,7 @@ Surfaces and text: `--bg`, `--card`, `--soft` (a block inside a card, table head
 - `.notices` › `.notice` (`Dash.notify`): an alert in the corner that stays.
 - `<dialog class="dialog">`: centred. Use `.dialog-body`, `.hint` and `.dialog-actions`.
 - `<dialog class="drawer">`: from the right. Use `.drawer-body` and `.drawer-head`. Open either with `el.showModal()`. `[data-dismiss]`, Escape or a click on the backdrop closes it.
-- `.live` with `data-state="on|stale|off"`: the connection status.
+- `.live` with `data-state="on|stale|off|connecting"`: the connection status (the dot pulses while connecting).
 - `.flash`: highlights a value that just changed.
 - `.ip`: a blurred IP address (`Dash.maskIps`).
 - `.login-page` on `<body>`, then `form.login` with `.lead` and `.note`: the sign-in page.
@@ -214,14 +220,14 @@ Builders return HTML strings, with every value escaped. Put them in with `innerH
 | `Dash.store.get(key, fallback)` / `.set(key, value)` | JSON in localStorage that never throws |
 | `Dash.fmt.num(n, d)`, `.int`, `.compact` | `1,234.50`, `1,234,567`, `2.5` / `950` / `1.2k` / `15k` / `3.4M` |
 | `Dash.fmt.usd(n, d?)`, `.pct(n, d)`, `.share(n)` | `$1,235` from $100, `$12.35` below; `12.3%`; `100%` / `12%` / `1.5%` / `<0.1%` |
-| `Dash.fmt.amount(n, d=4)`, `.signed(n, d=4)`, `.signedUsd(n)`, `.dir(n, eps)` | `<0.0001`; `+1.2345` / `−0.0100` / `0`; `+$733`; `'up'` / `'down'` / `'flat'` |
+| `Dash.fmt.amount(n, d=4)`, `.signed(n, d=4)`, `.signedUsd(n, d?)`, `.dir(n, eps)` | `<0.0001`; `+1.2345` / `−0.0100` / `0`; `+$733` (`+$732.60` with `d` 2); `'up'` / `'down'` / `'flat'` |
 | `Dash.fmt.dur(ms)`, `.span(ms)`, `.ago(t)` | `3h 5m`; `2.7 h`; `just now` / `40 s ago` / `12 min ago` / `2.5 h ago` / `3 d ago` |
 | `Dash.fmt.clock(t)`, `.when(t)`, `.utc(t)` | `14:05`; `Nov 21, 14:05`; `Nov 21, 02:22 UTC` (ms, Date or ISO string) |
 | `Dash.fmt.short(s, 6, 6)`, `.plural(n, word)` | `5DemoP…GiaVwn`; `23 nodes` |
-| `Dash.pill(text, tone)`, `Dash.tag(text, tone)`, `Dash.chg(v, text)`, `Dash.rank(pos, of)`, `Dash.copyButton(text)` | small labels |
+| `Dash.pill(text, tone)`, `Dash.tag(text, tone)`, `Dash.chg(v, text, { eps, title })`, `Dash.rank(pos, of)`, `Dash.copyButton(text)` | small labels (`eps`: a change this small is flat) |
 | `Dash.sortBy(rows, key or fn, 'asc'/'desc')` | sorted copy: numbers as numbers, text by locale (`node-2` before `node-10`), blanks last both ways |
 | `Dash.sorter({ key, dir, store, firstDir })` | sort state: `.toggle(key)` flips or switches, `.apply(rows, getters)`, remembered under `store` |
-| `Dash.th(label, key, sort, { num, title })` | a sortable header cell |
+| `Dash.th(label, key, sort, { num, title, cls, unit, mark })` | a sortable header cell; `unit: 'τ'` after the label; `mark: false` for a second column with the same sort key; `key` null for a plain header |
 | `Dash.paginate(rows, page, perPage)`, `Dash.pager(p, { noun, sizes })`, `Dash.pageItems(page, pages)` | one page of rows; the pager (`[data-page]` clicks, `[data-per-page]` changes) |
 | `Dash.bar(frac, tone)`, `Dash.meter(frac, tone)`, `Dash.split(parts)`, `Dash.legend(items, { list, button })` | bars and legends (`parts`/`items`: `{ value, tone, label }`) |
 | `Dash.hbars(rows, { max, format, button })` | `{ label, value, tone, text, key }` per row |

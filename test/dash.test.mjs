@@ -152,6 +152,63 @@ test('charts: sizes and shares are right', () => {
   assert.match(Dash.spark([]), /<svg class="spark"/);
 });
 
+test('1.1 options: signedUsd digits, chg eps and title, th unit / mark / plain', () => {
+  // what existing calls print stays the same
+  assert.equal(fmt.signedUsd(732.6), '+$733');
+  assert.equal(fmt.signedUsd(-12.345), '−$12.35');
+  assert.equal(fmt.signedUsd(0.001), '$0.00');
+  assert.equal(Dash.chg(1.5), '<span class="chg up">+1.5000</span>');
+  assert.equal(Dash.chg(0.00003, '+0'), '<span class="chg up">+0</span>');
+  const sort = { key: 'total', dir: 'desc' };
+  assert.equal(Dash.th('Total', 'total', sort, { num: true }), '<th class="num" aria-sort="descending"><button type="button" data-sort="total">Total</button></th>');
+  // the new options
+  assert.equal(fmt.signedUsd(732.6, 2), '+$732.60');
+  assert.equal(fmt.signedUsd(0.004, 2), '$0.00');
+  assert.equal(fmt.signedUsd(-0.6, 0), '−$1');
+  assert.equal(fmt.signedUsd(0.4, 0), '$0');
+  assert.equal(Dash.chg(0.00003, '+0', { eps: 0.00005 }), '<span class="chg flat">+0</span>');
+  assert.equal(Dash.chg(-2, '−2', { title: 'free <1> · staked' }), '<span class="chg down" title="free &lt;1&gt; · staked">−2</span>');
+  assert.equal(Dash.th('Free', 'free', sort, { num: true, unit: 'τ' }), '<th class="num"><button type="button" data-sort="free">Free <span class="unit">τ</span></button></th>');
+  assert.equal(Dash.th('Value', 'total', sort, { num: true, unit: '$', mark: false }), '<th class="num"><button type="button" data-sort="total">Value <span class="unit">$</span></button></th>');
+  assert.equal(Dash.th('Share', null, sort, { title: 'of <all>' }), '<th title="of &lt;all&gt;">Share</th>');
+  assert.equal(Dash.th('<b>', 'k', null, { unit: '<i>' }), '<th><button type="button" data-sort="k">&lt;b&gt; <span class="unit">&lt;i&gt;</span></button></th>');
+});
+
+test('the version is the same in dash.css, dash.js, Dash.version and package.json', () => {
+  const pkg = JSON.parse(readFileSync(new URL('package.json', root), 'utf8')).version;
+  const js = readFileSync(new URL('dash.js', root), 'utf8');
+  assert.equal(Dash.version, pkg);
+  assert.match(css.split('\n')[0], new RegExp(`^/\\* dash-ui ${pkg.replaceAll('.', '\\.')}:`));
+  assert.match(js.split('\n')[0], new RegExp(`^/\\* dash-ui ${pkg.replaceAll('.', '\\.')} `));
+  const log = readFileSync(new URL('CHANGELOG.md', root), 'utf8');
+  assert.match(log, new RegExp(`^## ${pkg.replaceAll('.', '\\.')}\\b`, 'm'), 'CHANGELOG has a section for this version');
+});
+
+// WCAG contrast at today's colours. Light-mode pill text (a tone on its own 12% tint) is just under 4.5 for
+// ok, warn, orange, gold and silver; accent and faint are below 4.5 as text. These floors only stop it getting worse.
+test('dash.css: colour contrast does not get worse', () => {
+  const block = (re) => Object.fromEntries([...css.match(re)[1].matchAll(/--([\w-]+):\s*(#[0-9a-f]{6})/gi)].map((m) => [m[1], m[2]]));
+  const light = block(/:root\s*\{([\s\S]*?)\n\}/);
+  const dark = { ...light, ...block(/:root\[data-theme="dark"\]\s*\{([\s\S]*?)\}/) };
+  const rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const lum = (c) => c.map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }).reduce((s, v, i) => s + v * [0.2126, 0.7152, 0.0722][i], 0);
+  const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+  const tint = (c, base) => c.map((v, i) => Math.round(v * 0.12 + base[i] * 0.88));
+  const tones = ['ok', 'warn', 'bad', 'blue', 'teal', 'purple', 'orange', 'pink', 'gold', 'silver', 'bronze', 'idle'];
+  for (const [name, t] of [['light', light], ['dark', dark]]) {
+    const card = rgb(t.card);
+    assert.ok(ratio(rgb(t.text), card) >= 7, `${name} text`);
+    assert.ok(ratio(rgb(t.muted), card) >= 4.5, `${name} muted`);
+    assert.ok(ratio(rgb(t.faint), card) >= 3.5, `${name} faint`);
+    assert.ok(ratio(rgb(t.accent), card) >= 3.85, `${name} accent`);
+    for (const k of tones) {
+      const c = rgb(t[k]);
+      assert.ok(ratio(c, card) >= 4.8, `${name} ${k} on a card: ${ratio(c, card).toFixed(2)}`);
+      assert.ok(ratio(c, tint(c, card)) >= 4.15, `${name} ${k} on its tint: ${ratio(c, tint(c, card)).toFixed(2)}`);
+    }
+  }
+});
+
 test('both files can be pasted inline into a page', () => {
   const js = readFileSync(new URL('dash.js', root), 'utf8');
   assert.doesNotMatch(js, /<\/script/i, 'dash.js would close an inline <script> early');

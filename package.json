@@ -1,6 +1,6 @@
 {
   "name": "dash-ui",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "description": "The shared look of the agent, bursts, Blockmachine, payout and wallet dashboards: one CSS file and one script, no build step",
   "scripts": {
