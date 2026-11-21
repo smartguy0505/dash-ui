@@ -287,4 +287,9 @@ Where the dashboards disagreed, this kit follows agent-dash and the wallet dashb
 node --test test/dash.test.mjs
 ```
 
-The tests cover the formatters, sorting, paging, escaping in every builder, and chart sizes. They also check that the two dark palettes in `dash.css` are equal, that every token has a dark value, and that every class used in the pages and in dash.js exists in `dash.css`. For layout, take real screenshots: headless Chromium at 390, 860, 1200 and 1440 px, light and dark, with a check that nothing is wider than the page.
+The tests cover the formatters, sorting, paging, escaping in every builder, and chart sizes. They also check that the two dark palettes in `dash.css` are equal, that every token has a dark value, and that every class used in the pages and in dash.js exists in `dash.css`. For layout, `test/screens.mjs` loads every page in headless Chromium at 390, 700, 860 and 1440 px, light and dark. It fails on a page wider than the window, a console error, or a stacked table whose rows aren't cards at the right widths (or whose `td.actions` left the card's corner). It needs Playwright, which the kit itself doesn't:
+
+```sh
+npm i --no-save playwright-core && npx playwright-core install --only-shell chromium
+npm run screens            # SHOTS=1 npm run screens also saves the screenshots to screens/
+```

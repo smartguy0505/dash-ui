@@ -2,6 +2,11 @@
 
 Dashboards keep a copy of `dash.css` and `dash.js`; the first line of each file says which version it is. Versions only add things: a page that worked with an older copy works the same with a newer one.
 
+## Unreleased
+
+- `test/screens.mjs` (`npm run screens`): every page in a real browser at four widths, light and dark.
+- The gallery shows the `connecting` live state.
+
 ## 1.1.0 (2026-11-21)
 
 What the wallet dashboard needed when it moved onto the kit:

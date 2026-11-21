@@ -5,6 +5,7 @@
   "description": "The shared look of the agent, bursts, Blockmachine, payout and wallet dashboards: one CSS file and one script, no build step",
   "scripts": {
     "test": "node --test test/dash.test.mjs",
-    "serve": "python3 -m http.server 8096 --bind 127.0.0.1"
+    "serve": "python3 -m http.server 8096 --bind 127.0.0.1",
+    "screens": "node test/screens.mjs"
   }
 }
