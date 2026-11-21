@@ -342,7 +342,7 @@ details > summary:hover { color: var(--text); }
 /* ---- tables ----
    <div class="table-wrap"><table class="table">…</table></div> for a table that is its own card, or a .table inside a .panel.
    Sortable header: <th aria-sort="descending"><button data-sort="key">Name</button></th> (Dash.th writes it). */
-.table-wrap { overflow-x: auto; }
+.table-wrap { position: relative; overflow-x: auto; } /* relative: an absolutely placed child (.sr-only) scrolls with it instead of widening the page */
 .table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 14px; font-variant-numeric: tabular-nums; }
 .table th, .table td { padding: 9px 12px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; vertical-align: middle; }
 .table th.num, .table td.num { text-align: right; }
@@ -579,6 +579,23 @@ button.hbar:hover { background: var(--soft); }
   .table-wrap.open { overflow-x: auto; } /* too narrow to hang out of its card: scroll it sideways instead */
   .table-wrap .table.sticky thead th { position: static; } /* (sticky inside a scroller would stick to the scroller) */
   .grid > .span-2 { grid-column: auto; }
+}
+/* .table.stack.stack-md: the same cards from 900 px down, for a table too wide for a tablet (the wallet dashboard's).
+   Keep these rules equal to the .table.stack ones below; a test compares them. */
+@media (max-width: 900px) {
+  .table.stack-md thead { display: none; }
+  .table.stack-md, .table.stack-md tbody, .table.stack-md tr, .table.stack-md td { display: block; width: 100%; }
+  .table.stack-md tr { padding: 10px 14px; border-bottom: 1px solid var(--line); }
+  .panel .table.stack-md tr { padding-inline: 0; }
+  .table.stack-md tr:last-child { border-bottom: 0; }
+  .table.stack-md td { padding: 2px 0; border: 0; text-align: right; white-space: normal; overflow-wrap: anywhere; }
+  .table.stack-md td::before { content: attr(data-label); float: left; margin-right: 12px; color: var(--muted); font-size: 12.5px; font-weight: 600; line-height: 21px; text-align: left; }
+  .table.stack-md td::after { content: ""; display: table; clear: both; }
+  .table.stack-md td.main { font-size: 15px; font-weight: 700; text-align: left; }
+  .table.stack-md td.main::before, .table.stack-md td:not([data-label])::before { content: none; }
+  .table.stack-md tbody tr:hover td { background: none; }
+  .table.stack-md tr.marked td:first-child { box-shadow: none; }
+  .table.stack-md tr.marked { box-shadow: inset 3px 0 0 var(--c); padding-left: 10px; }
 }
 @media (max-width: 640px) {
   .topbar { position: static; padding: 10px 16px; gap: 6px 14px; } /* it wraps to two or three lines here: too tall to pin */

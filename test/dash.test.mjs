@@ -159,6 +159,14 @@ test('both files can be pasted inline into a page', () => {
   assert.doesNotMatch(css, /<\/style/i, 'dash.css would close an inline <style> early');
 });
 
+test('dash.css: .stack-md cards are the same rules as .stack', () => {
+  const rules = (sel) => css.split('\n').map((l) => l.trim()).filter((l) => l.includes(sel) && l.includes('{'));
+  const md = rules('.table.stack-md').map((l) => l.replaceAll('.stack-md', '.stack'));
+  const sm = rules('.table.stack').filter((l) => !l.includes('.stack-md'));
+  assert.ok(md.length >= 12, 'found the .stack-md rules');
+  assert.deepEqual(md, sm);
+});
+
 test('dash.css: the two dark palettes are the same', () => {
   const block = (re) => {
     const m = css.match(re);

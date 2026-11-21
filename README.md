@@ -127,7 +127,7 @@ Surfaces and text: `--bg`, `--card`, `--soft` (a block inside a card, table head
 | `.row`, `.vstack`, `.grow`, `.push` | Flex row, vertical stack, fill, push right. |
 | `.footer` | Muted small print. |
 
-**Breakpoints:** 900 px (the sidebar goes on top, grids and the hero go to one column, open tables scroll), 640 px (phones: static top bar, `.hide-sm`, stacked tables, two stats across).
+**Breakpoints:** 900 px (the sidebar goes on top, grids and the hero go to one column, open tables scroll, `.stack-md` tables become cards), 640 px (phones: static top bar, `.hide-sm`, stacked tables, two stats across).
 
 ## Components
 
@@ -177,7 +177,7 @@ Surfaces and text: `--bg`, `--card`, `--soft` (a block inside a card, table head
   - `tr.cut`: a dashed cut line;
   - `tr.click`: pointer cursor;
   - `.empty-row`.
-- `.table.stack` turns each row into a small card on phones. Give each `td` a `data-label`; the `td.main` cell is the row's title.
+- `.table.stack` turns each row into a small card on phones. Give each `td` a `data-label`; the `td.main` cell is the row's title. Add `.stack-md` to do it from 900 px down instead, for a table too wide for a tablet.
 - `.table.sticky` inside `.table-wrap.open` keeps the header under the top bar while the page scrolls.
 - `.pager`: `Dash.pager` writes it.
 
