@@ -1,4 +1,4 @@
-/* dash-ui 1.1.0: the look shared by my dashboards (agents, fleet, leaderboard, payouts, balances).
+/* dash-ui 1.1.1: the look shared by my dashboards (agents, fleet, leaderboard, payouts, balances).
    Warm neutral backgrounds, white panels, tinted status colours, light and dark from the system setting
    (or data-theme="light|dark" on <html>). No build step, no dependencies: link this file, or paste it into a page.
 
@@ -9,8 +9,8 @@
 /* ---- tokens ---- */
 :root {
   --bg: #f5f4ef; --card: #ffffff; --text: #1f1e1b; --muted: #5c5a54; --faint: #8b887f; --line: #e4e1d9; --soft: #f3f1eb;
-  --accent: #c96442; --blue: #2158d4; --ok: #16803c; --warn: #b45309; --bad: #c81e1e; --teal: #0f766e; --purple: #6d3fd1;
-  --orange: #c2410c; --pink: #b5179e; --gold: #a16207; --silver: #6b7280; --bronze: #9a5b2e; --idle: #6e6b64;
+  --accent: #c96442; --blue: #2158d4; --ok: #157838; --warn: #a84e08; --bad: #c81e1e; --teal: #0f766e; --purple: #6d3fd1;
+  --orange: #b83e0b; --pink: #b5179e; --gold: #965b07; --silver: #636976; --bronze: #97592d; --idle: #6b6862;
   --shadow: 0 1px 2px rgb(30 25 15 / .05), 0 4px 12px rgb(30 25 15 / .04);
   --shadow-pop: 0 10px 30px rgb(30 25 15 / .16);
   --backdrop: rgb(20 18 14 / .45);

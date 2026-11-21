@@ -79,18 +79,18 @@ Surfaces and text: `--bg`, `--card`, `--soft` (a block inside a card, table head
 |---|---|---|---|
 | `accent` | `#c96442` | `#e08a68` | Claude's colour, shares |
 | `blue` | `#2158d4` | `#7ba7ff` | working, links, focus, selection, default bars |
-| `ok` | `#16803c` | `#4ade80` | healthy, paid, up |
-| `warn` | `#b45309` | `#f0b04a` | stale, probation, outside the cut |
+| `ok` | `#157838` | `#4ade80` | healthy, paid, up |
+| `warn` | `#a84e08` | `#f0b04a` | stale, probation, outside the cut |
 | `bad` | `#c81e1e` | `#ff7d7d` | errors, incidents, blocked, down |
-| `orange` | `#c2410c` | `#ff9b55` | needs you (agent-dash's "waiting"; deliberately not `warn`) |
+| `orange` | `#b83e0b` | `#ff9b55` | needs you (agent-dash's "waiting"; deliberately not `warn`) |
 | `teal` | `#0f766e` | `#42d3bf` | a second series, running |
 | `purple` | `#6d3fd1` | `#b79dff` | shell |
 | `pink` | `#b5179e` | `#f28fd8` | ultra |
-| `gold` `silver` `bronze` | `#a16207` … | `#f0c04a` … | medals, USD |
-| `idle` | `#6e6b64` | `#a7a59e` | idle, closed |
+| `gold` `silver` `bronze` | `#965b07` … | `#f0c04a` … | medals, USD |
+| `idle` | `#6b6862` | `#a7a59e` | idle, closed |
 | `neutral` | `--muted` | | default grey |
 
-**Contrast:** dark mode clears WCAG AA (4.5:1) for every tone. In light mode, the text inside a tinted pill or tag is just under it for `ok`, `warn`, `orange`, `gold` and `silver` (4.2–4.4:1), and `accent` (3.9:1) and `faint` (3.5:1) are not meant for body text. A test keeps these from getting worse.
+**Contrast:** every tone clears WCAG AA (4.5:1) as text on a card and inside its own tinted pill, tag or rank (10–14 % tints), light and dark. `accent` (3.9:1) and `faint` (3.5:1) are not meant for body text. A test keeps it that way.
 
 **How colour reaches a component:** every coloured component draws with one variable, `--c`, and a tone class sets it. So `<span class="pill ok">`, `<span class="tag teal">`, `<div class="panel ring bad">`, `<span class="bar warn">` and `<span class="dot orange">` all work the same way.
 

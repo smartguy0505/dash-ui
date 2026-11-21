@@ -2,8 +2,9 @@
 
 Dashboards keep a copy of `dash.css` and `dash.js`; the first line of each file says which version it is. Versions only add things: a page that worked with an older copy works the same with a newer one.
 
-## Unreleased
+## 1.1.1 (2026-11-21)
 
+- Light mode: `ok`, `warn`, `orange`, `gold` and `silver` are 5–8 % darker, `bronze` and `idle` 2 %, so text in a tinted pill, tag or rank (10–14 % tints) reaches WCAG AA, 4.5:1. Dark mode is unchanged. The contrast test now asks for 4.5 on those tints.
 - `test/screens.mjs` (`npm run screens`): every page in a real browser at four widths, light and dark.
 - The gallery shows the `connecting` live state.
 

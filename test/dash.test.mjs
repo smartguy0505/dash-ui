@@ -184,16 +184,16 @@ test('the version is the same in dash.css, dash.js, Dash.version and package.jso
   assert.match(log, new RegExp(`^## ${pkg.replaceAll('.', '\\.')}\\b`, 'm'), 'CHANGELOG has a section for this version');
 });
 
-// WCAG contrast at today's colours. Light-mode pill text (a tone on its own 12% tint) is just under 4.5 for
-// ok, warn, orange, gold and silver; accent and faint are below 4.5 as text. These floors only stop it getting worse.
-test('dash.css: colour contrast does not get worse', () => {
+// WCAG contrast. Every tone is AA (4.5) as text on a card and on its own tint, at every tint strength the kit puts
+// tone text on (10-14%: nav highlight, tag/tint, pill, rank). accent and faint are below 4.5 and not for body text.
+test('dash.css: colour contrast', () => {
   const block = (re) => Object.fromEntries([...css.match(re)[1].matchAll(/--([\w-]+):\s*(#[0-9a-f]{6})/gi)].map((m) => [m[1], m[2]]));
   const light = block(/:root\s*\{([\s\S]*?)\n\}/);
   const dark = { ...light, ...block(/:root\[data-theme="dark"\]\s*\{([\s\S]*?)\}/) };
   const rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
   const lum = (c) => c.map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }).reduce((s, v, i) => s + v * [0.2126, 0.7152, 0.0722][i], 0);
   const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
-  const tint = (c, base) => c.map((v, i) => Math.round(v * 0.12 + base[i] * 0.88));
+  const tint = (c, base, p) => c.map((v, i) => Math.round(v * p + base[i] * (1 - p)));
   const tones = ['ok', 'warn', 'bad', 'blue', 'teal', 'purple', 'orange', 'pink', 'gold', 'silver', 'bronze', 'idle'];
   for (const [name, t] of [['light', light], ['dark', dark]]) {
     const card = rgb(t.card);
@@ -204,7 +204,9 @@ test('dash.css: colour contrast does not get worse', () => {
     for (const k of tones) {
       const c = rgb(t[k]);
       assert.ok(ratio(c, card) >= 4.8, `${name} ${k} on a card: ${ratio(c, card).toFixed(2)}`);
-      assert.ok(ratio(c, tint(c, card)) >= 4.15, `${name} ${k} on its tint: ${ratio(c, tint(c, card)).toFixed(2)}`);
+      for (const p of [0.10, 0.12, 0.13, 0.14]) {
+        assert.ok(ratio(c, tint(c, card, p)) >= 4.5, `${name} ${k} on its ${p * 100}% tint: ${ratio(c, tint(c, card, p)).toFixed(2)}`);
+      }
     }
   }
 });

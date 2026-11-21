@@ -1,6 +1,6 @@
 {
   "name": "dash-ui",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "private": true,
   "description": "One look for all my dashboards: one CSS file and one script, light and dark, no build step",
   "scripts": {
