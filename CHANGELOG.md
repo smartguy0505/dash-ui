@@ -2,6 +2,28 @@
 
 Dashboards keep a copy of `dash.css` and `dash.js`; the first line of each file says which version it is. Versions only add things: a page that worked with an older copy works the same with a newer one.
 
+## 1.3.0 (2026-11-21)
+
+More pieces, so a dashboard needs less of its own code. All additive.
+
+- `Dash.table(el, { columns })`: a whole table from a description of its columns: sorting (remembered), paging, a filter, CSV export, cards on phones, an empty state, row clicks and Enter. `.update(rows)` redraws without losing the reader's place.
+- `Dash.tabs` and `.tabs`: tab buttons over panels, remembered, optionally kept in the address (`#view=list`), with arrow keys.
+- Menus: `<details class="menu">` with a `.menu-list` closes on a click outside, on Escape and once an item is chosen, with no code.
+- Tooltips: `data-tooltip="…"` on anything; on hover and keyboard focus, kept inside the window.
+- `Dash.confirm`, `Dash.ask`, `Dash.dialog`: a question in one line, answered as a promise.
+- `Dash.timeline` and `.timeline`: events on a line.
+- Stacked columns: a `Dash.bars` point with `parts: [{ value, tone }]`.
+- `Dash.stat(label, value, { unit, note, tone })`: a stat tile.
+- Live times: `Dash.ago(t)` and `Dash.until(t)` keep themselves current.
+- `Dash.time(x)`: milliseconds from what a server sends (ISO text without a zone is UTC, seconds with `{ seconds: true }`); other text is `NaN`, not a guess.
+- `Dash.fmt.date`, `.time`, `.until`.
+- `Dash.tone(v, { 75: 'warn', 90: 'bad' })`: a tone from thresholds.
+- `Dash.search` (debounced, Escape clears, `/` jumps to it, a count), `Dash.key` (shortcuts that stay quiet while typing), `Dash.match` (every word in some field).
+- `Dash.hash`: the address after `#` as settings.
+- `Dash.sum`, `Dash.groupBy`, `Dash.csv`, `Dash.download`.
+- The gallery has a "Tabs and menus" section with all of it; the starter page uses `Dash.table`, `Dash.stat` and `Dash.ago`.
+- Tests: 26 node tests, 65 browser checks.
+
 ## 1.2.0 (2026-11-21)
 
 Simpler pages: less code for the things every dashboard does. All of it is opt-in; pages that don't use it work as before.

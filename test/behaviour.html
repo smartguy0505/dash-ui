@@ -31,6 +31,16 @@
 
   <div class="shell"><button type="button" class="side-toggle" data-toggle-side>side</button></div>
 
+  <div id="tbl"></div>
+  <div class="tabs" id="tabs"><button type="button" data-value="one">One</button><button type="button" data-value="two">Two</button><button type="button" data-value="three">Three</button></div>
+  <div id="tab-panels"><section data-tab="one">panel one</section><section data-tab="two">panel two</section><section data-tab="three">panel three</section></div>
+  <details class="menu" id="menu"><summary class="btn">Actions</summary><div class="menu-list"><button type="button" id="menu-item">Rename</button><hr><button type="button" class="bad">Delete</button></div></details>
+  <button type="button" class="btn" id="tip-left" data-tooltip="A tooltip with a few words in it">left</button>
+  <div style="text-align:right"><button type="button" class="btn" id="tip-right" data-tooltip="A tooltip near the right edge of the window, long enough to need room">right</button></div>
+  <label class="search"><input class="input" id="search2" placeholder="Search"><span class="count"></span></label>
+  <div id="times"></div>
+  <div class="panel"><div id="stacked"></div></div>
+
   <div class="stats" id="stats-default"><div class="stat">a</div><div class="stat">b</div></div>
   <div class="stats" id="stats-one" style="--stat-min-sm:100%"><div class="stat">a</div><div class="stat">b</div></div>
 </main>

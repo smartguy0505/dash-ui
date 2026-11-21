@@ -41,7 +41,7 @@
     <nav class="chips toc" aria-label="Sections">
       <a class="chip" href="#colours">Colours</a><a class="chip" href="#numbers">Numbers</a><a class="chip" href="#labels">Labels</a>
       <a class="chip" href="#controls">Controls</a><a class="chip" href="#surfaces">Panels and cards</a><a class="chip" href="#tables">Tables</a>
-      <a class="chip" href="#charts">Charts</a><a class="chip" href="#feedback">Feedback</a>
+      <a class="chip" href="#charts">Charts</a><a class="chip" href="#more">Tabs and menus</a><a class="chip" href="#feedback">Feedback</a>
     </nav>
   </div>
 
@@ -274,6 +274,43 @@
     </div>
   </section>
 
+  <!-- tabs, a table from columns, search, menus, tooltips, dialogs, timeline -->
+  <section class="section" id="more">
+    <div class="section-head"><h2 class="section-title">Tabs, menus, dialogs</h2><span class="sub">Dash.tabs · Dash.table from columns · Dash.search · .menu · data-tooltip · Dash.confirm and Dash.ask · Dash.timeline</span></div>
+    <div class="panel">
+      <div class="tabs" id="more-tabs"><button type="button" data-value="overview">Overview</button><button type="button" data-value="servers">Servers <span class="count-badge" id="more-count"></span></button><button type="button" data-value="activity">Activity</button></div>
+      <div id="more-panels">
+        <div data-tab="overview">
+          <div class="stats" id="more-stats"></div>
+          <div class="panel-head" style="margin-top:18px"><h3>Requests by region, last 14 days</h3></div>
+          <div id="more-stacked"></div>
+          <div id="more-legend" style="margin-top:10px"></div>
+        </div>
+        <div data-tab="servers">
+          <div class="toolbar">
+            <label class="search"><span class="sr-only">Search servers</span>
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.6"/><path d="m11 11 3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+              <input class="input" type="search" placeholder="Search name or region  ( / )" id="more-q"><span class="count"></span>
+            </label>
+            <details class="menu end push"><summary class="btn">Export ▾</summary><div class="menu-list"><button type="button" id="more-csv">Download CSV</button><button type="button" id="more-copy">Copy as CSV</button></div></details>
+          </div>
+          <div id="more-table"></div>
+        </div>
+        <div data-tab="activity"><div id="more-timeline"></div></div>
+      </div>
+    </div>
+    <div class="panel" style="margin-top:14px">
+      <div class="demo"><p class="demo-label">A menu, tooltips, and dialogs made in one line</p>
+        <details class="menu"><summary class="btn">Actions ▾</summary><div class="menu-list"><div class="menu-label">api-eu-west-1</div><button type="button" id="m-rename">Rename…</button><button type="button" id="m-restart">Restart</button><hr><button type="button" class="bad" id="m-remove">Remove…</button></div></details>
+        <button type="button" class="btn" data-tooltip="Tooltips stay inside the window, and show on keyboard focus too">Hover or focus me</button>
+        <span class="tag plain" data-tooltip="p95 latency over the last hour">p95 41 ms</span>
+      </div>
+      <div class="demo"><p class="demo-label">Times that keep themselves current</p>
+        <span>Updated <span id="more-ago"></span> · next check <span id="more-until"></span></span>
+      </div>
+    </div>
+  </section>
+
   <!-- feedback -->
   <section class="section" id="feedback">
     <h2 class="section-title">Feedback</h2>
@@ -449,6 +486,58 @@
     return `<div class="lane-label">${esc(name)} <span>· ${esc(acct)}</span></div><div class="lane">${spans}${marks}</div>`;
   }).join('') + '<div></div><div class="lane-axis">' + [0, 24, 48, 72].map((h) =>
     `<span class="${h % 24 === 0 ? 'major' : ''}" style="left:${(h / 72 * 100).toFixed(2)}%;${h === 0 ? 'transform:none' : h === 72 ? 'transform:translateX(-100%)' : ''}">${h === 72 ? 'now' : `−${72 - h} h`}</span>`).join('') + '</div>';
+
+  // tabs, a table from columns, search, menus, dialogs, timeline
+  Dash.tabs('more-tabs', { value: 'overview', store: 'gallery.tab', panels: 'more-panels' });
+  $('more-stats').innerHTML = Dash.stat('Servers', fmt.int(SERVERS.length), { note: `${SERVERS.filter((x) => x.primary).length} primary` })
+    + Dash.stat('Median p95', 41, { unit: 'ms', note: 'target 60 ms', tone: Dash.tone(41, { 50: 'warn', 60: 'bad' }) })
+    + Dash.stat('Low scores', fmt.int(SERVERS.filter((x) => x.score < 0.5).length), { note: 'score below 0.5', tone: 'bad' });
+  const AREAS = [['Europe', 'blue'], ['Americas', 'teal'], ['Asia', 'purple']];
+  const DAYS = Array.from({ length: 14 }, (_, i) => {
+    const d = new Date(Date.now() - (13 - i) * 864e5);
+    const parts = AREAS.map(([label, tone], j) => ({ label, tone, value: Math.round(30000 + 20000 * Math.abs(Math.sin(i / (2 + j))) + j * 8000) }));
+    return { label: fmt.date(d), parts, partial: i === 13, title: `${fmt.date(d)}: ` + parts.map((x) => `${x.label} ${fmt.compact(x.value)}`).join(', ') };
+  });
+  $('more-stacked').innerHTML = Dash.bars(DAYS, { ticks: 3, labelEvery: 3, read: `Total ${fmt.compact(Dash.sum(DAYS.flatMap((x) => x.parts), 'value'))} · hover a day` });
+  $('more-legend').innerHTML = Dash.legend(AREAS.map(([label, tone]) => ({ label, tone })));
+  const servers = Dash.table('more-table', {
+    columns: [
+      { key: 'name', label: 'Server', main: true, firstDir: 'asc' },
+      { key: 'region', label: 'Region', html: (x) => Dash.tag(x.region, 'plain') },
+      { key: 'score', label: 'Score', num: true, html: (x) => `<span class="tone ${Dash.tone(x.score, { 0.5: '', 0.8: 'ok' }, 'bad')}">${x.score.toFixed(3)}</span>` },
+      { key: 'p95', label: 'p95', unit: 'ms', num: true, firstDir: 'asc' },
+      { key: 'tested', label: 'Tested', num: true, html: (x) => Dash.ago(x.tested) },
+    ],
+    rows: SERVERS, sort: { key: 'score', dir: 'desc', store: 'gallery.sort2' }, perPage: 8, sizes: [8, 16, 32], noun: 'server', key: 'name',
+    onRow: (x) => Dash.toast(`Open ${x.name}`),
+  });
+  const q = Dash.search('more-q', {
+    onChange: (text) => {
+      servers.filter(text ? (x) => Dash.match(x, text, ['name', 'region']) : null);
+      q.count(servers.count.shown, servers.count.total);
+      $('more-count').textContent = servers.count.shown;
+    },
+  });
+  q.count(SERVERS.length, SERVERS.length);
+  $('more-count').textContent = SERVERS.length;
+  $('more-csv').addEventListener('click', () => servers.download('servers.csv'));
+  $('more-copy').addEventListener('click', async () => Dash.toast((await Dash.copy(servers.csv())) ? 'Copied as CSV' : 'Couldn’t copy', { ms: 1600 }));
+  $('more-timeline').innerHTML = Dash.timeline([
+    { title: 'api-us-east-2 is back', time: Date.now() - 4 * 60e3, text: 'Answered 40 checks in a row.', tone: 'ok' },
+    { title: 'api-us-east-2 stopped answering', time: Date.now() - 52 * 60e3, text: 'Timed out three times; traffic moved to api-us-east-1.', tone: 'bad' },
+    { title: 'Release 4.2 rolled out', time: Date.now() - 5 * 3600e3, text: 'All 23 servers, no errors.', tone: 'blue' },
+    { title: 'Weekly report sent', time: 'Monday' },
+  ]);
+  $('m-rename').addEventListener('click', async () => {
+    const name = await Dash.ask('Rename api-eu-west-1', { value: 'api-eu-west-1', ok: 'Rename' });
+    if (name) Dash.toast(`Renamed to ${name}`);
+  });
+  $('m-restart').addEventListener('click', () => Dash.toast('Restarting api-eu-west-1'));
+  $('m-remove').addEventListener('click', async () => {
+    if (await Dash.confirm('It stops taking traffic at once; you can add it again later.', { title: 'Remove api-eu-west-1?', ok: 'Remove', tone: 'bad' })) Dash.toast('Removed', { tone: 'bad' });
+  });
+  $('more-ago').innerHTML = Dash.ago(Date.now() - 95e3);
+  $('more-until').innerHTML = Dash.until(Date.now() + 4 * 60e3 + 10e3);
 
   // feedback
   $('b-toast').addEventListener('click', () => Dash.toast('Saved'));

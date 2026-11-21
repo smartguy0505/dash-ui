@@ -1,4 +1,4 @@
-/* dash-ui 1.2.0: the look shared by my dashboards (agents, fleet, leaderboard, payouts, balances).
+/* dash-ui 1.3.0: the look shared by my dashboards (agents, fleet, leaderboard, payouts, balances).
    Warm neutral backgrounds, white panels, tinted status colours, light and dark from the system setting
    (or data-theme="light|dark" on <html>). No build step, no dependencies: link this file, or paste it into a page.
 
@@ -461,6 +461,9 @@ button.hbar:hover { background: var(--soft); }
 .chart-col.zero i { background: var(--line); }
 .chart-col.partial i { opacity: .6; }
 .chart-col:hover i { opacity: 1; filter: brightness(1.12); }
+/* stacked columns (Dash.bars points with parts): one <u> per part, bottom up, each in its own tone */
+.chart-col.stacked:not(.zero) i { display: flex; flex-direction: column-reverse; gap: 1px; overflow: hidden; background: none; }
+.chart-col.stacked u { display: block; flex: 0 1 0; min-height: 1px; background: var(--c); }
 .chart-x { display: flex; gap: 3px; margin: 6px 0 0 var(--gut); }
 .chart-x span { position: relative; flex: 1; min-width: 0; height: 16px; color: var(--muted); font-size: 12px; }
 .chart-x b { position: absolute; left: 50%; transform: translateX(-50%); font-weight: 400; line-height: 16px; white-space: nowrap; }
@@ -568,6 +571,54 @@ button.hbar:hover { background: var(--soft); }
 
 /* a copy button that says "Copied" for a moment (data-copy, see dash.js) */
 [data-copy].copied { color: var(--ok); }
+
+/* ---- tabs, menus, tooltips, timeline ---- */
+
+/* tabs (Dash.tabs): a row of buttons over panels; scrolls sideways when it doesn't fit */
+.tabs { display: flex; gap: 4px; margin-bottom: 16px; overflow-x: auto; border-bottom: 1px solid var(--line); scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+.tabs > button { flex: none; display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px 9px; border: 0; border-radius: 0; background: none;
+  color: var(--muted); font-size: 14px; font-weight: 600; white-space: nowrap; cursor: pointer; }
+.tabs > button:hover { color: var(--text); }
+.tabs > button[aria-pressed="true"] { color: var(--text); box-shadow: inset 0 -2px 0 var(--c); }
+:where(.tabs > button) { --c: var(--accent); }
+.tabs > button:focus-visible { outline-offset: -2px; }
+.tabs .count-badge { font-size: 11.5px; }
+
+/* menus: <details class="menu"><summary class="btn">…</summary><div class="menu-list">buttons, links, <hr></div></details> */
+.menu { position: relative; display: inline-block; }
+.menu > summary { list-style: none; cursor: pointer; }
+.menu > summary::-webkit-details-marker { display: none; }
+.menu-list { position: absolute; z-index: 40; top: calc(100% + 4px); left: 0; display: grid; min-width: 180px; max-width: min(320px, calc(100vw - 32px));
+  padding: 4px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--card); box-shadow: var(--shadow-pop); }
+.menu.end .menu-list { left: auto; right: 0; }
+.menu-list > button, .menu-list > a { display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 10px; border: 0; border-radius: 7px; background: none;
+  color: var(--c); font-size: 14px; font-weight: 500; text-align: left; text-decoration: none; white-space: nowrap; cursor: pointer; }
+:where(.menu-list > button, .menu-list > a) { --c: var(--text); }
+.menu-list > button:hover, .menu-list > a:hover { background: var(--soft); }
+.menu-list > button:disabled { opacity: .5; cursor: default; }
+.menu-list > button:focus-visible, .menu-list > a:focus-visible { outline-offset: -2px; }
+.menu-list > hr { margin: 4px 2px; border: 0; border-top: 1px solid var(--line); }
+.menu-list > .menu-label { padding: 6px 10px 2px; color: var(--faint); font-size: 12px; font-weight: 600; }
+
+/* tooltips: data-tooltip="…" on anything (dash.js places one .tooltip, kept inside the window) */
+.tooltip { position: fixed; z-index: 120; max-width: min(280px, calc(100vw - 16px)); padding: 6px 9px; border-radius: 7px; background: var(--text); color: var(--card);
+  font-size: 12.5px; font-weight: 500; line-height: 1.4; white-space: pre-line; overflow-wrap: anywhere; pointer-events: none; box-shadow: var(--shadow-pop); }
+
+/* timeline (Dash.timeline): dots on a line, the newest wherever the rows put it */
+.timeline { margin: 0; padding: 0; list-style: none; }
+.timeline > li { position: relative; padding: 0 0 14px 22px; }
+.timeline > li:last-child { padding-bottom: 0; }
+.timeline > li::before { content: ""; position: absolute; left: 4px; top: 6px; width: 9px; height: 9px; border-radius: 50%; background: var(--c); }
+.timeline > li:not(:last-child)::after { content: ""; position: absolute; left: 8px; top: 18px; bottom: -4px; width: 1px; background: var(--line); }
+:where(.timeline > li) { --c: var(--faint); }
+.timeline-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0 10px; }
+.timeline-title { min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
+.timeline-time { color: var(--muted); font-size: 12.5px; white-space: nowrap; }
+.timeline-text { margin-top: 2px; color: var(--muted); font-size: 13.5px; overflow-wrap: anywhere; }
+
+.dialog-input { width: 100%; margin-bottom: 16px; }
+.dialog h2 + .dialog-input { margin-top: 12px; }
 
 /* ---- sign-in page: <body class="login-page"><form class="login">… ---- */
 .login-page { min-height: 100vh; display: grid; place-items: center; padding: 24px 16px; }

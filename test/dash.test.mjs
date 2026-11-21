@@ -174,6 +174,87 @@ test('1.1 options: signedUsd digits, chg eps and title, th unit / mark / plain',
   assert.equal(Dash.th('<b>', 'k', null, { unit: '<i>' }), '<th><button type="button" data-sort="k">&lt;b&gt; <span class="unit">&lt;i&gt;</span></button></th>');
 });
 
+test('1.3: Dash.time reads what servers send', () => {
+  assert.equal(Dash.time('2026-11-21 14:05:00'), Date.UTC(2026, 10, 21, 14, 5)); // no zone: UTC
+  assert.equal(Dash.time('2026-11-21T14:05:00.5'), Date.UTC(2026, 10, 21, 14, 5, 0, 500));
+  assert.equal(Dash.time('2026-11-21T14:05:00+02:00'), Date.UTC(2026, 10, 21, 12, 5));
+  assert.equal(Dash.time(1700000000, { seconds: true }), 1700000000000);
+  assert.equal(Dash.time('1700000000000'), 1700000000000);
+  assert.equal(Dash.time(new Date(5)), 5);
+  assert.equal(Dash.time('2026-11-21'), Date.UTC(2026, 10, 21));
+  assert.equal(Dash.time('Sat, 21 Nov 2026 14:05:00 GMT'), Date.UTC(2026, 10, 21, 14, 5));
+  for (const bad of [null, undefined, '', 'soon', 'yesterday <3', 'Nov 21', true]) assert.ok(Number.isNaN(Dash.time(bad)), String(bad));
+});
+
+test('1.3: date, time, until', () => {
+  const now = Date.UTC(2026, 10, 21, 12, 0, 0);
+  assert.equal(fmt.until(now + (3 * 3600 + 5 * 60) * 1000 + 400, now), 'in 3h 5m');
+  assert.equal(fmt.until(now + 300, now), 'now');
+  assert.equal(fmt.until(now - 5000, now), 'now');
+  assert.equal(fmt.until(null), '—');
+  assert.equal(fmt.time(Date.UTC(2026, 0, 1, 14, 5, 9), { utc: true }), '14:05:09 UTC');
+  assert.equal(fmt.time(Date.UTC(2026, 0, 1, 14, 5, 9), { utc: true, seconds: false }), '14:05 UTC');
+  assert.equal(fmt.date(Date.UTC(2020, 10, 21, 12), { utc: true }), 'Nov 21, 2020');
+  assert.equal(fmt.date(Date.UTC(new Date().getUTCFullYear(), 2, 3, 12), { utc: true }), 'Mar 3');
+  assert.equal(fmt.date('nope'), '—');
+});
+
+test('1.3: tone thresholds', () => {
+  const t = (v) => Dash.tone(v, { 75: 'warn', 90: 'bad' });
+  assert.deepEqual([t(0), t(74.9), t(75), t(89), t(90), t(100), t('80')], ['ok', 'ok', 'warn', 'warn', 'bad', 'bad', 'warn']);
+  assert.equal(t(null), '');
+  const low = (v) => Dash.tone(v, { 7: 'warn', 2: 'bad' }, 'ok', { below: true });
+  assert.deepEqual([low(30), low(7), low(3), low(2), low(0)], ['ok', 'warn', 'warn', 'bad', 'bad']);
+});
+
+test('1.3: rows: sum, groupBy, match, csv', () => {
+  const rows = [{ name: 'Web-1', region: 'eu', v: 2 }, { name: 'db-1', region: 'us', v: '3' }, { name: 'web-2', region: 'eu', v: null }];
+  assert.equal(Dash.sum(rows, 'v'), 5);
+  assert.equal(Dash.sum(rows, (r) => (r.region === 'eu' ? 1 : 0)), 2);
+  assert.deepEqual(Object.keys(Dash.groupBy(rows, 'region')), ['eu', 'us']);
+  assert.equal(Dash.groupBy(rows, 'region').eu.length, 2);
+  assert.deepEqual(rows.filter((r) => Dash.match(r, 'WEB eu')).map((r) => r.name), ['Web-1', 'web-2']);
+  assert.deepEqual(rows.filter((r) => Dash.match(r, 'eu', ['name'])).map((r) => r.name), []);
+  assert.equal(rows.filter((r) => Dash.match(r, '  ')).length, 3);
+  assert.equal(Dash.csv([{ a: 1, b: 'x,y', c: '=1+1', d: null }, { a: -2.5, b: 'say "hi"', c: '@x', d: 'line\nbreak' }]),
+    'a,b,c,d\r\n1,"x,y",\'=1+1,\r\n-2.5,"say ""hi""",\'@x,"line\nbreak"\r\n');
+  assert.equal(Dash.csv([{ n: 'web' }], [{ key: 'n', label: 'Name' }, { key: 'up', label: 'Upper', value: (r) => r.n.toUpperCase() }]), 'Name,Upper\r\nweb,WEB\r\n');
+  assert.equal(Dash.csv([]), '\r\n');
+});
+
+test('1.3: the address as settings', () => {
+  assert.deepEqual(Dash.hash.parse('#overview&agent=a%20b&x='), { overview: '', agent: 'a b', x: '' });
+  assert.deepEqual(Dash.hash.parse(''), {});
+  assert.deepEqual(Dash.hash.parse('#bad=%E0%A4%A'), { bad: '%E0%A4%A' });
+  assert.equal(Dash.hash.format({ overview: '', agent: 'a b', gone: null, n: 3 }), '#overview&agent=a%20b&n=3');
+  assert.equal(Dash.hash.format({}), '');
+  const o = { 'k&=': 'v&=#' };
+  assert.deepEqual(Dash.hash.parse(Dash.hash.format(o)), o);
+});
+
+test('1.3: stacked columns, timeline, live times escape and size right', () => {
+  const html = Dash.bars([{ label: 'a', parts: [{ value: 3, tone: 'blue' }, { value: 1, tone: 'x" onclick="y' }, { value: 0, tone: 'teal' }] }, { label: 'b', value: 2 }], { max: 8 });
+  assert.match(html, /class="chart-col stacked" title="a: 4"><i style="height:50%"><u class="blue" style="flex-grow:3"><\/u><u class="x&quot; onclick=&quot;y" style="flex-grow:1"><\/u><\/i>/);
+  assert.match(html, /class="chart-col"[^>]*><i style="height:25%"><\/i>/);
+  assert.match(Dash.bars([{ label: 'z', parts: [] }]), /chart-col zero stacked/);
+  const tl = Dash.timeline([{ title: '<b>', time: Date.now() - 120e3, text: '<i>', tone: 'ok' }, { title: 'x', time: 'yesterday <3' }]);
+  assert.match(tl, /<li class="ok">.*&lt;b&gt;.*data-ago="\d+".*2 min ago.*&lt;i&gt;/);
+  assert.match(tl, /yesterday &lt;3/);
+  assert.match(Dash.timeline([], { empty: 'None <yet>' }), /None &lt;yet&gt;/);
+  assert.match(Dash.ago(Date.UTC(2026, 0, 1)), /^<time datetime="2026-01-01T00:00:00.000Z" data-ago="1767225600000" title="[^"]+">\d+ d ago<\/time>$/);
+  assert.match(Dash.until(Date.now() + 3 * 3600e3 + 30e3), />in 3h 0m</);
+  assert.equal(Dash.ago(null), '—');
+  assert.equal(Dash.ago('not a time'), '—');
+});
+
+test('1.3: stat tiles escape their text', () => {
+  assert.equal(Dash.stat('p95 <x>', 41, { unit: 'ms', note: 'target <60>', tone: 'warn', title: 'a "t"' }),
+    '<div class="stat" title="a &quot;t&quot;"><div class="label">p95 &lt;x&gt;</div><div class="value tone warn">41 <small>ms</small></div><div class="note">target &lt;60&gt;</div></div>');
+  assert.equal(Dash.stat('Items', null), '<div class="stat"><div class="label">Items</div><div class="value">—</div></div>');
+  assert.match(Dash.stat('Rank', Dash.rank(2, 14), { html: true }), /<span class="rank silver">/);
+  assert.match(Dash.stat('x', '<b>'), /&lt;b&gt;/);
+});
+
 test('the version is the same in dash.css, dash.js, Dash.version and package.json', () => {
   const pkg = JSON.parse(readFileSync(new URL('package.json', root), 'utf8')).version;
   const js = readFileSync(new URL('dash.js', root), 'utf8');
