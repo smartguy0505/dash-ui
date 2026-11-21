@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wallets · dash-ui example</title>
+<link rel="stylesheet" href="../dash.css">
+<script src="../dash.js"></script>
+</head>
+<body>
+<!-- a wallet / payout dashboard style page: hero number, stats, a toolbar, a sortable paged table, an editor dialog.
+     Balances tick every few seconds to show live updates. -->
+<header class="topbar">
+  <div class="brand"><span class="mark">τ</span><h1>Wallets</h1></div>
+  <span class="sub">coldkey balances, live from the chain</span>
+  <div class="top-right">
+    <span class="nowrap">τ <b class="strong num" id="price">$177.60</b></span>
+    <span id="live"></span>
+    <button type="button" class="top-link">Sign out</button>
+  </div>
+</header>
+
+<main class="page">
+  <section class="panel hero">
+    <div>
+      <div class="kicker">Portfolio value</div>
+      <div class="big" id="total-usd"></div>
+      <div class="hero-line" id="total-line"></div>
+      <div class="row" style="margin-top:10px" id="change"></div>
+    </div>
+    <div>
+      <div id="split"></div>
+      <div class="kv" style="margin-top:14px" id="parts"></div>
+    </div>
+  </section>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="toolbar">
+    <label class="search"><span class="sr-only">Search</span>
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.6"/><path d="m11 11 3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      <input class="input" type="search" id="q" placeholder="Search name or address"></label>
+    <div class="seg" id="filter"></div>
+    <button type="button" class="btn primary push" id="add">+ Add wallet</button>
+  </div>
+
+  <div class="table-wrap">
+    <table class="table stack" id="table"></table>
+    <div id="pager"></div>
+  </div>
+  <p class="footer">Values in USD use the average TAO price from two exchanges. Staked TAO is alpha × the subnet’s price now.</p>
+</main>
+
+<dialog class="dialog" id="editor">
+  <form class="dialog-body" id="editor-form" method="dialog">
+    <h2 id="editor-title">Add wallet</h2>
+    <p class="hint">The balance shows up with the next block.</p>
+    <div class="field"><label for="e-name">Name</label><input class="input" id="e-name" placeholder="Treasury" required></div>
+    <div class="field" id="e-addr-field"><label for="e-addr">Address</label><input class="input mono" id="e-addr" placeholder="5…" spellcheck="false"><div class="err" id="e-err"></div></div>
+    <label class="checkline"><input type="checkbox" id="e-total" checked>Count in the total</label>
+    <div class="dialog-actions"><button type="button" class="btn ghost" data-dismiss>Cancel</button><button type="submit" class="btn primary">Save</button></div>
+  </form>
+</dialog>
+
+<script>
+  const { $, esc, fmt } = Dash;
+  let price = 177.6;
+  // made-up wallets; real addresses never go in examples
+  const B58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+  const fake = (i) => {
+    let x = (i + 1) * 2654435761 >>> 0;
+    let s = '5Demo';
+    while (s.length < 48) { x = (Math.imul(x, 1103515245) + 12345) >>> 0; s += B58[(x >>> 16) % 58]; }
+    return s;
+  };
+  const NAMES = ['Treasury', 'Miner sn19', 'Miner sn19-1', 'Cold storage', 'Validator', 'Ops', 'Test', 'Staking A', 'Staking B', 'Old miner', 'Exchange in', 'Payroll', 'Grants', 'Reserve'];
+  const wallets = NAMES.map((name, i) => ({
+    name, address: fake(i), total: i < 3 || i === 7, hidden: i === 12,
+    free: Math.round(((i * 37) % 23) * 1000 + (i % 3) * 377) / 1000, staked: i % 4 === 3 ? 0 : Math.round(((i * 53) % 61) * 3100) / 1000,
+    chg: i % 5 === 4 ? -((i % 3) * 0.41 + 0.05) : ((i * 7) % 9) * 0.137,
+  }));
+  const value = (w) => w.free + w.staked;
+  const sort = Dash.sorter({ key: 'value', dir: 'desc', store: 'example.wallets.sort', firstDir: { name: 'asc' } });
+  let page = 1;
+  let perPage = 10;
+
+  $('filter').innerHTML = [['active', 'Active'], ['total', 'In total'], ['hidden', 'Hidden'], ['all', 'All']]
+    .map(([v, l]) => `<button type="button" data-value="${v}">${l} <span data-n="${v}"></span></button>`).join('');
+  const filter = Dash.seg('filter', { value: 'active', store: 'example.wallets.filter', onChange: () => { page = 1; render(); } });
+  const inFilter = (w) => ({ active: !w.hidden, total: w.total && !w.hidden, hidden: w.hidden, all: true })[filter.value];
+
+  function renderSummary() {
+    const inTotal = wallets.filter((w) => w.total && !w.hidden);
+    const free = inTotal.reduce((s, w) => s + w.free, 0);
+    const staked = inTotal.reduce((s, w) => s + w.staked, 0);
+    const chg = inTotal.reduce((s, w) => s + w.chg, 0);
+    $('total-usd').innerHTML = `${fmt.usd((free + staked) * price)} <small>· ${fmt.num(free + staked, 2)} τ</small>`;
+    $('total-line').innerHTML = `<b>${inTotal.length}</b> of ${wallets.length} wallets in the total`;
+    const dir = fmt.dir(chg, 0.00005);
+    $('change').innerHTML = `<span class="pill lg ${dir}">${dir === 'down' ? '▼' : dir === 'up' ? '▲' : ''} ${fmt.signed(chg)} τ</span>`
+      + `<span class="chg ${dir}">${fmt.signedUsd(chg * price)}</span><span class="muted">in the last 24 h</span>`;
+    $('split').innerHTML = Dash.split([{ value: free, tone: 'blue', label: 'Free' }, { value: staked, tone: 'teal', label: 'Staked' }]);
+    $('parts').innerHTML = [['Free', free, 'blue'], ['Staked', staked, 'teal']].map(([k, v, tone]) =>
+      `<div><dt class="legend-item ${tone}"><i></i>${k}</dt><dd style="font-size:19px">${fmt.num(v, 2)} τ</dd><dd class="muted" style="font-weight:400">${fmt.usd(v * price)} · ${fmt.share(v / (free + staked) * 100)}</dd></div>`).join('');
+    $('stats').innerHTML = [
+      ['Wallets', wallets.length, `${wallets.filter((w) => w.hidden).length} hidden`],
+      ['Largest', fmt.num(Math.max(...inTotal.map(value)), 2) + ' τ', inTotal.slice().sort((a, b) => value(b) - value(a))[0].name],
+      ['Staked share', fmt.share(staked / (free + staked) * 100), 'of the total'],
+      ['Block', '#5,212,640', 'every 12 s'],
+    ].map(([k, v, n]) => `<div class="stat"><div class="label">${esc(k)}</div><div class="value">${esc(v)}</div><div class="note">${esc(n)}</div></div>`).join('');
+    for (const v of ['active', 'total', 'hidden', 'all']) {
+      $('filter').querySelector(`[data-n="${v}"]`).textContent = wallets.filter((w) => ({ active: !w.hidden, total: w.total && !w.hidden, hidden: w.hidden, all: true })[v]).length;
+    }
+  }
+
+  function render() {
+    renderSummary();
+    const q = $('q').value.trim().toLowerCase();
+    const rows = sort.apply(wallets.filter((w) => inFilter(w) && (!q || w.name.toLowerCase().includes(q) || w.address.toLowerCase().includes(q))), { value, usd: value });
+    const p = Dash.paginate(rows, page, perPage);
+    page = p.page;
+    const max = Math.max(...wallets.filter((w) => w.total).map(value), 0.0001);
+    $('table').innerHTML = `<thead><tr>${Dash.th('Name', 'name', sort)}<th>Address</th>${Dash.th('Free', 'free', sort, { num: true })}${Dash.th('Staked', 'staked', sort, { num: true })}`
+      + `${Dash.th('Value', 'value', sort, { num: true })}${Dash.th('24h', 'chg', sort, { num: true, title: 'Change in TAO over the last 24 hours' })}<th class="hide-sm">Share</th><th class="num">In total</th><th></th></tr></thead><tbody>`
+      + (p.rows.length ? p.rows.map((w) => `<tr data-address="${esc(w.address)}"${w.hidden ? ' class="dim"' : ''}>
+          <td class="main" data-label="">${esc(w.name)}${w.hidden ? ' ' + Dash.tag('hidden') : ''}</td>
+          <td data-label="Address"><span class="mono muted" title="${esc(w.address)}">${esc(fmt.short(w.address))}</span>
+            <button type="button" class="icon-btn" data-copy="${esc(w.address)}" title="Copy address" aria-label="Copy address"><svg width="13" height="13" viewBox="0 0 15 15" fill="none"><rect x="5" y="5" width="8" height="8" rx="1.6" stroke="currentColor" stroke-width="1.3"/><path d="M10 5V3.6A1.6 1.6 0 0 0 8.4 2H3.6A1.6 1.6 0 0 0 2 3.6v4.8A1.6 1.6 0 0 0 3.6 10H5" stroke="currentColor" stroke-width="1.3"/></svg></button></td>
+          <td class="num" data-label="Free" data-cell="free">${w.free ? fmt.amount(w.free) : '<span class="faint">0</span>'}</td>
+          <td class="num" data-label="Staked">${w.staked ? fmt.amount(w.staked) : '<span class="faint">0</span>'}</td>
+          <td class="num" data-label="Value"><b>${fmt.amount(value(w))}</b><div class="sub">${fmt.usd(value(w) * price)}</div></td>
+          <td class="num" data-label="24h τ">${Dash.chg(w.chg)}</td>
+          <td class="hide-sm" style="min-width:120px">${w.total ? `<div class="share">${Dash.bar(value(w) / max, 'accent', { cls: 'thin' })}<span>${fmt.share(value(w) / max * 100)}</span></div>` : '<span class="faint">—</span>'}</td>
+          <td class="num" data-label="In total"><label class="switch"><input type="checkbox" data-act="total"${w.total ? ' checked' : ''}><span class="track"></span><span class="sr-only">Count in the total</span></label></td>
+          <td class="num"><button type="button" class="btn sm" data-act="edit">Edit</button></td></tr>`).join('')
+        : '<tr class="empty-row"><td colspan="9">No wallets match that search.</td></tr>') + '</tbody>';
+    $('pager').innerHTML = Dash.pager(p, { noun: 'wallet' });
+  }
+
+  Dash.on('table', 'click', '[data-sort]', (e, b) => { sort.toggle(b.dataset.sort); page = 1; render(); });
+  Dash.on('table', 'change', '[data-act="total"]', (e, box) => {
+    const w = wallets.find((x) => x.address === box.closest('tr').dataset.address);
+    w.total = box.checked;
+    render();
+    Dash.toast(box.checked ? `${w.name} counts in the total` : `${w.name} left out of the total`);
+  });
+  Dash.on('table', 'click', '[data-act="edit"]', (e, b) => openEditor(wallets.find((x) => x.address === b.closest('tr').dataset.address)));
+  Dash.on('pager', 'click', '[data-page]', (e, b) => { page = Number(b.dataset.page); render(); });
+  Dash.on('pager', 'change', '[data-per-page]', (e, s) => { perPage = Number(s.value); page = 1; render(); });
+  $('q').addEventListener('input', () => { page = 1; render(); });
+
+  // the editor
+  let editing = null;
+  function openEditor(w) {
+    editing = w || null;
+    $('editor-title').textContent = w ? `Edit ${w.name}` : 'Add wallet';
+    $('e-name').value = w ? w.name : '';
+    $('e-addr').value = w ? w.address : '';
+    $('e-total').checked = w ? w.total : true;
+    $('e-err').textContent = '';
+    $('e-addr-field').classList.remove('invalid');
+    $('editor').showModal();
+  }
+  $('add').addEventListener('click', () => openEditor(null));
+  $('editor-form').addEventListener('submit', (e) => {
+    const addr = $('e-addr').value.trim();
+    if (!/^5[1-9A-HJ-NP-Za-km-z]{46,47}$/.test(addr) && !(editing && addr === editing.address)) {
+      e.preventDefault();
+      $('e-err').textContent = 'That isn’t a valid SS58 address (48 characters starting with 5).';
+      $('e-addr-field').classList.add('invalid');
+      return;
+    }
+    if (editing) Object.assign(editing, { name: $('e-name').value.trim(), address: addr, total: $('e-total').checked });
+    else wallets.push({ name: $('e-name').value.trim(), address: addr, total: $('e-total').checked, hidden: false, free: 0, staked: 0, chg: 0 });
+    render();
+    Dash.toast('Saved');
+  });
+
+  // a new block every few seconds: balances move, the changed cells flash
+  Dash.live('live', 'on', 'Block #5,212,640 · just now');
+  let block = 5212640;
+  setInterval(() => {
+    block += 1;
+    const w = wallets[block % 5];
+    w.free = Math.round((w.free + 0.0125) * 1e4) / 1e4;
+    w.chg += 0.0125;
+    price = Math.round((price + (block % 2 ? 0.06 : -0.04)) * 100) / 100;
+    $('price').textContent = fmt.usd(price, 2);
+    render();
+    const cell = document.querySelector(`tr[data-address="${CSS.escape(w.address)}"] [data-cell="free"]`);
+    if (cell) Dash.flash(cell);
+    Dash.live('live', 'on', `Block #${fmt.int(block)} · just now`);
+  }, 6000);
+  render();
+</script>
+</body>
+</html>

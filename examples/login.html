@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Sign in · Wallets</title>
+<link rel="stylesheet" href="../dash.css">
+<script src="../dash.js"></script>
+</head>
+<body class="login-page">
+<!-- a sign-in page. In a real app the form posts to the server (fetch, or a plain GET/POST that nginx checks);
+     here any password of 4+ characters "works", and "wrong" shows the error. -->
+<form class="login" id="form">
+  <h1>Wallets</h1>
+  <p class="lead">Sign in to see the coldkey balances.</p>
+  <div class="callout bad solid" id="failed" role="alert" hidden style="margin-bottom:14px">That password didn’t work. Check it and try again.</div>
+  <div class="field">
+    <label for="password">Password</label>
+    <input class="input" type="password" id="password" autocomplete="current-password" required autofocus>
+  </div>
+  <button type="submit" class="btn primary block" id="submit">Sign in</button>
+  <p class="note">You stay signed in on this browser until the server restarts or you sign out.</p>
+</form>
+<script>
+  const { $ } = Dash;
+  $('form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    $('failed').hidden = true;
+    $('submit').disabled = true;
+    await new Promise((r) => setTimeout(r, 400)); // stands in for: await Dash.api('api/login', { method: 'POST', json: { password } })
+    const ok = $('password').value.length >= 4 && $('password').value !== 'wrong';
+    $('submit').disabled = false;
+    if (ok) { Dash.toast('Signed in'); return; }
+    $('failed').hidden = false;
+    $('password').value = '';
+    $('password').focus();
+  });
+</script>
+</body>
+</html>
