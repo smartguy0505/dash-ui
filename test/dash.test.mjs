@@ -588,3 +588,96 @@ test('1.7: dark: follows both ways the kit turns dark, and colours come from the
   // no colour written in the file but black and white
   assert.deepEqual([...new Set(utils.match(/#[0-9a-f]{3,8}\b/gi))].sort(), ['#000', '#fff']);
 });
+
+// ---- 1.8 components
+test('1.8: the new builders escape their text and never write a link that runs script', () => {
+  const bad = '<b>"x"</b>';
+  for (const html of [
+    Dash.crumbs([{ label: bad, href: '/a' }, bad]), Dash.stepper([bad, { label: bad, sub: bad }], 1), Dash.avatar(bad), Dash.avatar(bad, { src: '/p.png' }),
+    Dash.avatars([bad, bad, bad, bad, bad, bad]), Dash.progress(0.5, { label: bad, value: bad, title: bad }), Dash.progressCircle(0.5, { text: bad, label: bad }),
+    Dash.slider({ label: bad, name: bad, unit: bad, value: 3 }), Dash.entries([{ title: bad, s: bad }], { sub: 's', end: () => '<i>end</i>', key: 'title' }),
+  ]) {
+    assert.doesNotMatch(html, /<b>"x"/, html);
+  }
+  for (const h of ['javascript:alert(1)', ' JavaScript:alert(1)', 'java\tscript:x', 'data:text/html,x', 'vbscript:x']) {
+    assert.match(Dash.crumbs([{ label: 'a', href: h }, 'b']), /href="#"/, h);
+    assert.match(Dash.entries([{ title: 'a' }], { href: () => h }), /href="#"/, h);
+    assert.match(Dash.avatar('a', { src: h }), /src="#"/, h);
+  }
+  assert.match(Dash.crumbs([{ label: 'a', href: '/fleet?x=1&y=2' }, 'b']), /href="\/fleet\?x=1&amp;y=2"/);
+  assert.match(Dash.avatar('a', { src: 'data:image/png;base64,iVBOR' }), /src="data:image\/png;base64,iVBOR"/); // a picture in the page
+  assert.match(Dash.avatar('a', { src: 'data:image/svg+xml,%3Csvg%3E' }), /src="data:image\/svg\+xml,%3Csvg%3E"/);
+  assert.match(Dash.crumbs([{ label: 'a', href: 'data:image/png;base64,iVBOR' }, 'b']), /href="#"/); // but never as a link
+  assert.match(Dash.entries([{ title: 'a' }], { href: () => 'https://example.com/a' }), /href="https:\/\/example.com\/a"/);
+});
+
+test('1.8: breadcrumbs and stepper say where the reader is', () => {
+  const c = Dash.crumbs([{ label: 'Home', href: '/' }, { label: 'Fleet', href: '/fleet' }, 'eu-west']);
+  assert.equal(c, '<nav class="crumbs" aria-label="Breadcrumb"><ol><li><a href="/">Home</a></li><li><a href="/fleet">Fleet</a></li><li><span aria-current="page">eu-west</span></li></ol></nav>');
+  const s = Dash.stepper(['Account', { label: 'Plan', sub: 'Pro' }, 'Pay', { label: 'Done', failed: true }], 1, { tone: 'ok' });
+  assert.equal((s.match(/class="done"/g) || []).length, 1);
+  assert.equal((s.match(/aria-current="step"/g) || []).length, 1);
+  assert.match(s, /^<ol class="stepper ok" aria-label="Steps"><li class="done"><span>Account<span class="sr-only">, done<\/span><\/span><\/li><li aria-current="step"><span>Plan<small>Pro<\/small>/);
+  assert.match(s, /<li class="failed"><span>Done<span class="sr-only">, failed<\/span>/);
+  assert.match(Dash.stepper(['a', 'b'], 0, { vertical: true }), /^<ol class="stepper vertical"/);
+  assert.doesNotMatch(Dash.stepper(['a', 'b'], 2), /aria-current/); // past the last: all done
+});
+
+test('1.8: avatars: initials, a steady colour per name, pictures, and "+N"', () => {
+  const ini = (n) => Dash.avatar(n).match(/>([^<]*)<\/span>$/)[1];
+  assert.equal(ini('Ada Lovelace'), 'AL');
+  assert.equal(ini('grace brewster hopper'), 'GH');
+  assert.equal(ini('linus'), 'LI');
+  assert.equal(ini('x'), 'X');
+  assert.equal(ini('mary-ann.o'), 'MO');
+  assert.equal(ini(''), '?');
+  assert.equal(ini('😀 Smile'), '😀S');
+  assert.equal(Dash.avatar('Ada Lovelace'), Dash.avatar('Ada Lovelace'));
+  const tones = new Set(['Ada', 'Grace', 'Linus', 'Ken', 'Barbara', 'Margaret', 'Edsger', 'Donald'].map((n) => Dash.avatar(n).match(/class="avatar ([a-z]+)"/)[1]));
+  assert.ok(tones.size >= 4, [...tones].join());
+  assert.match(Dash.avatar('Ada', { tone: 'teal', size: 'lg', square: true }), /^<span class="avatar lg square teal" role="img" aria-label="Ada" title="Ada">AD<\/span>$/);
+  assert.match(Dash.avatar('Ada', { src: '/a.png' }), /^<span class="avatar [a-z]+" title="Ada"><img src="\/a.png" alt="Ada"><\/span>$/);
+  const g = Dash.avatars(['A', 'B', 'C', 'D', 'E', 'F'], { max: 4 });
+  assert.equal((g.match(/class="avatar /g) || []).length, 4); // three, then "+3"
+  assert.match(g, /<span class="avatar extra" title="D, E, F">\+3<\/span><\/span>$/);
+  assert.match(g, /^<span class="avatars" role="group" aria-label="A, B, C, D, E, F">/);
+  assert.doesNotMatch(Dash.avatars(['A', 'B', 'C', 'D'], { max: 4 }), /extra/);
+});
+
+test('1.8: progress: a share, or running while unknown; the circle as SVG attributes; strict mode writes no style=""', () => {
+  assert.equal(Dash.progress(0.4), '<div class="progress" role="progressbar" aria-valuenow="40" aria-valuemin="0" aria-valuemax="100" aria-label="Progress"><i style="width:40%"></i></div>');
+  assert.equal(Dash.progress(1.7).match(/aria-valuenow="(\d+)"/)[1], '100');
+  assert.equal(Dash.progress(null, { label: 'Waiting' }), '<div class="progress-head"><span>Waiting</span></div><div class="progress indeterminate" role="progressbar" aria-label="Waiting"><i></i></div>');
+  assert.match(Dash.progress(0.25, { label: 'Uploading', value: '1 of 4', tone: 'ok', lg: true }), /^<div class="progress-head"><span>Uploading<\/span><b>1 of 4<\/b><\/div><div class="progress lg ok"/);
+  assert.match(Dash.progress(0.25, { label: 'Up' }), /<b>25%<\/b>/);
+  const c = Dash.progressCircle(0.4, { size: 48, text: '40%' });
+  assert.match(c, /^<span class="progress-circle" role="progressbar" aria-valuenow="40" /);
+  assert.match(c, /<svg viewBox="0 0 36 36" width="48" height="48" aria-hidden="true">/);
+  assert.match(c, /stroke-dasharray="40 100"/);
+  assert.match(Dash.progressCircle(null), /class="progress-circle indeterminate"/);
+  assert.match(Dash.progressCircle(0.4, { size: 'x' }), /width="36"/);
+  assert.doesNotMatch(c, /style=/);
+  Dash.config.csp = true;
+  try {
+    const p = Dash.progress(0.4);
+    assert.doesNotMatch(p, /style=/);
+    assert.match(p, /<i data-css-w="40"><\/i>/);
+  } finally {
+    Dash.config.csp = false;
+  }
+});
+
+test('1.8: slider and entries', () => {
+  assert.equal(Dash.slider({ label: 'Volume', name: 'vol', min: 0, max: 10, step: 0.5, value: 4, unit: ' dB' }),
+    '<label class="slider"><span>Volume</span><input type="range" name="vol" min="0" max="10" step="0.5" value="4" data-unit=" dB"><output>4 dB</output></label>');
+  assert.match(Dash.slider({ name: 'vol' }), /aria-label="vol"/);
+  assert.match(Dash.slider({ disabled: true }), / disabled><output>0<\/output>/);
+  const rows = [{ id: 7, name: 'eu-west', region: 'Frankfurt' }, { id: 8, name: 'us-east', region: '' }];
+  const e = Dash.entries(rows, { title: 'name', sub: 'region', lead: (r) => Dash.avatar(r.name, { size: 'sm' }), end: (r) => `#${r.id}`, key: 'id' });
+  assert.match(e, /^<ul class="entries"><li class="entry" data-key="7"><span class="entry-lead"><span class="avatar sm /);
+  assert.match(e, /<span class="entry-title">eu-west<\/span><span class="entry-sub">Frankfurt<\/span><\/span><span class="entry-end">#7<\/span><\/li>/);
+  assert.match(e, /<span class="entry-title">us-east<\/span><\/span>/); // no empty second line
+  assert.match(Dash.entries(rows, { title: 'name', href: (r) => '#/' + r.id }), /<li><a class="entry" href="#\/7">/);
+  assert.match(Dash.entries(rows, { title: (r) => r.name.toUpperCase(), button: true, key: 'id', wrap: true }), /^<ul class="entries wrap"><li><button type="button" class="entry" data-key="7"><span class="entry-text"><span class="entry-title">EU-WEST/);
+  assert.equal(Dash.entries([], { empty: 'No servers' }), '<div class="empty">No servers</div>');
+});

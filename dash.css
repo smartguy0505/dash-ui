@@ -1,4 +1,4 @@
-/* dash-ui 1.7.0: the look shared by my dashboards (agents, fleet, leaderboard, payouts, balances).
+/* dash-ui 1.8.0: the look shared by my dashboards (agents, fleet, leaderboard, payouts, balances).
    Warm neutral backgrounds, white panels, tinted status colours, light and dark from the system setting
    (or data-theme="light|dark" on <html>). No build step, no dependencies: link this file, or paste it into a page.
 
@@ -700,6 +700,225 @@ button.hbar:hover { background: var(--soft); }
 .login .lead { margin: 2px 0 18px; color: var(--muted); font-size: 14px; }
 .login .input { padding: 8px 11px; font-size: 15px; }
 .login .note { margin: 14px 0 0; color: var(--muted); font-size: 12.5px; }
+
+/* ---- more components (1.8): choices, select, input groups, slider, drop zone, accordion, breadcrumbs, stepper,
+   avatars, badges, progress, entries, nav drawer, bottom nav, floating button, divider ---- */
+
+/* choices as cards: <div class="choices"><label class="choice"><input type="radio" name="plan"><span class="choice-body"><b>Pro</b>
+   <span class="hint">for teams</span></span></label>…</div> (checkboxes work the same; a tone colours the chosen one) */
+.choices { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(min(var(--choice-min, 200px), 100%), 1fr)); margin-bottom: 12px; }
+.choice { display: flex; align-items: flex-start; gap: 10px; min-width: 0; padding: 11px 14px; border: 1px solid var(--line); border-radius: var(--radius-sm);
+  background: var(--card); font-size: 14px; cursor: pointer; }
+:where(.choice) { --c: var(--blue); }
+.choice:hover { border-color: color-mix(in srgb, var(--c) 45%, var(--line)); }
+.choice > input { flex: none; width: 16px; height: 16px; margin: 2px 0 0; accent-color: var(--c); }
+.choice:has(> input:checked) { border-color: var(--c); background: color-mix(in srgb, var(--c) 6%, var(--card)); box-shadow: inset 0 0 0 1px var(--c); }
+.choice:has(> input:focus-visible) { outline: 2px solid var(--blue); outline-offset: 2px; }
+.choice:has(> input:disabled) { opacity: .55; cursor: default; }
+.choice-body { display: grid; gap: 2px; min-width: 0; }
+.choice-body .hint { color: var(--muted); font-size: 12.5px; }
+/* a column of checkboxes or radios: <div class="checks"><label class="checkline"><input type="radio" name="x"> One</label>…</div> */
+.checks { display: grid; gap: 6px; margin: 2px 0 12px; }
+.checks > .checkline { margin: 0; }
+.checks.across { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+
+/* a select with the kit's arrow: <span class="select"><select class="input">…</select></span> (full width in a .field) */
+.select { position: relative; display: inline-flex; min-width: 0; vertical-align: middle; }
+.field .select { display: flex; }
+.select > select.input { width: 100%; padding-right: 30px; appearance: none; -webkit-appearance: none; }
+.select::after { content: ""; position: absolute; top: 50%; right: 13px; width: 6px; height: 6px; border: solid var(--muted); border-width: 0 1.5px 1.5px 0;
+  transform: translateY(-75%) rotate(45deg); pointer-events: none; }
+.select:has(> select[multiple], > select[size])::after { display: none; }
+.select:has(> select:disabled) { opacity: .55; }
+
+/* text or buttons joined to an input: <div class="input-group"><span class="affix">$</span><input class="input"><button class="btn">Go</button></div> */
+.input-group { display: flex; align-items: stretch; min-width: 0; }
+.input-group > * { margin: 0; }
+.input-group > * + * { margin-left: -1px; }
+.input-group > .input, .input-group > .select { flex: 1; min-width: 0; }
+.input-group > :not(:first-child), .input-group > .select:not(:first-child) > .input { border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.input-group > :not(:last-child), .input-group > .select:not(:last-child) > .input { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.input-group > .input:focus, .input-group > .select:focus-within { position: relative; z-index: 1; }
+.input-group > .btn { flex: none; }
+.affix { flex: none; display: inline-flex; align-items: center; padding: 0 10px; border: 1px solid var(--line); border-radius: 9px; background: var(--soft);
+  color: var(--muted); font-size: 13.5px; white-space: nowrap; }
+.input.sm { padding: 4px 9px; border-radius: 8px; font-size: 13px; }
+.input.lg { padding: 10px 13px; font-size: 15.5px; }
+textarea.input.autosize { min-height: 62px; max-height: var(--max-h, 320px); field-sizing: content; }
+
+/* a slider: Dash.slider({ label, min, max, value }) or <label class="slider"><span>Volume</span><input type="range"><output>50</output></label>
+   (dash.js keeps the <output> on the value, with data-unit after it) */
+.slider { display: flex; align-items: center; gap: 12px; min-width: 0; font-size: 14px; }
+:where(.slider) { --c: var(--blue); }
+.slider > input[type="range"] { flex: 1; min-width: 80px; margin: 0; accent-color: var(--c); cursor: pointer; }
+.slider > input:disabled { opacity: .55; cursor: default; }
+.slider > output { flex: none; min-width: 4ch; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
+/* in a .field its name reads as the field's label */
+.field > label.slider { display: flex; margin: 0; color: var(--text); font-size: 14px; font-weight: 400; }
+.field > label.slider > span:first-child { color: var(--muted); font-size: 13px; font-weight: 600; }
+
+/* a place to drop files: <label class="dropzone"><input type="file" multiple><b>Drop files here</b><span>or <u>choose them</u></span><span class="files"></span></label>
+   (dash.js takes a drop into the input, as if chosen, and lists the names) */
+.dropzone { position: relative; display: grid; justify-items: center; gap: 2px; padding: 22px 16px; border: 1.5px dashed var(--line); border-radius: var(--radius-sm);
+  background: var(--card); color: var(--muted); font-size: 14px; text-align: center; cursor: pointer; }
+.dropzone:hover, .dropzone.over { border-color: var(--blue); background: color-mix(in srgb, var(--blue) 5%, var(--card)); color: var(--text); }
+.dropzone > input[type="file"] { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.dropzone:has(> input:focus-visible) { outline: 2px solid var(--blue); outline-offset: 2px; }
+.dropzone b { color: var(--text); }
+.dropzone u { color: var(--blue); text-underline-offset: 3px; }
+.dropzone .files { margin-top: 6px; color: var(--text); font-size: 13px; overflow-wrap: anywhere; }
+.dropzone .files:empty { display: none; }
+
+/* an accordion: <div class="accordion"><details name="faq"><summary>Question</summary><div>Answer</div></details>…</div>
+   (the same name on each: one open at a time) */
+.accordion { overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--card); }
+.accordion > details + details { border-top: 1px solid var(--line); }
+.accordion > details > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: auto; padding: 12px 16px;
+  color: var(--text); font-size: 14.5px; list-style: none; }
+.accordion > details > summary::-webkit-details-marker { display: none; }
+.accordion > details > summary::after { content: ""; flex: none; width: 7px; height: 7px; margin-top: -4px; border: solid var(--muted); border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg); transition: transform .15s; }
+.accordion > details[open] > summary::after { margin-top: 3px; transform: rotate(-135deg); }
+.accordion > details > summary:hover { background: var(--soft); }
+.accordion > details > summary:focus-visible { outline-offset: -2px; }
+.accordion > details > :not(summary) { margin: 0; padding: 0 16px 14px; color: var(--muted); font-size: 14px; }
+
+/* breadcrumbs: Dash.crumbs([{ label, href }, …]) writes <nav class="crumbs" aria-label="Breadcrumb"><ol><li><a>…</a></li>…</ol></nav> */
+.crumbs { min-width: 0; font-size: 13.5px; }
+.crumbs ol { display: flex; flex-wrap: wrap; align-items: center; row-gap: 2px; margin: 0; padding: 0; list-style: none; }
+.crumbs li { min-width: 0; color: var(--muted); overflow-wrap: anywhere; }
+.crumbs li + li::before { content: "/"; margin: 0 8px; color: var(--faint); }
+.crumbs a { color: var(--muted); text-decoration: none; }
+.crumbs a:hover { color: var(--text); text-decoration: underline; }
+.crumbs [aria-current] { color: var(--text); font-weight: 600; }
+
+/* the steps of a task: Dash.stepper(['Account', 'Plan', 'Pay'], 1) or <ol class="stepper"><li class="done"><span>Account</span></li>
+   <li aria-current="step"><span>Plan</span></li><li><span>Pay</span></li></ol>; .failed for a step that went wrong; .vertical stacks them */
+.stepper { counter-reset: step; display: flex; gap: 8px; width: 100%; margin: 0; padding: 0; list-style: none; font-size: 13.5px; }
+:where(.stepper) { --c: var(--blue); }
+.stepper > li { counter-increment: step; flex: 1 1 auto; display: flex; align-items: center; gap: 8px; min-width: 0; color: var(--muted); font-weight: 600; }
+.stepper > li:last-child { flex: 0 1 auto; }
+.stepper > li > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stepper > li::before { content: counter(step); flex: none; display: grid; place-items: center; width: 24px; height: 24px; border: 1.5px solid var(--line);
+  border-radius: 50%; background: var(--card); color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.stepper > li:not(:last-child)::after { content: ""; flex: 1 1 16px; min-width: 12px; height: 2px; border-radius: 1px; background: var(--line); } /* the lines give way before the names */
+.stepper > li.done::before { content: "✓"; border-color: var(--c); background: var(--c); color: var(--card); }
+.stepper > li.done::after { background: var(--c); }
+.stepper > li[aria-current="step"] { color: var(--text); }
+.stepper > li[aria-current="step"]::before { border-color: var(--c); color: var(--c); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 18%, transparent); }
+.stepper > li.failed::before { content: "!"; border-color: var(--bad); background: var(--bad); color: var(--card); }
+.stepper > li.failed { color: var(--bad); }
+.stepper.vertical { flex-direction: column; gap: 0; }
+.stepper.vertical > li { position: relative; align-items: flex-start; padding-bottom: 18px; }
+.stepper.vertical > li > span { padding-top: 2px; white-space: normal; }
+.stepper.vertical > li:not(:last-child)::after { position: absolute; top: 28px; bottom: 4px; left: 11px; width: 2px; min-width: 0; height: auto; }
+.stepper small { display: block; color: var(--muted); font-weight: 500; }
+@media (max-width: 640px) { /* a phone: only the current step's name shows; the others are still read out */
+  .stepper:not(.vertical) > li { position: relative; }
+  .stepper:not(.vertical) > li:not([aria-current="step"]) > span { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+}
+
+/* a person or a thing: Dash.avatar('Ada Lovelace') writes <span class="avatar purple" title="Ada Lovelace">AL</span>; or put an <img> inside.
+   .sm .lg .square; .avatars overlaps a few (Dash.avatars) */
+.avatar { flex: none; display: inline-grid; place-items: center; width: 32px; height: 32px; overflow: hidden; border-radius: 50%;
+  background: color-mix(in srgb, var(--c) 16%, var(--card)); color: var(--c); font-size: 12.5px; font-weight: 700; line-height: 1; letter-spacing: .02em;
+  vertical-align: middle; user-select: none; }
+:where(.avatar) { --c: var(--muted); }
+.avatar img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.avatar.sm { width: 24px; height: 24px; font-size: 10px; }
+.avatar.lg { width: 44px; height: 44px; font-size: 16px; }
+.avatar.square { border-radius: 9px; }
+.avatar.sm.square { border-radius: 7px; }
+.avatars { display: inline-flex; align-items: center; vertical-align: middle; }
+.avatars > .avatar { box-shadow: 0 0 0 2px var(--card); }
+.avatars > .avatar + .avatar { margin-left: -6px; } /* the initials stay whole under the next one */
+.avatars > .avatar.extra { background: var(--soft); color: var(--muted); }
+
+/* a count or a dot on a button or an icon: <button class="icon-btn" data-badge="3" aria-label="Messages, 3 new"> (data-badge="" is a dot;
+   --badge sets its colour) */
+[data-badge] { position: relative; }
+[data-badge]::after { content: attr(data-badge); position: absolute; top: -5px; right: -6px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px;
+  background: var(--badge, var(--bad)); color: var(--card); box-shadow: 0 0 0 2px var(--card); font-size: 10.5px; font-weight: 700; line-height: 17px;
+  text-align: center; font-variant-numeric: tabular-nums; pointer-events: none; }
+[data-badge=""]::after { top: -1px; right: -1px; width: 9px; min-width: 0; height: 9px; padding: 0; }
+
+/* progress: Dash.progress(0.4, { label }) or Dash.progress(null) while the amount isn't known; Dash.progressCircle the same, round */
+.progress { position: relative; display: block; height: 6px; overflow: hidden; border-radius: 3px; background: color-mix(in srgb, var(--c) 18%, var(--card)); }
+:where(.progress, .progress-circle) { --c: var(--blue); }
+.progress > i { display: block; height: 100%; border-radius: inherit; background: var(--c); transition: width .25s ease; }
+.progress.indeterminate > i { position: absolute; top: 0; left: -40%; width: 40%; animation: progress-run 1.3s ease-in-out infinite; }
+@keyframes progress-run { to { left: 100%; } }
+@media (prefers-reduced-motion: reduce) { .progress.indeterminate > i { left: 0; width: 100%; opacity: .45; } } /* no motion: a steady, paler bar */
+.progress.lg { height: 10px; border-radius: 5px; }
+.progress-head { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 5px; color: var(--muted); font-size: 13px; }
+.progress-head b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+.progress-circle { position: relative; flex: none; display: inline-grid; place-items: center; vertical-align: middle; }
+.progress-circle svg { display: block; transform: rotate(-90deg); }
+.progress-circle circle { fill: none; stroke-width: 3.4; }
+.progress-circle .track { stroke: color-mix(in srgb, var(--c) 18%, var(--card)); }
+.progress-circle .fill { stroke: var(--c); stroke-linecap: round; transition: stroke-dasharray .25s ease; }
+.progress-circle .fill[stroke-dasharray^="0 "] { stroke-linecap: butt; } /* nothing yet: no dot */
+.progress-circle.indeterminate svg { animation: spin 1s linear infinite; }
+.progress-circle > b { position: absolute; font-size: 10px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* a list of things, a line or two each: Dash.entries(rows, { title, sub, lead, end, href }) writes
+   <ul class="entries"><li class="entry"><span class="entry-lead">…</span><span class="entry-text"><b class="entry-title">…</b><span class="entry-sub">…</span></span>
+   <span class="entry-end">…</span></li></ul> (an <a class="entry"> or <button class="entry"> inside the <li> for one that opens something) */
+.entries { margin: 0; padding: 0; list-style: none; }
+.entries > li + li { border-top: 1px solid var(--line); }
+.entry { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 10px 2px; }
+.entries a.entry, .entries button.entry { width: 100%; margin: 2px 0; padding: 8px 10px; border: 0; border-radius: 9px; background: none; color: inherit;
+  font: inherit; text-align: left; text-decoration: none; cursor: pointer; }
+.entries a.entry:hover, .entries button.entry:hover { background: var(--soft); }
+.entries a.entry:focus-visible, .entries button.entry:focus-visible { outline-offset: -2px; }
+.entry-lead { flex: none; display: grid; place-items: center; color: var(--muted); }
+.entry-text { flex: 1; display: grid; gap: 1px; min-width: 0; }
+.entry-title { overflow: hidden; color: var(--text); font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.entry-sub { overflow: hidden; color: var(--muted); font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+.entry-end { flex: none; display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.entries.wrap .entry-title, .entries.wrap .entry-sub { white-space: normal; overflow-wrap: anywhere; }
+
+/* the sidebar as a drawer on smaller screens: <div class="shell offcanvas"> (up to 900 px, [data-toggle-side] slides it in over the page;
+   Escape, a click outside or on a link closes it) */
+@media (max-width: 900px) {
+  .shell.offcanvas .sidebar { position: fixed; top: 0; bottom: 0; left: 0; z-index: 70; width: min(300px, 86vw); height: auto; max-height: none;
+    padding: 14px 12px 28px; border-right: 1px solid var(--line); border-bottom: 0; box-shadow: var(--shadow-pop); visibility: hidden; transform: translateX(-102%);
+    transition: transform .2s ease, visibility 0s linear .2s; }
+  .shell.offcanvas.side-open .sidebar { visibility: visible; transform: none; transition: transform .2s ease; }
+  .shell.offcanvas.side-open::before { content: ""; position: fixed; inset: 0; z-index: 69; background: var(--backdrop); }
+  .shell.offcanvas.collapsed .sidebar { display: block; }
+  .shell.offcanvas.collapsed .side-head { display: flex; }
+  .shell.offcanvas.collapsed .nav-main, .shell.offcanvas.collapsed .nav-meta { display: grid; }
+  .shell.offcanvas.collapsed .nav-item { width: 100%; justify-content: flex-start; padding: 9px 10px; }
+}
+
+/* navigation at the bottom of a phone: <nav class="bottom-nav" aria-label="Main"><a href="#" aria-current="page"><svg…></svg>Home</a>…</nav>
+   (only up to 640 px; the page gets room for it) */
+.bottom-nav { position: fixed; right: 0; bottom: 0; left: 0; z-index: 40; display: none; gap: 4px; padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line); background: var(--card); }
+.bottom-nav > a, .bottom-nav > button { flex: 1; display: grid; justify-items: center; gap: 2px; min-width: 0; padding: 5px 4px; border: 0; border-radius: 10px;
+  background: none; color: var(--muted); font-size: 11.5px; font-weight: 600; text-decoration: none; }
+.bottom-nav > [aria-current="page"], .bottom-nav > [aria-current="true"] { color: var(--blue); background: color-mix(in srgb, var(--blue) 10%, transparent); }
+.bottom-nav svg { display: block; }
+@media (max-width: 640px) {
+  .bottom-nav { display: flex; }
+  body:has(> .bottom-nav) { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+  body:has(> .bottom-nav) .fab { bottom: calc(78px + env(safe-area-inset-bottom)); }
+}
+
+/* a floating button for the page's main action: <button class="btn primary fab" aria-label="New"><svg…></svg></button> (.extended has a label) */
+.fab { position: fixed; right: 20px; bottom: 20px; z-index: 45; width: 52px; height: 52px; padding: 0; border-radius: 16px; box-shadow: var(--shadow-pop); }
+.fab.extended { width: auto; padding: 0 18px; }
+
+/* a line between things, with a word if it has one: <div class="divider">or</div>, <hr class="divider"> */
+.divider { display: flex; align-items: center; gap: 12px; margin: 16px 0; border: 0; color: var(--faint); font-size: 12.5px; font-weight: 600; }
+.divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.divider:empty { height: 1px; background: var(--line); }
+.divider:empty::before, .divider:empty::after { content: none; }
+
+/* a picture across the top of a card: <div class="card"><div class="card-media"><img src alt></div>… */
+.card-media { margin: -16px -18px 4px; overflow: hidden; border-radius: var(--radius) var(--radius) 0 0; background: var(--soft); aspect-ratio: 16 / 9; }
+.card-media img { display: block; width: 100%; height: 100%; object-fit: cover; }
 
 /* ---- tones: set --c; after the components so they win over their defaults ---- */
 .ok { --c: var(--ok); } .warn { --c: var(--warn); } .bad { --c: var(--bad); } .blue { --c: var(--blue); } .accent { --c: var(--accent); }

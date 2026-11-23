@@ -210,6 +210,10 @@ Surfaces and text: `--bg`, `--card`, `--soft` (a block inside a card, table head
 - `.empty`, `.empty.boxed` (dashed) and `.empty-title`: empty states.
 - `.skel`, `.skel.wide/.mid/.short`: loading lines.
 - `.tabs`: a row of tab buttons over panels (`Dash.tabs` shows one panel at a time). A `.count-badge` in a tab holds a count.
+- `.accordion`: `<details>` blocks joined into one box, with a chevron on each `summary`. Give them the same `name` to keep one open at a time.
+- `.entries` › `.entry` (`Dash.entries`): a list of things a line or two each: `.entry-lead` (an avatar or icon), `.entry-text` with `.entry-title` and `.entry-sub`, then `.entry-end`. An entry can be an `a` or a `button`. `.entries.wrap` lets long text wrap instead of ending in `…`.
+- `.divider`: a line between things, with a word in it if it has one (`<div class="divider">or</div>`; `<hr class="divider">`).
+- `.card-media`: a picture across the top of a `.card`.
 - `.timeline`: events on a line (`Dash.timeline` builds it), with a dot in each event's tone. The dots and the line stay in high contrast, in the text colour.
 
 **Labels**
@@ -218,6 +222,8 @@ Surfaces and text: `--bg`, `--card`, `--soft` (a block inside a card, table head
 - `.rank`: "#2 of 14", in medal colours for the top three (`Dash.rank` builds it).
 - `.chip`: a pill with a border. A `button.chip` with `aria-pressed` is a choice. Group them in `.chips`, or `.chips.scroll` for one sideways-scrolling line.
 - `.chg` with `.up`, `.down` or `.flat`: a signed change in its colour.
+- `.avatar` (`Dash.avatar`): initials in a colour picked from the name, or an `<img>`; `.sm`, `.lg` and `.square`. `.avatars` overlaps a few, with `.extra` for "+3".
+- `data-badge="3"` on a button or icon: a count in its corner; `data-badge=""` is a dot. `--badge` changes its colour. The count is decoration: say it in the `aria-label` too ("Messages, 3 new").
 - Text utilities: `.muted`, `.faint`, `.strong`, `.sub`, `.mono`, `.num`, `.unit` (a unit after a number: `12.5 <span class="unit">ms</span>`), `.ellipsis`, `.clamp` (`--lines`), `.invisible` (hidden, keeps its space), `kbd`, `code`.
 
 **Controls**
@@ -230,14 +236,27 @@ Surfaces and text: `--bg`, `--card`, `--soft` (a block inside a card, table head
   - `.seg.lg` is for top-bar view tabs.
   - `.seg.solid` is the bordered look from the payout and leaderboard dashboards.
   - A `<span>` inside a button holds a count.
-- `.input`: text, select and textarea. `.input.mono` is for addresses.
+- `.input`: text, select and textarea. `.input.mono` is for addresses; `.input.sm` and `.input.lg` change its size. `textarea.input.autosize` grows with what is typed, up to `--max-h` (320 px), where the browser supports `field-sizing` (elsewhere it keeps its size).
+- `.select` around a `<select class="input">` gives it the kit's arrow (full width inside a `.field`).
+- `.input-group`: an input joined to `.affix` text and buttons (`$` · amount · `USD` · Set). It takes `.select` too.
 - `.search` wraps an `.input` with an icon `svg` and an optional `.count` (typed text stops 100 px from the right; `--count-w` for a longer count).
 - `.field`: a label, an `.input`, then `.hint` or `.err`. `.field.invalid` turns it red.
 - `.switch`: `<label class="switch"><input type="checkbox"><span class="track"></span> Label</label>`.
-- `.checkline`, and `details > summary`.
+- `.checkline`, and `details > summary`. `.checks` stacks checklines (`.checks.across` puts them on one line); give a group of them `role="group"` and an `aria-label`, or put them in a `fieldset`.
+- `.choices` › `label.choice`: radios or checkboxes as cards, `<input>` then `.choice-body` (a `b` and a `.hint`). The checked one is outlined. `--choice-min` (200 px) sets how narrow a card can be before they stack.
+- `.slider` (`Dash.slider`): a name, `input type="range"` and an `<output>` that dash.js keeps on the value (`data-unit` adds the unit). A tone colours it.
+- `.dropzone`: a `<label>` round an `input type="file"`, so a click chooses files and a drop puts them in the input (only the kinds its `accept` allows), with `input` and `change` events as if chosen. The names show in its `.files`.
 - `.menu`: `<details class="menu"><summary class="btn">Actions</summary><div class="menu-list">…</div></details>`. The list holds buttons and links, `<hr>` and `.menu-label`; a tone on an item colours it (`class="bad"`). `.menu.end` opens leftwards. It closes on a click outside, on Escape (only the menu, inside a dialog too) and once an item is chosen. Inside a sideways-scrolling `.table-wrap` the list gets cut off: there, use `Dash.menu`, which draws the same list above everything.
 - `data-tooltip="text"`: a tooltip on hover and keyboard focus, kept inside the window, in an open dialog or popup too. Use it for a word or a line; a `title` is enough for long text.
 - `.popup` (`Dash.popup`, `Dash.menu`, `data-popup`): a box beside a button, above everything. Inside it, `.popup-title`, `.popup-text` and `.popup-actions` give a small question or note its shape.
+
+**Navigation and progress**
+- `.crumbs` (`Dash.crumbs`): breadcrumbs, `nav > ol > li`, the last one `aria-current="page"`.
+- `.stepper` (`Dash.stepper`): the steps of a task. `li.done`, `li[aria-current="step"]`, `li.failed`; `.stepper.vertical` stacks them, with a `small` line under a name. On a phone only the current step shows its name; screen readers still hear them all.
+- `.shell.offcanvas`: up to 900 px the sidebar becomes a drawer over the page. `[data-toggle-side]` opens it there (the same button folds the rail wider than that). While it is open the rest of the page is inert; Escape, a click outside or a link inside closes it, and the focus goes back to the button. `Dash.side.open()` and `.close()` do it from code.
+- `.bottom-nav`: links along the bottom of a phone (`a` with an `svg` and a word; `aria-current="page"` on the one you're on). It shows from 640 px down only, and the page gets room for it; it has to be a direct child of `<body>`.
+- `.fab`: a round floating button for the page's main action (`btn primary fab`); `.fab.extended` has a label. It sits above a `.bottom-nav`.
+- `.progress` (`Dash.progress`): a progress bar; `.indeterminate` runs while the amount isn't known (a steady bar for people who turn motion off); `.lg` is thicker; `.progress-head` is the line above it. `.progress-circle` (`Dash.progressCircle`) is the round one, an SVG.
 
 **Tables**
 - `.table` inside a `.panel` has a rounded header strip. Wrap it in `.table-wrap` to make the table its own card.
@@ -317,6 +336,13 @@ Builders return HTML strings, with every value escaped. Put them in with `innerH
 | `Dash.applyStyles(el)` | with `Dash.config.csp`: sets the builders' sizes in `el` (the page by default) at once (see *Pages with a strict style policy* below) |
 | `Dash.lanes(el, rows, { from, to, ticks, axis, nouns, labelWidth, empty })` | lanes on a time axis (`.lanes`), `{ label, sub, spans: [{ from, to, tone, title }], marks: [{ at, tone, title }], say }` per row. The range is the last 24 h unless given; a span with no `to` is still going. It cuts spans at the edges and leaves out what is outside; titles (or the times) are tooltips; each lane gets a spoken summary (`say` to write your own, `nouns` to name what it counts). The axis has `ticks` parts (4), labelled with `axis(t, i, n)` or the clock, "−54 h" or dates. It places everything through the CSSOM, so it works under a strict `style-src` CSP. `el` can be the page's own `.lanes` box. `Dash.lanes.html(rows, options)` is the markup alone, and `Dash.lanes.place(el)` places it once it is in the page |
 | `Dash.donut(segments, { center, sub })`, `Dash.gauge(frac, { name, sub, tone })`, `Dash.spark(values, { tone, height, area, labels })` | donut; gauge (ok → warn at 0.7 → bad at 0.9 unless a tone is given); sparkline |
+| `Dash.crumbs(items, { label })` | breadcrumbs: items are `{ label, href }` or text; the last is where the reader is. An `href` that would run script becomes `#` |
+| `Dash.stepper(steps, current, { vertical, tone, label })` | steps as text or `{ label, sub, failed }`; those before `current` are done (screen readers hear ", done"); `current` past the last means all are |
+| `Dash.avatar(name, { src, tone, size, square, title })`, `Dash.avatars(people, { max, size, label })` | initials in a colour from the name (the same name always gets the same one), or a picture (a `data:image/` one too); a few overlapping and "+3" |
+| `Dash.progress(frac, { tone, label, value, lg, title })`, `Dash.progressCircle(frac, { tone, size, text, label, title })` | a bar or a circle at `frac` (0 to 1), `role="progressbar"` with its value; `null` for one that runs until the amount is known |
+| `Dash.slider({ label, name, id, min, max, step, value, unit, tone, disabled })` | a range input with its value beside it |
+| `Dash.entries(rows, { title, sub, lead, end, href, button, key, wrap, empty, label })` | a list: `title` and `sub` are keys or functions (escaped), `lead` and `end` return HTML, `href(row)` makes links, `button: true` buttons with `data-key` |
+| `Dash.side.open()`, `.close()` | the `.shell.offcanvas` drawer from code; `open` returns `false` wider than 900 px, where there is no drawer |
 | `Dash.maskIps(text)`, `Dash.hideIps(text)` | blur IPv4 addresses (a click shows every copy of that address); `(IP hidden)` for tooltips |
 | `Dash.copy(text)` | clipboard with the old fallback for plain-HTTP pages; returns true/false |
 | `Dash.toast(msg, { tone, ms, action, onAction })` | short message; with `action: 'Undo'` it has a button and stays 6 s |

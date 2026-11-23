@@ -41,7 +41,7 @@
     <nav class="chips toc" aria-label="Sections">
       <a class="chip" href="#colours">Colours</a><a class="chip" href="#numbers">Numbers</a><a class="chip" href="#labels">Labels</a>
       <a class="chip" href="#controls">Controls</a><a class="chip" href="#surfaces">Panels and cards</a><a class="chip" href="#tables">Tables</a>
-      <a class="chip" href="#charts">Charts</a><a class="chip" href="#more">Tabs and menus</a><a class="chip" href="#popups">Modals and popups</a><a class="chip" href="#feedback">Feedback</a>
+      <a class="chip" href="#charts">Charts</a><a class="chip" href="#more">Tabs and menus</a><a class="chip" href="#popups">Modals and popups</a><a class="chip" href="#forms">Forms, steps and lists</a><a class="chip" href="#feedback">Feedback</a>
     </nav>
   </div>
 
@@ -340,6 +340,54 @@
       </div>
     </div>
     <template id="pp-info"><p class="popup-title">p95 latency</p><p class="popup-text">95 of every 100 requests answered at least this fast. Here: <b>41 ms</b> over the last hour.</p></template>
+  </section>
+
+  <!-- forms, steps and lists (1.8) -->
+  <section class="section" id="forms">
+    <div class="section-head"><h2 class="section-title">Forms, steps and lists</h2><span class="sub">choices · select · input groups · Dash.slider · drop zone · Dash.crumbs · Dash.stepper · Dash.avatars · badges · Dash.progress · Dash.entries · accordion</span></div>
+    <div class="grid">
+      <div class="panel">
+        <div class="panel-head"><h3>Form pieces</h3></div>
+        <p class="field-label">Plan</p>
+        <div class="choices">
+          <label class="choice"><input type="radio" name="plan-demo" checked><span class="choice-body"><b>Team</b><span class="hint">Up to 20 people, shared dashboards</span></span></label>
+          <label class="choice"><input type="radio" name="plan-demo"><span class="choice-body"><b>Business</b><span class="hint">Single sign-on and audit log</span></span></label>
+        </div>
+        <div class="checks across" role="group" aria-label="Billing">
+          <label class="checkline"><input type="radio" name="bill-demo" checked> Monthly</label>
+          <label class="checkline"><input type="radio" name="bill-demo"> Yearly</label>
+        </div>
+        <div class="field"><label for="f-region">Region</label><span class="select"><select class="input" id="f-region"><option>eu-west (Frankfurt)</option><option>us-east (Virginia)</option></select></span></div>
+        <div class="field"><label for="f-limit">Monthly limit</label><div class="input-group"><span class="affix">$</span><input class="input" id="f-limit" value="250" inputmode="decimal"><span class="affix">USD</span><button type="button" class="btn">Set</button></div></div>
+        <div class="field" id="slider-demo"></div>
+        <label class="dropzone"><input type="file" multiple><b>Drop a CSV here</b><span>or <u>choose files</u></span><span class="files"></span></label>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h3>Steps, people, progress</h3></div>
+        <div class="demo" id="crumbs-demo"></div>
+        <div class="demo" id="stepper-demo"></div>
+        <div class="demo" id="avatars-demo"></div>
+        <div class="demo">
+          <button type="button" class="icon-btn" data-badge="3" aria-label="Messages, 3 new"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2.5 4h11v8h-11zM2.5 4 8 8.5 13.5 4" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></button>
+          <button type="button" class="icon-btn" data-badge="" aria-label="Alerts, new"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1 1.5H3L4 11ZM6.5 14h3" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></button>
+          <button type="button" class="btn" data-badge="12">Inbox</button>
+        </div>
+        <div class="vstack" id="progress-demo"></div>
+        <div class="divider">then</div>
+        <div id="stepper-v-demo"></div>
+      </div>
+      <div class="panel span-2">
+        <div class="panel-head"><h3>Lists and accordions</h3></div>
+        <div class="grid">
+          <div id="entries-demo"></div>
+          <div class="accordion">
+            <details name="faq-demo" open><summary>Why is a server grey?</summary><p>It hasn’t reported for five minutes. It turns red after fifteen.</p></details>
+            <details name="faq-demo"><summary>Can I move a server to another team?</summary><p>Yes: open it and choose Move. Its history moves with it.</p></details>
+            <details name="faq-demo"><summary>How long is history kept?</summary><p>Thirteen months, so a year can be compared with the one before.</p></details>
+          </div>
+        </div>
+      </div>
+    </div>
   </section>
 
   <!-- feedback -->
@@ -660,6 +708,19 @@
   syncSwatches();
   new MutationObserver(syncSwatches).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', syncSwatches);
+
+  // 1.8: forms, steps and lists
+  Dash.render('slider-demo', Dash.slider({ label: 'Alert at', name: 'alert', min: 50, max: 100, value: 85, unit: '%' }));
+  Dash.render('crumbs-demo', Dash.crumbs([{ label: 'Fleet', href: '#forms' }, { label: 'eu-west', href: '#forms' }, 'web-04']));
+  Dash.render('stepper-demo', Dash.stepper(['Account', 'Plan', 'Payment', 'Done'], 2));
+  Dash.render('avatars-demo', Dash.avatars(['Ada Lovelace', 'Grace Hopper', 'Alan Turing', 'Katherine Johnson', 'Edsger Dijkstra', 'Barbara Liskov'], { max: 4 })
+    + Dash.avatar('Linus Park', { size: 'sm' }) + Dash.avatar('Linus Park') + Dash.avatar('Linus Park', { size: 'lg', square: true }));
+  Dash.render('progress-demo', Dash.progress(0.62, { label: 'Backup', value: '6.2 of 10 GB' }) + Dash.progress(null, { label: 'Checking the archive' })
+    + `<div class="row">${Dash.progressCircle(0.25)}${Dash.progressCircle(0.7, { tone: 'ok', size: 44, text: '70%' })}${Dash.progressCircle(null, { size: 28 })}</div>`);
+  Dash.render('stepper-v-demo', Dash.stepper([{ label: 'Upload', sub: '3 files, 12 MB' }, { label: 'Check', sub: 'Two rows had no date' }, { label: 'Import' }], 1, { vertical: true, tone: 'teal' }));
+  const people = [{ id: 1, name: 'Ada Lovelace', role: 'Owner', seen: Date.now() - 5 * 60e3 }, { id: 2, name: 'Grace Hopper', role: 'Admin', seen: Date.now() - 3 * 3600e3 },
+    { id: 3, name: 'Alan Turing', role: 'Viewer', seen: Date.now() - 4 * 86400e3 }];
+  Dash.render('entries-demo', Dash.entries(people, { title: 'name', sub: 'role', key: 'id', button: true, lead: (p) => Dash.avatar(p.name), end: (p) => Dash.ago(p.seen) }));
 </script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-/* dash-ui 1.7.0 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
+/* dash-ui 1.8.0 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
    A plain script with no dependencies: a script tag for dash.js in <head> gives window.Dash, and puts the
    saved light/dark choice on the page before it paints. In Node, require('./dash.js') returns the same object
    (the parts that need a page are skipped).
@@ -8,7 +8,7 @@
 (function (root) {
   'use strict';
   const hasDom = typeof document !== 'undefined';
-  const Dash = { version: '1.7.0', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side', csp: false } };
+  const Dash = { version: '1.8.0', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side', csp: false } };
 
   // ---- basics
 
@@ -479,14 +479,14 @@
 
   // ---- pages with a strict style policy (Content-Security-Policy: style-src 'self', no 'unsafe-inline')
   // Such a page drops every style="" in markup. With Dash.config.csp = true, the builders that size things (bar,
-  // meter, split, bars, spark; Dash.lanes always does) write their numbers as data-css-* attributes instead, and
+  // meter, split, bars, spark, progress; Dash.lanes always does) write their numbers as data-css-* attributes instead, and
   // the kit sets them through the CSSOM, which the policy allows: at once wherever the kit puts markup in
   // (Dash.render, popups, modals, dialogs), and before the next paint for markup the page puts in itself (a
   // MutationObserver). Only numbers, only these properties, only on the kit's own pieces: other markup can't
   // style anything this way. Dash.applyStyles(el) applies them at once, for a page that measures right after
   // putting markup in. Off (the default), the builders write style="" exactly as before.
   const STYLED = [
-    ['.bar > i, .meter > i, .split > i', 'data-css-w', 'width', (v) => v + '%'],
+    ['.bar > i, .meter > i, .split > i, .progress > i', 'data-css-w', 'width', (v) => v + '%'],
     ['.chart-col > i', 'data-css-h', 'height', (v) => v + '%'],
     ['.chart-grid', 'data-css-top', 'top', (v) => v + '%'],
     ['.chart-col u', 'data-css-grow', 'flex-grow', (v) => String(v)],
@@ -728,6 +728,108 @@
       : `<span class="dot${toneClass(tone || 'blue')}" style="position:absolute;left:calc(${x}% - 3.5px);top:calc(${y}% - 3.5px);width:7px;height:7px"></span>`;
     const under = labels ? `<div class="spark-labels"><span>${esc(labels[0] ?? '')}</span><span>${esc(labels[1] ?? '')}</span></div>` : '';
     return `<div${csp ? ' class="spark-box"' : ' style="position:relative"'}>${svg}${dot}</div>${under}`;
+  };
+
+  // ---- more builders (1.8): breadcrumbs, stepper, avatars, progress, slider, entries (all escape their text)
+
+  // a link's address as given, but never one that runs script (javascript:, vbscript:, data:): those become "#"
+  const safeHref = (h) => (/^\s*(javascript|vbscript|data):/i.test(String(h).replace(/[\u0000-\u001f\s]+/g, '')) ? '#' : String(h));
+  // a picture's address: also data:image/… (a picture in the page itself), which an <img> only ever shows
+  const safeSrc = (h) => (/^data:image\/[a-z0-9.+-]+[;,]/i.test(String(h).trim()) ? String(h).trim() : safeHref(h));
+
+  // breadcrumbs: Dash.crumbs([{ label: 'Home', href: '/' }, { label: 'Fleet', href: '/fleet' }, 'eu-west']); the last is where the reader is
+  Dash.crumbs = (items, { label = 'Breadcrumb' } = {}) => `<nav class="crumbs" aria-label="${esc(label)}"><ol>${(items || []).map((it, i, all) => {
+    const x = it && typeof it === 'object' ? it : { label: it };
+    const inner = i === all.length - 1 ? `<span aria-current="page">${esc(x.label)}</span>`
+      : x.href != null ? `<a href="${esc(safeHref(x.href))}">${esc(x.label)}</a>` : `<span>${esc(x.label)}</span>`;
+    return `<li>${inner}</li>`;
+  }).join('')}</ol></nav>`;
+
+  // the steps of a task: Dash.stepper(['Account', 'Plan', 'Pay'], 1): the first done, the second current.
+  // A step can be { label, sub, failed }; current past the last means all done; { vertical: true } stacks them.
+  Dash.stepper = (steps, current = 0, { vertical = false, tone, label = 'Steps' } = {}) =>
+    `<ol class="stepper${vertical ? ' vertical' : ''}${toneClass(tone)}" aria-label="${esc(label)}">${(steps || []).map((s, i) => {
+      const x = s && typeof s === 'object' ? s : { label: s };
+      const state = x.failed ? 'failed' : i < current ? 'done' : '';
+      const said = x.failed ? ', failed' : i < current ? ', done' : '';
+      return `<li${state ? ` class="${state}"` : ''}${i === current ? ' aria-current="step"' : ''}><span>${esc(x.label)}${said ? `<span class="sr-only">${said}</span>` : ''}`
+        + `${x.sub ? `<small>${esc(x.sub)}</small>` : ''}</span></li>`;
+    }).join('')}</ol>`;
+
+  // an avatar: Dash.avatar('Ada Lovelace') is "AL" in a colour picked from the name (the same name, the same colour);
+  // { src } shows a picture instead, { tone } picks the colour, { size: 'sm' | 'lg' }, { square: true }
+  const AVATAR_TONES = ['blue', 'teal', 'purple', 'orange', 'pink', 'gold', 'ok', 'accent', 'bronze'];
+  const initials = (name) => {
+    const words = String(name ?? '').trim().split(/[\s._@-]+/).filter(Boolean).map((w) => Array.from(w));
+    if (!words.length) return '?';
+    return (words.length > 1 ? words[0][0] + words[words.length - 1][0] : words[0].slice(0, 2).join('')).toUpperCase();
+  };
+  const nameTone = (name) => {
+    let h = 0;
+    for (const ch of String(name ?? '')) h = (h * 31 + ch.codePointAt(0)) >>> 0;
+    return AVATAR_TONES[h % AVATAR_TONES.length];
+  };
+  Dash.avatar = (name, { src, tone, size, square = false, title = name } = {}) => {
+    const cls = `avatar${size ? ' ' + esc(size) : ''}${square ? ' square' : ''} ${esc(tone || nameTone(name))}`;
+    const tip = title != null && title !== '' ? ` title="${esc(title)}"` : '';
+    return src ? `<span class="${cls}"${tip}><img src="${esc(safeSrc(src))}" alt="${esc(name ?? '')}"></span>`
+      : `<span class="${cls}" role="img" aria-label="${esc(name ?? '')}"${tip}>${esc(initials(name))}</span>`;
+  };
+  // a few avatars overlapping, the rest as "+3": Dash.avatars(['Ada', 'Grace', …], { max: 4 }) (names, or { name, src, tone })
+  Dash.avatars = (people, { max = 4, size, label } = {}) => {
+    const all = (people || []).map((p) => (p && typeof p === 'object' ? p : { name: p }));
+    const shown = all.length > max ? all.slice(0, Math.max(1, max - 1)) : all;
+    const rest = all.slice(shown.length);
+    const names = (list) => list.map((p) => p.name).join(', ');
+    return `<span class="avatars" role="group" aria-label="${esc(label || names(all))}">${shown.map((p) => Dash.avatar(p.name, { src: p.src, tone: p.tone, size, square: p.square })).join('')}`
+      + `${rest.length ? `<span class="avatar extra${size ? ' ' + esc(size) : ''}" title="${esc(names(rest))}">+${rest.length}</span>` : ''}</span>`;
+  };
+
+  // progress: Dash.progress(0.4) is a bar, Dash.progress(null) one that runs while the amount isn't known.
+  // { label } puts a line above it with the share on the right ({ value: '4 of 10' } says something else there); { lg: true } is thicker
+  Dash.progress = (frac, { tone, label, value, lg = false, title } = {}) => {
+    const known = isNum(frac);
+    const p = known ? pctOf(frac, 1) : 0;
+    const shown = value != null ? String(value) : known ? fmt.pct(p, 0) : '';
+    const head = label ? `<div class="progress-head"><span>${esc(label)}</span>${shown ? `<b>${esc(shown)}</b>` : ''}</div>` : '';
+    return `${head}<div class="progress${known ? '' : ' indeterminate'}${lg ? ' lg' : ''}${toneClass(tone)}" role="progressbar"`
+      + `${known ? ` aria-valuenow="${+p.toFixed(1)}" aria-valuemin="0" aria-valuemax="100"` : ''} aria-label="${esc(label || title || 'Progress')}"`
+      + `${title ? ` title="${esc(title)}"` : ''}><i${known ? fillW(p) : ''}></i></div>`;
+  };
+  // the same, round: Dash.progressCircle(0.4, { size: 36, text: '40%' }) (an SVG; its size and share are attributes, so a strict style policy is fine)
+  Dash.progressCircle = (frac, { tone, size = 36, text, label, title } = {}) => {
+    const known = isNum(frac);
+    const p = known ? +pctOf(frac, 1).toFixed(1) : 25;
+    const px = Number(size) > 0 ? Number(size) : 36;
+    return `<span class="progress-circle${known ? '' : ' indeterminate'}${toneClass(tone)}" role="progressbar"`
+      + `${known ? ` aria-valuenow="${p}" aria-valuemin="0" aria-valuemax="100"` : ''} aria-label="${esc(label || title || 'Progress')}"${title ? ` title="${esc(title)}"` : ''}>`
+      + `<svg viewBox="0 0 36 36" width="${px}" height="${px}" aria-hidden="true"><circle class="track" cx="18" cy="18" r="15.5" pathLength="100"></circle>`
+      + `<circle class="fill" cx="18" cy="18" r="15.5" pathLength="100" stroke-dasharray="${p} 100"></circle></svg>${text != null && text !== '' ? `<b>${esc(text)}</b>` : ''}</span>`;
+  };
+
+  // a slider with its value beside it: Dash.slider({ label: 'Volume', name: 'vol', min: 0, max: 100, value: 40, unit: '%' })
+  // (dash.js keeps the number beside it on the value as it moves)
+  Dash.slider = ({ label, name, id, min = 0, max = 100, step = 1, value = min, unit = '', tone, disabled = false } = {}) =>
+    `<label class="slider${toneClass(tone)}">${label ? `<span>${esc(label)}</span>` : ''}<input type="range"${name ? ` name="${esc(name)}"` : ''}${id ? ` id="${esc(id)}"` : ''}`
+    + ` min="${esc(min)}" max="${esc(max)}" step="${esc(step)}" value="${esc(value)}"${unit ? ` data-unit="${esc(unit)}"` : ''}${!label && name ? ` aria-label="${esc(name)}"` : ''}`
+    + `${disabled ? ' disabled' : ''}><output>${esc(String(value) + unit)}</output></label>`;
+
+  // a list of things, a line or two each:
+  //   Dash.entries(rows, { title: 'name', sub: (r) => r.region, lead: (r) => Dash.avatar(r.name), end: (r) => Dash.pill(r.state, r.tone), href: (r) => '#/' + r.id })
+  // title and sub are keys or functions (escaped); lead and end return HTML; href makes each a link, { button: true } a button
+  // (with { key } as data-key, for a click handler and for Dash.render to keep the focus); { wrap: true } lets long text wrap
+  Dash.entries = (rows, { title = 'title', sub, lead, end, href, button = false, key, wrap = false, empty = 'Nothing here yet', label } = {}) => {
+    const get = (f, r) => (typeof f === 'function' ? f(r) : f != null && r ? r[f] : null);
+    if (!rows || !rows.length) return `<div class="empty">${esc(empty)}</div>`;
+    return `<ul class="entries${wrap ? ' wrap' : ''}"${label ? ` aria-label="${esc(label)}"` : ''}>${rows.map((r) => {
+      const t = get(title, r), s = get(sub, r), l = lead ? lead(r) : '', e = end ? end(r) : '', h = href ? href(r) : null, k = key != null ? get(key, r) : null;
+      const inner = `${l ? `<span class="entry-lead">${l}</span>` : ''}<span class="entry-text"><span class="entry-title">${esc(t ?? '')}</span>`
+        + `${s != null && s !== '' ? `<span class="entry-sub">${esc(s)}</span>` : ''}</span>${e ? `<span class="entry-end">${e}</span>` : ''}`;
+      const dk = k != null ? ` data-key="${esc(k)}"` : '';
+      if (h != null) return `<li><a class="entry" href="${esc(safeHref(h))}"${dk}>${inner}</a></li>`;
+      if (button) return `<li><button type="button" class="entry"${dk}>${inner}</button></li>`;
+      return `<li class="entry"${dk}>${inner}</li>`;
+    }).join('')}</ul>`;
   };
 
   // ---- IP addresses: blurred until clicked, so they stay out of screen shares (the data itself still needs a login)
@@ -1694,6 +1796,8 @@
       window.addEventListener('resize', syncTopbar);
       if (Dash.store.get(Dash.config.sideKey) === 'rail') for (const s of document.querySelectorAll('.shell')) s.classList.add('collapsed');
       for (const b of document.querySelectorAll('[data-toggle-side]')) b.setAttribute('aria-expanded', String(!document.querySelector('.shell.collapsed')));
+      const drawer = typeof matchMedia !== 'undefined' && matchMedia('(max-width: 900px)').matches && document.querySelector('.shell.offcanvas');
+      if (drawer) for (const b of document.querySelectorAll('[data-toggle-side]')) b.setAttribute('aria-expanded', 'false'); // a closed drawer
     };
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ready); else ready();
     if (typeof matchMedia !== 'undefined') matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => Dash.theme.apply());
@@ -1727,6 +1831,9 @@
             }
           }, COPY_MS);
         }
+      } else if ((hit = t.closest('[data-toggle-side]')) && drawerShell()) {
+        const shell = drawerShell();
+        sideDrawer(shell, !shell.classList.contains('side-open'), hit);
       } else if ((hit = t.closest('[data-toggle-side]'))) {
         const shells = document.querySelectorAll('.shell');
         const rail = !(shells[0] && shells[0].classList.contains('collapsed'));
@@ -1792,6 +1899,105 @@
         const open = document.querySelector('details.menu[open]');
         if (open) { e.preventDefault(); closeMenus(); open.querySelector('summary')?.focus(); } // only the menu: a dialog around it stays
       }
+    });
+    // ---- 1.8: sliders show their value; drop zones take dropped files; the sidebar as a drawer on smaller screens
+    document.addEventListener('input', (e) => {
+      const r = e.target;
+      if (!r.matches || !r.matches('.slider > input[type="range"]')) return;
+      const out = r.parentElement.querySelector(':scope > output');
+      if (out) out.textContent = r.value + (r.dataset.unit || '');
+    });
+    const zoneOf = (e) => (e.target && e.target.closest ? e.target.closest('.dropzone') : null);
+    const hasFiles = (e) => e.dataTransfer && [...(e.dataTransfer.types || [])].includes('Files');
+    // accept="image/*,.pdf,text/csv": the files a picker with that accept would offer
+    const accepts = (input) => {
+      const want = (input.getAttribute('accept') || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
+      return (f) => !want.length || want.some((w) => (w.startsWith('.') ? f.name.toLowerCase().endsWith(w)
+        : w.endsWith('/*') ? (f.type || '').toLowerCase().startsWith(w.slice(0, -1)) : (f.type || '').toLowerCase() === w));
+    };
+    for (const type of ['dragenter', 'dragover']) {
+      document.addEventListener(type, (e) => {
+        const z = zoneOf(e);
+        if (!z || !hasFiles(e)) return;
+        e.preventDefault(); // or the browser opens the file instead
+        e.dataTransfer.dropEffect = 'copy';
+        z.classList.add('over');
+      });
+    }
+    document.addEventListener('dragleave', (e) => {
+      const z = zoneOf(e);
+      if (z && !z.contains(e.relatedTarget)) z.classList.remove('over');
+    });
+    document.addEventListener('drop', (e) => {
+      const z = zoneOf(e);
+      if (!z) return;
+      z.classList.remove('over');
+      const input = z.querySelector('input[type="file"]');
+      if (!input || input.disabled || !hasFiles(e)) return;
+      e.preventDefault();
+      const files = [...e.dataTransfer.files].filter(accepts(input));
+      if (!files.length) return;
+      const dt = new DataTransfer();
+      for (const f of input.multiple ? files : files.slice(0, 1)) dt.items.add(f);
+      input.files = dt.files;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true })); // as if chosen
+    });
+    document.addEventListener('change', (e) => {
+      const z = zoneOf(e);
+      if (!z || e.target.type !== 'file') return;
+      const list = z.querySelector('.files');
+      const names = [...e.target.files].map((f) => f.name);
+      if (list) list.textContent = names.length > 3 ? `${names.length} files: ${names.slice(0, 2).join(', ')} …` : names.join(', ');
+    });
+
+    // .shell.offcanvas: up to 900 px the sidebar is a drawer over the page. [data-toggle-side] opens and closes it there;
+    // Escape, a click outside it or on one of its links closes it; the page behind can't be reached while it's open.
+    const narrow = typeof matchMedia !== 'undefined' ? matchMedia('(max-width: 900px)') : null;
+    let drawerBy = null, inerted = [];
+    const drawerShell = () => (narrow && narrow.matches ? document.querySelector('.shell.offcanvas') : null);
+    const sideDrawer = (shell, open, by) => {
+      shell.classList.toggle('side-open', open);
+      // everything but the drawer is out of reach while it's open (what the page made inert itself stays so)
+      for (const n of inerted) n.inert = false;
+      inerted = [];
+      const side0 = shell.querySelector(':scope > .sidebar');
+      if (open && side0) {
+        for (let n = side0; n && n !== document.body && n.parentElement; n = n.parentElement) {
+          for (const sib of n.parentElement.children) if (sib !== n && !sib.inert && !/^(SCRIPT|STYLE|TEMPLATE)$/.test(sib.tagName)) { sib.inert = true; inerted.push(sib); }
+        }
+      }
+      for (const b of document.querySelectorAll('[data-toggle-side]')) b.setAttribute('aria-expanded', String(open));
+      const side = shell.querySelector(':scope > .sidebar');
+      if (open) {
+        drawerBy = by || document.activeElement;
+        const first = side && (side.querySelector('[aria-current="page"], [aria-current="true"]') || side.querySelector('a[href], button:not([disabled]), input, [tabindex="0"]'));
+        if (first) setTimeout(() => first.focus({ preventScroll: true })); // once it's visible
+      } else if (drawerBy) {
+        if (drawerBy.isConnected) drawerBy.focus({ preventScroll: true });
+        drawerBy = null;
+      }
+    };
+    // Dash.side.open() / close(): the drawer from code (open does nothing wider than 900 px, and says so: false)
+    Dash.side = { open: () => { const s = drawerShell(); if (s) sideDrawer(s, true); return Boolean(s); },
+      close: () => { const s = document.querySelector('.shell.offcanvas.side-open'); if (s) sideDrawer(s, false); } };
+    // wider again: the drawer is the sidebar again, and the toggles say so
+    if (narrow) narrow.addEventListener?.('change', () => {
+      const open = document.querySelector('.shell.offcanvas.side-open');
+      if (open) sideDrawer(open, false);
+      if (!narrow.matches || document.querySelector('.shell.offcanvas')) for (const b of document.querySelectorAll('[data-toggle-side]'))
+        b.setAttribute('aria-expanded', String(narrow.matches ? false : !document.querySelector('.shell.collapsed')));
+    });
+    document.addEventListener('click', (e) => {
+      const t = e.target;
+      const open = document.querySelector('.shell.offcanvas.side-open');
+      if (!open || !t.closest) return;
+      if (t === open || (t.closest('.sidebar') && t.closest('a[href], .nav-item') && open.contains(t))) sideDrawer(open, false);
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      const open = document.querySelector('.shell.offcanvas.side-open');
+      if (open && !popups.length && !document.querySelector('dialog[open], details.menu[open]')) { e.preventDefault(); sideDrawer(open, false); }
     });
     // tooltips: data-tooltip on hover or keyboard focus
     document.addEventListener('mouseover', (e) => {

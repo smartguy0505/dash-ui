@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Components</title>
+<link rel="stylesheet" href="../dash.css">
+<script src="../dash.js"></script>
+</head>
+<!-- test/behaviour.mjs drives these: the 1.8 pieces that need a page (the drawer, the bottom nav, drops, sliders). -->
+<body>
+<header class="topbar">
+  <button type="button" class="icon-btn" id="toggle" data-toggle-side aria-label="Menu">≡</button>
+  <div class="brand"><span class="mark">C</span><h1>Components</h1></div>
+</header>
+<div class="shell offcanvas" id="shell">
+  <aside class="sidebar" id="side">
+    <div class="side-head">Places</div>
+    <a class="nav-item" href="#one" id="nav-one" aria-current="page"><span class="nav-main"><span class="nav-name">One</span></span></a>
+    <a class="nav-item" href="#two" id="nav-two"><span class="nav-main"><span class="nav-name">Two</span></span></a>
+  </aside>
+  <main class="content" id="content">
+    <button type="button" class="btn" id="behind">a button behind the drawer</button>
+    <div id="slider-box"></div>
+    <label class="dropzone" id="zone"><input type="file" id="files" multiple accept="image/*,.csv"><b>Drop files here</b><span>or <u>choose them</u></span><span class="files"></span></label>
+    <span class="select" id="select"><select class="input"><option>One</option><option>Two</option></select></span>
+    <div class="input-group" id="group"><span class="affix">$</span><input class="input" aria-label="amount"><button type="button" class="btn">Go</button></div>
+    <div id="stepper-box"></div>
+    <button type="button" class="icon-btn" id="badge" data-badge="3" aria-label="Messages, 3 new">✉</button>
+    <button type="button" class="icon-btn" id="dot" data-badge="" aria-label="Alerts">!</button>
+    <div class="choices"><label class="choice" id="choice"><input type="radio" name="plan"><span class="choice-body"><b>Pro</b></span></label></div>
+    <input class="input" id="combo" aria-label="City">
+    <input class="input" id="when" aria-label="Date">
+    <div class="accordion" id="acc"><details name="faq"><summary>One</summary><p>a</p></details><details name="faq"><summary>Two</summary><p>b</p></details></div>
+  </main>
+</div>
+<button type="button" class="btn primary fab" id="fab" aria-label="New">+</button>
+<nav class="bottom-nav" id="bottom" aria-label="Main"><a href="#one" aria-current="page">One</a><a href="#two">Two</a></nav>
+</body>
+</html>

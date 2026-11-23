@@ -2,6 +2,30 @@
 
 Dashboards keep a copy of `dash.css` and `dash.js`; the first line of each file says which version it is. Versions only add things: a page that worked with an older copy works the same with a newer one.
 
+## 1.8.0 (2026-11-23)
+
+The form, navigation and progress pieces a component kit is expected to have, in the kit's look. All additive: no existing class or builder changes.
+
+- **Forms:**
+  - `.choices` (radios or checkboxes as cards) and `.checks` (a column of checklines, `.checks.across` for a line);
+  - `.select`, a select with the kit's arrow;
+  - `.input-group` with `.affix`: text and buttons joined to an input;
+  - `.input.sm` and `.input.lg`; `textarea.input.autosize`, which grows as it is typed into (where the browser can);
+  - `.slider` and **`Dash.slider`**: a range with its value beside it, kept current by dash.js;
+  - `.dropzone`: drop files on it, or click to choose. A drop fills the file input (only kinds its `accept` allows) and fires `input` and `change` as a choice would. The names show in it.
+- **Navigation:**
+  - **`Dash.crumbs`** (`.crumbs`): breadcrumbs. A link that would run script becomes `#`;
+  - **`Dash.stepper`** (`.stepper`, `.vertical`): the steps of a task, with done and failed steps said to screen readers. On a phone only the current step's name shows;
+  - `.shell.offcanvas`: up to 900 px the sidebar is a drawer over the page. While it is open, the rest of the page is inert; Escape, a click outside or a link closes it, and the focus goes back. **`Dash.side.open()`** and **`.close()`**;
+  - `.bottom-nav` for phones, and `.fab` (`.extended`), a floating button for the main action that sits above it.
+- **People, counts and progress:**
+  - **`Dash.avatar`** and **`Dash.avatars`** (`.avatar`, `.avatars`): initials in a colour from the name, or a picture, and a few overlapping with "+3";
+  - `data-badge`: a count or a dot on a button or an icon;
+  - **`Dash.progress`** and **`Dash.progressCircle`** (`.progress`, `.progress-circle`): a bar and a circle, with a running one for an amount not known yet (steady when motion is turned off). `Dash.config.csp` sizes the bar without inline styles, like the other bars.
+- **Lists and surfaces:** **`Dash.entries`** (`.entries`): a list of things, a line or two each, as links or buttons if asked; `.accordion`; `.divider`; `.card-media`.
+- None of the new class names is a utility name in `dash-utils.css`, and the tests check that.
+- The gallery has a new "Forms, steps and lists" section.
+
 ## 1.7.0 (2026-11-23)
 
 Utility classes, in the style of Tailwind, made from the kit's tokens. All additive: they live in a new, optional file, so a page that doesn't link it sees no change.

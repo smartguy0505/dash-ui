@@ -254,6 +254,9 @@ const rule = (cls, decl, { state = '', before = '' } = {}) => {
 // [group, its rules for this variant]
 const pick = (v) => groups.filter((g) => g.variants[v]).map((g) => ({ ...g, rules: g.variants[v] === true ? g.rules : g.rules.filter(([n]) => g.variants[v](n)) }));
 const prefixed = (p, n) => `${p}:${n}`;
+// for the docs (tools/docs.mjs): each group's rules, and for each variant the names that take it
+export const groupList = () => groups.map((g) => ({ title: g.title, rules: g.rules,
+  variants: Object.fromEntries(Object.keys(g.variants).map((v) => [v, pick(v).find((x) => x.title === g.title).rules.map(([n]) => n)])) }));
 
 export function generate() {
   const version = JSON.parse(readFileSync(new URL('package.json', root), 'utf8')).version;

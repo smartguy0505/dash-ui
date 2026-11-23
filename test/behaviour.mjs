@@ -6,7 +6,8 @@
 // from 1.4.1 lanes (events inside their lane, their pointer target, axis labels on a phone) and lanes and the
 // timeline in high contrast (forced colours); from 1.5 Dash.lanes under a strict style-src policy (test/csp.html); from 1.6 every sizing builder there with
 // Dash.config.csp, drawn as without the policy, in markup the page or the kit puts in; from 1.7 dash-utils.css next to
-// the kit (test/utils.html).
+// the kit (test/utils.html); from 1.8 the new pieces that need a page (test/components.html): sliders, drops, the
+// drawer, the bottom nav, input groups, the stepper on a phone, badges and choices.
 //
 //   npm i --no-save playwright-core && npx playwright-core install --only-shell chromium
 //   node test/behaviour.mjs          (KIT=<dir> serves dash.css, dash.js and dash-utils.css from <dir> instead: to check a change)
@@ -909,14 +910,15 @@ const SIZED = () => {
   // the same markup and the same measurements on both pages
   window.sample = () => Dash.bar(0.425, 'ok') + Dash.meter(0.3) + Dash.split([{ value: 3, tone: 'ok' }, { value: 1, tone: 'bad' }])
     + Dash.bars([{ label: 'a', value: 3 }, { label: 'b', value: 1 }, { label: 'c', parts: [{ value: 2, tone: 'ok' }, { value: 1.5, tone: 'warn' }] }], { height: 120, ticks: 2 })
-    + Dash.spark([1, 3, 2, 5]);
+    + Dash.spark([1, 3, 2, 5]) + Dash.progress(0.4);
   window.sizedBox = (id) => { const b = document.createElement('div'); b.id = id; b.style.width = '600px'; document.querySelector('main').append(b); return b; };
   window.measure = (box) => {
     const r = (e) => e.getBoundingClientRect(), q = (s) => box.querySelector(s), d = (x) => Math.round(x * 10) / 10;
     const P = r(q('.chart-plot')), W = r(q('.spark').parentElement), D = r(q('.spark ~ .dot'));
     return { bar: d(r(q('.bar > i')).width), meter: d(r(q('.meter > i')).width), split: [...box.querySelectorAll('.split > i')].map((i) => d(r(i).width)),
       plot: d(P.height), cols: [...box.querySelectorAll('.chart-col > i')].map((i) => d(r(i).height)), grid: [...box.querySelectorAll('.chart-grid')].map((g) => d(r(g).top - P.top)),
-      parts: [...box.querySelectorAll('.chart-col u')].map((u) => d(r(u).height)), dot: [d(D.left - W.left), d(D.top - W.top), d(D.width), d(D.height)] };
+      parts: [...box.querySelectorAll('.chart-col u')].map((u) => d(r(u).height)), dot: [d(D.left - W.left), d(D.top - W.top), d(D.width), d(D.height)],
+      progress: d(r(q('.progress > i')).width) };
   };
 };
 let reference;
@@ -1102,6 +1104,101 @@ let reference;
   const pr = await at(1200, { media: 'print' });
   check('utilities: print:hidden', (await cs(pr, 'print', 'display')) === 'none', await cs(pr, 'print', 'display'));
   await pr.context().close();
+}
+
+// ---- 1.8 components that need a page (test/components.html): slider values, file drops, the drawer, the bottom nav,
+// select arrows, input groups, the stepper on a phone, badges, choices
+{
+  const page = url.replace('behaviour.html', 'components.html');
+  const at = async (width) => { const tab = await open({ width }); await tab.goto(page, { waitUntil: 'load' }); return tab; };
+  const tab = await at(1200);
+  // slider: the number beside it follows the value
+  await tab.evaluate(() => Dash.render('slider-box', Dash.slider({ label: 'Volume', name: 'vol', min: 0, max: 10, value: 4, unit: ' dB' })));
+  await tab.focus('#slider-box input');
+  await tab.keyboard.press('ArrowRight');
+  await tab.keyboard.press('ArrowRight');
+  const out = await tab.textContent('#slider-box output');
+  check('1.8 slider: the value beside it follows the slider', out === '6 dB', out);
+  // drop zone: dropped files go into the input as if chosen (only what accept= allows), and their names show
+  const drop = await tab.evaluate(async () => {
+    const z = document.getElementById('zone'), input = document.getElementById('files');
+    const dt = new DataTransfer();
+    for (const [name, type] of [['a.png', 'image/png'], ['notes.txt', 'text/plain'], ['b.csv', 'text/csv']]) dt.items.add(new File(['x'], name, { type }));
+    let changed = 0;
+    input.addEventListener('change', () => changed++);
+    const dragover = new DragEvent('dragover', { dataTransfer: dt, bubbles: true, cancelable: true });
+    z.dispatchEvent(dragover);
+    const over = z.classList.contains('over') && dragover.defaultPrevented;
+    const ev = new DragEvent('drop', { dataTransfer: dt, bubbles: true, cancelable: true });
+    z.dispatchEvent(ev);
+    return { over, after: z.classList.contains('over'), names: [...input.files].map((f) => f.name), changed, shown: z.querySelector('.files').textContent, prevented: ev.defaultPrevented };
+  });
+  check('1.8 dropzone: a drop fills the input (as accept= allows), fires change, and lists the names',
+    drop.over && !drop.after && drop.names.join() === 'a.png,b.csv' && drop.changed === 1 && drop.shown === 'a.png, b.csv' && drop.prevented, JSON.stringify(drop));
+  // select arrow, input group, badges, choice
+  const look = await tab.evaluate(() => {
+    const g = (s, p) => getComputedStyle(document.querySelector(s), p);
+    const parts = [...document.querySelectorAll('#group > *')].map((e) => e.getBoundingClientRect());
+    document.querySelector('#choice input').click();
+    const blue = (() => { const i = document.createElement('i'); i.style.color = 'var(--blue)'; document.body.append(i); const c = getComputedStyle(i).color; i.remove(); return c; })();
+    return { arrow: g('#select', '::after').content, appearance: g('#select select').appearance,
+      joined: Math.round(parts[1].left - parts[0].right) === -1 && Math.round(parts[2].left - parts[1].right) === -1,
+      radius: [g('#group .affix').borderTopRightRadius, g('#group .input').borderTopLeftRadius, g('#group .input').borderTopRightRadius, g('#group .btn').borderTopLeftRadius, g('#group .btn').borderTopRightRadius],
+      badge: [g('#badge', '::after').content, g('#badge', '::after').position], dot: g('#dot', '::after').width, choice: g('#choice').borderTopColor === blue };
+  });
+  check('1.8 select arrow, joined input group, badges and a chosen choice', look.arrow === '""' && look.appearance === 'none' && look.joined
+    && look.radius.join() === '0px,0px,0px,0px,9px' && look.badge.join() === '"3",absolute' && look.dot === '9px' && look.choice, JSON.stringify(look));
+  // the drawer at 1200 px is the sidebar: the toggle still makes it a rail
+  const press = async (pg, sel) => { try { await pg.click(sel, { timeout: 1500 }); return true; } catch { return false; } }; // false: it couldn't be clicked
+  const wideClicks = [await press(tab, '#toggle')];
+  const wide = await tab.evaluate(() => ({ rail: document.getElementById('shell').classList.contains('collapsed'), open: document.getElementById('shell').classList.contains('side-open') }));
+  wideClicks.push(await press(tab, '#toggle')); // back, for the next pages (the choice is saved)
+  check('1.8 offcanvas: wider than 900 px the toggle still collapses the sidebar to a rail', wide.rail && !wide.open && wideClicks.every(Boolean), JSON.stringify({ wide, wideClicks }));
+  await tab.context().close();
+
+  const phone = await at(700);
+  const state = () => phone.evaluate(() => {
+    const s = document.getElementById('shell'), side = document.getElementById('side').getBoundingClientRect();
+    return { open: s.classList.contains('side-open'), shown: side.right > 0 && getComputedStyle(document.getElementById('side')).visibility === 'visible', focus: document.activeElement.id,
+      inert: document.getElementById('content').inert, topInert: document.querySelector('.topbar').inert, expanded: document.getElementById('toggle').getAttribute('aria-expanded') };
+  });
+  const first = await state();
+  const clicks = [];
+  clicks.push(await press(phone, '#toggle'));
+  await phone.waitForTimeout(350);
+  const opened = await state();
+  await phone.keyboard.press('Escape');
+  await phone.waitForTimeout(350);
+  const escaped = await state();
+  clicks.push(await press(phone, '#toggle'));
+  await phone.waitForTimeout(350);
+  await phone.mouse.click(650, 400); // the backdrop, right of the drawer
+  await phone.waitForTimeout(350);
+  const outside = await state();
+  clicks.push(await press(phone, '#toggle'));
+  await phone.waitForTimeout(350);
+  clicks.push(await press(phone, '#nav-two'));
+  await phone.waitForTimeout(350);
+  const linked = await state();
+  check('1.8 offcanvas: up to 900 px the toggle opens the sidebar as a drawer (focus in it, the page behind inert); Escape, the backdrop and a link close it',
+    !first.open && !first.shown && first.expanded === 'false'
+    && opened.open && opened.shown && opened.focus === 'nav-one' && opened.inert && opened.topInert && opened.expanded === 'true'
+    && !escaped.open && !escaped.shown && escaped.focus === 'toggle' && !escaped.inert && !escaped.topInert && escaped.expanded === 'false'
+    && !outside.open && !linked.open && !linked.inert && clicks.every(Boolean), JSON.stringify({ first, opened, escaped, outside, linked, clicks }));
+  const bottomWide = await phone.evaluate(() => getComputedStyle(document.getElementById('bottom')).display);
+  await phone.context().close();
+
+  const small = await at(390);
+  await small.evaluate(() => Dash.render('stepper-box', Dash.stepper(['Account', 'Plan', 'Pay'], 1)));
+  const s = await small.evaluate(() => ({
+    labels: [...document.querySelectorAll('#stepper-box li > span')].map((x) => (x.getBoundingClientRect().width <= 1 ? 'clipped' : 'shown')),
+    read: [...document.querySelectorAll('#stepper-box li > span')].map((x) => getComputedStyle(x).display !== 'none' && getComputedStyle(x).visibility !== 'hidden'),
+    bottom: getComputedStyle(document.getElementById('bottom')).display, pad: parseFloat(getComputedStyle(document.body).paddingBottom),
+    fab: window.innerHeight - document.getElementById('fab').getBoundingClientRect().bottom,
+  }));
+  check('1.8 phone: the bottom nav shows only up to 640 px with room under the page, the button sits above it, the stepper shows only the current name (the others still read out)',
+    bottomWide === 'none' && s.bottom === 'flex' && s.pad >= 64 && s.fab >= 78 && s.labels.join() === 'clipped,shown,clipped' && s.read.every(Boolean), JSON.stringify({ bottomWide, ...s }));
+  await small.context().close();
 }
 
 await browser.close();
