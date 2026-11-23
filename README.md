@@ -160,7 +160,7 @@ Surfaces and text: `--bg`, `--card`, `--soft` (a block inside a card, table head
 - `.empty`, `.empty.boxed` (dashed) and `.empty-title`: empty states.
 - `.skel`, `.skel.wide/.mid/.short`: loading lines.
 - `.tabs`: a row of tab buttons over panels (`Dash.tabs` shows one panel at a time). A `.count-badge` in a tab holds a count.
-- `.timeline`: events on a line (`Dash.timeline` builds it), with a dot in each event's tone.
+- `.timeline`: events on a line (`Dash.timeline` builds it), with a dot in each event's tone. The dots and the line stay in high contrast, in the text colour.
 
 **Labels**
 - `.pill`: a status, usually with a `.dot` (`.dot.pulse`, `.dot.hollow`). `.pill.lg` is the size of the 24 h change.
@@ -218,7 +218,7 @@ Surfaces and text: `--bg`, `--card`, `--soft` (a block inside a card, table head
 - `.donut` beside a `.legend.list`, in `.donut-wrap`.
 - `.gauges`, `.gauge`: half-circle gauges.
 - `.spark`: a sparkline, with `.spark-labels` under it.
-- `.lanes`: the fleet dashboard's timeline. `.lane-label`, then a `.lane` with `.span` (a run) and `.mark` (an event) placed with `left:%`, then a `.lane-axis`.
+- `.lanes`: the fleet dashboard's timeline. `.lane-label`, then a `.lane` with `.span` (a run) and `.mark` (an event) placed with `left:%`, then a `.lane-axis`. Axis labels with `.minor` hide on phones, where they would run into each other; `.major` ones are bold. A mark's `title` reaches only a mouse, so give each `.lane` `role="img"` and an `aria-label` saying what it shows (examples/fleet.html does). In high contrast the lane and its runs get outlines and the marks stay solid.
 
 **Feedback**
 - `.toast` (`Dash.toast`): a short message at the bottom; with an action (`Undo`) it has a button. Toasts and notices show above an open dialog, inside it.

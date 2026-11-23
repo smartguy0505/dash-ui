@@ -1,4 +1,4 @@
-/* dash-ui 1.4.0: the look shared by my dashboards (agents, fleet, leaderboard, payouts, balances).
+/* dash-ui 1.4.1: the look shared by my dashboards (agents, fleet, leaderboard, payouts, balances).
    Warm neutral backgrounds, white panels, tinted status colours, light and dark from the system setting
    (or data-theme="light|dark" on <html>). No build step, no dependencies: link this file, or paste it into a page.
 
@@ -519,11 +519,19 @@ button.hbar:hover { background: var(--soft); }
 .lane { position: relative; height: 20px; border-radius: 5px; background: var(--soft); }
 .lane .span { position: absolute; top: 0; bottom: 0; min-width: 2px; border-radius: 3px; background: color-mix(in srgb, var(--c) 22%, transparent); }
 :where(.lane .span) { --c: var(--blue); }
-.lane .mark { position: absolute; top: 2px; bottom: 2px; width: 4px; margin-left: -2px; border-radius: 2px; background: var(--c); }
+/* height: auto, or the brand logo's .mark (30 px) makes every event taller than its lane */
+.lane .mark { position: absolute; top: 2px; bottom: 2px; width: 4px; height: auto; margin-left: -2px; border-radius: 2px; background: var(--c); }
+.lane .mark::before { content: ""; position: absolute; inset: -2px -5px; } /* a 14 px target for the pointer, for its title */
 :where(.lane .mark) { --c: var(--bad); }
 .lane-axis { position: relative; height: 20px; color: var(--faint); font-size: 12px; }
 .lane-axis span { position: absolute; top: 2px; transform: translateX(-50%); white-space: nowrap; }
 .lane-axis span.major { color: var(--muted); font-weight: 700; }
+/* .minor axis labels hide on phones, where they would run into each other */
+@media (forced-colors: active) { /* high contrast drops background colours: the lane and its runs get lines, events get ink */
+  .lane { border: 1px solid GrayText; }
+  .lane .span { border: 1px solid CanvasText; }
+  .lane .mark { forced-color-adjust: none; background: CanvasText; }
+}
 
 /* ---- feedback ---- */
 .empty { padding: 36px 18px; color: var(--muted); text-align: center; }
@@ -671,6 +679,10 @@ button.hbar:hover { background: var(--soft); }
 .timeline-title { min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
 .timeline-time { color: var(--muted); font-size: 12.5px; white-space: nowrap; }
 .timeline-text { margin-top: 2px; color: var(--muted); font-size: 13.5px; overflow-wrap: anywhere; }
+@media (forced-colors: active) { /* high contrast drops background colours: keep the dots and the line */
+  .timeline > li::before { forced-color-adjust: none; background: CanvasText; }
+  .timeline > li:not(:last-child)::after { forced-color-adjust: none; background: GrayText; }
+}
 
 .dialog-input { width: 100%; margin-bottom: 16px; }
 .dialog h2 + .dialog-input { margin-top: 12px; }
@@ -737,6 +749,7 @@ button.hbar:hover { background: var(--soft); }
   .search { max-width: none; flex-basis: 100%; }
   .lanes { --lane-label: 104px; }
   .lane-label span { display: none; }
+  .lane-axis .minor { display: none; }
   .pager { padding: 10px 12px; }
   .notices { left: 16px; right: 16px; bottom: 16px; width: auto; }
   .notice:nth-last-child(n+3) { display: none; } /* the newest two; more would cover the page */

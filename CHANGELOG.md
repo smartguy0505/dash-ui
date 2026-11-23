@@ -2,6 +2,17 @@
 
 Dashboards keep a copy of `dash.css` and `dash.js`; the first line of each file says which version it is. Versions only add things: a page that worked with an older copy works the same with a newer one.
 
+## 1.4.1 (2026-11-23)
+
+Fixes in the timeline lanes, and lanes and the timeline in high contrast. Pages need no change; `.minor` is new and optional.
+
+- Every event in a lane (`.lane .mark`) was 30 px tall in a 20 px lane and ran into the row below: the brand logo's `.mark` rule gave it that height. Events now fit inside their lane.
+- An event is 4 px wide. The pointer now finds it up to 5 px either side, so its title is easier to bring up.
+- `.minor` on an axis label hides it on phones, where the labels ran into each other. `examples/fleet.html` uses it.
+- High contrast (forced colours) drops background colours, so lanes, runs and events, and the timeline's dots and line, disappeared. Now the lane and its runs get outlines, and the events and dots show in the text colour.
+- A mark's title reaches only a mouse. The examples now give each lane `role="img"` and an `aria-label` that says what it shows, and the README says to.
+- Tests: 127 browser checks, 6 of them new; 5 of those fail on 1.4.0, and the sixth checks that `.minor` labels still show on a wide screen. All 93 deliberate breakages of the kit are caught, 8 of them new.
+
 ## 1.4.0 (2026-11-23)
 
 Modals, popups and menus, and things that show properly above an open dialog. All additive.

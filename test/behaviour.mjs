@@ -2,7 +2,9 @@
 // scroll and a selection; the poll's live status; the chart readout; copy buttons across a re-render; the
 // sidebar event; the search count; saved choices in Dash.seg; the static-md top bar and phone stat tiles;
 // and from 1.3 Dash.table, tabs, menus, tooltips, dialogs, Dash.search and Dash.key, live times and stacked columns;
-// from 1.4 modals, popups (with and without the browser's popovers), menus, and what shows above an open dialog.
+// from 1.4 modals, popups (with and without the browser's popovers), menus, and what shows above an open dialog;
+// from 1.4.1 lanes (events inside their lane, their pointer target, axis labels on a phone) and lanes and the
+// timeline in high contrast (forced colours).
 //
 //   npm i --no-save playwright-core && npx playwright-core install --only-shell chromium
 //   node test/behaviour.mjs          (KIT=<dir> serves dash.css and dash.js from <dir> instead: to check a change)
@@ -859,6 +861,41 @@ for (const [width, md, plain] of [[700, 'static', 'sticky'], [1000, 'sticky', 's
   const tab = await open({ width: 390 });
   const cols = await tab.evaluate(() => ['stats-default', 'stats-one'].map((id) => new Set([...document.querySelectorAll(`#${id} .stat`)].map((s) => Math.round(s.getBoundingClientRect().left))).size));
   check('stats on a phone: two across, one with --stat-min-sm: 100%', cols[0] === 2 && cols[1] === 1, cols.join(' '));
+  await tab.context().close();
+}
+
+// ---- lanes and the timeline (1.4.1)
+{
+  const tab = await open({ width: 1200 });
+  const m = await tab.evaluate(() => {
+    const lane = document.getElementById('lane'), mark = document.getElementById('lane-mark');
+    lane.scrollIntoView({ block: 'center' });
+    const l = lane.getBoundingClientRect(), r = mark.getBoundingClientRect(), cx = (r.left + r.right) / 2, cy = (r.top + r.bottom) / 2;
+    return { laneTop: l.top, laneBottom: l.bottom, top: r.top, bottom: r.bottom, h: r.height,
+      beside: document.elementFromPoint(cx + 5, cy) === mark && document.elementFromPoint(cx - 5, cy) === mark,
+      minor: getComputedStyle(document.getElementById('axis-minor')).display };
+  });
+  check('lanes: an event stays inside its lane (the logo .mark is 30 px tall)', m.top >= m.laneTop && m.bottom <= m.laneBottom && Math.round(m.h) === Math.round(m.laneBottom - m.laneTop) - 4, `lane ${m.laneTop}-${m.laneBottom}, event ${m.top}-${m.bottom}`);
+  check('lanes: the pointer finds an event 5 px beside it', m.beside);
+  check('lanes: .minor axis labels show on a wide screen', m.minor !== 'none', m.minor);
+  // high contrast: the browser drops background colours, so each piece needs a line or ink of its own
+  await tab.emulateMedia({ forcedColors: 'active' });
+  const f = await tab.evaluate(() => {
+    const cs = (id, pseudo) => getComputedStyle(document.getElementById(id), pseudo);
+    const li = document.querySelectorAll('#tl .timeline > li');
+    const bg = getComputedStyle(document.body).backgroundColor;
+    return { bg, lane: cs('lane').borderTopWidth, span: cs('lane-span').borderTopWidth, mark: cs('lane-mark').backgroundColor, laneBg: cs('lane').backgroundColor,
+      dot: getComputedStyle(li[0], '::before').backgroundColor, line: getComputedStyle(li[0], '::after').backgroundColor, forced: matchMedia('(forced-colors: active)').matches };
+  });
+  const seen = (c) => c !== f.bg && !/^rgba\(.*,\s*0\)$/.test(c); // not the page's colour, not see-through
+  check('forced colours: lanes keep their track, runs and events', f.forced && f.lane === '1px' && f.span === '1px' && seen(f.mark) && f.mark !== f.laneBg, JSON.stringify(f));
+  check('forced colours: timeline keeps its dots and line', f.forced && seen(f.dot) && seen(f.line), `dot ${f.dot}, line ${f.line}, page ${f.bg}`);
+  await tab.context().close();
+}
+{
+  const tab = await open({ width: 390 });
+  const d = await tab.evaluate(() => ['axis-minor', 'axis-major'].map((id) => getComputedStyle(document.getElementById(id)).display));
+  check('lanes: on a phone .minor axis labels hide, the others stay', d[0] === 'none' && d[1] !== 'none', d.join(' '));
   await tab.context().close();
 }
 

@@ -41,6 +41,10 @@
   <div id="times"></div>
   <div class="panel"><div id="stacked"></div></div>
 
+  <div class="panel"><div class="lanes"><div class="lane-label">lane</div><div class="lane" id="lane"><span class="span" id="lane-span" style="left:10%;width:20%"></span><span class="mark" id="lane-mark" style="left:50%" title="an event"></span></div>
+    <div></div><div class="lane-axis"><span style="left:0;transform:none">start</span><span class="minor" id="axis-minor" style="left:50%">middle</span><span class="major" id="axis-major" style="left:100%;transform:translateX(-100%)">now</span></div></div></div>
+  <div class="panel"><div id="tl"></div></div>
+
   <div class="stats" id="stats-default"><div class="stat">a</div><div class="stat">b</div></div>
   <div class="stats" id="stats-one" style="--stat-min-sm:100%"><div class="stat">a</div><div class="stat">b</div></div>
 </main>
@@ -55,6 +59,7 @@
     const c = e.target.closest('.chart-col');
     if (c) document.getElementById('own-read').textContent = 'own: ' + c.title;
   });
+  document.getElementById('tl').innerHTML = Dash.timeline([{ title: 'first', time: 'Monday', tone: 'ok' }, { title: 'second', time: 'Sunday' }]);
   document.getElementById('kit-chart').innerHTML = Dash.bars([{ label: 'a', value: 3, title: 'col a' }, { label: 'b', value: 5, title: 'col b' }], { read: 'Total 8' });
 </script>
 </body>
