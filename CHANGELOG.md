@@ -2,6 +2,29 @@
 
 Dashboards keep a copy of `dash.css` and `dash.js`; the first line of each file says which version it is. Versions only add things: a page that worked with an older copy works the same with a newer one.
 
+## 1.7.0 (2026-11-23)
+
+Utility classes, in the style of Tailwind, made from the kit's tokens. All additive: they live in a new, optional file, so a page that doesn't link it sees no change.
+
+- **`dash-utils.css`** has about 3,600 classes (220 KB, 26 KB gzipped). Groups:
+  - display, position and inset, flex, grid (including `grid-cols-fit-*`, cards that wrap), alignment;
+  - padding, margin, gap and space between, in 4 px steps;
+  - widths and heights; text size, weight, alignment, wrapping and clamping;
+  - colours from every token, with tints (`bg-blue/10`);
+  - borders, radius, shadow, ring, opacity, motion and cursor.
+- **Variants**, per group, where pages use them:
+  - `hover:` (only on devices that hover), `group-hover:`, `focus:`, `focus-visible:`, `focus-within:`, `active:`, `disabled:`;
+  - the widths `sm:` (from 641 px), `md:` (from 901 px), `lg:` (1024) and `xl:` (1280), plus `max-sm:` and `max-md:`. These follow the kit's own phone and smaller-screen widths, not Tailwind's;
+  - `dark:`, the system setting or `data-theme`, both ways as the palette, and `print:`.
+- **A utility wins over the kit's rules** (`btn px-8`, `panel p-0`) without `!important`: every rule is `.name:not(#\#)`. Inline styles, the `hidden` attribute and `!important` rules still win.
+- **No utility takes the name of a kit class.** `block`, `fixed` and `sticky` skip the one kit piece that uses them as a modifier (`.btn.block`, `.stats.fixed`, `.table.sticky`). The kit's `grid`, `grow`, `invisible` and `sr-only` stay as they are. The README lists how they differ from Tailwind.
+- `tools/utils.mjs` writes the file (`npm run utils`). Pages link the committed result.
+- `tools/paste.py` also fills an optional `<style id="dash-ui-utils"></style>` for pages that must be one file.
+- `examples/utilities.html`: a page laid out with utilities and no CSS of its own.
+- Tests:
+  - node: the file is what the generator writes; no names clash with kit classes, read from the real selectors; shorthands come before their parts and the variants in order; widths and dark selectors; colours only from tokens; a size budget of 240 KB and 30 KB gzipped;
+  - browser (`test/utils.html`): every rule parses; utilities beat the kit while its modifiers keep their meaning; `[hidden]` and inline styles still win; and the widths, `dark:` four ways, hover, group-hover, focus-visible and print all work.
+
 ## 1.6.0 (2026-11-23)
 
 Every builder now works on a page with a strict style policy. All additive: with the new setting off, nothing changes.

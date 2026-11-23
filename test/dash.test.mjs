@@ -1,7 +1,8 @@
 // node --test: the helpers that need no page, plus checks on dash.css itself
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
+import { gzipSync } from 'node:zlib';
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -12,6 +13,12 @@ const root = new URL('../', import.meta.url);
 const kit = process.env.KIT ? pathToFileURL(resolve(process.env.KIT) + '/') : root;
 const Dash = require(fileURLToPath(new URL('dash.js', kit)));
 const css = readFileSync(new URL('dash.css', kit), 'utf8');
+const utils = readFileSync(new URL('dash-utils.css', kit), 'utf8');
+// the generator of the kit under test (an older kit copy may not have one)
+const gen = await import(new URL('tools/utils.mjs', existsSync(new URL('tools/utils.mjs', kit)) ? kit : root).href);
+const unesc = (n) => n.replace(/\\(.)/g, '$1');
+// the utility class names, read from the file
+const utilNames = new Set([...utils.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/\.((?:[\w-]|\\.)+)(?::not\(\.[\w-]+\))?:not\(#\\#\)/g)].map((m) => unesc(m[1])));
 const { fmt } = Dash;
 
 test('esc escapes everything that matters in HTML and attributes', () => {
@@ -271,6 +278,7 @@ test('the version is the same in dash.css, dash.js, Dash.version and package.jso
   assert.equal(Dash.version, pkg);
   assert.match(css.split('\n')[0], new RegExp(`^/\\* dash-ui ${pkg.replaceAll('.', '\\.')}:`));
   assert.match(js.split('\n')[0], new RegExp(`^/\\* dash-ui ${pkg.replaceAll('.', '\\.')} `));
+  assert.match(utils.split('\n')[0], new RegExp(`^/\\* dash-ui ${pkg.replaceAll('.', '\\.')}: utility classes`));
   const log = readFileSync(new URL('CHANGELOG.md', root), 'utf8');
   assert.match(log, new RegExp(`^## ${pkg.replaceAll('.', '\\.')}\\b`, 'm'), 'CHANGELOG has a section for this version');
 });
@@ -307,6 +315,7 @@ test('both files can be pasted inline into a page', () => {
   assert.doesNotMatch(js, /<\/script/i, 'dash.js would close an inline <script> early');
   assert.doesNotMatch(js, /<!--/, 'dash.js has an HTML comment opener');
   assert.doesNotMatch(css, /<\/style/i, 'dash.css would close an inline <style> early');
+  assert.doesNotMatch(utils, /<\/style/i, 'dash-utils.css would close an inline <style> early');
 });
 
 test('dash.css: .stack-md cards are the same rules as .stack', () => {
@@ -338,7 +347,7 @@ test('dash.css: every light token has a dark value, and every tone class a token
 });
 
 test('every class the pages and helpers use is in dash.css (or the page’s own <style>)', () => {
-  const defined = new Set([...css.matchAll(/\.([a-zA-Z][\w-]*)/g)].map((m) => m[1]));
+  const defined = new Set([...css.matchAll(/\.([a-zA-Z][\w-]*)/g)].map((m) => m[1]).concat([...utilNames]));
   const files = ['index.html', ...readdirSync(new URL('examples/', root)).map((f) => 'examples/' + f)];
   const missing = [];
   const js = readFileSync(new URL('dash.js', kit), 'utf8');
@@ -347,7 +356,7 @@ test('every class the pages and helpers use is in dash.css (or the page’s own 
     const own = new Set([...(text.match(/<style>([\s\S]*?)<\/style>/)?.[1] || '').matchAll(/\.([a-zA-Z][\w-]*)/g)].map((m) => m[1]));
     for (const [, list] of text.matchAll(/class="([^"]*)"/g)) {
       for (const c of list.replace(/\$\{[^}]*\}/g, ' ').split(/\s+/)) {
-        if (!/^[a-zA-Z][\w-]*$/.test(c)) continue; // the rest is built at run time
+        if (!/^-?[a-zA-Z][\w:/.-]*$/.test(c)) continue; // the rest is built at run time
         if (!defined.has(c) && !own.has(c)) missing.push(`${file}: .${c}`);
       }
     }
@@ -499,4 +508,83 @@ test('1.6: with Dash.config.csp on they write numbers in data-css-* and no style
   } finally {
     Dash.config.csp = false;
   }
+});
+
+// ---- dash-utils.css (1.7)
+test('1.7: dash-utils.css is exactly what tools/utils.mjs writes', () => {
+  assert.ok(gen.generate().css === utils, 'dash-utils.css is out of date: run node tools/utils.mjs');
+});
+
+// the class names in the kit's real selectors (comments and declarations left out), and the ones dash.js writes
+const kitClasses = () => {
+  const out = new Set();
+  const bare = css.replace(/\/\*[\s\S]*?\*\//g, '');
+  let buf = '';
+  for (const ch of bare) {
+    if (ch === '{') { if (!/^\s*@(media|container|supports|keyframes)/.test(buf)) for (const m of buf.matchAll(/\.([a-zA-Z][\w-]*)/g)) out.add(m[1]); buf = ''; }
+    else if (ch === '}' || ch === ';') buf = '';
+    else buf += ch;
+  }
+  const js = readFileSync(new URL('dash.js', kit), 'utf8');
+  for (const [, list] of js.matchAll(/class="([^"]*)"/g)) for (const c of list.replace(/\$\{[^}]*\}/g, ' ').split(/\s+/)) if (/^[a-zA-Z][\w-]*$/.test(c)) out.add(c);
+  for (const [, c] of js.matchAll(/classList\.(?:add|remove|toggle|contains)\('([^']+)'/g)) out.add(c);
+  return out;
+};
+test('1.7: no utility has the name of a kit class, but block, fixed and sticky, which skip the one piece that uses them', () => {
+  const kitNames = kitClasses();
+  assert.ok(kitNames.has('btn') && kitNames.has('panel') && kitNames.has('chart-col') && kitNames.has('copied'), 'the kit classes were read');
+  const plain = [...utilNames].filter((n) => !n.includes(':'));
+  assert.ok(plain.length > 1000, 'the utility names were read');
+  assert.deepEqual(plain.filter((n) => kitNames.has(n)).sort(), ['block', 'fixed', 'sticky']);
+  // and the kit uses each of those only on that one piece, which the utility skips
+  const keep = { block: 'btn', fixed: 'stats', sticky: 'table' };
+  const bare = css.replace(/\/\*[\s\S]*?\*\//g, '');
+  for (const [n, piece] of Object.entries(keep)) {
+    for (const m of bare.matchAll(new RegExp(`[\\w.:-]*\\.${n}(?![\\w-])[\\w.:-]*`, 'g'))) assert.ok(m[0].includes('.' + piece), `.${n} in the kit's ${m[0]}`);
+    assert.match(utils, new RegExp(`^\\.${n}:not\\(\\.${piece}\\):not\\(#\\\\#\\) \\{`, 'm'));
+  }
+});
+test('1.7: dash-utils.css stays small enough to load on every page', () => {
+  assert.ok(utils.length <= 240_000, `${utils.length} bytes`);
+  assert.ok(gzipSync(utils, { level: 9 }).length <= 30_000, `${gzipSync(utils, { level: 9 }).length} bytes gzipped`);
+});
+test('1.7: every utility rule beats the kit (:not(#\\#)), one class per rule, no class twice', () => {
+  const rules = utils.split('\n').filter((l) => /\{ .*; \}$/.test(l));
+  assert.ok(rules.every((l) => l.includes(':not(#\\#)')), rules.find((l) => !l.includes(':not(#\\#)')));
+  const seen = new Map();
+  for (const l of rules) {
+    const sel = l.trim().replace(/ \{.*$/, '');
+    assert.ok(!seen.has(sel), `twice: ${sel}`);
+    seen.set(sel, true);
+  }
+});
+test('1.7: shorthands before their parts, and the variants in order (states, then max-md, max-sm, sm, md, lg, xl, dark, print)', () => {
+  const at = (n) => { const i = utils.indexOf(`.${n.replace(/[^\w-]/g, (c) => '\\' + c)}:not(`); assert.ok(i >= 0, n); return i; };
+  const before = [['p-4', 'px-2'], ['px-2', 'pt-1'], ['m-4', '-m-2'], ['-m-2', 'mx-4'], ['mx-4', 'mt-2'], ['inset-0', 'inset-x-0'], ['inset-x-0', 'top-2'],
+    ['overflow-hidden', 'overflow-x-auto'], ['overflow-x-auto', 'overflow-y-hidden'], ['gap-px', 'gap-x-0'], ['place-items-center', 'items-start'],
+    ['place-items-center', 'justify-items-start'], ['place-content-center', 'justify-start'], ['place-self-center', 'self-start'], ['size-4', 'w-8'], ['size-4', 'h-8'],
+    ['border-2', 'border-t'], ['border', 'border-blue'], ['border-t', 'border-blue'], ['rounded-full', 'rounded-t-none'], ['flex-1', 'basis-1/2'],
+    ['text-sm', 'leading-tight'], ['truncate', 'whitespace-normal'], ['shadow', 'ring-2'], ['bg-blue', 'bg-blue/10'],
+    ['p-4', 'hover:bg-soft'], ['hover:bg-soft', 'max-md:hidden'], ['max-md:hidden', 'max-sm:hidden'], ['max-sm:hidden', 'sm:hidden'], ['sm:p-4', 'md:p-4'],
+    ['md:p-4', 'lg:p-4'], ['lg:p-4', 'xl:p-4'], ['md:p-4', 'md:px-2'], ['xl:p-4', 'dark:hidden'], ['dark:hidden', 'print:hidden']];
+  for (const [a, b] of before) assert.ok(at(a) < at(b), `${a} comes before ${b}`);
+});
+test('1.7: the widths are the kit\'s own: sm from 641 px, md from 901 px; max-sm up to 640, max-md up to 900', () => {
+  assert.match(utils, /\/\* ---- sm: \(min-width: 641px\) ---- \*\/\n@media \(min-width: 641px\) \{/);
+  assert.match(utils, /@media \(min-width: 901px\) \{\n  \.md\\:block/);
+  assert.match(utils, /@media \(max-width: 640px\) \{\n  \.max-sm\\:block/);
+  assert.match(utils, /@media \(max-width: 900px\) \{\n  \.max-md\\:block/);
+  assert.match(css, /@media \(max-width: 640px\)/);
+  assert.match(css, /@media \(max-width: 900px\)/);
+});
+test('1.7: dark: follows both ways the kit turns dark, and colours come from the kit\'s tokens', () => {
+  assert.match(utils, /@media \(prefers-color-scheme: dark\) \{\n  :root:not\(\[data-theme="light"\]\) \.dark\\:block:not\(#\\#\) \{ display: block; \}/);
+  assert.match(utils, /^:root\[data-theme="dark"\] \.dark\\:block:not\(#\\#\) \{ display: block; \}$/m);
+  const tokens = [...css.match(/^:root \{([\s\S]*?)\n\}/m)[1].matchAll(/--([a-z]+):\s*#/g)].map((m) => m[1]);
+  for (const t of tokens) {
+    assert.match(utils, new RegExp(`^\\.text-${t}:not\\(#\\\\#\\) \\{ color: var\\(--${t}\\); \\}$`, 'm'), `text-${t}`);
+    assert.match(utils, new RegExp(`^\\.bg-${t}:not\\(#\\\\#\\) \\{ background-color: var\\(--${t}\\); \\}$`, 'm'), `bg-${t}`);
+  }
+  // no colour written in the file but black and white
+  assert.deepEqual([...new Set(utils.match(/#[0-9a-f]{3,8}\b/gi))].sort(), ['#000', '#fff']);
 });

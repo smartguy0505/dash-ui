@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Utilities with the kit</title>
+<link rel="stylesheet" href="../dash.css">
+<link rel="stylesheet" href="../dash-utils.css">
+<script src="../dash.js"></script>
+</head>
+<!-- test/behaviour.mjs measures these: utilities next to the kit's own pieces. Each id is one check. -->
+<body>
+<main class="page">
+  <button id="btn" type="button" class="btn px-8">wide padding</button>
+  <button id="btn-sm" type="button" class="btn sm px-8 hover:bg-blue">small, two kit classes</button>
+  <section id="panel" class="panel p-0">a panel with no padding</section>
+  <div id="kit-grid" class="grid gap-2 grid-cols-3"><i>a</i><i>b</i><i>c</i></div>
+  <div id="hidden-flex" class="flex" hidden>hidden attribute</div>
+  <div id="hidden-md" class="md:flex" hidden>hidden attribute, md:flex</div>
+  <div id="resp" class="hidden md:flex">from md</div>
+  <div id="max-sm" class="max-sm:hidden">not on a phone</div>
+  <div id="md-grid" class="hidden md:grid">a grid from md (the plain grid is the kit's)</div>
+  <div id="dark" class="block dark:hidden">light only</div>
+  <p id="dark-text" class="text-muted dark:text-blue">muted, blue in dark</p>
+  <button id="btn-block" type="button" class="btn block">the kit's full-width button</button>
+  <div id="stats-fixed" class="stats fixed"><div class="stat">1</div></div>
+  <div class="table-wrap"><table id="table-sticky" class="table sticky"><thead><tr><th>h</th></tr></thead><tbody><tr><td>x</td></tr></tbody></table></div>
+  <div id="fixed" class="fixed bottom-0 right-0">fixed</div>
+  <div id="sticky" class="sticky top-0">sticky</div>
+  <span id="block" class="block">block</span>
+  <div id="inline-style" class="p-4" style="padding: 1px">inline style wins</div>
+  <div id="tint" class="bg-blue/10">tint</div>
+  <ul id="space" class="space-y-4 list-none p-0 m-0"><li>a</li><li>b</li></ul>
+  <div id="order-p" class="p-4 px-2">p then px</div>
+  <div class="relative h-16"><div id="order-inset" class="absolute inset-0 top-2">inset then top</div></div>
+  <div id="order-overflow" class="overflow-hidden overflow-x-auto">overflow then x</div>
+  <div id="group" class="group p-2"><span id="group-kid" class="invisible group-hover:visible">shows on the parent's hover</span></div>
+  <input id="ring" class="input focus-visible:ring-2" aria-label="ring">
+  <div id="print" class="print:hidden">not printed</div>
+</main>
+</body>
+</html>

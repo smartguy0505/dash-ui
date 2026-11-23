@@ -5,10 +5,11 @@
 // from 1.4 modals, popups (with and without the browser's popovers), menus, and what shows above an open dialog;
 // from 1.4.1 lanes (events inside their lane, their pointer target, axis labels on a phone) and lanes and the
 // timeline in high contrast (forced colours); from 1.5 Dash.lanes under a strict style-src policy (test/csp.html); from 1.6 every sizing builder there with
-// Dash.config.csp, drawn as without the policy, in markup the page or the kit puts in.
+// Dash.config.csp, drawn as without the policy, in markup the page or the kit puts in; from 1.7 dash-utils.css next to
+// the kit (test/utils.html).
 //
 //   npm i --no-save playwright-core && npx playwright-core install --only-shell chromium
-//   node test/behaviour.mjs          (KIT=<dir> serves dash.css and dash.js from <dir> instead: to check a change)
+//   node test/behaviour.mjs          (KIT=<dir> serves dash.css, dash.js and dash-utils.css from <dir> instead: to check a change)
 //
 // It serves this folder itself on 127.0.0.1 (a free port), using test/behaviour.html.
 import { createServer } from 'node:http';
@@ -29,7 +30,7 @@ const kit = process.env.KIT || root;
 const TYPES = { '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 'text/javascript' };
 const server = createServer(async (req, res) => {
   const path = normalize(decodeURIComponent(new URL(req.url, 'http://x').pathname)).replace(/^(\.\.[/\\])+/, '');
-  const base = path === '/dash.css' || path === '/dash.js' ? kit : root;
+  const base = ['/dash.css', '/dash.js', '/dash-utils.css'].includes(path) ? kit : root;
   try {
     // test/csp.html: under a strict style policy, as some dashboards are
     const csp = path === '/test/csp.html' ? { 'Content-Security-Policy': "style-src 'self'" } : {};
@@ -1020,6 +1021,87 @@ let reference;
   const control = await tab.evaluate(() => ({ color: getComputedStyle(document.getElementById('blocked')).color, seen: violations.length }));
   check('strict CSP: the policy is on, and a style="" in markup is seen', control.color !== 'rgb(1, 2, 3)' && control.seen >= 1 && refused.length >= 1, JSON.stringify({ ...control, refused: refused.length }));
   await tab.context().close();
+}
+
+// ---- dash-utils.css next to the kit (1.7): every rule parses, utilities beat the kit's rules, the kit's modifiers
+// keep their meaning, [hidden] and inline styles still win, widths, dark (both ways), hover, focus and print
+{
+  const page = url.replace('behaviour.html', 'utils.html');
+  const at = async (width, { scheme = 'light', theme = null, media = 'screen' } = {}) => {
+    const tab = await open({ width });
+    await tab.emulateMedia({ colorScheme: scheme, media });
+    await tab.goto(page, { waitUntil: 'load' });
+    if (theme) await tab.evaluate((t) => document.documentElement.setAttribute('data-theme', t), theme);
+    return tab;
+  };
+  const cs = (tab, id, prop) => tab.evaluate(([id, prop]) => getComputedStyle(document.getElementById(id))[prop], [id, prop]);
+  const tab = await at(1200);
+  const parsed = await tab.evaluate(() => {
+    const sheet = [...document.styleSheets].find((s) => s.href && s.href.endsWith('/dash-utils.css'));
+    let rules = 0; const empty = [];
+    const walk = (list) => { for (const r of list) { if (r.cssRules && !r.selectorText) walk(r.cssRules); else if (r.selectorText) { rules++; if (!r.style.length) empty.push(r.selectorText); } } };
+    walk(sheet.cssRules);
+    return { rules, empty: empty.slice(0, 5) };
+  });
+  const written = (await readFile(join(kit, 'dash-utils.css'), 'utf8')).split('\n').filter((l) => /\{ .*; \}$/.test(l)).length;
+  check('utilities: the browser keeps every rule of dash-utils.css, none of them empty', parsed.rules === written && !parsed.empty.length, JSON.stringify({ ...parsed, written }));
+  const k = await tab.evaluate(() => {
+    const g = (id) => getComputedStyle(document.getElementById(id));
+    return { btn: [g('btn').paddingLeft, g('btn').paddingTop], btnSm: g('btn-sm').paddingLeft, panel: g('panel').paddingTop,
+      grid: [g('kit-grid').columnGap, g('kit-grid').gridTemplateColumns.split(' ').length] };
+  });
+  check('utilities beat the kit\'s own rules: btn px-8, btn sm px-8, panel p-0, the kit\'s grid with gap-2 grid-cols-3',
+    k.btn[0] === '32px' && k.btn[1] === '6px' && k.btnSm === '32px' && k.panel === '0px' && k.grid[0] === '8px' && k.grid[1] === 3, JSON.stringify(k));
+  const m = await tab.evaluate(() => {
+    const g = (id) => getComputedStyle(document.getElementById(id));
+    return { btnBlock: [g('btn-block').display, Math.round(document.getElementById('btn-block').getBoundingClientRect().width) === Math.round(document.querySelector('main').getBoundingClientRect().width - parseFloat(getComputedStyle(document.querySelector('main')).paddingLeft) - parseFloat(getComputedStyle(document.querySelector('main')).paddingRight))],
+      statsFixed: g('stats-fixed').position, tableSticky: g('table-sticky').position, fixed: g('fixed').position, sticky: g('sticky').position, block: g('block').display };
+  });
+  check('utilities: block, fixed and sticky keep the kit\'s meaning on .btn, .stats and .table, and work everywhere else',
+    m.btnBlock[0] === 'inline-flex' && m.btnBlock[1] && m.statsFixed === 'static' && m.tableSticky === 'static' && m.fixed === 'fixed' && m.sticky === 'sticky' && m.block === 'block', JSON.stringify(m));
+  const w = await tab.evaluate(() => {
+    const g = (id) => getComputedStyle(document.getElementById(id));
+    const kids = [...document.querySelectorAll('#space > li')].map((li) => getComputedStyle(li).marginBottom);
+    return { hiddenFlex: g('hidden-flex').display, hiddenMd: g('hidden-md').display, inline: g('inline-style').paddingTop, tint: g('tint').backgroundColor, kids,
+      p: [g('order-p').paddingTop, g('order-p').paddingLeft], inset: [g('order-inset').top, g('order-inset').left], overflow: [g('order-overflow').overflowX, g('order-overflow').overflowY] };
+  });
+  check('utilities: the hidden attribute still hides a flex or md:flex element, and an inline style still wins', w.hiddenFlex === 'none' && w.hiddenMd === 'none' && w.inline === '1px', JSON.stringify(w));
+  check('utilities: a shorthand comes before its parts (p-4 px-2, inset-0 top-2, overflow-hidden overflow-x-auto)',
+    w.p[0] === '16px' && w.p[1] === '8px' && w.inset[0] === '8px' && w.inset[1] === '0px' && w.overflow[0] === 'auto' && w.overflow[1] === 'hidden', JSON.stringify(w));
+  check('utilities: bg-blue/10 is the blue at 10 %, space-y-4 spaces all but the last', /0\.1\)$/.test(w.tint) && w.kids[0] === '16px' && w.kids[1] === '0px', JSON.stringify(w));
+  // hover, group-hover and focus-visible
+  const before = { bg: await cs(tab, 'btn-sm', 'backgroundColor'), kid: await cs(tab, 'group-kid', 'visibility'), ring: await cs(tab, 'ring', 'boxShadow') };
+  await tab.hover('#btn-sm');
+  const hovered = await cs(tab, 'btn-sm', 'backgroundColor');
+  const blue = await tab.evaluate(() => { const i = document.createElement('i'); i.style.color = 'var(--blue)'; document.body.append(i); const c = getComputedStyle(i).color; i.remove(); return c; });
+  await tab.hover('#group');
+  const kid = await cs(tab, 'group-kid', 'visibility');
+  await tab.focus('#ring');
+  const ring = await cs(tab, 'ring', 'boxShadow');
+  check('utilities: hover:bg-blue, group-hover:visible and focus-visible:ring-2', before.bg !== blue && hovered === blue && before.kid === 'hidden' && kid === 'visible' && before.ring !== ring && /2px/.test(ring),
+    JSON.stringify({ before, hovered, blue, kid, ring }));
+  await tab.context().close();
+  // widths: sm 641, md 901 (past the kit's own 640 and 900), max-sm up to 640
+  const widths = {};
+  for (const width of [390, 700, 860, 1000]) {
+    const t = await at(width);
+    widths[width] = [await cs(t, 'resp', 'display'), await cs(t, 'max-sm', 'display'), await cs(t, 'md-grid', 'display')];
+    await t.context().close();
+  }
+  check('utilities: hidden md:flex and hidden md:grid show from 901 px; max-sm:hidden hides up to 640 px',
+    widths[390].join() === 'none,none,none' && widths[700].join() === 'none,block,none' && widths[860].join() === 'none,block,none' && widths[1000].join() === 'flex,block,grid', JSON.stringify(widths));
+  // dark: the system setting unless the page is set to light; data-theme="dark" whatever the system says
+  const dark = {};
+  for (const [name, opts] of Object.entries({ light: {}, system: { scheme: 'dark' }, forcedLight: { scheme: 'dark', theme: 'light' }, forcedDark: { theme: 'dark' } })) {
+    const t = await at(1200, opts);
+    dark[name] = [await cs(t, 'dark', 'display'), (await cs(t, 'dark-text', 'color')) === (await t.evaluate(() => { const i = document.createElement('i'); i.style.color = 'var(--blue)'; document.body.append(i); return getComputedStyle(i).color; }))];
+    await t.context().close();
+  }
+  check('utilities: dark: follows the system setting and data-theme both ways',
+    dark.light.join() === 'block,false' && dark.system.join() === 'none,true' && dark.forcedLight.join() === 'block,false' && dark.forcedDark.join() === 'none,true', JSON.stringify(dark));
+  const pr = await at(1200, { media: 'print' });
+  check('utilities: print:hidden', (await cs(pr, 'print', 'display')) === 'none', await cs(pr, 'print', 'display'));
+  await pr.context().close();
 }
 
 await browser.close();

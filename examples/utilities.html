@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Release board</title>
+<link rel="stylesheet" href="../dash.css">
+<link rel="stylesheet" href="../dash-utils.css">
+<script src="../dash.js"></script>
+</head>
+<body>
+<!-- a page laid out with dash-utils.css next to the kit's own pieces: no <style> of its own. Made-up data. -->
+<header class="topbar">
+  <div class="brand"><span class="mark">R</span><h1>Release board</h1></div>
+  <span class="sub hidden sm:inline">what ships this week</span>
+  <div class="top-right"><span id="live"></span></div>
+</header>
+
+<main class="page">
+  <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-5">
+    <div>
+      <p class="text-xs font-semibold uppercase tracking-wider text-faint m-0">Week 47</p>
+      <h2 class="text-2xl font-bold m-0">Four services, five releases</h2>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <button type="button" class="btn" data-tooltip="Copy the week as CSV" id="csv">Export</button>
+      <button type="button" class="btn primary">New release</button>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-5" id="tiles"></div>
+
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <section class="panel p-0 md:col-span-2">
+      <div class="panel-head px-4 pt-3 mb-0"><h3>Releases</h3><span class="read" id="count"></span></div>
+      <ul class="list-none m-0 p-0 divide-y" id="releases"></ul>
+    </section>
+
+    <aside class="flex flex-col gap-4">
+      <section class="panel">
+        <div class="panel-head"><h3>Checks</h3></div>
+        <div class="space-y-3" id="checks"></div>
+      </section>
+      <section class="callout">
+        <p class="callout-title m-0">Freeze on Friday</p>
+        <p class="text-sm text-muted mt-1 mb-0">From 16:00 only fixes go out. Ask in the release channel first.</p>
+      </section>
+    </aside>
+  </div>
+</main>
+
+<script>
+  const { esc, fmt } = Dash;
+  const now = Date.now(), H = 3600e3;
+  const SERVICES = [
+    { name: 'checkout', owner: 'Payments', up: 99.98, p95: 182, tone: 'ok' },
+    { name: 'search', owner: 'Discovery', up: 99.91, p95: 240, tone: 'ok' },
+    { name: 'images', owner: 'Media', up: 99.2, p95: 610, tone: 'warn' },
+    { name: 'accounts', owner: 'Identity', up: 99.99, p95: 95, tone: 'ok' },
+  ];
+  const RELEASES = [
+    { service: 'checkout', version: '4.12.0', what: 'Saved cards for guests', at: now - 2 * H, state: 'Live', tone: 'ok' },
+    { service: 'images', version: '2.3.1', what: 'Smaller thumbnails on slow links', at: now - 5 * H, state: 'Rolling out', tone: 'warn', share: 0.4 },
+    { service: 'search', version: '7.0.0', what: 'New ranking, behind a flag for 10 % of readers', at: now - 26 * H, state: 'Live', tone: 'ok' },
+    { service: 'accounts', version: '1.9.4', what: 'Fix: sign-in links expired early', at: now - 30 * H, state: 'Live', tone: 'ok' },
+    { service: 'images', version: '2.3.0', what: 'WebP for every upload', at: now - 50 * H, state: 'Rolled back', tone: 'bad' },
+  ];
+  const CHECKS = [{ label: 'Tests', value: 0.97, tone: 'ok' }, { label: 'Coverage', value: 0.81, tone: 'ok' }, { label: 'Error budget left', value: 0.34, tone: 'warn' }];
+
+  Dash.render('tiles', SERVICES.map((s) => `
+    <div class="card gap-1">
+      <div class="flex items-center justify-between gap-2">
+        <span class="font-semibold truncate">${esc(s.name)}</span>${Dash.pill(s.tone === 'ok' ? 'Healthy' : 'Slow', s.tone)}
+      </div>
+      <div class="text-3xl font-bold tabular-nums">${fmt.num(s.up, 2)}<span class="text-md text-muted font-medium"> %</span></div>
+      <div class="text-sm text-muted">${esc(s.owner)} · p95 <span class="tabular-nums text-text">${s.p95} ms</span></div>
+    </div>`).join(''));
+
+  Dash.render('releases', RELEASES.map((r) => `
+    <li class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 px-4 py-3 hover:bg-soft">
+      <div class="flex items-center gap-2 sm:w-40 shrink-0">
+        <span class="font-semibold">${esc(r.service)}</span><code class="text-faint">${esc(r.version)}</code>
+      </div>
+      <div class="flex-1 text-sm">${esc(r.what)}</div>
+      <div class="flex items-center gap-3 shrink-0">
+        ${r.share ? `<span class="w-20">${Dash.meter(r.share, r.tone)}</span>` : ''}${Dash.pill(r.state, r.tone)}
+        <span class="text-sm text-muted sm:w-20 sm:text-right">${Dash.ago(r.at)}</span>
+      </div>
+    </li>`).join(''));
+  document.getElementById('count').textContent = `${RELEASES.length} this week`;
+
+  Dash.render('checks', CHECKS.map((c) => `
+    <div>
+      <div class="flex justify-between text-sm mb-1"><span>${esc(c.label)}</span><span class="tabular-nums font-semibold">${fmt.pct(c.value * 100, 0)}</span></div>
+      ${Dash.bar(c.value, c.tone)}
+    </div>`).join(''));
+
+  document.getElementById('csv').addEventListener('click', () => Dash.copy(Dash.csv(RELEASES, ['service', 'version', 'what', 'state'])));
+  Dash.live('live', 'on', 'Live', 'Made-up data');
+</script>
+</body>
+</html>

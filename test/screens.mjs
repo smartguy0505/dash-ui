@@ -32,7 +32,7 @@ const server = createServer(async (req, res) => {
 await new Promise((ok) => server.listen(0, '127.0.0.1', ok));
 const base = `http://127.0.0.1:${server.address().port}/`;
 
-const PAGES = ['index.html', 'examples/overview.html', 'examples/portfolio.html', 'examples/fleet.html', 'examples/login.html', 'examples/starter.html'];
+const PAGES = ['index.html', 'examples/overview.html', 'examples/portfolio.html', 'examples/fleet.html', 'examples/login.html', 'examples/starter.html', 'examples/utilities.html'];
 const WIDTHS = [390, 700, 860, 1440];
 const shots = process.env.SHOTS === '1';
 if (shots) await mkdir(join(root, 'screens'), { recursive: true });

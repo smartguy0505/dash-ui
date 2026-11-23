@@ -3,7 +3,8 @@
 The look of my dashboards (an agent monitor, a fleet monitor, a leaderboard, a payout page and a balances page) as one kit:
 
 - **`dash.css`**: the colour tokens, light and dark, and every component;
-- **`dash.js`**: the formatters, small HTML builders, inline charts, toasts and fetch/poll helpers those pages kept rewriting.
+- **`dash.js`**: the formatters, small HTML builders, inline charts, toasts and fetch/poll helpers those pages kept rewriting;
+- **`dash-utils.css`** (optional): utility classes in the style of Tailwind (`flex gap-3 p-4 md:grid-cols-3 text-muted`), made from the same tokens, for laying out a page without writing CSS.
 
 It's plain CSS and one plain script: no build step, no dependencies, no framework. A page links the two files (or pastes them in) and writes ordinary HTML.
 
@@ -15,6 +16,7 @@ It's plain CSS and one plain script: no build step, no dependencies, no framewor
 | `examples/fleet.html` | fleet and leaderboard style: status banner, server cards, timeline lanes, leaderboard with server rows and a drawer |
 | `examples/login.html` | the sign-in page |
 | `examples/starter.html` | the smallest useful page; copy it to start a new dashboard |
+| `examples/utilities.html` | a page laid out with `dash-utils.css` and no CSS of its own |
 
 To look at them:
 
@@ -70,6 +72,54 @@ Four habits keep a dashboard short:
 **A page that must be one file** (a server that sends only the page): put `<style id="dash-ui-css"></style>` and `<script id="dash-ui-js"></script>` in its `<head>`, then run `python3 tools/paste.py page.html` to fill them, and again after the kit changes. `--check` says whether a page's copy is current. Nothing in either file refers to the other or to a path.
 
 **Copies and versions:** a dashboard keeps its own copy of the two files (the balances dashboard has them in `public/dash-ui/`). The first line of each file names the version, and `CHANGELOG.md` says what each version added. Versions only add things, so a newer copy can replace an older one. When a page needs something the kit lacks, add it here, then copy the files again; don't edit a copy.
+
+## Utilities: dash-utils.css
+
+Link it after `dash.css`, and lay out a page with classes instead of a `<style>`:
+
+```html
+<link rel="stylesheet" href="dash.css">
+<link rel="stylesheet" href="dash-utils.css">
+
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">…</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">…</div>
+<section class="panel p-0 md:col-span-2"><ul class="list-none m-0 p-0 divide-y">…</ul></section>
+```
+
+There is no build step: the file holds a fixed set of about 3,600 classes (220 KB, 26 KB gzipped). `tools/utils.mjs` writes it from the kit's tokens, and a test checks that the committed file is what the script writes. The names are Tailwind's wherever the kit allows it, so most of what you know carries over. What is there:
+
+| Group | Classes | Variants |
+|---|---|---|
+| display | `block` `inline-block` `inline` `flex` `inline-flex` `inline-grid` `contents` `flow-root` `list-item` `hidden` | widths, `max-sm:` `max-md:`, `dark:`, `print:`, `group-hover:` |
+| position | `static` `relative` `absolute` `fixed` `sticky`; `inset-*` `inset-x-*` `top-*` `right-*` … (0, px, 1–8, auto, full, 1/2) | widths (position) |
+| flex | `flex-row` `flex-col` (`-reverse`) `flex-wrap` `flex-nowrap` `flex-1` `flex-auto` `flex-none` `grow-0` `shrink` `shrink-0` `basis-*` `order-*` | widths |
+| grid | `grid-cols-1…12` `grid-cols-fit-32…96` (as many columns as fit, each at least 128…384 px) `col-span-*` `col-start-*` `grid-rows-*` `row-span-*` `grid-flow-*` | widths (columns, spans, flow) |
+| alignment | `justify-*` `items-*` `self-*` `content-*` `place-*` `justify-items-*` | widths (justify, items, self) |
+| spacing | `p-*` `px-*` `py-*` `pt-*` …, `m-*` (also `-m-*`, `m-auto`), `gap-*` `gap-x-*` `gap-y-*`, `space-x-*` `space-y-*` | widths (steps 0–16) |
+| sizes | `w-*` `h-*` `size-*` (4 px steps, `full`, `fit`, `min`, `max`, fractions like `w-1/2`), `min-w-*` `max-w-xs…7xl` `max-w-prose` `max-w-page`, `min-h-*` `max-h-*` | widths (`w-*` fractions and larger steps, `max-w-*`) |
+| text | `text-xs sm md base lg xl 2xl 3xl 4xl 5xl`, `text-left/center/right`, `font-mono` `font-medium` `font-semibold` `font-bold`, `leading-*` `tracking-*` `uppercase` `truncate` `line-clamp-1…6` `whitespace-*` `break-words` `break-anywhere` `text-balance` `tabular-nums` `underline` `list-none` | widths (size, align); `hover:` `group-hover:` `focus-visible:` (underline) |
+| colour | `text-*` `bg-*` `border-*` `fill-*` `stroke-*` `accent-*` `ring-*` for every token (`muted`, `faint`, `line`, `soft`, `card`, `blue`, `ok`, `warn`, `bad`, …) and `tone`, `current`, `transparent`, `white`, `black`; tints `bg-blue/10` (5, 10, 15, 20, 30, 50) and `border-blue/30` (20, 30, 50) | `hover:` `group-hover:` `active:` `dark:`; borders `focus:` `focus-visible:` `focus-within:` |
+| borders | `border` `border-0` `border-2` `border-t` … `border-dashed` `divide-x` `divide-y`, `rounded-sm` `rounded` `rounded-md` `rounded-lg` `rounded-xl` `rounded-full` `rounded-t-*` … | |
+| effects | `shadow` `shadow-pop` `shadow-none`, `ring-0…4` `ring-inset`, `opacity-*`, `transition` `duration-*` `ease-*`, `animate-spin` `animate-pulse`, `rotate-*` `scale-*`, `cursor-*` `select-none` `pointer-events-none` `resize-*` | `hover:` (shadow, rotate, scale, opacity), `focus:` `focus-visible:` `focus-within:` (ring), `active:` (scale), `disabled:` (opacity, cursor) |
+
+How it fits the kit:
+
+- **The widths are the kit's own.** `sm:` starts at 641 px, just past the kit's phone layout (640 px and below). `md:` starts at 901 px, past its smaller-screen layout (900 px and below). `lg:` starts at 1024 px and `xl:` at 1280 px. As in Tailwind, a class without a prefix works at every width and a prefixed one from that width up. `max-sm:` and `max-md:` work up to the kit's two widths, as `.hide-sm` and `.stack-md` do. This differs from Tailwind's numbers (640/768) on purpose: a page switches where the kit's components switch.
+- **Colours are the kit's tokens**, so `bg-card text-muted border-line` follow light and dark by themselves. `dark:` is for the few things that should differ, like `dark:hidden` on a light-only image. It follows the system setting unless the page is set to light, and `data-theme="dark"`, the same two ways the palette does. A tint like `bg-blue/10` is the colour at 10 % over what is behind it.
+- **A utility wins over the kit's rules:** `class="btn px-8"` or `class="panel p-0"` does what it says. Every rule is written `.p-0:not(#\#)`. The `:not()` matches every element but counts as an id, so it outranks the kit's two- and three-class rules without `!important`. A `style=""`, the `hidden` attribute and `!important` rules (the kit's `.hide-sm`, say) still win. For the rare case where the page's own CSS must beat a utility, use an id or `!important` there.
+- **Names the kit already uses keep the kit's meaning:**
+  - `grid` is the kit's grid: display grid with a 14 px gap and `var(--cols, 2)` columns. With `grid-cols-*` and `gap-*` it works like Tailwind's. `sm:grid` and the other prefixed forms are plain `display: grid`.
+  - `grow` is the kit's `flex: 1; min-width: 0`.
+  - `invisible` and `sr-only` come from `dash.css` and mean what they do in Tailwind.
+  - `table`, `ring` and `outline` are kit pieces, so there is no plain `table`, `ring` or `outline` utility. Use `ring-2` or `outline-none`.
+  - On a `.btn`, `block` is the kit's full-width button. On `.stats`, `fixed` is the kit's fixed column count. On a `.table`, `sticky` is the kit's sticky header. Everywhere else they are display: block and position: fixed or sticky.
+  - The kit's grouped table rows (`tr.group`) are groups for `group-hover:` too.
+- **No arbitrary values** (`w-[37px]`): with no build step there is nothing to write them. Use the page's CSS, a `style=""`, or a custom property the kit reads (`--cols`, `--lines`, `--stat-min` …).
+- **Pages with a strict style policy** can use every utility: it's a stylesheet, not `style=""`.
+- A page that must be one file adds `<style id="dash-ui-utils"></style>` after `<style id="dash-ui-css"></style>`, and `tools/paste.py` fills it too.
+- Before adding the file to an existing page, check the page's own CSS for classes with the same names (`hidden`, `flex`, `border`, `truncate` …). They would get the utility as well.
+
+To change the set, edit `tools/utils.mjs` and run `node tools/utils.mjs` (or `npm run utils`), then the tests.
 
 ## The look
 
@@ -396,9 +446,9 @@ Where the dashboards disagreed, this kit follows agent-dash and the balances das
 node --test test/dash.test.mjs
 ```
 
-The tests cover the formatters, sorting, paging, escaping in every builder, and chart sizes. They also check that the two dark palettes in `dash.css` are equal, that every token has a dark value, and that every class used in the pages and in dash.js exists in `dash.css`. For layout, `test/screens.mjs` loads every page in headless Chromium at 390, 700, 860 and 1440 px, light and dark. It fails on a page wider than the window, a console error, or a stacked table whose rows aren't cards at the right widths (or whose `td.actions` left the card's corner). It needs Playwright, which the kit itself doesn't:
+The tests cover the formatters, sorting, paging, escaping in every builder, and chart sizes. For `dash-utils.css`, they check four things: it is what `tools/utils.mjs` writes; no utility takes the name of a kit class; shorthands come before their parts and the variants come in order; and it stays within its size budget. They also check that the two dark palettes in `dash.css` are equal, that every token has a dark value, and that every class used in the pages and in dash.js exists in `dash.css`. For layout, `test/screens.mjs` loads every page in headless Chromium at 390, 700, 860 and 1440 px, light and dark. It fails on a page wider than the window, a console error, or a stacked table whose rows aren't cards at the right widths (or whose `td.actions` left the card's corner). It needs Playwright, which the kit itself doesn't:
 
-`test/behaviour.mjs` checks in the same browser what a node test can't see: `Dash.render` keeping focus, typing, open details, scroll and a selection; the poll's live status; the chart readout; copy buttons across a redraw; the sidebar event; the search count; saved choices in `Dash.seg`; `.topbar.static-md` and phone tiles; `Dash.table`, tabs, menus, tooltips, dialogs, `Dash.search`, `Dash.key`, live times and stacked columns; and modals, popups and menus (each popup check runs with the browser's own popovers and without them), and what shows above an open dialog; lanes; and, on a page served with `style-src 'self'` (`test/csp.html`), `Dash.lanes` and the sizing builders with `Dash.config.csp`, drawn as without the policy and with no violations. `KIT=<dir>` serves `dash.css` and `dash.js` from another folder, to try a change (the node tests read it too).
+`test/behaviour.mjs` checks in the same browser what a node test can't see: `Dash.render` keeping focus, typing, open details, scroll and a selection; the poll's live status; the chart readout; copy buttons across a redraw; the sidebar event; the search count; saved choices in `Dash.seg`; `.topbar.static-md` and phone tiles; `Dash.table`, tabs, menus, tooltips, dialogs, `Dash.search`, `Dash.key`, live times and stacked columns; and modals, popups and menus (each popup check runs with the browser's own popovers and without them), and what shows above an open dialog; lanes; and, on a page served with `style-src 'self'` (`test/csp.html`), `Dash.lanes` and the sizing builders with `Dash.config.csp`, drawn as without the policy and with no violations; and `dash-utils.css` next to the kit (`test/utils.html`): every rule parses, utilities beat the kit's rules while its modifiers keep their meaning, and the widths, `dark:` both ways, hover, focus and print work. `KIT=<dir>` serves `dash.css`, `dash.js` and `dash-utils.css` from another folder, to try a change (the node tests read it too, and `tools/utils.mjs` from there when it has one).
 
 ```sh
 npm i --no-save playwright-core && npx playwright-core install --only-shell chromium
