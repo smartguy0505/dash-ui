@@ -4,7 +4,8 @@
 // and from 1.3 Dash.table, tabs, menus, tooltips, dialogs, Dash.search and Dash.key, live times and stacked columns;
 // from 1.4 modals, popups (with and without the browser's popovers), menus, and what shows above an open dialog;
 // from 1.4.1 lanes (events inside their lane, their pointer target, axis labels on a phone) and lanes and the
-// timeline in high contrast (forced colours); from 1.5 Dash.lanes under a strict style-src policy (test/lanes-csp.html).
+// timeline in high contrast (forced colours); from 1.5 Dash.lanes under a strict style-src policy (test/csp.html); from 1.6 every sizing builder there with
+// Dash.config.csp, drawn as without the policy, in markup the page or the kit puts in.
 //
 //   npm i --no-save playwright-core && npx playwright-core install --only-shell chromium
 //   node test/behaviour.mjs          (KIT=<dir> serves dash.css and dash.js from <dir> instead: to check a change)
@@ -30,8 +31,8 @@ const server = createServer(async (req, res) => {
   const path = normalize(decodeURIComponent(new URL(req.url, 'http://x').pathname)).replace(/^(\.\.[/\\])+/, '');
   const base = path === '/dash.css' || path === '/dash.js' ? kit : root;
   try {
-    // test/lanes-csp.html: under a strict style policy, as some dashboards are
-    const csp = path === '/test/lanes-csp.html' ? { 'Content-Security-Policy': "style-src 'self'" } : {};
+    // test/csp.html: under a strict style policy, as some dashboards are
+    const csp = path === '/test/csp.html' ? { 'Content-Security-Policy': "style-src 'self'" } : {};
     res.writeHead(200, { 'Content-Type': TYPES[extname(path)] || 'application/octet-stream', ...csp }).end(await readFile(join(base, path)));
   } catch {
     res.writeHead(404).end('not found');
@@ -901,15 +902,37 @@ for (const [width, md, plain] of [[700, 'static', 'sticky'], [1000, 'sticky', 's
   await tab.context().close();
 }
 
-// ---- Dash.lanes under Content-Security-Policy: style-src 'self' (1.5)
+// ---- under Content-Security-Policy: style-src 'self' (test/csp.html): Dash.lanes (1.5), and with Dash.config.csp
+// every sizing builder (1.6), drawn as without the policy, wherever the markup goes in, with no policy violations
+const SIZED = () => {
+  // the same markup and the same measurements on both pages
+  window.sample = () => Dash.bar(0.425, 'ok') + Dash.meter(0.3) + Dash.split([{ value: 3, tone: 'ok' }, { value: 1, tone: 'bad' }])
+    + Dash.bars([{ label: 'a', value: 3 }, { label: 'b', value: 1 }, { label: 'c', parts: [{ value: 2, tone: 'ok' }, { value: 1.5, tone: 'warn' }] }], { height: 120, ticks: 2 })
+    + Dash.spark([1, 3, 2, 5]);
+  window.sizedBox = (id) => { const b = document.createElement('div'); b.id = id; b.style.width = '600px'; document.querySelector('main').append(b); return b; };
+  window.measure = (box) => {
+    const r = (e) => e.getBoundingClientRect(), q = (s) => box.querySelector(s), d = (x) => Math.round(x * 10) / 10;
+    const P = r(q('.chart-plot')), W = r(q('.spark').parentElement), D = r(q('.spark ~ .dot'));
+    return { bar: d(r(q('.bar > i')).width), meter: d(r(q('.meter > i')).width), split: [...box.querySelectorAll('.split > i')].map((i) => d(r(i).width)),
+      plot: d(P.height), cols: [...box.querySelectorAll('.chart-col > i')].map((i) => d(r(i).height)), grid: [...box.querySelectorAll('.chart-grid')].map((g) => d(r(g).top - P.top)),
+      parts: [...box.querySelectorAll('.chart-col u')].map((u) => d(r(u).height)), dot: [d(D.left - W.left), d(D.top - W.top), d(D.width), d(D.height)] };
+  };
+};
+let reference;
 {
-  const tab = await open({ width: 1200 });
-  await tab.goto(url.replace('behaviour.html', 'lanes-csp.html'), { waitUntil: 'load' });
+  const tab = await open({ width: 1200, init: SIZED }); // the plain page: no policy, the default mode
+  reference = await tab.evaluate(() => { const b = sizedBox('ref'); b.innerHTML = sample(); return measure(b); });
+  await tab.context().close();
+}
+{
+  const tab = await open({ width: 1200, init: SIZED });
+  const refused = [];
+  tab.on('console', (m) => { if (/Content Security Policy/i.test(m.text())) refused.push(m.text()); }); // "Refused to apply inline style …" or "Applying inline style violates …"
+  await tab.goto(url.replace('behaviour.html', 'csp.html'), { waitUntil: 'load' });
   const DAY = { from: '2026-11-20T00:00:00Z', to: '2026-11-21T00:00:00Z' };
   const rows = [{ label: 'api-eu-west', sub: 'team-a', spans: [{ from: '2026-11-20T06:00:00Z', to: '2026-11-20T12:00:00Z', title: 'load test 1' }],
     marks: [{ at: '2026-11-20T18:00:00Z', title: 'incident at six' }] }];
   const r = await tab.evaluate(([rows, DAY]) => {
-    const before = violations.length;
     Dash.lanes('box', rows, { ...DAY, labelWidth: '120px' });
     Dash.lanes('own', rows, { ...DAY, labelWidth: 90 });
     let whole = 'ok';
@@ -921,10 +944,9 @@ for (const [width, md, plain] of [[700, 'static', 'sticky'], [1000, 'sticky', 's
       return { span: [f(span.left), f(span.right)], mark: f((mark.left + mark.right) / 2), first: Math.round(ax[0].left - lane.left), last: Math.round(ax[ax.length - 1].right - lane.right),
         label: Math.round(box.querySelector('.lane-label').getBoundingClientRect().width) };
     };
-    return { blocked: getComputedStyle(document.getElementById('blocked')).color, box: at(document.getElementById('box')), own: at(document.getElementById('own')),
-      whole, nested: document.querySelectorAll('#own .lanes').length, wrapped: document.querySelectorAll('#box > .lanes').length, newViolations: violations.slice(before) };
+    return { box: at(document.getElementById('box')), own: at(document.getElementById('own')),
+      whole, nested: document.querySelectorAll('#own .lanes').length, wrapped: document.querySelectorAll('#box > .lanes').length };
   }, [rows, DAY]);
-  check('Dash.lanes under a strict CSP: the page\'s own style="" is blocked (the policy is on)', r.blocked !== 'rgb(1, 2, 3)', r.blocked);
   const near = (a, b, d = 0.6) => Math.abs(a - b) <= d;
   for (const k of ['box', 'own']) {
     const b = r[k];
@@ -934,7 +956,6 @@ for (const [width, md, plain] of [[700, 'static', 'sticky'], [1000, 'sticky', 's
   check('Dash.lanes: labelWidth sets the label column (a number is pixels)', r.box.label === 120 && r.own.label === 90, `${r.box.label} ${r.own.label}`);
   check('Dash.lanes: fills a .lanes box it is given, and makes one in any other box', r.nested === 0 && r.wrapped === 1, `nested ${r.nested}, wrapped ${r.wrapped}`);
   check('Dash.lanes.place(document) places every .lanes box on the page', r.whole === 'ok', r.whole);
-  check('Dash.lanes: no policy violations', r.newViolations.length === 0, r.newViolations.join(' '));
   // its titles show as the kit's tooltips
   const m = await tab.evaluate(() => { const b = document.querySelector('#box .mark').getBoundingClientRect(); return { x: (b.left + b.right) / 2, y: (b.top + b.bottom) / 2 }; });
   await tab.mouse.move(m.x, m.y);
@@ -953,6 +974,51 @@ for (const [width, md, plain] of [[700, 'static', 'sticky'], [1000, 'sticky', 's
     return e ? { text: e.textContent, w: Math.round(e.getBoundingClientRect().width), box: Math.round(document.getElementById('own').getBoundingClientRect().width) } : null;
   });
   check('Dash.lanes: with no rows its empty text spans the whole box', empty && empty.text === 'No runs yet' && empty.w >= empty.box - 1, JSON.stringify(empty));
+
+  // the sizing builders with Dash.config.csp, against the same markup on the plain page
+  const flat = (o) => Object.values(o).flat();
+  const same = (a) => flat(a).length === flat(reference).length && flat(a).every((v, i) => Math.abs(v - flat(reference)[i]) <= 0.6);
+  const byPage = await tab.evaluate(() => new Promise((ok) => { Dash.config.csp = true; const b = sizedBox('by-page'); b.innerHTML = sample(); requestAnimationFrame(() => ok(measure(b))); }));
+  check('strict CSP: the builders draw as without it, in markup the page puts in (before the next paint)', same(byPage), JSON.stringify({ byPage, reference }));
+  const changed = await tab.evaluate(() => new Promise((ok) => {
+    const i = document.querySelector('#by-page .bar > i');
+    i.setAttribute('data-css-w', '10');
+    requestAnimationFrame(() => ok(Math.round(i.getBoundingClientRect().width / i.parentElement.getBoundingClientRect().width * 100)));
+  }));
+  check('strict CSP: a size the page changes later is set too (before the next paint)', changed === 10, String(changed));
+  const byRender = await tab.evaluate(() => { const b = sizedBox('by-render'); Dash.render(b, sample()); return measure(b); });
+  check('strict CSP: the builders draw as without it, at once through Dash.render', same(byRender), JSON.stringify({ byRender, reference }));
+  const byApply = await tab.evaluate(() => { const b = sizedBox('by-apply'); b.innerHTML = sample(); Dash.applyStyles(b); return measure(b); });
+  check('strict CSP: the builders draw as without it, at once after Dash.applyStyles', same(byApply), JSON.stringify({ byApply, reference }));
+  const inKit = await tab.evaluate(async () => {
+    const chart = () => Dash.bars([{ label: 'a', value: 3 }, { label: 'b', value: 1 }], { height: 120 });
+    const h = (root) => { const p = root && root.querySelector('.chart-plot'); return p ? Math.round(p.getBoundingClientRect().height) : null; };
+    const btn = document.createElement('button'); btn.className = 'btn'; btn.textContent = 'open'; document.querySelector('main').append(btn);
+    const pop = Dash.popup(btn, chart()); const popup = h(pop.el); pop.close();
+    Dash.dialog({ title: 'A chart', body: chart() }); const dlg = document.querySelector('dialog[open]'); const dialog = h(dlg); dlg.close();
+    const n = document.createElement('div'); n.innerHTML = chart();
+    const m = Dash.modal({ title: 'A chart', body: n }); const modal = h(m.el); m.close();
+    await new Promise((ok) => setTimeout(ok, 50));
+    return { popup, dialog, modal };
+  });
+  check('strict CSP: a chart has its full height the moment a popup, a dialog or a modal opens', inKit.popup === 120 && inKit.dialog === 120 && inKit.modal === 120, JSON.stringify(inKit));
+  const foreign = await tab.evaluate(() => {
+    const box = sizedBox('foreign');
+    // not the kit's pieces; and on its pieces, values that are not numbers (a custom property would take "1em" as it is)
+    box.innerHTML = '<p data-css-w="50">not the kit\'s</p><div class="x"><i data-css-w="50"></i></div><div class="bar"><i data-css-w="1px;color:red"></i></div>'
+      + '<div class="chart-plot" data-css-chart-h="1em"></div><div class="chart-plot" data-css-chart-h=""></div>';
+    Dash.applyStyles(box);
+    return [...box.querySelectorAll('[data-css-w], [data-css-chart-h]')].map((e) => e.style.cssText);
+  });
+  check('strict CSP: data-css-* sets only numbers, and only on the kit\'s own pieces', foreign.every((x) => x === ''), JSON.stringify(foreign));
+  // last: violations (reported a moment later), then a style="" put in on purpose, to show that one would be seen
+  await tab.waitForTimeout(300);
+  const seen = await tab.evaluate(() => violations.slice());
+  check('strict CSP: no policy violations (Dash.lanes, the builders, popups, dialogs, modals)', seen.length === 0 && refused.length === 0, JSON.stringify({ seen, refused }));
+  await tab.evaluate(() => document.querySelector('main').insertAdjacentHTML('beforeend', '<p id="blocked" style="color: rgb(1, 2, 3)">blocked</p>'));
+  await tab.waitForTimeout(300);
+  const control = await tab.evaluate(() => ({ color: getComputedStyle(document.getElementById('blocked')).color, seen: violations.length }));
+  check('strict CSP: the policy is on, and a style="" in markup is seen', control.color !== 'rgb(1, 2, 3)' && control.seen >= 1 && refused.length >= 1, JSON.stringify({ ...control, refused: refused.length }));
   await tab.context().close();
 }
 

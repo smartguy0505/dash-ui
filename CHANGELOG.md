@@ -2,6 +2,23 @@
 
 Dashboards keep a copy of `dash.css` and `dash.js`; the first line of each file says which version it is. Versions only add things: a page that worked with an older copy works the same with a newer one.
 
+## 1.6.0 (2026-11-23)
+
+Every builder now works on a page with a strict style policy. All additive: with the new setting off, nothing changes.
+
+- `Dash.config.csp = true` is for a page served with `Content-Security-Policy: style-src 'self'`, which drops every `style=""` in markup. With it, `Dash.bar`, `Dash.meter`, `Dash.split`, `Dash.hbars`, `Dash.bars` and `Dash.spark` write their sizes as `data-css-*` numbers, and the kit sets them through the CSSOM.
+- When the kit puts markup in (`Dash.render`, popups, modals, dialogs), it sets the sizes at once, so a popup is placed at its real size. For markup the page puts in itself, the sizes are set before the next paint.
+- `Dash.applyStyles(el)` sets them at once, for a page that measures straight away.
+- Only numbers are set, only on the kit's own pieces (a `.bar`'s fill, a chart's columns and grid, a stacked column's parts, a chart's height, a sparkline's dot), so injected markup can't use it to style anything.
+- CSS: `.spark-box`, the sparkline's box and dot in this mode.
+- With the setting off (the default), the builders write exactly what 1.5.0 did, byte for byte. A test pins it.
+- Tests: the strict-policy page (`test/csp.html`, which was `lanes-csp.html`) checks four things:
+  - the builders draw exactly as they do without the policy, whether the page, `Dash.render` or `Dash.applyStyles` put the markup in;
+  - a chart has its full height the moment a popup, a dialog or a modal opens;
+  - `data-css-*` does nothing outside the kit's pieces;
+  - there are no policy violations, read after they are reported. A `style=""` put in on purpose shows they would be seen.
+- 145 browser checks and 32 node tests. All 131 deliberate breakages of the kit are caught, 15 of them new.
+
 ## 1.5.0 (2026-11-23)
 
 `Dash.lanes`: the timeline lanes from data. All additive.

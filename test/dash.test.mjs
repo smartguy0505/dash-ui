@@ -448,3 +448,55 @@ test('1.5: Dash.lanes axis, summaries, escaping and empty', () => {
   assert.equal(Dash.lanes.html([], { empty: 'None <yet>' }), '<p class="empty">None &lt;yet&gt;</p>');
   assert.equal(Dash.lanes.html([{ label: 'a' }], { from: now, to: now - h }), '<p class="empty">Nothing yet</p>');
 });
+
+// what the sizing builders wrote in 1.5.0, byte for byte: with Dash.config.csp off they must still write exactly this
+const SIZED_150 = {
+  bar: "<span class=\"bar thin ok\" title=\"a &lt;b&gt;\"><i style=\"width:42.5%\"></i></span>",
+  barOver: "<span class=\"bar\"><i style=\"width:100%\"></i></span>",
+  meter: "<span class=\"meter warn\"><i style=\"width:30%\"></i></span>",
+  split: "<div class=\"split\"><i class=\"ok\" style=\"width:75%\" title=\"up\"></i><i class=\"bad\" style=\"width:25%\"></i><i class=\"\" style=\"width:0%\"></i></div>",
+  bars: "<div class=\"chart\" data-read><div class=\"chart-read\" data-default=\"Total\">Total</div><div class=\"chart-plot\" style=\"--chart-h:120px\"><div class=\"chart-grid\" style=\"top:50%\"><span>2.5</span></div><div class=\"chart-grid\" style=\"top:0%\"><span>5</span></div><div class=\"chart-cols\"><div class=\"chart-col\" title=\"a: 3\"><i style=\"height:60%\"></i></div><div class=\"chart-col zero\" title=\"b: 0\"><i style=\"height:0%\"></i></div><div class=\"chart-col partial stacked\" title=\"c: 3.5\"><i style=\"height:70%\"><u class=\"ok\" style=\"flex-grow:2\"></u><u class=\"warn\" style=\"flex-grow:1.5\"></u></i></div></div></div><div class=\"chart-x\"><span class=\"start\"><b>a</b></span><span class=\"\"><b>b</b></span><span class=\"end\"><b>c</b></span></div></div>",
+  spark: "<div style=\"position:relative\"><svg class=\"spark teal\" viewBox=\"0 0 240 56\" preserveAspectRatio=\"none\" aria-hidden=\"true\"><path class=\"area\" d=\"M4.0 52.0 L81.3 28.0 L158.7 40.0 L236.0 4.0 L236.0 56 L4.0 56 Z\"></path><path class=\"line\" d=\"M4.0 52.0 L81.3 28.0 L158.7 40.0 L236.0 4.0\"></path></svg><span class=\"dot teal\" style=\"position:absolute;left:calc(98.33% - 3.5px);top:calc(7.14% - 3.5px);width:7px;height:7px\"></span></div><div class=\"spark-labels\"><span>then</span><span>now</span></div>",
+  sparkOne: "<div style=\"position:relative\"><svg class=\"spark\" viewBox=\"0 0 240 56\" preserveAspectRatio=\"none\" aria-hidden=\"true\"><path class=\"area\" d=\"M120.0 52.0 L120.0 56 L120.0 56 Z\"></path><path class=\"line\" d=\"M120.0 52.0\"></path></svg><span class=\"dot blue\" style=\"position:absolute;left:calc(50.00% - 3.5px);top:calc(92.86% - 3.5px);width:7px;height:7px\"></span></div>",
+  hbars: "<div class=\"hbars\"><div class=\"hbar\"><span class=\"hbar-label\"><span>x</span></span><span class=\"bar\"><i style=\"width:100%\"></i></span><span class=\"hbar-value\">2</span></div><div class=\"hbar bad\"><span class=\"hbar-label\"><span>y</span></span><span class=\"bar\"><i style=\"width:50%\"></i></span><span class=\"hbar-value\">1</span></div></div>",
+};
+const sizedNow = () => ({
+  bar: Dash.bar(0.425, 'ok', { title: 'a <b>', cls: 'thin' }),
+  barOver: Dash.bar(1.7),
+  meter: Dash.meter(0.3, 'warn'),
+  split: Dash.split([{ value: 3, tone: 'ok', label: 'up' }, { value: 1, tone: 'bad' }, { value: 0 }]),
+  bars: Dash.bars([{ label: 'a', value: 3 }, { label: 'b', value: 0 }, { label: 'c', parts: [{ value: 2, tone: 'ok' }, { value: 1.5, tone: 'warn' }], partial: true }], { height: 120, ticks: 2, read: 'Total' }),
+  spark: Dash.spark([1, 3, 2, 5], { tone: 'teal', labels: ['then', 'now'] }),
+  sparkOne: Dash.spark([4]),
+  hbars: Dash.hbars([{ label: 'x', value: 2 }, { label: 'y', value: 1, tone: 'bad' }]),
+});
+
+test('1.6: with Dash.config.csp off (the default) the sizing builders write exactly what 1.5.0 did', () => {
+  assert.equal(Dash.config.csp, false);
+  assert.deepEqual(sizedNow(), SIZED_150);
+});
+
+test('1.6: with Dash.config.csp on they write numbers in data-css-* and no style=""', () => {
+  Dash.config.csp = true;
+  try {
+    const now = sizedNow();
+    for (const [k, html] of Object.entries(now)) assert.doesNotMatch(html, /style=/, k);
+    const attrs = (html) => [...html.matchAll(/(data-css-[a-z-]+)="([^"]*)"/g)].map((m) => `${m[1]}=${m[2]}`);
+    assert.deepEqual(attrs(now.bar), ['data-css-w=42.5']);
+    assert.deepEqual(attrs(now.barOver), ['data-css-w=100']);
+    assert.deepEqual(attrs(now.meter), ['data-css-w=30']);
+    assert.deepEqual(attrs(now.split), ['data-css-w=75', 'data-css-w=25', 'data-css-w=0']);
+    assert.deepEqual(attrs(now.bars), ['data-css-chart-h=120', 'data-css-top=50', 'data-css-top=0', 'data-css-h=60', 'data-css-h=0', 'data-css-h=70', 'data-css-grow=2', 'data-css-grow=1.5']);
+    assert.deepEqual(attrs(now.spark), ['data-css-x=98.33', 'data-css-y=7.14']);
+    assert.match(now.spark, /^<div class="spark-box"><svg /);
+    assert.deepEqual(attrs(now.hbars), ['data-css-w=100', 'data-css-w=50']);
+    // the rest of the markup is the same: only the sizes moved
+    const bare = (html) => html.replace(/ (style|data-css-[a-z-]+)="[^"]*"/g, '').replace(' class="spark-box"', '');
+    for (const k of Object.keys(now)) assert.equal(bare(now[k]), bare(SIZED_150[k]), k);
+    // the stylesheet holds what the sparkline's style="" did
+    assert.match(css, /\.spark-box \{ position: relative; \}/);
+    assert.match(css, /\.spark-box > \.dot \{ position: absolute; width: 7px; height: 7px; \}/);
+  } finally {
+    Dash.config.csp = false;
+  }
+});

@@ -3,22 +3,22 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Lanes under a strict CSP</title>
+<title>Under a strict CSP</title>
 <link rel="stylesheet" href="../dash.css">
 <script src="../dash.js"></script>
 <script>
   // policy violations, counted from the start
   window.violations = [];
-  document.addEventListener('securitypolicyviolation', (e) => violations.push(e.violatedDirective));
+  document.addEventListener('securitypolicyviolation', (e) => violations.push(`${e.violatedDirective} ${(e.target && e.target.id) || ''}`.trim()));
 </script>
 </head>
 <!-- test/behaviour.mjs serves this page with Content-Security-Policy: style-src 'self', as some dashboards do: no style=""
-     attribute works here, so Dash.lanes has to place everything through the CSSOM. The test calls Dash.lanes itself. -->
+     attribute works here, so Dash.lanes and (with Dash.config.csp) the sizing builders have to set sizes through the
+     CSSOM. The test draws everything itself, then puts in a style="" on purpose to show violations would be seen. -->
 <body>
 <main class="page">
   <div class="panel"><div id="box"></div></div>
   <div class="panel"><div class="lanes" id="own"></div></div>
-  <p id="blocked" style="color: rgb(1, 2, 3)">A style="" that the policy blocks.</p>
 </main>
 </body>
 </html>

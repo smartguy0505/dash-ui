@@ -264,6 +264,7 @@ Builders return HTML strings, with every value escaped. Put them in with `innerH
 | `Dash.hbars(rows, { max, format, button })` | `{ label, value, tone, text, key }` per row |
 | `Dash.bars(points, { height, ticks, labelEvery, minorEvery, format, max, read })` | column chart, `{ label, value, tone, title, partial }` per column, or `parts: [{ value, tone }]` for a stacked one; `read`: a readout line for the hovered column |
 | `Dash.timeline(items, { empty })` | `{ title, time, text, tone }` per event; `time` as `Dash.time` reads it shows as "12 min ago", other text as it is |
+| `Dash.applyStyles(el)` | with `Dash.config.csp`: sets the builders' sizes in `el` (the page by default) at once (see *Pages with a strict style policy* below) |
 | `Dash.lanes(el, rows, { from, to, ticks, axis, nouns, labelWidth, empty })` | lanes on a time axis (`.lanes`), `{ label, sub, spans: [{ from, to, tone, title }], marks: [{ at, tone, title }], say }` per row. The range is the last 24 h unless given; a span with no `to` is still going. It cuts spans at the edges and leaves out what is outside; titles (or the times) are tooltips; each lane gets a spoken summary (`say` to write your own, `nouns` to name what it counts). The axis has `ticks` parts (4), labelled with `axis(t, i, n)` or the clock, "−54 h" or dates. It places everything through the CSSOM, so it works under a strict `style-src` CSP. `el` can be the page's own `.lanes` box. `Dash.lanes.html(rows, options)` is the markup alone, and `Dash.lanes.place(el)` places it once it is in the page |
 | `Dash.donut(segments, { center, sub })`, `Dash.gauge(frac, { name, sub, tone })`, `Dash.spark(values, { tone, height, area, labels })` | donut; gauge (ok → warn at 0.7 → bad at 0.9 unless a tone is given); sparkline |
 | `Dash.maskIps(text)`, `Dash.hideIps(text)` | blur IPv4 addresses (a click shows every copy of that address); `(IP hidden)` for tooltips |
@@ -301,7 +302,15 @@ Builders return HTML strings, with every value escaped. Put them in with `innerH
 - `<details class="menu">`: closes on a click outside, on Escape and once an item is chosen.
 - `.ip`: click or Enter shows that IP address everywhere on the page.
 
-`Dash.config` holds `loginUrl` (null), `themeKey` (`'dash.theme'`) and `sideKey` (`'dash.side'`).
+`Dash.config` holds `loginUrl` (null), `themeKey` (`'dash.theme'`), `sideKey` (`'dash.side'`) and `csp` (false, below).
+
+**Pages with a strict style policy.** A page served with `Content-Security-Policy: style-src 'self'` (no `'unsafe-inline'`) drops every `style=""` in markup, and the builders that size things write sizes that way: `Dash.bar`, `Dash.meter`, `Dash.split`, `Dash.hbars`, `Dash.bars` and `Dash.spark`. On such a page, set `Dash.config.csp = true` before drawing anything:
+
+- The builders then write their numbers as `data-css-*` attributes instead. The kit sets them through the CSSOM, which the policy allows. It does this at once wherever the kit puts markup in (`Dash.render`, popups, modals, dialogs), and before the next paint for markup the page puts in itself.
+- Only numbers are set, only on the kit's own pieces (a `.bar`'s fill, a chart's columns, and so on), so other markup can't use it to style anything.
+- `Dash.applyStyles(el)` sets them at once, for a page that measures right after putting markup in.
+- `Dash.lanes` works under the policy either way. The kit's own tooltips and popups always do.
+- With `csp` off (the default), the builders write `style=""` exactly as before.
 
 **`Dash.table` columns.** Each column is `{ key, label }` plus what it needs:
 - `num: true` aligns it right; `unit`, `title` and `cls` as for `Dash.th`; `main: true` makes it the card title on a phone;
@@ -389,7 +398,7 @@ node --test test/dash.test.mjs
 
 The tests cover the formatters, sorting, paging, escaping in every builder, and chart sizes. They also check that the two dark palettes in `dash.css` are equal, that every token has a dark value, and that every class used in the pages and in dash.js exists in `dash.css`. For layout, `test/screens.mjs` loads every page in headless Chromium at 390, 700, 860 and 1440 px, light and dark. It fails on a page wider than the window, a console error, or a stacked table whose rows aren't cards at the right widths (or whose `td.actions` left the card's corner). It needs Playwright, which the kit itself doesn't:
 
-`test/behaviour.mjs` checks in the same browser what a node test can't see: `Dash.render` keeping focus, typing, open details, scroll and a selection; the poll's live status; the chart readout; copy buttons across a redraw; the sidebar event; the search count; saved choices in `Dash.seg`; `.topbar.static-md` and phone tiles; `Dash.table`, tabs, menus, tooltips, dialogs, `Dash.search`, `Dash.key`, live times and stacked columns; and modals, popups and menus (each popup check runs with the browser's own popovers and without them), and what shows above an open dialog. `KIT=<dir>` serves `dash.css` and `dash.js` from another folder, to try a change.
+`test/behaviour.mjs` checks in the same browser what a node test can't see: `Dash.render` keeping focus, typing, open details, scroll and a selection; the poll's live status; the chart readout; copy buttons across a redraw; the sidebar event; the search count; saved choices in `Dash.seg`; `.topbar.static-md` and phone tiles; `Dash.table`, tabs, menus, tooltips, dialogs, `Dash.search`, `Dash.key`, live times and stacked columns; and modals, popups and menus (each popup check runs with the browser's own popovers and without them), and what shows above an open dialog; lanes; and, on a page served with `style-src 'self'` (`test/csp.html`), `Dash.lanes` and the sizing builders with `Dash.config.csp`, drawn as without the policy and with no violations. `KIT=<dir>` serves `dash.css` and `dash.js` from another folder, to try a change (the node tests read it too).
 
 ```sh
 npm i --no-save playwright-core && npx playwright-core install --only-shell chromium

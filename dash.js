@@ -1,4 +1,4 @@
-/* dash-ui 1.5.0 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
+/* dash-ui 1.6.0 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
    A plain script with no dependencies: a script tag for dash.js in <head> gives window.Dash, and puts the
    saved light/dark choice on the page before it paints. In Node, require('./dash.js') returns the same object
    (the parts that need a page are skipped).
@@ -8,7 +8,7 @@
 (function (root) {
   'use strict';
   const hasDom = typeof document !== 'undefined';
-  const Dash = { version: '1.5.0', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side' } };
+  const Dash = { version: '1.6.0', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side', csp: false } };
 
   // ---- basics
 
@@ -476,14 +476,63 @@
 
   const pctOf = (v, max) => (max > 0 ? clamp((Number(v) || 0) / max * 100, 0, 100) : 0);
   const w = (p) => `width:${+p.toFixed(2)}%`;
+
+  // ---- pages with a strict style policy (Content-Security-Policy: style-src 'self', no 'unsafe-inline')
+  // Such a page drops every style="" in markup. With Dash.config.csp = true, the builders that size things (bar,
+  // meter, split, bars, spark; Dash.lanes always does) write their numbers as data-css-* attributes instead, and
+  // the kit sets them through the CSSOM, which the policy allows: at once wherever the kit puts markup in
+  // (Dash.render, popups, modals, dialogs), and before the next paint for markup the page puts in itself (a
+  // MutationObserver). Only numbers, only these properties, only on the kit's own pieces: other markup can't
+  // style anything this way. Dash.applyStyles(el) applies them at once, for a page that measures right after
+  // putting markup in. Off (the default), the builders write style="" exactly as before.
+  const STYLED = [
+    ['.bar > i, .meter > i, .split > i', 'data-css-w', 'width', (v) => v + '%'],
+    ['.chart-col > i', 'data-css-h', 'height', (v) => v + '%'],
+    ['.chart-grid', 'data-css-top', 'top', (v) => v + '%'],
+    ['.chart-col u', 'data-css-grow', 'flex-grow', (v) => String(v)],
+    ['.chart-plot', 'data-css-chart-h', '--chart-h', (v) => v + 'px'],
+    ['.spark-box > .dot', 'data-css-x', 'left', (v) => `calc(${v}% - 3.5px)`],
+    ['.spark-box > .dot', 'data-css-y', 'top', (v) => `calc(${v}% - 3.5px)`],
+  ].map(([where, attr, prop, value]) => [where.split(',').map((s) => `${s.trim()}[${attr}]`).join(', '), attr, prop, value]);
+  Dash.applyStyles = (target) => {
+    const root = target == null ? (hasDom ? document : null) : el(target);
+    if (!root || !root.querySelectorAll) return root;
+    for (const [sel, attr, prop, value] of STYLED) {
+      const hits = [...root.querySelectorAll(sel)];
+      if (root.matches && root.matches(sel)) hits.push(root);
+      for (const e of hits) {
+        const v = Number(e.getAttribute(attr));
+        if (e.getAttribute(attr) !== '' && Number.isFinite(v)) e.style.setProperty(prop, value(v));
+      }
+    }
+    return root;
+  };
+  let styleWatch = null;
+  // is the strict mode on? Then (once) watch the page for markup it puts in itself
+  const strict = () => {
+    if (!Dash.config.csp) return false;
+    if (hasDom && !styleWatch && typeof MutationObserver === 'function') {
+      styleWatch = new MutationObserver((list) => {
+        for (const m of list) {
+          if (m.type === 'attributes') Dash.applyStyles(m.target);
+          else for (const n of m.addedNodes) if (n.nodeType === 1) Dash.applyStyles(n);
+        }
+      });
+      styleWatch.observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: [...new Set(STYLED.map((s) => s[1]))] });
+    }
+    return true;
+  };
+  // a size: style="decl" as always, or attr="n" in the strict mode
+  const sized = (attr, n, decl) => (strict() ? ` ${attr}="${n}"` : ` style="${decl}"`);
+  const fillW = (p) => sized('data-css-w', +p.toFixed(2), w(p));
   // a bar filled to frac (0–1)
   Dash.bar = (frac, tone, { title, cls = '' } = {}) =>
-    `<span class="bar${cls ? ' ' + esc(cls) : ''}${toneClass(tone)}"${title ? ` title="${esc(title)}"` : ''}><i style="${w(pctOf(frac, 1))}"></i></span>`;
-  Dash.meter = (frac, tone) => `<span class="meter${toneClass(tone)}"><i style="${w(pctOf(frac, 1))}"></i></span>`;
+    `<span class="bar${cls ? ' ' + esc(cls) : ''}${toneClass(tone)}"${title ? ` title="${esc(title)}"` : ''}><i${fillW(pctOf(frac, 1))}></i></span>`;
+  Dash.meter = (frac, tone) => `<span class="meter${toneClass(tone)}"><i${fillW(pctOf(frac, 1))}></i></span>`;
   // parts of a whole side by side: [{ value, tone, label }]
   Dash.split = (parts) => {
     const total = parts.reduce((s, p) => s + Math.max(0, Number(p.value) || 0), 0);
-    return `<div class="split">${parts.map((p) => `<i class="${esc(p.tone || '')}" style="${w(pctOf(p.value, total))}"${p.label ? ` title="${esc(p.label)}"` : ''}></i>`).join('')}</div>`;
+    return `<div class="split">${parts.map((p) => `<i class="${esc(p.tone || '')}"${fillW(pctOf(p.value, total))}${p.label ? ` title="${esc(p.label)}"` : ''}></i>`).join('')}</div>`;
   };
   // swatches with names and values: [{ label, value, tone, key }]; list: one per line with the value on the right
   Dash.legend = (items, { list = false, button = false } = {}) => `<div class="legend${list ? ' list' : ''}">${items.map((it) => {
@@ -603,14 +652,16 @@
     const top = max ?? Dash.niceMax(Math.max(0, ...points.map(total)));
     const grid = Array.from({ length: ticks }, (_, i) => {
       const v = (top * (i + 1)) / ticks;
-      return `<div class="chart-grid" style="top:${+(100 - (v / top) * 100).toFixed(2)}%"><span>${esc(format(v))}</span></div>`;
+      const at = +(100 - (v / top) * 100).toFixed(2);
+      return `<div class="chart-grid"${sized('data-css-top', at, `top:${at}%`)}><span>${esc(format(v))}</span></div>`;
     }).join('');
     const cols = points.map((p) => {
       const v = total(p);
       const cls = ['chart-col', p.tone || '', v === 0 ? 'zero' : '', p.partial ? 'partial' : '', p.parts ? 'stacked' : ''].filter(Boolean).join(' ');
       const tip = p.title ?? `${p.label}: ${format(v)}`;
-      const parts = p.parts && v ? p.parts.filter((x) => Number(x.value) > 0).map((x) => `<u${x.tone ? ` class="${esc(x.tone)}"` : ''} style="flex-grow:${+Number(x.value).toPrecision(6)}"></u>`).join('') : '';
-      return `<div class="${esc(cls)}" title="${esc(tip)}"><i style="height:${+pctOf(v, top).toFixed(2)}%">${parts}</i></div>`;
+      const parts = p.parts && v ? p.parts.filter((x) => Number(x.value) > 0).map((x) => { const g = +Number(x.value).toPrecision(6); return `<u${x.tone ? ` class="${esc(x.tone)}"` : ''}${sized('data-css-grow', g, `flex-grow:${g}`)}></u>`; }).join('') : '';
+      const h = +pctOf(v, top).toFixed(2);
+      return `<div class="${esc(cls)}" title="${esc(tip)}"><i${sized('data-css-h', h, `height:${h}%`)}>${parts}</i></div>`;
     }).join('');
     const n = points.length;
     const xs = points.map((p, i) => {
@@ -620,7 +671,7 @@
       return `<span class="${[pos, minor].filter(Boolean).join(' ')}">${show ? `<b>${esc(p.label)}</b>` : ''}</span>`;
     }).join('');
     const head = read == null ? '' : `<div class="chart-read" data-default="${esc(read)}">${esc(read)}</div>`;
-    return `<div class="chart"${read == null ? '' : ' data-read'}>${head}<div class="chart-plot" style="--chart-h:${height}px">${grid}<div class="chart-cols">${cols}</div></div><div class="chart-x">${xs}</div></div>`;
+    return `<div class="chart"${read == null ? '' : ' data-read'}>${head}<div class="chart-plot"${sized('data-css-chart-h', Number(height), `--chart-h:${height}px`)}>${grid}<div class="chart-cols">${cols}</div></div><div class="chart-x">${xs}</div></div>`;
   };
   // donut: [{ value, tone, label }] with a number in the middle
   Dash.donut = (segments, { center = '', sub = '', title = '' } = {}) => {
@@ -672,9 +723,11 @@
     const svg = `<svg class="spark${toneClass(tone)}" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-hidden="true">${fill}`
       + `<path class="line" d="${line}"></path></svg>`;
     // the end dot is HTML, so it stays round when the svg stretches
-    const dot = `<span class="dot${toneClass(tone || 'blue')}" style="position:absolute;left:calc(${(ex / width * 100).toFixed(2)}% - 3.5px);top:calc(${(ey / height * 100).toFixed(2)}% - 3.5px);width:7px;height:7px"></span>`;
+    const x = (ex / width * 100).toFixed(2), y = (ey / height * 100).toFixed(2), csp = strict();
+    const dot = csp ? `<span class="dot${toneClass(tone || 'blue')}" data-css-x="${x}" data-css-y="${y}"></span>`
+      : `<span class="dot${toneClass(tone || 'blue')}" style="position:absolute;left:calc(${x}% - 3.5px);top:calc(${y}% - 3.5px);width:7px;height:7px"></span>`;
     const under = labels ? `<div class="spark-labels"><span>${esc(labels[0] ?? '')}</span><span>${esc(labels[1] ?? '')}</span></div>` : '';
-    return `<div style="position:relative">${svg}${dot}</div>${under}`;
+    return `<div${csp ? ' class="spark-box"' : ' style="position:relative"'}>${svg}${dot}</div>${under}`;
   };
 
   // ---- IP addresses: blurred until clicked, so they stay out of screen shares (the data itself still needs a login)
@@ -835,6 +888,7 @@
     const scrolled = [...node.querySelectorAll('[id], [data-key]')].filter((e) => e.scrollTop || e.scrollLeft).map((e) => [keyOf(e), e.scrollTop, e.scrollLeft]);
     node.innerHTML = html;
     node.__dashHtml = html;
+    if (Dash.config.csp) Dash.applyStyles(node);
     for (const [k, isOpen] of open) { const d = find(k); if (d && d.tagName === 'DETAILS') d.open = isOpen; }
     for (const [k, top, left] of scrolled) { const e = find(k); if (e) { e.scrollTop = top; e.scrollLeft = left; } }
     if (focus) {
@@ -1050,6 +1104,7 @@
     d.innerHTML = `<form class="${drawer ? 'drawer-body' : 'dialog-body'}" method="dialog">${title ? `<h2>${esc(title)}</h2>` : ''}`
       + `${text ? `<p class="hint">${esc(text)}</p>` : ''}${body}<div class="dialog-actions">${all.map(btn).join('')}</div></form>`;
     document.body.appendChild(d);
+    if (Dash.config.csp) Dash.applyStyles(d);
     d.addEventListener('close', () => {
       const fields = Object.fromEntries(new FormData(d.querySelector('form')));
       resolve({ value: d.returnValue || null, fields });
@@ -1148,7 +1203,7 @@
       q('.modal-head').hidden = !title && !text && !dismissable;
       if (a) { acts = a; drawFoot(); }
       if (b != null) {
-        if (b.nodeType) { bodyEl.replaceChildren(b); bodyEl.__dashHtml = null; } else Dash.render(bodyEl, String(b), { force: bodyEl.__dashHtml == null });
+        if (b.nodeType) { bodyEl.replaceChildren(b); bodyEl.__dashHtml = null; if (Dash.config.csp) Dash.applyStyles(bodyEl); } else Dash.render(bodyEl, String(b), { force: bodyEl.__dashHtml == null });
       }
     };
     const finish = () => {
@@ -1300,6 +1355,7 @@
       if (typeof c === 'function') c = c(p);
       if (c === undefined) return; // the function filled p.el itself
       if (c && c.nodeType) box.replaceChildren(c); else box.innerHTML = c == null ? '' : String(c);
+      if (Dash.config.csp) Dash.applyStyles(box);
     };
     const finish = (value) => {
       if (done) return;
