@@ -4,7 +4,7 @@
 // and from 1.3 Dash.table, tabs, menus, tooltips, dialogs, Dash.search and Dash.key, live times and stacked columns;
 // from 1.4 modals, popups (with and without the browser's popovers), menus, and what shows above an open dialog;
 // from 1.4.1 lanes (events inside their lane, their pointer target, axis labels on a phone) and lanes and the
-// timeline in high contrast (forced colours).
+// timeline in high contrast (forced colours); from 1.5 Dash.lanes under a strict style-src policy (test/lanes-csp.html).
 //
 //   npm i --no-save playwright-core && npx playwright-core install --only-shell chromium
 //   node test/behaviour.mjs          (KIT=<dir> serves dash.css and dash.js from <dir> instead: to check a change)
@@ -30,7 +30,9 @@ const server = createServer(async (req, res) => {
   const path = normalize(decodeURIComponent(new URL(req.url, 'http://x').pathname)).replace(/^(\.\.[/\\])+/, '');
   const base = path === '/dash.css' || path === '/dash.js' ? kit : root;
   try {
-    res.writeHead(200, { 'Content-Type': TYPES[extname(path)] || 'application/octet-stream' }).end(await readFile(join(base, path)));
+    // test/lanes-csp.html: under a strict style policy, as some dashboards are
+    const csp = path === '/test/lanes-csp.html' ? { 'Content-Security-Policy': "style-src 'self'" } : {};
+    res.writeHead(200, { 'Content-Type': TYPES[extname(path)] || 'application/octet-stream', ...csp }).end(await readFile(join(base, path)));
   } catch {
     res.writeHead(404).end('not found');
   }
@@ -896,6 +898,61 @@ for (const [width, md, plain] of [[700, 'static', 'sticky'], [1000, 'sticky', 's
   const tab = await open({ width: 390 });
   const d = await tab.evaluate(() => ['axis-minor', 'axis-major'].map((id) => getComputedStyle(document.getElementById(id)).display));
   check('lanes: on a phone .minor axis labels hide, the others stay', d[0] === 'none' && d[1] !== 'none', d.join(' '));
+  await tab.context().close();
+}
+
+// ---- Dash.lanes under Content-Security-Policy: style-src 'self' (1.5)
+{
+  const tab = await open({ width: 1200 });
+  await tab.goto(url.replace('behaviour.html', 'lanes-csp.html'), { waitUntil: 'load' });
+  const DAY = { from: '2026-11-20T00:00:00Z', to: '2026-11-21T00:00:00Z' };
+  const rows = [{ label: 'api-eu-west', sub: 'team-a', spans: [{ from: '2026-11-20T06:00:00Z', to: '2026-11-20T12:00:00Z', title: 'load test 1' }],
+    marks: [{ at: '2026-11-20T18:00:00Z', title: 'incident at six' }] }];
+  const r = await tab.evaluate(([rows, DAY]) => {
+    const before = violations.length;
+    Dash.lanes('box', rows, { ...DAY, labelWidth: '120px' });
+    Dash.lanes('own', rows, { ...DAY, labelWidth: 90 });
+    let whole = 'ok';
+    try { Dash.lanes.place(document); } catch (e) { whole = String(e); } // the whole page, placed again
+    const at = (box) => {
+      const lane = box.querySelector('.lane').getBoundingClientRect(), span = box.querySelector('.span').getBoundingClientRect(), mark = box.querySelector('.mark').getBoundingClientRect();
+      const ax = [...box.querySelectorAll('.lane-axis span')].map((s) => s.getBoundingClientRect());
+      const f = (x) => Math.round(((x - lane.left) / lane.width) * 1000) / 10; // percent of the lane
+      return { span: [f(span.left), f(span.right)], mark: f((mark.left + mark.right) / 2), first: Math.round(ax[0].left - lane.left), last: Math.round(ax[ax.length - 1].right - lane.right),
+        label: Math.round(box.querySelector('.lane-label').getBoundingClientRect().width) };
+    };
+    return { blocked: getComputedStyle(document.getElementById('blocked')).color, box: at(document.getElementById('box')), own: at(document.getElementById('own')),
+      whole, nested: document.querySelectorAll('#own .lanes').length, wrapped: document.querySelectorAll('#box > .lanes').length, newViolations: violations.slice(before) };
+  }, [rows, DAY]);
+  check('Dash.lanes under a strict CSP: the page\'s own style="" is blocked (the policy is on)', r.blocked !== 'rgb(1, 2, 3)', r.blocked);
+  const near = (a, b, d = 0.6) => Math.abs(a - b) <= d;
+  for (const k of ['box', 'own']) {
+    const b = r[k];
+    check(`Dash.lanes under a strict CSP (${k}): the run and the event sit at their times`, near(b.span[0], 25) && near(b.span[1], 50) && near(b.mark, 75), JSON.stringify(b));
+    check(`Dash.lanes under a strict CSP (${k}): the first axis label starts at the lane's left, the last ends at its right`, Math.abs(b.first) <= 1 && Math.abs(b.last) <= 1, JSON.stringify(b));
+  }
+  check('Dash.lanes: labelWidth sets the label column (a number is pixels)', r.box.label === 120 && r.own.label === 90, `${r.box.label} ${r.own.label}`);
+  check('Dash.lanes: fills a .lanes box it is given, and makes one in any other box', r.nested === 0 && r.wrapped === 1, `nested ${r.nested}, wrapped ${r.wrapped}`);
+  check('Dash.lanes.place(document) places every .lanes box on the page', r.whole === 'ok', r.whole);
+  check('Dash.lanes: no policy violations', r.newViolations.length === 0, r.newViolations.join(' '));
+  // its titles show as the kit's tooltips
+  const m = await tab.evaluate(() => { const b = document.querySelector('#box .mark').getBoundingClientRect(); return { x: (b.left + b.right) / 2, y: (b.top + b.bottom) / 2 }; });
+  await tab.mouse.move(m.x, m.y);
+  const tip = await tab.evaluate(() => { const t = document.querySelector('.tooltip'); return t && !t.hidden ? t.textContent : null; });
+  check('Dash.lanes: an event\'s title shows as a tooltip', tip === 'incident at six', String(tip));
+  // calling it again redraws: the same run on a range twice as long sits at half the width
+  const again = await tab.evaluate((rows) => {
+    Dash.lanes('box', rows, { from: '2026-11-20T00:00:00Z', to: '2026-11-22T00:00:00Z' });
+    const lane = document.querySelector('#box .lane').getBoundingClientRect(), s = document.querySelector('#box .span').getBoundingClientRect();
+    return Math.round(((s.right - s.left) / lane.width) * 1000) / 10;
+  }, rows);
+  check('Dash.lanes: called again, it redraws', near(again, 12.5), String(again));
+  const empty = await tab.evaluate(() => {
+    Dash.lanes('own', [], { empty: 'No runs yet' });
+    const e = document.querySelector('#own > .empty');
+    return e ? { text: e.textContent, w: Math.round(e.getBoundingClientRect().width), box: Math.round(document.getElementById('own').getBoundingClientRect().width) } : null;
+  });
+  check('Dash.lanes: with no rows its empty text spans the whole box', empty && empty.text === 'No runs yet' && empty.w >= empty.box - 1, JSON.stringify(empty));
   await tab.context().close();
 }
 

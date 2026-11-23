@@ -109,19 +109,13 @@
   const tlRange = Dash.seg('tl-range', { value: '72', onChange: () => renderLanes() });
   function renderLanes() {
     const range = Number(tlRange.value) * 3600e3;
-    const pos = (t) => ((t - (now - range)) / range) * 100;
-    const inRange = (t) => t >= now - range && t <= now;
-    const lanes = Dash.sortBy(SERVERS, 'tested', 'desc');
-    $('lanes').innerHTML = lanes.map((n, i) => {
-      const runT = [8, 30, 55].map((h) => now - (72 - h - (i % 3)) * 3600e3).filter(inRange);
-      const markT = [n.incidentAt, n.incidentAt - 23 * 3600e3, n.incidentAt - 47 * 3600e3].filter(inRange);
-      const runs = runT.map((t) => `<span class="span" style="left:${pos(t).toFixed(2)}%;width:${(2.5 * 3600e3 / range * 100).toFixed(2)}%"></span>`).join('');
-      const marks = markT.map((t, j) => `<span class="mark${j === 2 && i % 4 === 1 ? ' warn' : ''}" style="left:${pos(t).toFixed(2)}%" title="${esc(Dash.hideIps(`incident at ${fmt.clock(t)} on ${n.ip}`))}"></span>`).join('');
-      // the lane in words, for screen readers (a mark's title reaches only a mouse)
-      const said = `${n.name}: ${runT.length} load test${runT.length === 1 ? '' : 's'}; incidents ${markT.length ? markT.map((t) => fmt.ago(t)).join(', ') : 'none'}`;
-      return `<div class="lane-label">${esc(n.name)} <span>· ${esc(n.acct)}</span></div><div class="lane" role="img" aria-label="${esc(said)}">${runs}${marks}</div>`;
-    }).join('') + '<div></div><div class="lane-axis">' + [0, 0.25, 0.5, 0.75, 1].map((f) =>
-      `<span class="${f === 1 ? 'major' : f === 0.25 || f === 0.75 ? 'minor' : ''}" style="left:${f * 100}%;${f === 0 ? 'transform:none' : f === 1 ? 'transform:translateX(-100%)' : ''}">${f === 1 ? 'now' : fmt.clock(now - (1 - f) * range)}</span>`).join('') + '</div>';
+    // Dash.lanes cuts what crosses the edge and leaves out what is outside; each lane says what it shows to a screen reader
+    Dash.lanes('lanes', Dash.sortBy(SERVERS, 'tested', 'desc').map((n, i) => ({
+      label: n.name, sub: n.acct,
+      spans: [8, 30, 55].map((h) => now - (72 - h - (i % 3)) * 3600e3).map((t) => ({ from: t, to: t + 2.5 * 3600e3, title: `load test from ${fmt.clock(t)}` })),
+      marks: [n.incidentAt, n.incidentAt - 23 * 3600e3, n.incidentAt - 47 * 3600e3].map((t, j) => ({
+        at: t, tone: j === 2 && i % 4 === 1 ? 'warn' : '', title: Dash.hideIps(`incident at ${fmt.clock(t)} on ${n.ip}`) })),
+    })), { from: now - range, to: now, nouns: { span: 'load test', mark: 'incident' } });
   }
 
   // leaderboard: services with their servers underneath (click a row to open them)

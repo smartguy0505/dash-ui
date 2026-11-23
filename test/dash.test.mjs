@@ -3,12 +3,16 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { resolve } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const require = createRequire(import.meta.url);
-const Dash = require('../dash.js');
-const { fmt } = Dash;
 const root = new URL('../', import.meta.url);
-const css = readFileSync(new URL('dash.css', root), 'utf8');
+// KIT=<dir> tests the dash.css and dash.js in <dir> instead, as test/behaviour.mjs does: to check a change
+const kit = process.env.KIT ? pathToFileURL(resolve(process.env.KIT) + '/') : root;
+const Dash = require(fileURLToPath(new URL('dash.js', kit)));
+const css = readFileSync(new URL('dash.css', kit), 'utf8');
+const { fmt } = Dash;
 
 test('esc escapes everything that matters in HTML and attributes', () => {
   assert.equal(Dash.esc(`<a href="x" title='y'>&</a>`), '&lt;a href=&quot;x&quot; title=&#39;y&#39;&gt;&amp;&lt;/a&gt;');
@@ -263,7 +267,7 @@ test('1.3: stat tiles escape their text', () => {
 
 test('the version is the same in dash.css, dash.js, Dash.version and package.json', () => {
   const pkg = JSON.parse(readFileSync(new URL('package.json', root), 'utf8')).version;
-  const js = readFileSync(new URL('dash.js', root), 'utf8');
+  const js = readFileSync(new URL('dash.js', kit), 'utf8');
   assert.equal(Dash.version, pkg);
   assert.match(css.split('\n')[0], new RegExp(`^/\\* dash-ui ${pkg.replaceAll('.', '\\.')}:`));
   assert.match(js.split('\n')[0], new RegExp(`^/\\* dash-ui ${pkg.replaceAll('.', '\\.')} `));
@@ -299,7 +303,7 @@ test('dash.css: colour contrast', () => {
 });
 
 test('both files can be pasted inline into a page', () => {
-  const js = readFileSync(new URL('dash.js', root), 'utf8');
+  const js = readFileSync(new URL('dash.js', kit), 'utf8');
   assert.doesNotMatch(js, /<\/script/i, 'dash.js would close an inline <script> early');
   assert.doesNotMatch(js, /<!--/, 'dash.js has an HTML comment opener');
   assert.doesNotMatch(css, /<\/style/i, 'dash.css would close an inline <style> early');
@@ -337,7 +341,7 @@ test('every class the pages and helpers use is in dash.css (or the page’s own 
   const defined = new Set([...css.matchAll(/\.([a-zA-Z][\w-]*)/g)].map((m) => m[1]));
   const files = ['index.html', ...readdirSync(new URL('examples/', root)).map((f) => 'examples/' + f)];
   const missing = [];
-  const js = readFileSync(new URL('dash.js', root), 'utf8');
+  const js = readFileSync(new URL('dash.js', kit), 'utf8');
   const sources = files.map((f) => [f, readFileSync(new URL(f, root), 'utf8')]).concat([['dash.js', js]]);
   for (const [file, text] of sources) {
     const own = new Set([...(text.match(/<style>([\s\S]*?)<\/style>/)?.[1] || '').matchAll(/\.([a-zA-Z][\w-]*)/g)].map((m) => m[1]));
@@ -390,4 +394,57 @@ test('1.4: menu items escape, and carry their roles', () => {
   assert.equal(Dash.menu.html([]), '');
   assert.equal(Dash.menu.html(['One', { label: 'Two', value: 2 }]),
     '<button type="button" role="menuitem" data-item="0" tabindex="-1"><span class="menu-text">One</span></button><button type="button" role="menuitem" data-item="1" tabindex="-1"><span class="menu-text">Two</span></button>');
+});
+
+test('1.5: Dash.lanes cuts spans at the edges, leaves out what is outside, and writes no style=""', () => {
+  const now = Date.now(), h = 3600e3, from = now - 24 * h;
+  const html = Dash.lanes.html([{ label: 'a', spans: [
+    { from: now - 30 * h, to: now - 18 * h },   // starts before the range: cut at its left edge
+    { from: now - 12 * h, to: now - 18 * h },   // backwards: read the right way round
+    { from: now - 50 * h, to: now - 40 * h },   // wholly before: left out
+    { from: now - 6 * h },                      // still going: runs to the end
+    { from: 'soon', to: now },                  // not a time: left out
+  ], marks: [{ at: now - 12 * h }, { at: now - 30 * h }, { at: now + h }, { at: 'x' }] }], { from, to: now });
+  assert.doesNotMatch(html, /style=/);
+  const spans = [...html.matchAll(/class="span" data-at="([\d.]+)" data-len="([\d.]+)"/g)].map((m) => [Number(m[1]), Number(m[2])]);
+  assert.deepEqual(spans, [[0, 25], [25, 25], [75, 25]]);
+  assert.deepEqual([...html.matchAll(/class="mark" data-at="([\d.]+)"/g)].map((m) => Number(m[1])), [50]);
+  assert.match(html, /aria-label="a: 3 runs, 1 event: /);
+});
+
+test('1.5: Dash.lanes axis, summaries, escaping and empty', () => {
+  const now = Date.now(), h = 3600e3, d = 24 * h;
+  const ax = (html) => [...html.matchAll(/<span(?: class="([^"]*)")? data-at="([\d.]+)">([^<]*)<\/span>/g)].map((m) => [m[1] || '', Number(m[2]), m[3]]);
+  const live = ax(Dash.lanes.html([{ label: 'a' }], { from: now - d, to: now, ticks: 4 }));
+  assert.deepEqual(live.map((x) => x[0]), ['start', 'minor', '', 'minor', 'end major']);
+  assert.deepEqual(live.map((x) => x[1]), [0, 25, 50, 75, 100]);
+  assert.equal(live[4][2], 'now');
+  assert.match(live[0][2], /^\d\d:\d\d$/);
+  const past = ax(Dash.lanes.html([{ label: 'a' }], { from: now - 10 * d, to: now - 4 * d, ticks: 2 }));
+  assert.equal(past.length, 3);
+  assert.equal(past[2][2], fmt.date(now - 4 * d)); // over a day, ended before: dates, and no "now"
+  assert.deepEqual(ax(Dash.lanes.html([{ label: 'a' }], { from: now - 3 * d, to: now })).map((x) => x[2]), ['−72 h', '−54 h', '−36 h', '−18 h', 'now']);
+  assert.deepEqual(ax(Dash.lanes.html([{ label: 'a' }], { from: now - 10 * d, to: now })).map((x) => x[2]), ['−10 d', '−7.5 d', '−5 d', '−2.5 d', 'now']);
+  const seen = [];
+  const custom = ax(Dash.lanes.html([{ label: 'a' }], { from: 0, to: 3 * h, ticks: 3, axis: (t, i, n) => (seen.push([t, i, n]), `<${i}>`) }));
+  assert.deepEqual(seen, [[0, 0, 3], [h, 1, 3], [2 * h, 2, 3], [3 * h, 3, 3]]);
+  assert.deepEqual(custom.map((x) => x[2]), ['&lt;0&gt;', '&lt;1&gt;', '&lt;2&gt;', '&lt;3&gt;']);
+  assert.doesNotMatch(Dash.lanes.html([{ label: 'a' }], { ticks: 0 }), /lane-axis/);
+
+  const html = Dash.lanes.html([
+    { label: '<b>', sub: '"t"', spans: [{ from: now - h, to: now - h / 2, title: 'run <1>', tone: 'ok"' }], marks: [{ at: now - 2 * h, title: "it's <i>", tone: 'warn' }] },
+    { label: 'many', marks: Array.from({ length: 10 }, (_, i) => ({ at: now - (i + 1) * h, title: 'e' + i })) },
+    { label: 'own words', say: 'said <so>', marks: [{ at: now - h }] },
+  ], { labelWidth: '9em"', nouns: { span: 'load test', mark: 'incident' } });
+  assert.match(html, /^<div class="lanes" data-label-width="9em&quot;">/);
+  assert.match(Dash.lanes.html([{ label: 'a' }], { labelWidth: 120 }), /^<div class="lanes" data-label-width="120px">/); // a number is pixels
+  assert.match(html, /<div class="lane-label">&lt;b&gt; <span>· &quot;t&quot;<\/span><\/div>/);
+  assert.match(html, /aria-label="&lt;b&gt; \(&quot;t&quot;\): 1 load test, 1 incident: it&#39;s &lt;i&gt;; run &lt;1&gt;"/); // in time order
+  assert.match(html, /<span class="span ok&quot;" data-at="[\d.]+" data-len="[\d.]+" data-tooltip="run &lt;1&gt;">/);
+  assert.match(html, /<span class="mark warn" data-at="[\d.]+" data-tooltip="it&#39;s &lt;i&gt;">/);
+  assert.match(html, /aria-label="many: 0 load tests, 10 incidents: e9; e8; e7; e6; e5; e4; e3; e2; and 2 more"/);
+  assert.match(html, /aria-label="said &lt;so&gt;"/);
+  assert.match(Dash.lanes.html([{ label: 'a', marks: [{ at: now - h }] }]), /data-tooltip="[A-Z][a-z]{2} \d+, \d\d:\d\d"/); // no title: its time
+  assert.equal(Dash.lanes.html([], { empty: 'None <yet>' }), '<p class="empty">None &lt;yet&gt;</p>');
+  assert.equal(Dash.lanes.html([{ label: 'a' }], { from: now, to: now - h }), '<p class="empty">Nothing yet</p>');
 });

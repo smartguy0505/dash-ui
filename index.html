@@ -268,7 +268,7 @@
       </div>
     </div>
     <div class="panel" style="margin-top:14px">
-      <div class="panel-head"><h3>Timeline</h3><span class="read">incidents (marks) during load tests (spans), last 72 h</span></div>
+      <div class="panel-head"><h3>Timeline</h3><span class="read">Dash.lanes · incidents (marks) during load tests (spans), last 72 h</span></div>
       <div class="lanes" id="lanes"></div>
       <div class="legend" style="margin-top:12px"><span class="legend-item blue"><i style="opacity:.3"></i>load test</span><span class="legend-item bad"><i></i>incident</span><span class="legend-item warn"><i></i>incident, nobody paged</span></div>
     </div>
@@ -507,16 +507,13 @@
   $('share-demo').innerHTML = Dash.bar(0.12, 'accent', { cls: 'thin' }) + '<span>12%</span>';
   $('bars-demo').innerHTML = [['ok', 0.92], ['warn', 0.55], ['bad', 0.18], ['purple', 0.66]].map(([t, f]) => Dash.bar(f, t, { cls: 'tinted' })).join('');
 
-  const RANGE = 72 * 3600e3;
-  const now = Date.now();
-  const pos = (t) => ((t - (now - RANGE)) / RANGE) * 100;
+  const now = Date.now(), H = 3600e3;
   const LANES = [['api-eu-west', 'team-a'], ['api-us-east', 'team-b'], ['web-ap-south', 'team-a'], ['api-eu-north', 'team-a']];
-  $('lanes').innerHTML = LANES.map(([name, acct], i) => {
-    const spans = [10, 34, 58].map((h) => `<span class="span" style="left:${pos(now - (72 - h - i * 2) * 3600e3).toFixed(2)}%;width:${(2.5 / 72 * 100).toFixed(2)}%"></span>`).join('');
-    const marks = [11 + i, 35.5, 59 + i / 2].map((h, j) => `<span class="mark${j === 1 && i === 1 ? ' warn' : ''}" style="left:${pos(now - (72 - h) * 3600e3).toFixed(2)}%" title="incident ${j + 1}"></span>`).join('');
-    return `<div class="lane-label">${esc(name)} <span>· ${esc(acct)}</span></div><div class="lane" role="img" aria-label="${esc(name)}: 3 load tests, 3 incidents">${spans}${marks}</div>`;
-  }).join('') + '<div></div><div class="lane-axis">' + [0, 24, 48, 72].map((h) =>
-    `<span class="${h % 24 === 0 ? 'major' : ''}" style="left:${(h / 72 * 100).toFixed(2)}%;${h === 0 ? 'transform:none' : h === 72 ? 'transform:translateX(-100%)' : ''}">${h === 72 ? 'now' : `−${72 - h} h`}</span>`).join('') + '</div>';
+  Dash.lanes('lanes', LANES.map(([name, acct], i) => ({
+    label: name, sub: acct,
+    spans: [10, 34, 58].map((h) => ({ from: now - (72 - h - i * 2) * H, to: now - (69.5 - h - i * 2) * H })),
+    marks: [11 + i, 35.5, 59 + i / 2].map((h, j) => ({ at: now - (72 - h) * H, tone: j === 1 && i === 1 ? 'warn' : '', title: `incident ${j + 1}` })),
+  })), { from: now - 72 * H, to: now, ticks: 3, nouns: { span: 'load test', mark: 'incident' } });
 
   // tabs, a table from columns, search, menus, dialogs, timeline
   Dash.tabs('more-tabs', { value: 'overview', store: 'gallery.tab', panels: 'more-panels' });

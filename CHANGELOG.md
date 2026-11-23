@@ -2,6 +2,19 @@
 
 Dashboards keep a copy of `dash.css` and `dash.js`; the first line of each file says which version it is. Versions only add things: a page that worked with an older copy works the same with a newer one.
 
+## 1.5.0 (2026-11-23)
+
+`Dash.lanes`: the timeline lanes from data. All additive.
+
+- `Dash.lanes(el, rows, options)` draws lanes on a time axis, one row per thing, each with its runs (`spans`) and events (`marks`). The range is the last 24 h unless `from` and `to` say otherwise. Times are anything `Dash.time` reads, and a run with no end is still going.
+- It does the parts each page got wrong by hand. It cuts runs at the edges and leaves out what lies outside. It labels the axis: the clock up to a day, then "−54 h" or dates, and "now" when the range ends now. In-between labels are `.minor`, so they hide on phones.
+- Titles show as the kit's tooltips. Without a title, the times do. Each lane is `role="img"`, with a summary a screen reader reads: "api-eu-west (team-a): 3 load tests, 2 incidents: …". `say` replaces the summary, and `nouns` names what it counts.
+- It never writes `style=""` into its markup. Positions go in through the CSSOM, so it works on a page whose policy is `style-src 'self'`. `Dash.lanes.html` gives the markup alone, and `Dash.lanes.place(el)` positions it once it is in the page.
+- `el` can be the page's own `.lanes` box, which it fills, or any box, where it adds one. `labelWidth` sets the label column; a number means pixels.
+- CSS: `.lane-axis .start` and `.end` align the first and last labels to the edges, and `.lanes > .empty` spans the whole box.
+- The gallery and `examples/fleet.html` now draw their lanes with it.
+- Tests: the node tests can check a copy of the kit (`KIT=<dir>`), as the browser tests do. There are new node tests for the markup and 12 new browser checks (139), run on a page served under `style-src 'self'`. All 116 deliberate breakages of the kit are caught, 23 of them new.
+
 ## 1.4.1 (2026-11-23)
 
 Fixes in the timeline lanes, and lanes and the timeline in high contrast. Pages need no change; `.minor` is new and optional.

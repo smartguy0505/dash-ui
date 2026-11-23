@@ -1,4 +1,4 @@
-/* dash-ui 1.4.1 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
+/* dash-ui 1.5.0 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
    A plain script with no dependencies: a script tag for dash.js in <head> gives window.Dash, and puts the
    saved light/dark choice on the page before it paints. In Node, require('./dash.js') returns the same object
    (the parts that need a page are skipped).
@@ -8,7 +8,7 @@
 (function (root) {
   'use strict';
   const hasDom = typeof document !== 'undefined';
-  const Dash = { version: '1.4.1', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side' } };
+  const Dash = { version: '1.5.0', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side' } };
 
   // ---- basics
 
@@ -500,6 +500,85 @@
       return `<li${it.tone ? ` class="${esc(it.tone)}"` : ''}><div class="timeline-head"><span class="timeline-title">${esc(it.title ?? '')}</span>${t ? `<span class="timeline-time">${t}</span>` : ''}</div>`
         + `${it.html ? `<div class="timeline-text">${it.html}</div>` : it.text ? `<div class="timeline-text">${esc(it.text)}</div>` : ''}</li>`;
     }).join('')}</ol>`);
+
+  // Lanes: one row per thing, its runs (spans) and events (marks) on a time axis, in the .lanes look.
+  //   Dash.lanes(el, rows, { from, to, ticks, axis, nouns, labelWidth, empty })
+  //   rows: [{ label, sub, spans: [{ from, to, tone, title }], marks: [{ at, tone, title }], say }]
+  // Times are anything Dash.time reads; to is now and from 24 h before it unless given. A span with no `to` is
+  // still going and runs to the end. Spans are cut at the edges; what lies wholly outside is left out. title is
+  // the tooltip (the times when there is none). Each lane is role="img" labelled with say, or with a summary of
+  // what is in it: nouns ({ span: 'run', mark: 'event' }) name the things it counts. ticks: the axis in that many
+  // parts (4; 0 for none), labelled with axis(t, i, n), else the clock up to a day, and past that hours or days
+  // ago ("−54 h") when it ends now, dates when it ended before; "now" at the end when it is now. In-between labels
+  // hide on phones. labelWidth: the label column (200px). Call it again to refresh.
+  // el may be the page's own .lanes box or any box to put one in.
+  // It places things through the CSSOM, never style="" in the markup, so it works under a strict style-src CSP.
+  // Dash.lanes.html(rows, options) is the markup alone, and Dash.lanes.place(el) places it once it is in the page.
+  const laneWidth = (w) => (isNum(w) ? w + 'px' : String(w)); // labelWidth: 120 is 120px
+  const lanesHtml = (rows = [], { from, to, ticks = 4, axis, nouns, labelWidth, empty = 'Nothing yet' } = {}, bare = false) => {
+    const end = Number.isFinite(Dash.time(to)) ? Dash.time(to) : Date.now();
+    const start = Number.isFinite(Dash.time(from)) ? Dash.time(from) : end - 864e5;
+    const range = end - start;
+    if (!rows.length || !(range > 0)) return `<p class="empty">${esc(empty)}</p>`;
+    const word = { span: 'run', mark: 'event', ...nouns };
+    const pos = (t) => clamp((t - start) / range, 0, 1) * 100;
+    const at = (x) => x.toFixed(3);
+    const sameDay = (a, b) => new Date(a).toDateString() === new Date(b).toDateString();
+    const lanes = rows.map((r) => {
+      const spans = (r.spans || []).map((s) => {
+        const going = s.to == null || s.to === '';
+        let a = Dash.time(s.from), b = going ? end : Dash.time(s.to);
+        if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
+        if (b < a) [a, b] = [b, a];
+        if (b < start || a > end) return null;
+        const text = s.title ?? `${fmt.when(a)} – ${going ? 'now' : sameDay(a, b) ? fmt.clock(b) : fmt.when(b)}`;
+        return { t: a, text, html: `<span class="span${toneClass(s.tone)}" data-at="${at(pos(a))}" data-len="${at(pos(b) - pos(a))}" data-tooltip="${esc(text)}"></span>` };
+      }).filter(Boolean);
+      const marks = (r.marks || []).map((m) => {
+        const t = Dash.time(m.at);
+        if (!Number.isFinite(t) || t < start || t > end) return null;
+        const text = m.title ?? fmt.when(t);
+        return { t, text, html: `<span class="mark${toneClass(m.tone)}" data-at="${at(pos(t))}" data-tooltip="${esc(text)}"></span>` };
+      }).filter(Boolean);
+      const sub = r.sub != null && r.sub !== '' ? String(r.sub) : '';
+      const items = [...spans, ...marks].sort((x, y) => x.t - y.t).map((x) => x.text);
+      const said = r.say ?? `${r.label ?? ''}${sub ? ` (${sub})` : ''}: ${fmt.plural(spans.length, word.span)}, ${fmt.plural(marks.length, word.mark)}`
+        + (items.length ? ': ' + items.slice(0, 8).join('; ') + (items.length > 8 ? `; and ${items.length - 8} more` : '') : '');
+      return `<div class="lane-label">${esc(r.label ?? '')}${sub ? ` <span>· ${esc(sub)}</span>` : ''}</div>`
+        + `<div class="lane" role="img" aria-label="${esc(said)}">${spans.map((x) => x.html).join('')}${marks.map((x) => x.html).join('')}</div>`;
+    }).join('');
+    const n = Math.round(Number(ticks));
+    const live = Math.abs(end - Date.now()) < 60e3;
+    const ago = (t) => (range <= 4 * 864e5 ? `−${Number(((end - t) / 36e5).toFixed(1))} h` : `−${Number(((end - t) / 864e5).toFixed(1))} d`);
+    const label = axis || ((t, i) => (i === n && live ? 'now' : range <= 864e5 ? fmt.time(t, { seconds: false }) : live ? ago(t) : fmt.date(t)));
+    const axisHtml = !(n >= 1) ? '' : '<div></div><div class="lane-axis" aria-hidden="true">' + Array.from({ length: n + 1 }, (_, i) => {
+      const cls = i === 0 ? 'start' : i === n ? 'end major' : i % 2 ? 'minor' : '';
+      return `<span${cls ? ` class="${cls}"` : ''} data-at="${at((i / n) * 100)}">${esc(label(start + (range * i) / n, i, n))}</span>`;
+    }).join('') + '</div>';
+    return bare ? lanes + axisHtml : `<div class="lanes"${labelWidth ? ` data-label-width="${esc(laneWidth(labelWidth))}"` : ''}>${lanes}${axisHtml}</div>`;
+  };
+  const placeLanes = (target) => {
+    const root = el(target);
+    if (!root || !root.querySelectorAll) return root;
+    for (const box of root.matches && root.matches('.lanes') ? [root] : root.querySelectorAll('.lanes')) {
+      if (box.dataset.labelWidth) box.style.setProperty('--lane-label', box.dataset.labelWidth);
+      for (const e of box.querySelectorAll('[data-at]')) {
+        e.style.left = e.dataset.at + '%';
+        if (e.dataset.len != null) e.style.width = e.dataset.len + '%';
+      }
+    }
+    return root;
+  };
+  Dash.lanes = (target, rows, options) => {
+    const node = el(target);
+    if (!node) return node;
+    const own = node.matches('.lanes'); // the page's own .lanes box: fill it, rather than put a second one inside
+    if (own && options && options.labelWidth) node.dataset.labelWidth = laneWidth(options.labelWidth);
+    Dash.render(node, lanesHtml(rows, options, own));
+    return placeLanes(node);
+  };
+  Dash.lanes.html = (rows, options) => lanesHtml(rows, options);
+  Dash.lanes.place = placeLanes;
   // horizontal bars, one row per item: [{ label, value, tone, text, key, title }]
   Dash.hbars = (rows, { max, format = fmt.compact, button = false } = {}) => {
     const top = max ?? Math.max(0, ...rows.map((r) => Number(r.value) || 0));

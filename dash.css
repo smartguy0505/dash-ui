@@ -1,4 +1,4 @@
-/* dash-ui 1.4.1: the look shared by my dashboards (agents, fleet, leaderboard, payouts, balances).
+/* dash-ui 1.5.0: the look shared by my dashboards (agents, fleet, leaderboard, payouts, balances).
    Warm neutral backgrounds, white panels, tinted status colours, light and dark from the system setting
    (or data-theme="light|dark" on <html>). No build step, no dependencies: link this file, or paste it into a page.
 
@@ -526,6 +526,9 @@ button.hbar:hover { background: var(--soft); }
 .lane-axis { position: relative; height: 20px; color: var(--faint); font-size: 12px; }
 .lane-axis span { position: absolute; top: 2px; transform: translateX(-50%); white-space: nowrap; }
 .lane-axis span.major { color: var(--muted); font-weight: 700; }
+.lane-axis span.start { transform: none; }               /* the first label starts at the left edge */
+.lane-axis span.end { transform: translateX(-100%); }    /* the last one ends at the right edge */
+.lanes > .empty { grid-column: 1 / -1; }
 /* .minor axis labels hide on phones, where they would run into each other */
 @media (forced-colors: active) { /* high contrast drops background colours: the lane and its runs get lines, events get ink */
   .lane { border: 1px solid GrayText; }

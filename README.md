@@ -218,7 +218,7 @@ Surfaces and text: `--bg`, `--card`, `--soft` (a block inside a card, table head
 - `.donut` beside a `.legend.list`, in `.donut-wrap`.
 - `.gauges`, `.gauge`: half-circle gauges.
 - `.spark`: a sparkline, with `.spark-labels` under it.
-- `.lanes`: the fleet dashboard's timeline. `.lane-label`, then a `.lane` with `.span` (a run) and `.mark` (an event) placed with `left:%`, then a `.lane-axis`. Axis labels with `.minor` hide on phones, where they would run into each other; `.major` ones are bold. A mark's `title` reaches only a mouse, so give each `.lane` `role="img"` and an `aria-label` saying what it shows (examples/fleet.html does). In high contrast the lane and its runs get outlines and the marks stay solid.
+- `.lanes`: the fleet dashboard's timeline; `Dash.lanes` builds it. By hand: `.lane-label`, then a `.lane` with `.span` (a run) and `.mark` (an event) placed with `left:%`, then a `.lane-axis`. Axis labels with `.minor` hide on phones, where they would run into each other; `.major` ones are bold; `.start` begins at the left edge and `.end` ends at the right. A mark's `title` reaches only a mouse, so give each `.lane` `role="img"` and an `aria-label` saying what it shows (`Dash.lanes` does). In high contrast the lane and its runs get outlines and the marks stay solid.
 
 **Feedback**
 - `.toast` (`Dash.toast`): a short message at the bottom; with an action (`Undo`) it has a button. Toasts and notices show above an open dialog, inside it.
@@ -264,6 +264,7 @@ Builders return HTML strings, with every value escaped. Put them in with `innerH
 | `Dash.hbars(rows, { max, format, button })` | `{ label, value, tone, text, key }` per row |
 | `Dash.bars(points, { height, ticks, labelEvery, minorEvery, format, max, read })` | column chart, `{ label, value, tone, title, partial }` per column, or `parts: [{ value, tone }]` for a stacked one; `read`: a readout line for the hovered column |
 | `Dash.timeline(items, { empty })` | `{ title, time, text, tone }` per event; `time` as `Dash.time` reads it shows as "12 min ago", other text as it is |
+| `Dash.lanes(el, rows, { from, to, ticks, axis, nouns, labelWidth, empty })` | lanes on a time axis (`.lanes`), `{ label, sub, spans: [{ from, to, tone, title }], marks: [{ at, tone, title }], say }` per row. The range is the last 24 h unless given; a span with no `to` is still going. It cuts spans at the edges and leaves out what is outside; titles (or the times) are tooltips; each lane gets a spoken summary (`say` to write your own, `nouns` to name what it counts). The axis has `ticks` parts (4), labelled with `axis(t, i, n)` or the clock, "−54 h" or dates. It places everything through the CSSOM, so it works under a strict `style-src` CSP. `el` can be the page's own `.lanes` box. `Dash.lanes.html(rows, options)` is the markup alone, and `Dash.lanes.place(el)` places it once it is in the page |
 | `Dash.donut(segments, { center, sub })`, `Dash.gauge(frac, { name, sub, tone })`, `Dash.spark(values, { tone, height, area, labels })` | donut; gauge (ok → warn at 0.7 → bad at 0.9 unless a tone is given); sparkline |
 | `Dash.maskIps(text)`, `Dash.hideIps(text)` | blur IPv4 addresses (a click shows every copy of that address); `(IP hidden)` for tooltips |
 | `Dash.copy(text)` | clipboard with the old fallback for plain-HTTP pages; returns true/false |
