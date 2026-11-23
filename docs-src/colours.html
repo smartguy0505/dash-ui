@@ -1,0 +1,78 @@
+    <section id="tokens" data-terms="--bg --card --text --muted --faint --line --soft --shadow --radius --font --mono tokens">
+      <h2>The tokens</h2>
+      <p>Every colour, radius and font in the kit is a custom property on <code>:root</code>, set again for dark. A page that wants its own look changes the tokens, and every component follows. Neutrals are warm greys, from the page's ground to the faintest text:</p>
+      <example title="The neutrals">
+        <div class="swatches">
+          <div class="swatch" style="--c: var(--bg)"><i></i><b>Page</b><code>--bg</code></div>
+          <div class="swatch" style="--c: var(--card)"><i></i><b>Card</b><code>--card</code></div>
+          <div class="swatch" style="--c: var(--soft)"><i></i><b>Soft fill</b><code>--soft</code></div>
+          <div class="swatch" style="--c: var(--line)"><i></i><b>Lines</b><code>--line</code></div>
+          <div class="swatch" style="--c: var(--faint)"><i></i><b>Faint text</b><code>--faint</code></div>
+          <div class="swatch" style="--c: var(--muted)"><i></i><b>Muted text</b><code>--muted</code></div>
+          <div class="swatch" style="--c: var(--text)"><i></i><b>Text</b><code>--text</code></div>
+        </div>
+      </example>
+      <p>Besides colours: <code>--radius</code> (cards) and <code>--radius-sm</code> (fields, small boxes), <code>--shadow</code> and <code>--shadow-pop</code> (popups), <code>--backdrop</code> behind a modal, <code>--font</code> and <code>--mono</code>, <code>--page-max</code> (how wide <code>.page</code> grows), <code>--side-w</code> (the sidebar) and <code>--topbar-h</code>.</p>
+      <pre class="code"><code>:root { --blue: #2563eb; --radius: 14px; }   /* the page's own blue and rounder cards */</code></pre>
+    </section>
+
+    <section id="tones" data-terms="Dash.tone .ok .warn .bad .blue .accent .teal .purple .orange .pink .gold .silver .bronze .idle .neutral --c --ok --warn --bad --blue --accent --teal --purple --orange --pink --gold --silver --bronze --idle tone">
+      <h2>Tones</h2>
+      <p>A tone is a class that sets <code>--c</code>, the colour a component draws with. The same fourteen work on every component that has a colour: a pill, a bar, a stat's value, a button, a chart column, a progress bar, an avatar.</p>
+      <example title="Every tone, on a pill and a bar">
+        <div class="swatches">
+          <div class="swatch ok"><i></i><b>ok</b><code>good, healthy</code></div>
+          <div class="swatch warn"><i></i><b>warn</b><code>needs a look</code></div>
+          <div class="swatch bad"><i></i><b>bad</b><code>failed, down</code></div>
+          <div class="swatch blue"><i></i><b>blue</b><code>the default</code></div>
+          <div class="swatch accent"><i></i><b>accent</b><code>the brand's</code></div>
+          <div class="swatch teal"><i></i><b>teal</b><code></code></div>
+          <div class="swatch purple"><i></i><b>purple</b><code></code></div>
+          <div class="swatch orange"><i></i><b>orange</b><code></code></div>
+          <div class="swatch pink"><i></i><b>pink</b><code></code></div>
+          <div class="swatch gold"><i></i><b>gold</b><code>first</code></div>
+          <div class="swatch silver"><i></i><b>silver</b><code>second</code></div>
+          <div class="swatch bronze"><i></i><b>bronze</b><code>third</code></div>
+          <div class="swatch idle"><i></i><b>idle</b><code>off, not running</code></div>
+          <div class="swatch neutral"><i></i><b>neutral</b><code>muted grey</code></div>
+        </div>
+        <div class="row mt-4">
+          <span class="pill ok"><span class="dot"></span>ok</span><span class="pill warn"><span class="dot"></span>warn</span><span class="pill bad"><span class="dot"></span>bad</span>
+          <span class="pill teal"><span class="dot"></span>teal</span><span class="pill purple"><span class="dot"></span>purple</span><span class="pill idle"><span class="dot"></span>idle</span>
+        </div>
+      </example>
+      <p>Status colours mean something: <code>ok</code>, <code>warn</code> and <code>bad</code> for good, needs a look and failed, <code>idle</code> for something switched off. The others are for telling things apart (a series in a chart, a team). In a builder the tone is an argument: <code>Dash.pill('Down', 'bad')</code>, <code>Dash.bar(0.7, 'warn')</code>.</p>
+      <p><code>Dash.tone(value, { 75: 'warn', 90: 'bad' })</code> picks a tone from thresholds: <code>'ok'</code> below 75, <code>'warn'</code> from 75, <code>'bad'</code> from 90 (<code>{ below: true }</code> when lower is worse).</p>
+    </section>
+
+    <section id="tint" data-terms=".tint">
+      <h2>A tinted block</h2>
+      <p><code>.tint</code> gives anything a soft fill and text in its tone: a highlighted note, a selected row of your own, a box around a warning.</p>
+      <example>
+        <div class="vstack">
+          <div class="tint p-3 rounded">A soft block in the muted grey, with no tone.</div>
+          <div class="tint warn p-3 rounded">Certificates expire in 9 days.</div>
+          <div class="tint ok p-3 rounded">All 14 checks passed.</div>
+        </div>
+      </example>
+    </section>
+
+    <section id="themes" data-terms="data-theme data-theme-set Dash.theme Dash.theme.get Dash.theme.set Dash.theme.apply Dash.theme.current Dash.color dark-mode prefers-color-scheme">
+      <h2>Light and dark</h2>
+      <p>A page follows the reader's system setting with nothing to do. To let them choose, give buttons <code>data-theme-set</code> with <code>system</code>, <code>light</code> or <code>dark</code>: the choice is saved, set as <code>data-theme</code> on the page, and the pressed button says so (<code>aria-pressed</code>). The docs' own switch, top right, is this:</p>
+      <example>
+        <div class="seg" role="group" aria-label="Theme">
+          <button type="button" data-theme-set="system">Auto</button><button type="button" data-theme-set="light">Light</button><button type="button" data-theme-set="dark">Dark</button>
+        </div>
+      </example>
+      <ul>
+        <li><code>Dash.theme.get()</code> is the saved choice (<code>'system'</code>, <code>'light'</code> or <code>'dark'</code>), <code>Dash.theme.set(mode)</code> changes it, <code>Dash.theme.current()</code> is what shows now.</li>
+        <li><code>Dash.color('blue')</code> is a token's value at the moment, for drawing on a canvas in the right colours.</li>
+        <li>Your own CSS for dark goes under both <code>@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) … }</code> and <code>:root[data-theme="dark"] …</code>, the two ways the kit turns dark. The <code>dark:</code> utilities do both for you.</li>
+      </ul>
+    </section>
+
+    <section id="contrast" data-terms="forced-colors prefers-reduced-motion">
+      <h2>Forced colours and less motion</h2>
+      <p>The system's high-contrast mode (forced colours) drops background colours. Where a background carries the meaning, the kit draws it another way: lanes and their runs get lines and events get ink, the timeline keeps its dots and line, and the active suggestion and the chosen day in a calendar get an outline. With reduced motion set, a running progress bar becomes a steady one and the kit's other motion stops.</p>
+    </section>

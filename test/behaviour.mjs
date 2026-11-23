@@ -1201,6 +1201,155 @@ let reference;
   await small.context().close();
 }
 
+// ---- 1.9 combobox and date picker (test/components.html): keyboard, mouse, ARIA, strict mode, server search, min/max
+{
+  const page = url.replace('behaviour.html', 'components.html');
+  const tab = await open({ width: 1200 });
+  await tab.goto(page, { waitUntil: 'load' });
+  await tab.evaluate(() => {
+    window.picks = [];
+    window.cb = Dash.combobox('combo', { options: ['Amsterdam', { label: 'Berlin', sub: 'Germany', value: 'ber' }, 'Bern', 'Brussels', 'Budapest'], onPick: (o) => picks.push(o.value), strict: true });
+  });
+  const aria = () => tab.evaluate(() => {
+    const i = document.getElementById('combo'), list = document.getElementById(i.getAttribute('aria-controls'));
+    const act = i.getAttribute('aria-activedescendant');
+    return { role: i.getAttribute('role'), expanded: i.getAttribute('aria-expanded'), listRole: list && list.getAttribute('role'), visible: Boolean(list && list.checkVisibility && list.checkVisibility()),
+      options: list ? [...list.querySelectorAll('[role="option"]')].map((o) => o.textContent) : [], active: act ? document.getElementById(act).textContent : null,
+      selected: list ? [...list.querySelectorAll('[aria-selected="true"]')].length : 0, focus: document.activeElement.id, value: i.value };
+  });
+  await tab.focus('#combo');
+  await tab.keyboard.type('u');
+  const typed = await aria();
+  await tab.keyboard.press('ArrowDown');
+  await tab.keyboard.press('ArrowDown');
+  const moved = await aria();
+  await tab.keyboard.press('Enter');
+  const picked = await aria();
+  check('1.9 combobox: typing opens matching suggestions; arrows move (aria-activedescendant); Enter picks and closes',
+    typed.role === 'combobox' && typed.expanded === 'true' && typed.listRole === 'listbox' && typed.visible && typed.options.join() === 'Brussels,Budapest' && typed.active === null
+    && moved.active === 'Budapest' && moved.selected === 1 && picked.expanded === 'false' && !picked.visible && picked.value === 'Budapest' && picked.focus === 'combo',
+    JSON.stringify({ typed, moved, picked }));
+  await tab.fill('#combo', '');
+  await tab.keyboard.type('ber');
+  const sub = await aria();
+  await tab.click(`#${await tab.getAttribute('#combo', 'aria-controls')} [role="option"]:first-child`); // a click picks, and the box keeps the focus
+  const clicked = await aria();
+  await tab.keyboard.type('x');
+  await tab.keyboard.press('Escape');
+  const escaped = await aria();
+  await tab.focus('#behind'); // strict: leaving with text that matches nothing puts the pick back
+  await tab.waitForTimeout(30); // the blur is handled a moment later, so a click in the list counts as staying
+  const left = await aria();
+  check('1.9 combobox: a click picks (focus stays), Escape closes only the list, strict puts the last pick back on leaving',
+    sub.options[0] === 'BerlinGermany' && clicked.value === 'Berlin' && clicked.focus === 'combo' && escaped.expanded === 'false' && escaped.value === 'Berlinx'
+    && left.value === 'Berlin' && JSON.stringify(await tab.evaluate(() => picks)) === '["Budapest","ber"]', JSON.stringify({ sub, clicked, escaped, left }));
+  // a server search: answers that come back late, for a query typed over, are dropped
+  const late = await tab.evaluate(async () => {
+    const i = document.createElement('input'); i.className = 'input'; i.id = 'remote'; i.setAttribute('aria-label', 'remote'); document.querySelector('main').append(i);
+    const asked = [];
+    Dash.combobox(i, { debounce: 10, options: (q) => { asked.push(q); return new Promise((ok) => setTimeout(() => ok([`${q} one`, `${q} two`]), q === 'a' ? 200 : 20)); } });
+    i.focus();
+    i.value = 'a'; i.dispatchEvent(new Event('input'));
+    await new Promise((ok) => setTimeout(ok, 40));
+    i.value = 'ab'; i.dispatchEvent(new Event('input'));
+    await new Promise((ok) => setTimeout(ok, 400));
+    const list = document.getElementById(i.getAttribute('aria-controls'));
+    return { asked, options: [...list.querySelectorAll('[role="option"]')].map((o) => o.textContent) };
+  });
+  check('1.9 combobox: with a function, suggestions come from it, and a late answer for older text is dropped', late.asked.join() === 'a,ab' && late.options.join() === 'ab one,ab two', JSON.stringify(late));
+  // in a dialog: the first Escape closes the suggestions only, the next one the dialog
+  await tab.evaluate(() => { Dash.modal({ title: 'Pick a city', body: '<input class="input" id="dlg-combo" aria-label="City">', cancel: 'Close' }); Dash.combobox('dlg-combo', { options: ['Oslo', 'Ostrava'] }); });
+  await tab.focus('#dlg-combo');
+  await tab.keyboard.type('os');
+  const listShown = () => tab.evaluate(() => document.getElementById(document.getElementById('dlg-combo')?.getAttribute('aria-controls'))?.checkVisibility() || false);
+  const listOpen = await listShown();
+  await tab.keyboard.press('Escape');
+  await tab.waitForTimeout(150);
+  const afterOne = { list: await listShown(), dialog: await tab.evaluate(() => Boolean(document.querySelector('dialog[open]'))), focus: await tab.evaluate(() => document.activeElement.id) };
+  await tab.keyboard.press('Escape');
+  await tab.waitForTimeout(150);
+  const afterTwo = await tab.evaluate(() => Boolean(document.querySelector('dialog[open]')));
+  check('1.9 combobox: in a dialog, Escape closes only the list; the next Escape closes the dialog',
+    listOpen && !afterOne.list && afterOne.dialog && afterOne.focus === 'dlg-combo' && !afterTwo, JSON.stringify({ listOpen, afterOne, afterTwo }));
+  if (afterTwo) await tab.evaluate(() => document.querySelector('dialog[open]').close());
+
+  // date picker
+  await tab.evaluate(() => { window.days = []; window.dp = Dash.datepicker('when', { min: '2026-11-05', max: '2026-12-20', onPick: (d) => days.push(d) }); });
+  await tab.fill('#when', '2026-11-18');
+  await tab.click('#when + .date-btn');
+  const cal = () => tab.evaluate(() => {
+    const p = [...document.querySelectorAll('.popup.calendar')].find((x) => x.checkVisibility()); // a closed one is hidden at once, removed a moment later
+    const f = document.activeElement;
+    return { open: Boolean(p), title: p && p.querySelector('.cal-title').textContent, focus: f && f.dataset ? f.dataset.date || f.getAttribute('aria-label') : null,
+      selected: p && p.querySelector('[aria-selected="true"] button')?.dataset.date, disabled: p ? p.querySelectorAll('[aria-disabled="true"]').length : 0,
+      cols: p ? p.querySelectorAll('thead th').length : 0, next: Boolean(p && p.querySelector('[data-cal="1"]').disabled), value: document.getElementById('when').value };
+  });
+  const opened = await cal();
+  await tab.keyboard.press('ArrowRight');
+  await tab.keyboard.press('ArrowDown');
+  const keyed = await cal();
+  await tab.keyboard.press('PageDown'); // December 26: after max, so it can be focused but not picked
+  await tab.keyboard.press('Enter');
+  const past = await cal();
+  await tab.keyboard.press('Home'); // the week's Monday, December 21
+  await tab.keyboard.press('ArrowLeft');
+  await tab.keyboard.press('Enter');
+  const chose = await cal();
+  check('1.9 datepicker: opens on the box\'s date; arrows, PageDown and Home move; days outside min/max are marked and not picked; Enter picks, closes and gives the focus back',
+    opened.open && opened.title === 'November 2026' && opened.focus === '2026-11-18' && opened.selected === '2026-11-18' && opened.cols === 7 && opened.disabled === 4 && !opened.next
+    && keyed.focus === '2026-11-26' && past.open && past.title === 'December 2026' && past.focus === '2026-12-26' && past.disabled === 11 && past.next
+    && !chose.open && chose.value === '2026-12-20' && chose.focus === 'Choose a date' && JSON.stringify(await tab.evaluate(() => days)) === '["2026-12-20"]',
+    JSON.stringify({ opened, keyed, past, chose }));
+  await tab.fill('#when', '2026-11-31'); // in range, but November has 30 days
+  await tab.focus('#behind');
+  const invalid = await tab.getAttribute('#when', 'aria-invalid');
+  await tab.fill('#when', '2026-12-1');
+  await tab.focus('#behind');
+  const fixed = [await tab.inputValue('#when'), await tab.getAttribute('#when', 'aria-invalid')];
+  await tab.click('#when + .date-btn');
+  await tab.keyboard.press('Escape');
+  const esc = await cal();
+  check('1.9 datepicker: a typed day that doesn\'t exist is aria-invalid, a short one is written out, Escape closes',
+    invalid === 'true' && fixed[0] === '2026-12-01' && fixed[1] === null && !esc.open && esc.focus === 'Choose a date', JSON.stringify({ invalid, fixed, esc }));
+  await tab.context().close();
+}
+
+// ---- the docs site (docs/): the search finds a name and goes there; an example's phone and theme previews run the kit
+{
+  const tab = await open({ width: 1200 });
+  await tab.goto(url.replace('test/behaviour.html', 'docs/index.html'), { waitUntil: 'load' });
+  await tab.keyboard.press('/');
+  const focused = await tab.evaluate(() => document.activeElement.id);
+  await tab.keyboard.type('datepicker');
+  const shown = await tab.evaluate(() => [...document.querySelectorAll('.combo-list [role="option"]')].map((o) => o.textContent));
+  await tab.keyboard.press('ArrowDown');
+  await Promise.all([tab.waitForNavigation({ timeout: 3000 }).catch(() => null), tab.keyboard.press('Enter')]);
+  const went = new URL(tab.url());
+  check('docs: "/" focuses the search, it finds a name, and Enter goes to its section',
+    focused === 'docs-search' && shown.some((t) => t.startsWith('Dash.datepicker')) && went.pathname.endsWith('/docs/forms.html') && went.hash === '#datepicker',
+    JSON.stringify({ focused, shown: shown.slice(0, 4), went: went.pathname + went.hash }));
+
+  await tab.goto(url.replace('test/behaviour.html', 'docs/buttons.html'), { waitUntil: 'load' });
+  const look = async (how) => {
+    await tab.click(`.example >> nth=0 >> [data-preview="${how}"]`);
+    const frame = await tab.waitForSelector('dialog[open] iframe.preview-frame', { timeout: 3000 }).catch(() => null);
+    if (!frame) return { opened: false };
+    const inner = await (await frame.contentFrame()).waitForFunction(() => window.Dash && document.querySelector('.btn') && document.readyState === 'complete', null, { timeout: 3000 })
+      .then(async () => (await frame.contentFrame()).evaluate(() => ({ width: innerWidth, kit: Dash.version, dark: getComputedStyle(document.body).backgroundColor, buttons: document.querySelectorAll('.btn').length })))
+      .catch((e) => ({ error: String(e.message).split('\n')[0] }));
+    const outer = await tab.evaluate(() => getComputedStyle(document.body).backgroundColor);
+    await tab.keyboard.press('Escape');
+    await tab.waitForTimeout(100);
+    return { opened: true, ...inner, outer, closed: await tab.evaluate(() => !document.querySelector('dialog[open]')) };
+  };
+  const phone = await look('phone');
+  const other = await look('theme');
+  check('docs: an example\'s Phone preview runs the kit at phone width, Other theme in the other theme; Escape closes them',
+    phone.opened && phone.kit === (await tab.evaluate(() => Dash.version)) && phone.width <= 400 && phone.buttons > 0 && phone.closed
+    && other.opened && other.buttons > 0 && other.dark !== other.outer && other.closed, JSON.stringify({ phone, other }));
+  await tab.context().close();
+}
+
 await browser.close();
 server.close();
 for (const e of errors) results.push({ name: 'page error', ok: false, detail: e });

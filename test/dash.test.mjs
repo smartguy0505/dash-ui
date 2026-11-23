@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
+import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -680,4 +681,75 @@ test('1.8: slider and entries', () => {
   assert.match(Dash.entries(rows, { title: 'name', href: (r) => '#/' + r.id }), /<li><a class="entry" href="#\/7">/);
   assert.match(Dash.entries(rows, { title: (r) => r.name.toUpperCase(), button: true, key: 'id', wrap: true }), /^<ul class="entries wrap"><li><button type="button" class="entry" data-key="7"><span class="entry-text"><span class="entry-title">EU-WEST/);
   assert.equal(Dash.entries([], { empty: 'No servers' }), '<div class="empty">No servers</div>');
+});
+
+test('1.9: Dash.combobox and Dash.datepicker are there, and do nothing without a page', () => {
+  assert.equal(typeof Dash.combobox, 'function');
+  assert.equal(typeof Dash.datepicker, 'function');
+  assert.equal(Dash.combobox('nowhere', { options: ['a'] }), null);
+  assert.equal(Dash.datepicker('nowhere'), null);
+});
+
+// ---- the docs site (docs-src/ → docs/ by tools/docs.mjs)
+
+const docsGen = await import(new URL('tools/docs.mjs', root).href);
+const docsDir = new URL('docs/', root);
+const docsPages = readdirSync(docsDir).filter((f) => f.endsWith('.html'));
+
+test('docs: docs/ is exactly what tools/docs.mjs writes', () => {
+  const r = spawnSync(process.execPath, [fileURLToPath(new URL('tools/docs.mjs', root)), '--check'], { encoding: 'utf8' });
+  assert.equal(r.status, 0, `run node tools/docs.mjs: ${r.stdout}${r.stderr}`);
+});
+
+test('docs: every dash.css class and every Dash function is named on some page', () => {
+  const named = new Set(docsGen.build().terms.map((t) => t.name));
+  const bare = css.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\{[^{}]*\}/g, '{}');
+  const classes = [...new Set([...bare.matchAll(/\.(-?[a-zA-Z][\w-]*)/g)].map((m) => '.' + m[1]))];
+  const fns = [
+    ...Object.keys(Dash).filter((k) => typeof Dash[k] === 'function').map((k) => 'Dash.' + k),
+    ...['fmt', 'hash', 'theme', 'store'].flatMap((o) => Object.keys(Dash[o]).filter((k) => typeof Dash[o][k] === 'function').map((k) => `Dash.${o}.${k}`)),
+  ];
+  assert.deepEqual([...classes, ...fns].filter((n) => !named.has(n)), []);
+});
+
+test('docs: every class the pages use is in dash.css, dash-utils.css or docs.css', () => {
+  const docsCss = readFileSync(new URL('docs.css', docsDir), 'utf8');
+  const defined = new Set([css, docsCss].flatMap((t) => [...t.matchAll(/\.([a-zA-Z][\w-]*)/g)].map((m) => m[1])).concat([...utilNames]));
+  const missing = [];
+  for (const file of [...docsPages, 'docs.js']) {
+    const text = readFileSync(new URL(file, docsDir), 'utf8');
+    for (const [, list] of text.matchAll(file.endsWith('.js') ? /className\s*=\s*'([^']*)'/g : /class="([^"]*)"/g)) {
+      for (const c of list.replace(/\$\{[^}]*\}/g, ' ').split(/\s+/)) {
+        if (/^-?[a-zA-Z][\w:/.-]*$/.test(c) && !defined.has(c)) missing.push(`docs/${file}: .${c}`);
+      }
+    }
+  }
+  assert.deepEqual([...new Set(missing)], []);
+});
+
+test('docs: links between pages go to pages and sections that exist', () => {
+  const ids = Object.fromEntries(docsPages.map((f) => [f, new Set([...readFileSync(new URL(f, docsDir), 'utf8').matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]))]));
+  const bad = [];
+  for (const f of docsPages) {
+    for (const [, href] of readFileSync(new URL(f, docsDir), 'utf8').matchAll(/<a\b[^>]*\shref="([^"]+)"/g)) {
+      if (/^(https?:|mailto:)/.test(href)) continue;
+      const [path, hash] = href.split('#');
+      const target = path === '' ? f : path === './' ? 'index.html' : path;
+      if (!ids[target]) bad.push(`${f}: ${href} (no page)`);
+      else if (hash && !ids[target].has(hash)) bad.push(`${f}: ${href} (no section)`);
+    }
+  }
+  assert.deepEqual(bad, []);
+});
+
+test('docs: one <h1>, a title and a description per page; section ids are unique', () => {
+  for (const f of docsPages) {
+    const s = readFileSync(new URL(f, docsDir), 'utf8');
+    const main = s.slice(s.indexOf('<main')).replace(/<figure class="example[\s\S]*?<\/figure>/g, ''); // an example may be a page with its own h1
+    assert.equal((main.match(/<h1\b/g) || []).length, 1, `${f}: one h1 in the content`);
+    assert.match(s, /<title>[^<]+<\/title>/, f);
+    assert.match(s, /<meta name="description" content="[^"]+">/, f);
+    const ids = [...s.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);
+    assert.deepEqual(ids.filter((x, i) => ids.indexOf(x) !== i), [], `${f}: repeated ids`);
+  }
 });

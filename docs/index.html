@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en" data-kit="../">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dash-ui docs</title>
+<meta name="description" content="Two files and a page: what dash-ui is, how to add it, and how a page is put together.">
+<link rel="stylesheet" href="../dash.css">
+<link rel="stylesheet" href="../dash-utils.css">
+<link rel="stylesheet" href="docs.css">
+<script src="../dash.js"></script>
+</head>
+<body>
+<!-- dash-ui 1.9.0 docs, written by tools/docs.mjs from docs-src/index.html: edit that, not this -->
+<header class="topbar">
+  <button type="button" class="icon-btn docs-menu" data-toggle-side aria-label="Pages"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3 5h12M3 9h12M3 13h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+  <a class="brand" href="./"><span class="mark">d</span><h1>dash-ui</h1></a><span class="tag plain docs-version">1.9.0</span>
+  <div class="top-right">
+    <label class="search docs-search"><span class="sr-only">Search the docs</span><svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.6"/><path d="m11 11 3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><input class="input" type="search" id="docs-search" placeholder="Search" aria-keyshortcuts="/"><kbd class="docs-key">/</kbd></label>
+    <div class="seg" role="group" aria-label="Theme"><button type="button" data-theme-set="system">Auto</button><button type="button" data-theme-set="light">Light</button><button type="button" data-theme-set="dark">Dark</button></div>
+  </div>
+</header>
+<div class="shell offcanvas">
+  <nav class="sidebar" aria-label="Pages"><div class="side-head">Start</div><a class="nav-item" href="./" aria-current="page"><span class="nav-main"><span class="nav-name">Getting started</span></span></a><div class="side-head">Foundations</div><a class="nav-item" href="colours.html"><span class="nav-main"><span class="nav-name">Colours and themes</span></span></a><a class="nav-item" href="layout.html"><span class="nav-main"><span class="nav-name">Page layout</span></span></a><a class="nav-item" href="text.html"><span class="nav-main"><span class="nav-name">Text and labels</span></span></a><div class="side-head">Components</div><a class="nav-item" href="buttons.html"><span class="nav-main"><span class="nav-name">Buttons</span></span></a><a class="nav-item" href="forms.html"><span class="nav-main"><span class="nav-name">Forms</span></span></a><a class="nav-item" href="surfaces.html"><span class="nav-main"><span class="nav-name">Panels and cards</span></span></a><a class="nav-item" href="navigation.html"><span class="nav-main"><span class="nav-name">Navigation</span></span></a><a class="nav-item" href="tables.html"><span class="nav-main"><span class="nav-name">Tables</span></span></a><a class="nav-item" href="charts.html"><span class="nav-main"><span class="nav-name">Charts and progress</span></span></a><a class="nav-item" href="overlays.html"><span class="nav-main"><span class="nav-name">Modals and popups</span></span></a><a class="nav-item" href="feedback.html"><span class="nav-main"><span class="nav-name">Feedback</span></span></a><div class="side-head">JavaScript</div><a class="nav-item" href="helpers.html"><span class="nav-main"><span class="nav-name">dash.js helpers</span></span></a><div class="side-head">Utilities</div><a class="nav-item" href="utilities.html"><span class="nav-main"><span class="nav-name">Utility classes</span></span></a><a class="nav-item" href="utilities-layout.html"><span class="nav-main"><span class="nav-name">Layout utilities</span></span></a><a class="nav-item" href="utilities-spacing.html"><span class="nav-main"><span class="nav-name">Spacing utilities</span></span></a><a class="nav-item" href="utilities-sizing.html"><span class="nav-main"><span class="nav-name">Sizing utilities</span></span></a><a class="nav-item" href="utilities-type.html"><span class="nav-main"><span class="nav-name">Type utilities</span></span></a><a class="nav-item" href="utilities-colour.html"><span class="nav-main"><span class="nav-name">Colour utilities</span></span></a><a class="nav-item" href="utilities-effects.html"><span class="nav-main"><span class="nav-name">Borders and effects</span></span></a></nav>
+  <main class="content docs" id="top">
+    <header class="docs-head"><p class="docs-group">Start</p><h1>Getting started</h1><p class="docs-blurb">Two files and a page: what dash-ui is, how to add it, and how a page is put together.</p><nav class="chips docs-toc" aria-label="On this page"><a class="chip" href="#what">What it is</a><a class="chip" href="#install">Add it to a page</a><a class="chip" href="#first-page">A first page</a><a class="chip" href="#parts">What&#39;s in the kit</a><a class="chip" href="#principles">What every piece does</a></nav></header>
+<section id="what" data-terms="dash.css dash.js dash-utils.css">
+      <h2>What it is</h2>
+      <p>dash-ui is a small kit for dashboards and admin pages: one stylesheet, <code>dash.css</code>, and one script, <code>dash.js</code>. There is nothing to install or build. A page links the two files, uses the kit's classes in its HTML, and calls <code>Dash</code> helpers for the parts that move: tables that sort, charts, toasts, modals, popups, polling.</p>
+      <ul>
+        <li><b>Components</b>: panels, cards, stat tiles, tables, forms, buttons, menus, tabs, charts, modals and more, each in light and dark, from a phone to a wide screen.</li>
+        <li><b>Builders</b> in dash.js write a component's HTML from data, with every value escaped: <code>Dash.pill('Healthy', 'ok')</code>, <code>Dash.bars(points)</code>, <code>Dash.table(el, { columns })</code>.</li>
+        <li><b>Utility classes</b>, in the style of Tailwind, in an optional third file, <code>dash-utils.css</code>: <code>flex gap-3 md:grid-cols-3 p-4 text-muted</code>. They are made from the same tokens, so they match the components.</li>
+      </ul>
+      <p>Every page in these docs shows each piece live, with its code under it. Copy takes the code, Phone shows it at a phone's width, and the theme button shows it in the other theme.</p>
+    </section>
+
+    <section id="install" data-terms="install link script">
+      <h2>Add it to a page</h2>
+      <p>Copy <code>dash.css</code> and <code>dash.js</code> next to your page, or point at them where they are served, and link them in the head. <code>dash-utils.css</code> is optional and goes after <code>dash.css</code>.</p>
+      <pre class="code"><code>&lt;link rel="stylesheet" href="dash.css"&gt;
+&lt;link rel="stylesheet" href="dash-utils.css"&gt;   &lt;!-- optional: the utility classes --&gt;
+&lt;script src="dash.js"&gt;&lt;/script&gt;</code></pre>
+      <p>The script goes in the head so that the page's own scripts can use <code>Dash</code> anywhere below it. It waits for the page itself where it needs to.</p>
+      <h3>One file</h3>
+      <p>For a page that has to be one file (a report sent by mail, a page a server writes out), <code>tools/paste.py page.html</code> puts the kit into the page's <code>&lt;style id="dash-ui-css"&gt;</code> and <code>&lt;script id="dash-ui-js"&gt;</code> blocks, and the utilities into <code>&lt;style id="dash-ui-utils"&gt;</code> if the page has one. Run it again after updating the kit.</p>
+      <h3>Versions</h3>
+      <p>The first line of each file names its version (<code>/* dash-ui 1.9.0: …</code>), and <code>Dash.version</code> says it in a script. Versions only add things: a page that works with an older copy works the same with a newer one, so a page can update when it likes.</p>
+    </section>
+
+    <section id="first-page" data-terms="Dash.version">
+      <h2>A first page</h2>
+      <p>A top bar, then a <code>.page</code> holding the content: here a row of stat tiles and a panel with a table built from its columns. Data would come from <code>Dash.poll</code> and <code>Dash.api</code>; the rows are written in so the example stands alone.</p>
+      <figure class="example on-page" id="ex-1"><figcaption>A small dashboard</figcaption><div class="example-view">
+<header class="topbar">
+  <div class="brand"><span class="mark">S</span><h1>Servers</h1></div>
+  <span class="sub">eu-west</span>
+</header>
+<main class="page">
+  <div class="stats" id="first-stats"></div>
+  <div class="panel">
+    <div class="panel-head"><h3>Servers</h3><span class="read" id="first-count"></span></div>
+    <div id="first-table"></div>
+  </div>
+</main>
+<script>
+  const rows = [
+    { name: 'web-1', load: 0.42, state: 'ok', seen: Date.now() - 40e3 },
+    { name: 'web-2', load: 0.91, state: 'warn', seen: Date.now() - 4 * 60e3 },
+    { name: 'db-1', load: 0.17, state: 'ok', seen: Date.now() - 20e3 },
+  ];
+  const LABEL = { ok: 'Healthy', warn: 'Busy', bad: 'Down' };
+  Dash.render('first-stats', Dash.stat('Servers', rows.length) + Dash.stat('Busy', rows.filter((r) => r.state === 'warn').length, { tone: 'warn' })
+    + Dash.stat('Average load', Dash.fmt.pct(Dash.sum(rows, 'load') / rows.length * 100, 0)));
+  Dash.render('first-count', Dash.fmt.plural(rows.length, 'server'));
+  Dash.table('first-table', {
+    columns: [
+      { key: 'name', label: 'Name', main: true, firstDir: 'asc' },
+      { key: 'load', label: 'Load', num: true, format: (v) => Dash.fmt.pct(v * 100, 0) },
+      { key: 'state', label: 'State', sort: false, html: (r) => Dash.pill(LABEL[r.state], r.state) },
+      { key: 'seen', label: 'Seen', num: true, html: (r) => Dash.ago(r.seen) },
+    ],
+    rows, sort: { key: 'load', dir: 'desc' },
+  });
+</script>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;header class=&quot;topbar&quot;&gt;
+  &lt;div class=&quot;brand&quot;&gt;&lt;span class=&quot;mark&quot;&gt;S&lt;/span&gt;&lt;h1&gt;Servers&lt;/h1&gt;&lt;/div&gt;
+  &lt;span class=&quot;sub&quot;&gt;eu-west&lt;/span&gt;
+&lt;/header&gt;
+&lt;main class=&quot;page&quot;&gt;
+  &lt;div class=&quot;stats&quot; id=&quot;first-stats&quot;&gt;&lt;/div&gt;
+  &lt;div class=&quot;panel&quot;&gt;
+    &lt;div class=&quot;panel-head&quot;&gt;&lt;h3&gt;Servers&lt;/h3&gt;&lt;span class=&quot;read&quot; id=&quot;first-count&quot;&gt;&lt;/span&gt;&lt;/div&gt;
+    &lt;div id=&quot;first-table&quot;&gt;&lt;/div&gt;
+  &lt;/div&gt;
+&lt;/main&gt;
+&lt;script&gt;
+  const rows = [
+    { name: &#39;web-1&#39;, load: 0.42, state: &#39;ok&#39;, seen: Date.now() - 40e3 },
+    { name: &#39;web-2&#39;, load: 0.91, state: &#39;warn&#39;, seen: Date.now() - 4 * 60e3 },
+    { name: &#39;db-1&#39;, load: 0.17, state: &#39;ok&#39;, seen: Date.now() - 20e3 },
+  ];
+  const LABEL = { ok: &#39;Healthy&#39;, warn: &#39;Busy&#39;, bad: &#39;Down&#39; };
+  Dash.render(&#39;first-stats&#39;, Dash.stat(&#39;Servers&#39;, rows.length) + Dash.stat(&#39;Busy&#39;, rows.filter((r) =&gt; r.state === &#39;warn&#39;).length, { tone: &#39;warn&#39; })
+    + Dash.stat(&#39;Average load&#39;, Dash.fmt.pct(Dash.sum(rows, &#39;load&#39;) / rows.length * 100, 0)));
+  Dash.render(&#39;first-count&#39;, Dash.fmt.plural(rows.length, &#39;server&#39;));
+  Dash.table(&#39;first-table&#39;, {
+    columns: [
+      { key: &#39;name&#39;, label: &#39;Name&#39;, main: true, firstDir: &#39;asc&#39; },
+      { key: &#39;load&#39;, label: &#39;Load&#39;, num: true, format: (v) =&gt; Dash.fmt.pct(v * 100, 0) },
+      { key: &#39;state&#39;, label: &#39;State&#39;, sort: false, html: (r) =&gt; Dash.pill(LABEL[r.state], r.state) },
+      { key: &#39;seen&#39;, label: &#39;Seen&#39;, num: true, html: (r) =&gt; Dash.ago(r.seen) },
+    ],
+    rows, sort: { key: &#39;load&#39;, dir: &#39;desc&#39; },
+  });
+&lt;/script&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">header</span> <span class="c-attr">class</span>=<span class="c-str">&quot;topbar&quot;</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;brand&quot;</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;mark&quot;</span>&gt;S&lt;/<span class="c-tag">span</span>&gt;&lt;<span class="c-tag">h1</span>&gt;Servers&lt;/<span class="c-tag">h1</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+  &lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;sub&quot;</span>&gt;eu-west&lt;/<span class="c-tag">span</span>&gt;
+&lt;/<span class="c-tag">header</span>&gt;
+&lt;<span class="c-tag">main</span> <span class="c-attr">class</span>=<span class="c-str">&quot;page&quot;</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;stats&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;first-stats&quot;</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;panel&quot;</span>&gt;
+    &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;panel-head&quot;</span>&gt;&lt;<span class="c-tag">h3</span>&gt;Servers&lt;/<span class="c-tag">h3</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;read&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;first-count&quot;</span>&gt;&lt;/<span class="c-tag">span</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+    &lt;<span class="c-tag">div</span> <span class="c-attr">id</span>=<span class="c-str">&quot;first-table&quot;</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+  &lt;/<span class="c-tag">div</span>&gt;
+&lt;/<span class="c-tag">main</span>&gt;
+&lt;<span class="c-tag">script</span>&gt;
+  <span class="c-key">const</span> rows = [
+    { name: <span class="c-str">&#39;web-1&#39;</span>, load: <span class="c-num">0.42</span>, state: <span class="c-str">&#39;ok&#39;</span>, seen: Date.now() - <span class="c-num">40e3</span> },
+    { name: <span class="c-str">&#39;web-2&#39;</span>, load: <span class="c-num">0.91</span>, state: <span class="c-str">&#39;warn&#39;</span>, seen: Date.now() - <span class="c-num">4</span> * <span class="c-num">60e3</span> },
+    { name: <span class="c-str">&#39;db-1&#39;</span>, load: <span class="c-num">0.17</span>, state: <span class="c-str">&#39;ok&#39;</span>, seen: Date.now() - <span class="c-num">20e3</span> },
+  ];
+  <span class="c-key">const</span> LABEL = { ok: <span class="c-str">&#39;Healthy&#39;</span>, warn: <span class="c-str">&#39;Busy&#39;</span>, bad: <span class="c-str">&#39;Down&#39;</span> };
+  <span class="c-fn">Dash</span>.render(<span class="c-str">&#39;first-stats&#39;</span>, <span class="c-fn">Dash</span>.stat(<span class="c-str">&#39;Servers&#39;</span>, rows.length) + <span class="c-fn">Dash</span>.stat(<span class="c-str">&#39;Busy&#39;</span>, rows.filter((r) =&gt; r.state === <span class="c-str">&#39;warn&#39;</span>).length, { tone: <span class="c-str">&#39;warn&#39;</span> })
+    + <span class="c-fn">Dash</span>.stat(<span class="c-str">&#39;Average load&#39;</span>, <span class="c-fn">Dash</span>.fmt.pct(<span class="c-fn">Dash</span>.sum(rows, <span class="c-str">&#39;load&#39;</span>) / rows.length * <span class="c-num">100</span>, <span class="c-num">0</span>)));
+  <span class="c-fn">Dash</span>.render(<span class="c-str">&#39;first-count&#39;</span>, <span class="c-fn">Dash</span>.fmt.plural(rows.length, <span class="c-str">&#39;server&#39;</span>));
+  <span class="c-fn">Dash</span>.table(<span class="c-str">&#39;first-table&#39;</span>, {
+    columns: [
+      { key: <span class="c-str">&#39;name&#39;</span>, label: <span class="c-str">&#39;Name&#39;</span>, main: <span class="c-key">true</span>, firstDir: <span class="c-str">&#39;asc&#39;</span> },
+      { key: <span class="c-str">&#39;load&#39;</span>, label: <span class="c-str">&#39;Load&#39;</span>, num: <span class="c-key">true</span>, format: (v) =&gt; <span class="c-fn">Dash</span>.fmt.pct(v * <span class="c-num">100</span>, <span class="c-num">0</span>) },
+      { key: <span class="c-str">&#39;state&#39;</span>, label: <span class="c-str">&#39;State&#39;</span>, sort: <span class="c-key">false</span>, html: (r) =&gt; <span class="c-fn">Dash</span>.pill(LABEL[r.state], r.state) },
+      { key: <span class="c-str">&#39;seen&#39;</span>, label: <span class="c-str">&#39;Seen&#39;</span>, num: <span class="c-key">true</span>, html: (r) =&gt; <span class="c-fn">Dash</span>.ago(r.seen) },
+    ],
+    rows, sort: { key: <span class="c-str">&#39;load&#39;</span>, dir: <span class="c-str">&#39;desc&#39;</span> },
+  });
+&lt;/<span class="c-tag">script</span>&gt;</code></pre></figure>
+      <p>On a phone the table's rows become small cards, and the stat tiles go two across. Nothing on the page has to ask for that.</p>
+    </section>
+
+    <section id="parts" data-terms="docs">
+      <h2>What's in the kit</h2>
+      <div class="cards">
+        <a class="card" href="layout.html"><div class="card-title">Page layout</div><div class="card-sub">Top bar, sidebar and drawer, grids, the phone's bottom navigation.</div></a>
+        <a class="card" href="forms.html"><div class="card-title">Forms</div><div class="card-sub">Inputs, selects, choices, switches, sliders, file drops, suggestions, dates.</div></a>
+        <a class="card" href="surfaces.html"><div class="card-title">Panels and cards</div><div class="card-sub">Panels, cards, stat tiles, callouts, lists, accordions.</div></a>
+        <a class="card" href="tables.html"><div class="card-title">Tables</div><div class="card-sub">Sorting, pages, row states, rows as cards on a phone.</div></a>
+        <a class="card" href="charts.html"><div class="card-title">Charts and progress</div><div class="card-sub">Bars, columns, donuts, gauges, sparklines, lanes, progress.</div></a>
+        <a class="card" href="overlays.html"><div class="card-title">Modals and popups</div><div class="card-sub">Modals, questions, popups and menus that stay inside the window.</div></a>
+        <a class="card" href="helpers.html"><div class="card-title">dash.js helpers</div><div class="card-sub">Numbers and times, fetching and polling, redrawing without losing the reader's place.</div></a>
+        <a class="card" href="utilities.html"><div class="card-title">Utility classes</div><div class="card-sub">Layout, spacing, type and colour as classes, with widths, states and dark.</div></a>
+      </div>
+    </section>
+
+    <section id="principles" data-terms="accessibility escaping">
+      <h2>What every piece does</h2>
+      <ul>
+        <li><b>Escapes what it's given.</b> A builder writes text as text, so a name with <code>&lt;</code> in it shows as a name. Links that would run script (<code>javascript:</code>) become <code>#</code>.</li>
+        <li><b>Works with a keyboard and a screen reader.</b> Menus, tabs, popups, modals, the drawer, the suggestions and the calendar move with the keys a reader expects, say what they are, and give the focus back when they close.</li>
+        <li><b>Keeps the reader's place.</b> <code>Dash.render</code> redraws a part of the page without losing what is being typed, the focus or the scroll.</li>
+        <li><b>Fits a phone.</b> Nothing scrolls sideways; tables become cards, the sidebar a drawer, tile rows two across.</li>
+        <li><b>Follows the reader's settings:</b> dark mode, less motion and forced colours.</li>
+      </ul>
+    </section>
+    <nav class="docs-steps" aria-label="More pages"><span></span><a class="docs-step next" href="colours.html"><span class="faint">Next</span><b>Colours and themes</b></a></nav>
+  </main>
+</div>
+<script src="search.js"></script>
+<script src="docs.js"></script>
+</body>
+</html>

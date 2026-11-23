@@ -1,0 +1,50 @@
+    <section id="borders" data-terms="border border-0 border-2 border-t border-dashed divide-x divide-y">
+      <h2>Borders</h2>
+      <p>Border widths and sides, dashed and dotted lines, and <code>divide-y</code> or <code>divide-x</code> for a line between a box's children.</p>
+      <utilities group="border width"></utilities>
+      <example>
+        <ul class="list-none m-0 p-0 panel divide-y"><li class="px-4 py-2">One</li><li class="px-4 py-2">Two</li><li class="px-4 py-2">Three</li></ul>
+      </example>
+    </section>
+
+    <section id="radius" data-terms="rounded rounded-sm rounded-md rounded-lg rounded-xl rounded-full rounded-none">
+      <h2>Radius</h2>
+      <utilities group="radius"></utilities>
+      <example>
+        <div class="flex gap-3"><div class="size-12 bg-blue/20 rounded-sm"></div><div class="size-12 bg-blue/20 rounded"></div><div class="size-12 bg-blue/20 rounded-lg"></div><div class="size-12 bg-blue/20 rounded-xl"></div><div class="size-12 bg-blue/20 rounded-full"></div></div>
+      </example>
+    </section>
+
+    <section id="svg" data-terms="fill stroke accent appearance-none">
+      <h2>SVG and controls</h2>
+      <p><code>fill-*</code> and <code>stroke-*</code> colour an SVG from the tokens; <code>accent-*</code> colours a checkbox, radio or range.</p>
+      <utilities group="svg and controls"></utilities>
+    </section>
+
+    <section id="shadow" data-terms="shadow shadow-pop shadow-none ring-0 ring-1 ring-2 ring-4 ring-inset">
+      <h2>Shadows and rings</h2>
+      <p><code>shadow</code> is a card's, <code>shadow-pop</code> a popup's. <code>ring-2</code> draws a ring outside the box in its ring colour (<code>ring-blue</code>), for focus or a selected card; <code>focus-visible:ring-2</code> shows it only for the keyboard.</p>
+      <utilities group="shadow and ring"></utilities>
+      <example>
+        <div class="flex gap-4"><div class="p-4 rounded-lg bg-card shadow">shadow</div><div class="p-4 rounded-lg bg-card shadow-pop">shadow-pop</div><div class="p-4 rounded-lg bg-card ring-2 ring-blue">ring-2</div></div>
+      </example>
+    </section>
+
+    <section id="opacity" data-terms="opacity">
+      <h2>Opacity</h2>
+      <utilities group="opacity"></utilities>
+    </section>
+
+    <section id="motion" data-terms="transition duration ease animate-spin animate-pulse rotate scale">
+      <h2>Motion</h2>
+      <p>Transitions, the kit's spin and pulse, and turning or scaling a box. With reduced motion set, the kit stops them.</p>
+      <utilities group="motion"></utilities>
+      <example>
+        <div class="flex items-center gap-4"><span class="size-4 rounded-full bg-ok animate-pulse"></span><button type="button" class="btn transition hover:scale-105 active:scale-95">Press me</button></div>
+      </example>
+    </section>
+
+    <section id="interaction" data-terms="cursor-pointer cursor-default select-none select-all pointer-events-none resize">
+      <h2>Interaction</h2>
+      <utilities group="interaction"></utilities>
+    </section>

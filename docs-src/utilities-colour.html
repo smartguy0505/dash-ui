@@ -1,0 +1,29 @@
+    <section id="text-colour" data-terms="text-text text-muted text-faint text-blue text-ok text-warn text-bad text-tone text-current text-inherit">
+      <h2>Text colour</h2>
+      <p>Every token is a colour class: <code>text-muted</code>, <code>text-bad</code>, <code>text-purple</code>. <code>text-tone</code> is the current tone (<code>--c</code>), so <code>text-tone warn</code> is in the warning colour. They follow light and dark by themselves.</p>
+      <utilities group="text colour"></utilities>
+      <example>
+        <p class="m-0"><span class="text-muted">muted</span> · <span class="text-faint">faint</span> · <span class="text-blue">blue</span> · <span class="text-ok">ok</span> · <span class="text-warn">warn</span> · <span class="text-bad">bad</span> · <span class="text-tone purple">tone</span></p>
+      </example>
+    </section>
+
+    <section id="background" data-terms="bg-card bg-soft bg-bg bg-blue bg-tone bg-transparent bg-blue/10 tints color-mix">
+      <h2>Background</h2>
+      <p>The same tokens as backgrounds, and tints: <code>bg-blue/10</code> is the blue at 10 % over what's behind it (5, 10, 15, 20, 30 and 50). A tint reads well in both themes, where a solid colour usually needs <code>text-card</code> on top.</p>
+      <utilities group="background"></utilities>
+      <example>
+        <div class="flex flex-wrap gap-2">
+          <span class="px-3 py-1 rounded-full bg-blue/10 text-blue">bg-blue/10</span><span class="px-3 py-1 rounded-full bg-ok/15 text-ok">bg-ok/15</span>
+          <span class="px-3 py-1 rounded-full bg-bad/20 text-bad">bg-bad/20</span><span class="px-3 py-1 rounded-full bg-purple text-card">bg-purple text-card</span><span class="px-3 py-1 rounded-full bg-soft">bg-soft</span>
+        </div>
+      </example>
+    </section>
+
+    <section id="border-colour" data-terms="border-line border-blue border-tone border-blue/30">
+      <h2>Border colour</h2>
+      <p>Border colours from the tokens, with tints <code>/20</code>, <code>/30</code> and <code>/50</code>. They take <code>hover:</code>, <code>focus:</code>, <code>focus-visible:</code> and <code>focus-within:</code>.</p>
+      <utilities group="border colour"></utilities>
+      <example>
+        <div class="flex gap-3"><div class="p-3 border rounded-lg border-line">border-line</div><div class="p-3 border-2 rounded-lg border-warn/50">border-warn/50</div><div class="p-3 border rounded-lg border-line hover:border-blue">hover:border-blue</div></div>
+      </example>
+    </section>

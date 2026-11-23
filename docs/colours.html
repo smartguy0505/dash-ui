@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en" data-kit="../">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Colours and themes · dash-ui</title>
+<meta name="description" content="The palette as tokens, the tones every component takes, and light and dark.">
+<link rel="stylesheet" href="../dash.css">
+<link rel="stylesheet" href="../dash-utils.css">
+<link rel="stylesheet" href="docs.css">
+<script src="../dash.js"></script>
+</head>
+<body>
+<!-- dash-ui 1.9.0 docs, written by tools/docs.mjs from docs-src/colours.html: edit that, not this -->
+<header class="topbar">
+  <button type="button" class="icon-btn docs-menu" data-toggle-side aria-label="Pages"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3 5h12M3 9h12M3 13h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+  <a class="brand" href="./"><span class="mark">d</span><h1>dash-ui</h1></a><span class="tag plain docs-version">1.9.0</span>
+  <div class="top-right">
+    <label class="search docs-search"><span class="sr-only">Search the docs</span><svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.6"/><path d="m11 11 3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><input class="input" type="search" id="docs-search" placeholder="Search" aria-keyshortcuts="/"><kbd class="docs-key">/</kbd></label>
+    <div class="seg" role="group" aria-label="Theme"><button type="button" data-theme-set="system">Auto</button><button type="button" data-theme-set="light">Light</button><button type="button" data-theme-set="dark">Dark</button></div>
+  </div>
+</header>
+<div class="shell offcanvas">
+  <nav class="sidebar" aria-label="Pages"><div class="side-head">Start</div><a class="nav-item" href="./"><span class="nav-main"><span class="nav-name">Getting started</span></span></a><div class="side-head">Foundations</div><a class="nav-item" href="colours.html" aria-current="page"><span class="nav-main"><span class="nav-name">Colours and themes</span></span></a><a class="nav-item" href="layout.html"><span class="nav-main"><span class="nav-name">Page layout</span></span></a><a class="nav-item" href="text.html"><span class="nav-main"><span class="nav-name">Text and labels</span></span></a><div class="side-head">Components</div><a class="nav-item" href="buttons.html"><span class="nav-main"><span class="nav-name">Buttons</span></span></a><a class="nav-item" href="forms.html"><span class="nav-main"><span class="nav-name">Forms</span></span></a><a class="nav-item" href="surfaces.html"><span class="nav-main"><span class="nav-name">Panels and cards</span></span></a><a class="nav-item" href="navigation.html"><span class="nav-main"><span class="nav-name">Navigation</span></span></a><a class="nav-item" href="tables.html"><span class="nav-main"><span class="nav-name">Tables</span></span></a><a class="nav-item" href="charts.html"><span class="nav-main"><span class="nav-name">Charts and progress</span></span></a><a class="nav-item" href="overlays.html"><span class="nav-main"><span class="nav-name">Modals and popups</span></span></a><a class="nav-item" href="feedback.html"><span class="nav-main"><span class="nav-name">Feedback</span></span></a><div class="side-head">JavaScript</div><a class="nav-item" href="helpers.html"><span class="nav-main"><span class="nav-name">dash.js helpers</span></span></a><div class="side-head">Utilities</div><a class="nav-item" href="utilities.html"><span class="nav-main"><span class="nav-name">Utility classes</span></span></a><a class="nav-item" href="utilities-layout.html"><span class="nav-main"><span class="nav-name">Layout utilities</span></span></a><a class="nav-item" href="utilities-spacing.html"><span class="nav-main"><span class="nav-name">Spacing utilities</span></span></a><a class="nav-item" href="utilities-sizing.html"><span class="nav-main"><span class="nav-name">Sizing utilities</span></span></a><a class="nav-item" href="utilities-type.html"><span class="nav-main"><span class="nav-name">Type utilities</span></span></a><a class="nav-item" href="utilities-colour.html"><span class="nav-main"><span class="nav-name">Colour utilities</span></span></a><a class="nav-item" href="utilities-effects.html"><span class="nav-main"><span class="nav-name">Borders and effects</span></span></a></nav>
+  <main class="content docs" id="top">
+    <header class="docs-head"><p class="docs-group">Foundations</p><h1>Colours and themes</h1><p class="docs-blurb">The palette as tokens, the tones every component takes, and light and dark.</p><nav class="chips docs-toc" aria-label="On this page"><a class="chip" href="#tokens">The tokens</a><a class="chip" href="#tones">Tones</a><a class="chip" href="#tint">A tinted block</a><a class="chip" href="#themes">Light and dark</a><a class="chip" href="#contrast">Forced colours and less motion</a></nav></header>
+<section id="tokens" data-terms="--bg --card --text --muted --faint --line --soft --shadow --radius --font --mono tokens">
+      <h2>The tokens</h2>
+      <p>Every colour, radius and font in the kit is a custom property on <code>:root</code>, set again for dark. A page that wants its own look changes the tokens, and every component follows. Neutrals are warm greys, from the page's ground to the faintest text:</p>
+      <figure class="example" id="ex-1"><figcaption>The neutrals</figcaption><div class="example-view">
+<div class="swatches">
+  <div class="swatch" style="--c: var(--bg)"><i></i><b>Page</b><code>--bg</code></div>
+  <div class="swatch" style="--c: var(--card)"><i></i><b>Card</b><code>--card</code></div>
+  <div class="swatch" style="--c: var(--soft)"><i></i><b>Soft fill</b><code>--soft</code></div>
+  <div class="swatch" style="--c: var(--line)"><i></i><b>Lines</b><code>--line</code></div>
+  <div class="swatch" style="--c: var(--faint)"><i></i><b>Faint text</b><code>--faint</code></div>
+  <div class="swatch" style="--c: var(--muted)"><i></i><b>Muted text</b><code>--muted</code></div>
+  <div class="swatch" style="--c: var(--text)"><i></i><b>Text</b><code>--text</code></div>
+</div>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;div class=&quot;swatches&quot;&gt;
+  &lt;div class=&quot;swatch&quot; style=&quot;--c: var(--bg)&quot;&gt;&lt;i&gt;&lt;/i&gt;&lt;b&gt;Page&lt;/b&gt;&lt;code&gt;--bg&lt;/code&gt;&lt;/div&gt;
+  &lt;div class=&quot;swatch&quot; style=&quot;--c: var(--card)&quot;&gt;&lt;i&gt;&lt;/i&gt;&lt;b&gt;Card&lt;/b&gt;&lt;code&gt;--card&lt;/code&gt;&lt;/div&gt;
+  &lt;div class=&quot;swatch&quot; style=&quot;--c: var(--soft)&quot;&gt;&lt;i&gt;&lt;/i&gt;&lt;b&gt;Soft fill&lt;/b&gt;&lt;code&gt;--soft&lt;/code&gt;&lt;/div&gt;
+  &lt;div class=&quot;swatch&quot; style=&quot;--c: var(--line)&quot;&gt;&lt;i&gt;&lt;/i&gt;&lt;b&gt;Lines&lt;/b&gt;&lt;code&gt;--line&lt;/code&gt;&lt;/div&gt;
+  &lt;div class=&quot;swatch&quot; style=&quot;--c: var(--faint)&quot;&gt;&lt;i&gt;&lt;/i&gt;&lt;b&gt;Faint text&lt;/b&gt;&lt;code&gt;--faint&lt;/code&gt;&lt;/div&gt;
+  &lt;div class=&quot;swatch&quot; style=&quot;--c: var(--muted)&quot;&gt;&lt;i&gt;&lt;/i&gt;&lt;b&gt;Muted text&lt;/b&gt;&lt;code&gt;--muted&lt;/code&gt;&lt;/div&gt;
+  &lt;div class=&quot;swatch&quot; style=&quot;--c: var(--text)&quot;&gt;&lt;i&gt;&lt;/i&gt;&lt;b&gt;Text&lt;/b&gt;&lt;code&gt;--text&lt;/code&gt;&lt;/div&gt;
+&lt;/div&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;swatches&quot;</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;swatch&quot;</span> <span class="c-attr">style</span>=<span class="c-str">&quot;--c: var(--bg)&quot;</span>&gt;&lt;<span class="c-tag">i</span>&gt;&lt;/<span class="c-tag">i</span>&gt;&lt;<span class="c-tag">b</span>&gt;Page&lt;/<span class="c-tag">b</span>&gt;&lt;<span class="c-tag">code</span>&gt;--bg&lt;/<span class="c-tag">code</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;swatch&quot;</span> <span class="c-attr">style</span>=<span class="c-str">&quot;--c: var(--card)&quot;</span>&gt;&lt;<span class="c-tag">i</span>&gt;&lt;/<span class="c-tag">i</span>&gt;&lt;<span class="c-tag">b</span>&gt;Card&lt;/<span class="c-tag">b</span>&gt;&lt;<span class="c-tag">code</span>&gt;--card&lt;/<span class="c-tag">code</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;swatch&quot;</span> <span class="c-attr">style</span>=<span class="c-str">&quot;--c: var(--soft)&quot;</span>&gt;&lt;<span class="c-tag">i</span>&gt;&lt;/<span class="c-tag">i</span>&gt;&lt;<span class="c-tag">b</span>&gt;Soft fill&lt;/<span class="c-tag">b</span>&gt;&lt;<span class="c-tag">code</span>&gt;--soft&lt;/<span class="c-tag">code</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;swatch&quot;</span> <span class="c-attr">style</span>=<span class="c-str">&quot;--c: var(--line)&quot;</span>&gt;&lt;<span class="c-tag">i</span>&gt;&lt;/<span class="c-tag">i</span>&gt;&lt;<span class="c-tag">b</span>&gt;Lines&lt;/<span class="c-tag">b</span>&gt;&lt;<span class="c-tag">code</span>&gt;--line&lt;/<span class="c-tag">code</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;swatch&quot;</span> <span class="c-attr">style</span>=<span class="c-str">&quot;--c: var(--faint)&quot;</span>&gt;&lt;<span class="c-tag">i</span>&gt;&lt;/<span class="c-tag">i</span>&gt;&lt;<span class="c-tag">b</span>&gt;Faint text&lt;/<span class="c-tag">b</span>&gt;&lt;<span class="c-tag">code</span>&gt;--faint&lt;/<span class="c-tag">code</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;swatch&quot;</span> <span class="c-attr">style</span>=<span class="c-str">&quot;--c: var(--muted)&quot;</span>&gt;&lt;<span class="c-tag">i</span>&gt;&lt;/<span class="c-tag">i</span>&gt;&lt;<span class="c-tag">b</span>&gt;Muted text&lt;/<span class="c-tag">b</span>&gt;&lt;<span class="c-tag">code</span>&gt;--muted&lt;/<span class="c-tag">code</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;swatch&quot;</span> <span class="c-attr">style</span>=<span class="c-str">&quot;--c: var(--text)&quot;</span>&gt;&lt;<span class="c-tag">i</span>&gt;&lt;/<span class="c-tag">i</span>&gt;&lt;<span class="c-tag">b</span>&gt;Text&lt;/<span class="c-tag">b</span>&gt;&lt;<span class="c-tag">code</span>&gt;--text&lt;/<span class="c-tag">code</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+&lt;/<span class="c-tag">div</span>&gt;</code></pre></figure>
+      <p>Besides colours: <code>--radius</code> (cards) and <code>--radius-sm</code> (fields, small boxes), <code>--shadow</code> and <code>--shadow-pop</code> (popups), <code>--backdrop</code> behind a modal, <code>--font</code> and <code>--mono</code>, <code>--page-max</code> (how wide <code>.page</code> grows), <code>--side-w</code> (the sidebar) and <code>--topbar-h</code>.</p>
+      <pre class="code"><code>:root { --blue: #2563eb; --radius: 14px; }   /* the page's own blue and rounder cards */</code></pre>
+    </section>
+
+    <section id="tones" data-terms="Dash.tone .ok .warn .bad .blue .accent .teal .purple .orange .pink .gold .silver .bronze .idle .neutral --c --ok --warn --bad --blue --accent --teal --purple --orange --pink --gold --silver --bronze --idle tone">
+      <h2>Tones</h2>
+      <p>A tone is a class that sets <code>--c</code>, the colour a component draws with. The same fourteen work on every component that has a colour: a pill, a bar, a stat's value, a button, a chart column, a progress bar, an avatar.</p>
+      <figure class="example" id="ex-2"><figcaption>Every tone, on a pill and a bar</figcaption><div class="example-view">
+<div class="swatches">
+  <div class="swatch ok"><i></i><b>ok</b><code>good, healthy</code></div>
+  <div class="swatch warn"><i></i><b>warn</b><code>needs a look</code></div>
+  <div class="swatch bad"><i></i><b>bad</b><code>failed, down</code></div>
+  <div class="swatch blue"><i></i><b>blue</b><code>the default</code></div>
+  <div class="swatch accent"><i></i><b>accent</b><code>the brand's</code></div>
+  <div class="swatch teal"><i></i><b>teal</b><code></code></div>
+  <div class="swatch purple"><i></i><b>purple</b><code></code></div>
+  <div class="swatch orange"><i></i><b>orange</b><code></code></div>
+  <div class="swatch pink"><i></i><b>pink</b><code></code></div>
+  <div class="swatch gold"><i></i><b>gold</b><code>first</code></div>
+  <div class="swatch silver"><i></i><b>silver</b><code>second</code></div>
+  <div class="swatch bronze"><i></i><b>bronze</b><code>third</code></div>
+  <div class="swatch idle"><i></i><b>idle</b><code>off, not running</code></div>
+  <div class="swatch neutral"><i></i><b>neutral</b><code>muted grey</code></div>
+</div>
+<div class="row mt-4">
+  <span class="pill ok"><span class="dot"></span>ok</span><span class="pill warn"><span class="dot"></span>warn</span><span class="pill bad"><span class="dot"></span>bad</span>
+  <span class="pill teal"><span class="dot"></span>teal</span><span class="pill purple"><span class="dot"></span>purple</span><span class="pill idle"><span class="dot"></span>idle</span>
+</div>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;div class=&quot;swatches&quot;&gt;
+  &lt;div class=&quot;swatch ok&quot;&gt;&lt;i&gt;&lt;/i&gt;&lt;b&gt;ok&lt;/b&gt;&lt;code&gt;good, healthy&lt;/code&gt;&lt;/div&gt;
+  &lt;div class=&quot;swatch warn&quot;&gt;&lt;i&gt;&lt;/i&gt;&lt;b&gt;warn&lt;/b&gt;&lt;code&gt;needs a look&lt;/code&gt;&lt;/div&gt;
+  &lt;div class=&quot;swatch bad&quot;&gt;&lt;i&gt;&lt;/i&gt;&lt;b&gt;bad&lt;/b&gt;&lt;code&gt;failed, down&lt;/code&gt;&lt;/div&gt;
+  &lt;div class=&quot;swatch blue&quot;&gt;&lt;i&gt;&lt;/i&gt;&lt;b&gt;blue&lt;/b&gt;&lt;code&gt;the default&lt;/code&gt;&lt;/div&gt;
+  &lt;div class=&quot;swatch accent&quot;&gt;&lt;i&gt;&lt;/i&gt;&lt;b&gt;accent&lt;/b&gt;&lt;code&gt;the brand&#39;s&lt;/code&gt;&lt;/div&gt;
+  &lt;div class=&quot;swatch teal&quot;&gt;&lt;i&gt;&lt;/i&gt;&lt;b&gt;teal&lt;/b&gt;&lt;code&gt;&lt;/code&gt;&lt;/div&gt;
+  &lt;div class=&quot;swatch purple&quot;&gt;&lt;i&gt;&lt;/i&gt;&lt;b&gt;purple&lt;/b&gt;&lt;code&gt;&lt;/code&gt;&lt;/div&gt;
+  &lt;div class=&quot;swatch orange&quot;&gt;&lt;i&gt;&lt;/i&gt;&lt;b&gt;orange&lt;/b&gt;&lt;code&gt;&lt;/code&gt;&lt;/div&gt;
+  &lt;div class=&quot;swatch pink&quot;&gt;&lt;i&gt;&lt;/i&gt;&lt;b&gt;pink&lt;/b&gt;&lt;code&gt;&lt;/code&gt;&lt;/div&gt;
+  &lt;div class=&quot;swatch gold&quot;&gt;&lt;i&gt;&lt;/i&gt;&lt;b&gt;gold&lt;/b&gt;&lt;code&gt;first&lt;/code&gt;&lt;/div&gt;
+  &lt;div class=&quot;swatch silver&quot;&gt;&lt;i&gt;&lt;/i&gt;&lt;b&gt;silver&lt;/b&gt;&lt;code&gt;second&lt;/code&gt;&lt;/div&gt;
+  &lt;div class=&quot;swatch bronze&quot;&gt;&lt;i&gt;&lt;/i&gt;&lt;b&gt;bronze&lt;/b&gt;&lt;code&gt;third&lt;/code&gt;&lt;/div&gt;
+  &lt;div class=&quot;swatch idle&quot;&gt;&lt;i&gt;&lt;/i&gt;&lt;b&gt;idle&lt;/b&gt;&lt;code&gt;off, not running&lt;/code&gt;&lt;/div&gt;
+  &lt;div class=&quot;swatch neutral&quot;&gt;&lt;i&gt;&lt;/i&gt;&lt;b&gt;neutral&lt;/b&gt;&lt;code&gt;muted grey&lt;/code&gt;&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class=&quot;row mt-4&quot;&gt;
+  &lt;span class=&quot;pill ok&quot;&gt;&lt;span class=&quot;dot&quot;&gt;&lt;/span&gt;ok&lt;/span&gt;&lt;span class=&quot;pill warn&quot;&gt;&lt;span class=&quot;dot&quot;&gt;&lt;/span&gt;warn&lt;/span&gt;&lt;span class=&quot;pill bad&quot;&gt;&lt;span class=&quot;dot&quot;&gt;&lt;/span&gt;bad&lt;/span&gt;
+  &lt;span class=&quot;pill teal&quot;&gt;&lt;span class=&quot;dot&quot;&gt;&lt;/span&gt;teal&lt;/span&gt;&lt;span class=&quot;pill purple&quot;&gt;&lt;span class=&quot;dot&quot;&gt;&lt;/span&gt;purple&lt;/span&gt;&lt;span class=&quot;pill idle&quot;&gt;&lt;span class=&quot;dot&quot;&gt;&lt;/span&gt;idle&lt;/span&gt;
+&lt;/div&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;swatches&quot;</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;swatch ok&quot;</span>&gt;&lt;<span class="c-tag">i</span>&gt;&lt;/<span class="c-tag">i</span>&gt;&lt;<span class="c-tag">b</span>&gt;ok&lt;/<span class="c-tag">b</span>&gt;&lt;<span class="c-tag">code</span>&gt;good, healthy&lt;/<span class="c-tag">code</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;swatch warn&quot;</span>&gt;&lt;<span class="c-tag">i</span>&gt;&lt;/<span class="c-tag">i</span>&gt;&lt;<span class="c-tag">b</span>&gt;warn&lt;/<span class="c-tag">b</span>&gt;&lt;<span class="c-tag">code</span>&gt;needs a look&lt;/<span class="c-tag">code</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;swatch bad&quot;</span>&gt;&lt;<span class="c-tag">i</span>&gt;&lt;/<span class="c-tag">i</span>&gt;&lt;<span class="c-tag">b</span>&gt;bad&lt;/<span class="c-tag">b</span>&gt;&lt;<span class="c-tag">code</span>&gt;failed, down&lt;/<span class="c-tag">code</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;swatch blue&quot;</span>&gt;&lt;<span class="c-tag">i</span>&gt;&lt;/<span class="c-tag">i</span>&gt;&lt;<span class="c-tag">b</span>&gt;blue&lt;/<span class="c-tag">b</span>&gt;&lt;<span class="c-tag">code</span>&gt;the default&lt;/<span class="c-tag">code</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;swatch accent&quot;</span>&gt;&lt;<span class="c-tag">i</span>&gt;&lt;/<span class="c-tag">i</span>&gt;&lt;<span class="c-tag">b</span>&gt;accent&lt;/<span class="c-tag">b</span>&gt;&lt;<span class="c-tag">code</span>&gt;the brand&#39;s&lt;/<span class="c-tag">code</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;swatch teal&quot;</span>&gt;&lt;<span class="c-tag">i</span>&gt;&lt;/<span class="c-tag">i</span>&gt;&lt;<span class="c-tag">b</span>&gt;teal&lt;/<span class="c-tag">b</span>&gt;&lt;<span class="c-tag">code</span>&gt;&lt;/<span class="c-tag">code</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;swatch purple&quot;</span>&gt;&lt;<span class="c-tag">i</span>&gt;&lt;/<span class="c-tag">i</span>&gt;&lt;<span class="c-tag">b</span>&gt;purple&lt;/<span class="c-tag">b</span>&gt;&lt;<span class="c-tag">code</span>&gt;&lt;/<span class="c-tag">code</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;swatch orange&quot;</span>&gt;&lt;<span class="c-tag">i</span>&gt;&lt;/<span class="c-tag">i</span>&gt;&lt;<span class="c-tag">b</span>&gt;orange&lt;/<span class="c-tag">b</span>&gt;&lt;<span class="c-tag">code</span>&gt;&lt;/<span class="c-tag">code</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;swatch pink&quot;</span>&gt;&lt;<span class="c-tag">i</span>&gt;&lt;/<span class="c-tag">i</span>&gt;&lt;<span class="c-tag">b</span>&gt;pink&lt;/<span class="c-tag">b</span>&gt;&lt;<span class="c-tag">code</span>&gt;&lt;/<span class="c-tag">code</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;swatch gold&quot;</span>&gt;&lt;<span class="c-tag">i</span>&gt;&lt;/<span class="c-tag">i</span>&gt;&lt;<span class="c-tag">b</span>&gt;gold&lt;/<span class="c-tag">b</span>&gt;&lt;<span class="c-tag">code</span>&gt;first&lt;/<span class="c-tag">code</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;swatch silver&quot;</span>&gt;&lt;<span class="c-tag">i</span>&gt;&lt;/<span class="c-tag">i</span>&gt;&lt;<span class="c-tag">b</span>&gt;silver&lt;/<span class="c-tag">b</span>&gt;&lt;<span class="c-tag">code</span>&gt;second&lt;/<span class="c-tag">code</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;swatch bronze&quot;</span>&gt;&lt;<span class="c-tag">i</span>&gt;&lt;/<span class="c-tag">i</span>&gt;&lt;<span class="c-tag">b</span>&gt;bronze&lt;/<span class="c-tag">b</span>&gt;&lt;<span class="c-tag">code</span>&gt;third&lt;/<span class="c-tag">code</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;swatch idle&quot;</span>&gt;&lt;<span class="c-tag">i</span>&gt;&lt;/<span class="c-tag">i</span>&gt;&lt;<span class="c-tag">b</span>&gt;idle&lt;/<span class="c-tag">b</span>&gt;&lt;<span class="c-tag">code</span>&gt;off, not running&lt;/<span class="c-tag">code</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;swatch neutral&quot;</span>&gt;&lt;<span class="c-tag">i</span>&gt;&lt;/<span class="c-tag">i</span>&gt;&lt;<span class="c-tag">b</span>&gt;neutral&lt;/<span class="c-tag">b</span>&gt;&lt;<span class="c-tag">code</span>&gt;muted grey&lt;/<span class="c-tag">code</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+&lt;/<span class="c-tag">div</span>&gt;
+&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;row mt-4&quot;</span>&gt;
+  &lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;pill ok&quot;</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;dot&quot;</span>&gt;&lt;/<span class="c-tag">span</span>&gt;ok&lt;/<span class="c-tag">span</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;pill warn&quot;</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;dot&quot;</span>&gt;&lt;/<span class="c-tag">span</span>&gt;warn&lt;/<span class="c-tag">span</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;pill bad&quot;</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;dot&quot;</span>&gt;&lt;/<span class="c-tag">span</span>&gt;bad&lt;/<span class="c-tag">span</span>&gt;
+  &lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;pill teal&quot;</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;dot&quot;</span>&gt;&lt;/<span class="c-tag">span</span>&gt;teal&lt;/<span class="c-tag">span</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;pill purple&quot;</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;dot&quot;</span>&gt;&lt;/<span class="c-tag">span</span>&gt;purple&lt;/<span class="c-tag">span</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;pill idle&quot;</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;dot&quot;</span>&gt;&lt;/<span class="c-tag">span</span>&gt;idle&lt;/<span class="c-tag">span</span>&gt;
+&lt;/<span class="c-tag">div</span>&gt;</code></pre></figure>
+      <p>Status colours mean something: <code>ok</code>, <code>warn</code> and <code>bad</code> for good, needs a look and failed, <code>idle</code> for something switched off. The others are for telling things apart (a series in a chart, a team). In a builder the tone is an argument: <code>Dash.pill('Down', 'bad')</code>, <code>Dash.bar(0.7, 'warn')</code>.</p>
+      <p><code>Dash.tone(value, { 75: 'warn', 90: 'bad' })</code> picks a tone from thresholds: <code>'ok'</code> below 75, <code>'warn'</code> from 75, <code>'bad'</code> from 90 (<code>{ below: true }</code> when lower is worse).</p>
+    </section>
+
+    <section id="tint" data-terms=".tint">
+      <h2>A tinted block</h2>
+      <p><code>.tint</code> gives anything a soft fill and text in its tone: a highlighted note, a selected row of your own, a box around a warning.</p>
+      <figure class="example" id="ex-3"><div class="example-view">
+<div class="vstack">
+  <div class="tint p-3 rounded">A soft block in the muted grey, with no tone.</div>
+  <div class="tint warn p-3 rounded">Certificates expire in 9 days.</div>
+  <div class="tint ok p-3 rounded">All 14 checks passed.</div>
+</div>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;div class=&quot;vstack&quot;&gt;
+  &lt;div class=&quot;tint p-3 rounded&quot;&gt;A soft block in the muted grey, with no tone.&lt;/div&gt;
+  &lt;div class=&quot;tint warn p-3 rounded&quot;&gt;Certificates expire in 9 days.&lt;/div&gt;
+  &lt;div class=&quot;tint ok p-3 rounded&quot;&gt;All 14 checks passed.&lt;/div&gt;
+&lt;/div&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;vstack&quot;</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;tint p-3 rounded&quot;</span>&gt;A soft block in the muted grey, with no tone.&lt;/<span class="c-tag">div</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;tint warn p-3 rounded&quot;</span>&gt;Certificates expire in 9 days.&lt;/<span class="c-tag">div</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;tint ok p-3 rounded&quot;</span>&gt;All 14 checks passed.&lt;/<span class="c-tag">div</span>&gt;
+&lt;/<span class="c-tag">div</span>&gt;</code></pre></figure>
+    </section>
+
+    <section id="themes" data-terms="data-theme data-theme-set Dash.theme Dash.theme.get Dash.theme.set Dash.theme.apply Dash.theme.current Dash.color dark-mode prefers-color-scheme">
+      <h2>Light and dark</h2>
+      <p>A page follows the reader's system setting with nothing to do. To let them choose, give buttons <code>data-theme-set</code> with <code>system</code>, <code>light</code> or <code>dark</code>: the choice is saved, set as <code>data-theme</code> on the page, and the pressed button says so (<code>aria-pressed</code>). The docs' own switch, top right, is this:</p>
+      <figure class="example" id="ex-4"><div class="example-view">
+<div class="seg" role="group" aria-label="Theme">
+  <button type="button" data-theme-set="system">Auto</button><button type="button" data-theme-set="light">Light</button><button type="button" data-theme-set="dark">Dark</button>
+</div>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;div class=&quot;seg&quot; role=&quot;group&quot; aria-label=&quot;Theme&quot;&gt;
+  &lt;button type=&quot;button&quot; data-theme-set=&quot;system&quot;&gt;Auto&lt;/button&gt;&lt;button type=&quot;button&quot; data-theme-set=&quot;light&quot;&gt;Light&lt;/button&gt;&lt;button type=&quot;button&quot; data-theme-set=&quot;dark&quot;&gt;Dark&lt;/button&gt;
+&lt;/div&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;seg&quot;</span> <span class="c-attr">role</span>=<span class="c-str">&quot;group&quot;</span> <span class="c-attr">aria-label</span>=<span class="c-str">&quot;Theme&quot;</span>&gt;
+  &lt;<span class="c-tag">button</span> <span class="c-attr">type</span>=<span class="c-str">&quot;button&quot;</span> <span class="c-attr">data-theme-set</span>=<span class="c-str">&quot;system&quot;</span>&gt;Auto&lt;/<span class="c-tag">button</span>&gt;&lt;<span class="c-tag">button</span> <span class="c-attr">type</span>=<span class="c-str">&quot;button&quot;</span> <span class="c-attr">data-theme-set</span>=<span class="c-str">&quot;light&quot;</span>&gt;Light&lt;/<span class="c-tag">button</span>&gt;&lt;<span class="c-tag">button</span> <span class="c-attr">type</span>=<span class="c-str">&quot;button&quot;</span> <span class="c-attr">data-theme-set</span>=<span class="c-str">&quot;dark&quot;</span>&gt;Dark&lt;/<span class="c-tag">button</span>&gt;
+&lt;/<span class="c-tag">div</span>&gt;</code></pre></figure>
+      <ul>
+        <li><code>Dash.theme.get()</code> is the saved choice (<code>'system'</code>, <code>'light'</code> or <code>'dark'</code>), <code>Dash.theme.set(mode)</code> changes it, <code>Dash.theme.current()</code> is what shows now.</li>
+        <li><code>Dash.color('blue')</code> is a token's value at the moment, for drawing on a canvas in the right colours.</li>
+        <li>Your own CSS for dark goes under both <code>@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) … }</code> and <code>:root[data-theme="dark"] …</code>, the two ways the kit turns dark. The <code>dark:</code> utilities do both for you.</li>
+      </ul>
+    </section>
+
+    <section id="contrast" data-terms="forced-colors prefers-reduced-motion">
+      <h2>Forced colours and less motion</h2>
+      <p>The system's high-contrast mode (forced colours) drops background colours. Where a background carries the meaning, the kit draws it another way: lanes and their runs get lines and events get ink, the timeline keeps its dots and line, and the active suggestion and the chosen day in a calendar get an outline. With reduced motion set, a running progress bar becomes a steady one and the kit's other motion stops.</p>
+    </section>
+    <nav class="docs-steps" aria-label="More pages"><a class="docs-step prev" href="./"><span class="faint">Previous</span><b>Getting started</b></a><a class="docs-step next" href="layout.html"><span class="faint">Next</span><b>Page layout</b></a></nav>
+  </main>
+</div>
+<script src="search.js"></script>
+<script src="docs.js"></script>
+</body>
+</html>

@@ -2,6 +2,14 @@
 
 Dashboards keep a copy of `dash.css` and `dash.js`; the first line of each file says which version it is. Versions only add things: a page that worked with an older copy works the same with a newer one.
 
+## 1.9.0 (2026-11-23)
+
+The last two pieces of the component set, and a docs site. All additive.
+
+- **`Dash.combobox(input, options)`** (`.combo-list`): a text box with suggestions that narrow as the reader types, from a list or from a function that asks a server (answers that come back after the reader typed on are dropped). Arrow keys, Enter and a click pick; Escape closes the list only, inside a dialog too; the box keeps the focus throughout. `strict: true` allows only a suggestion. It is an ARIA combobox (`role="combobox"`, a `listbox`, `aria-activedescendant`).
+- **`Dash.datepicker(input, options)`** (`.date-field`, `.calendar`): a calendar button for a `YYYY-MM-DD` box, with `min`, `max` and `firstDay`. The calendar is a grid the keyboard moves through (arrows, Home and End, PageUp and PageDown, with Shift a year); days outside the range can't be picked; today is marked.
+- **Docs:** `docs/` is a site with a page per part of the kit and per utility group: live examples with their code to copy, a preview on a phone and in the other theme, and a search (the combobox). `docs-src/` holds the pages and `node tools/docs.mjs` writes `docs/`; a test checks that every class and function in the kit is on some page.
+
 ## 1.8.0 (2026-11-23)
 
 The form, navigation and progress pieces a component kit is expected to have, in the kit's look. All additive: no existing class or builder changes.

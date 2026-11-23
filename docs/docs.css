@@ -1,0 +1,78 @@
+/* dash-ui docs: only what the docs pages need beyond dash.css (examples, code, the page's head). Colours come from the kit's tokens. */
+.brand { color: inherit; text-decoration: none; }
+.docs-version { font-variant-numeric: tabular-nums; }
+.docs-menu { display: none; }
+@media (max-width: 900px) { .docs-menu { display: inline-grid; } }
+.docs-search { width: min(280px, 100%); }
+.docs-search .input { padding-right: 34px; }
+.docs-key { position: absolute; top: 50%; right: 9px; transform: translateY(-50%); pointer-events: none; }
+.docs-search:focus-within .docs-key { display: none; }
+@media (max-width: 640px) { .docs-search { width: 100%; order: 3; } .top-right { width: 100%; } }
+
+.content.docs { max-width: 1060px; }
+.docs-head { margin-bottom: 26px; }
+.docs-group { margin: 0 0 2px; color: var(--muted); font-size: 12.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.docs-head h1 { margin: 0; font-size: 28px; line-height: 1.2; letter-spacing: -.01em; text-wrap: balance; }
+.docs-blurb { max-width: 68ch; margin: 8px 0 0; color: var(--muted); font-size: 15.5px; }
+.docs-toc { margin-top: 14px; }
+.docs-toc .chip, .docs .cards > a.card { color: inherit; text-decoration: none; }
+
+/* the docs' own text: the sections' direct children, so nothing here reaches into an example */
+.docs > section { margin: 0 0 40px; scroll-margin-top: calc(var(--topbar-h) + 12px); }
+.docs > section > h2 { margin: 0 0 8px; font-size: 20px; line-height: 1.3; text-wrap: balance; }
+.docs > section > h3 { margin: 22px 0 6px; font-size: 15.5px; }
+.docs > section > :is(p, ul, ol) { max-width: 72ch; line-height: 1.6; }
+.docs > section > :is(ul, ol) { padding-left: 20px; }
+.docs > section > :is(ul, ol) > li + li { margin-top: 4px; }
+.docs > section > :is(p, ul, ol, h2, h3, .util-variants) code { padding: 1px 4px; border-radius: 5px; background: color-mix(in srgb, var(--text) 7%, transparent);
+  font-family: var(--mono); font-size: .9em; overflow-wrap: anywhere; }
+
+/* an example: the thing itself, its buttons, then its code */
+.example { margin: 14px 0 18px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); overflow: hidden; }
+.example > figcaption { padding: 10px 16px 0; color: var(--muted); font-size: 13px; font-weight: 600; }
+.example-view { padding: 18px 16px; min-width: 0; overflow-x: auto; }
+.example-view > :first-child { margin-top: 0; }
+.example-view > :last-child { margin-bottom: 0; }
+.example.on-page .example-view { background: var(--bg); }
+.example-bar { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; padding: 6px 8px; border-top: 1px solid var(--line); background: var(--soft); }
+.example-code { margin: 0; padding: 14px 16px; max-height: 420px; overflow: auto; border-top: 1px solid var(--line); background: var(--bg);
+  font-family: var(--mono); font-size: 12.5px; line-height: 1.6; tab-size: 2; }
+.example-code code { white-space: pre; }
+.c-tag { color: var(--blue); }
+.c-attr { color: var(--purple); }
+.c-str { color: var(--ok); }
+.c-com { color: var(--faint); font-style: italic; }
+.c-key { color: var(--pink); }
+.c-num { color: var(--orange); }
+.c-fn { color: var(--teal); font-weight: 600; }
+.preview-frame { display: block; width: 100%; height: min(640px, 70vh); margin: 0 auto; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--bg); }
+.preview-frame.phone { width: min(390px, 100%); }
+
+/* a plain block of code that isn't an example */
+.docs > section > pre.code { margin: 12px 0 16px; padding: 14px 16px; overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--card);
+  font-family: var(--mono); font-size: 12.5px; line-height: 1.6; }
+
+/* options and class tables */
+.docs > section > .table-wrap { margin: 10px 0 18px; }
+.docs > section > .table-wrap td { vertical-align: top; }
+.docs > section > .table-wrap code { font-family: var(--mono); font-size: .9em; overflow-wrap: anywhere; }
+.util-variants { color: var(--muted); font-size: 13.5px; }
+.util-table { max-height: 520px; overflow: auto; }
+.util-table thead th { position: sticky; top: 0; z-index: 1; background: var(--card); box-shadow: inset 0 -1px var(--line); }
+.util-table .decl { color: var(--muted); white-space: pre-wrap; }
+
+/* a row of swatches (colours page) */
+.swatches { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+.swatch { display: grid; gap: 2px; padding: 0 0 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; background: var(--card); font-size: 13px; }
+.swatch > i { display: block; height: 44px; margin-bottom: 6px; background: var(--c); }
+.swatch > b, .swatch > code { padding: 0 10px; }
+.swatch > code { color: var(--muted); font-size: 12px; }
+
+/* previous and next */
+.docs-steps { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--line); }
+.docs-step { display: grid; gap: 2px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius-sm); color: inherit; text-decoration: none; }
+.docs-step:hover { border-color: var(--muted); }
+.docs-step.prev { grid-column: 1; }
+.docs-step.next { grid-column: 2; text-align: right; } /* stays on the right on the first page, which has no Previous */
+.example.framed .example-view { padding-block: 14px; } /* only a note: Phone and Other theme show it whole */
+@media (max-width: 640px) { .docs-head h1 { font-size: 24px; } .example-view { padding: 14px 12px; } .docs-steps { grid-template-columns: 1fr; } .docs-step.prev, .docs-step.next { grid-column: auto; } .docs-step.next { text-align: left; } }

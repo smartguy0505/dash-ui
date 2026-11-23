@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en" data-kit="../">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Text and labels · dash-ui</title>
+<meta name="description" content="Text styles, status pills, tags, chips, ranks, changes, avatars, badges and tooltips.">
+<link rel="stylesheet" href="../dash.css">
+<link rel="stylesheet" href="../dash-utils.css">
+<link rel="stylesheet" href="docs.css">
+<script src="../dash.js"></script>
+</head>
+<body>
+<!-- dash-ui 1.9.0 docs, written by tools/docs.mjs from docs-src/text.html: edit that, not this -->
+<header class="topbar">
+  <button type="button" class="icon-btn docs-menu" data-toggle-side aria-label="Pages"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3 5h12M3 9h12M3 13h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+  <a class="brand" href="./"><span class="mark">d</span><h1>dash-ui</h1></a><span class="tag plain docs-version">1.9.0</span>
+  <div class="top-right">
+    <label class="search docs-search"><span class="sr-only">Search the docs</span><svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.6"/><path d="m11 11 3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><input class="input" type="search" id="docs-search" placeholder="Search" aria-keyshortcuts="/"><kbd class="docs-key">/</kbd></label>
+    <div class="seg" role="group" aria-label="Theme"><button type="button" data-theme-set="system">Auto</button><button type="button" data-theme-set="light">Light</button><button type="button" data-theme-set="dark">Dark</button></div>
+  </div>
+</header>
+<div class="shell offcanvas">
+  <nav class="sidebar" aria-label="Pages"><div class="side-head">Start</div><a class="nav-item" href="./"><span class="nav-main"><span class="nav-name">Getting started</span></span></a><div class="side-head">Foundations</div><a class="nav-item" href="colours.html"><span class="nav-main"><span class="nav-name">Colours and themes</span></span></a><a class="nav-item" href="layout.html"><span class="nav-main"><span class="nav-name">Page layout</span></span></a><a class="nav-item" href="text.html" aria-current="page"><span class="nav-main"><span class="nav-name">Text and labels</span></span></a><div class="side-head">Components</div><a class="nav-item" href="buttons.html"><span class="nav-main"><span class="nav-name">Buttons</span></span></a><a class="nav-item" href="forms.html"><span class="nav-main"><span class="nav-name">Forms</span></span></a><a class="nav-item" href="surfaces.html"><span class="nav-main"><span class="nav-name">Panels and cards</span></span></a><a class="nav-item" href="navigation.html"><span class="nav-main"><span class="nav-name">Navigation</span></span></a><a class="nav-item" href="tables.html"><span class="nav-main"><span class="nav-name">Tables</span></span></a><a class="nav-item" href="charts.html"><span class="nav-main"><span class="nav-name">Charts and progress</span></span></a><a class="nav-item" href="overlays.html"><span class="nav-main"><span class="nav-name">Modals and popups</span></span></a><a class="nav-item" href="feedback.html"><span class="nav-main"><span class="nav-name">Feedback</span></span></a><div class="side-head">JavaScript</div><a class="nav-item" href="helpers.html"><span class="nav-main"><span class="nav-name">dash.js helpers</span></span></a><div class="side-head">Utilities</div><a class="nav-item" href="utilities.html"><span class="nav-main"><span class="nav-name">Utility classes</span></span></a><a class="nav-item" href="utilities-layout.html"><span class="nav-main"><span class="nav-name">Layout utilities</span></span></a><a class="nav-item" href="utilities-spacing.html"><span class="nav-main"><span class="nav-name">Spacing utilities</span></span></a><a class="nav-item" href="utilities-sizing.html"><span class="nav-main"><span class="nav-name">Sizing utilities</span></span></a><a class="nav-item" href="utilities-type.html"><span class="nav-main"><span class="nav-name">Type utilities</span></span></a><a class="nav-item" href="utilities-colour.html"><span class="nav-main"><span class="nav-name">Colour utilities</span></span></a><a class="nav-item" href="utilities-effects.html"><span class="nav-main"><span class="nav-name">Borders and effects</span></span></a></nav>
+  <main class="content docs" id="top">
+    <header class="docs-head"><p class="docs-group">Foundations</p><h1>Text and labels</h1><p class="docs-blurb">Text styles, status pills, tags, chips, ranks, changes, avatars, badges and tooltips.</p><nav class="chips docs-toc" aria-label="On this page"><a class="chip" href="#text">Text</a><a class="chip" href="#pills">Status pills</a><a class="chip" href="#tags">Tags</a><a class="chip" href="#chips">Chips</a><a class="chip" href="#changes">Changes and ranks</a><a class="chip" href="#avatars">Avatars</a><a class="chip" href="#badges">Badges</a><a class="chip" href="#tooltips">Tooltips</a></nav></header>
+<section id="text" data-terms=".muted .faint .strong .sub .mono .num .unit .r .nowrap .tone .ellipsis .clamp --lines .invisible .sr-only .error-text kbd code">
+      <h2>Text</h2>
+      <p>Small classes for the text in a dashboard. <code>.num</code> lines digits up in columns and <code>.r</code> aligns right; <code>.unit</code> is a unit after a number; <code>.nowrap</code> keeps text on one line; <code>.tone</code> is text in its tone's colour (<code>class="tone bad"</code>, or the colour of the toned box it's in); <code>.ellipsis</code> ends a line that doesn't fit in …, and <code>.clamp</code> does it after <code>--lines</code> lines (2). <code>.invisible</code> hides something but keeps its space; <code>.sr-only</code> keeps it for screen readers only.</p>
+      <figure class="example" id="ex-1"><div class="example-view">
+<p><span class="strong">Strong</span> · <span class="muted">muted</span> · <span class="faint">faint</span> · <span class="sub">a sub line</span> · <span class="error-text">an error</span></p>
+<p><span class="mono">acct_7f2k9m</span> · <span class="num">1,234.50</span> · 12.5 <span class="unit">ms</span> · <span class="tone bad">a toned word</span> · <kbd>/</kbd> · <code>code</code></p>
+<p class="ellipsis" style="max-width: 260px">A line that is too long for its box ends in an ellipsis</p>
+<p class="clamp" style="--lines: 2; max-width: 320px">A paragraph that may run long is cut after two lines with an ellipsis, so cards in a row stay the same height whatever their text says.</p>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;p&gt;&lt;span class=&quot;strong&quot;&gt;Strong&lt;/span&gt; · &lt;span class=&quot;muted&quot;&gt;muted&lt;/span&gt; · &lt;span class=&quot;faint&quot;&gt;faint&lt;/span&gt; · &lt;span class=&quot;sub&quot;&gt;a sub line&lt;/span&gt; · &lt;span class=&quot;error-text&quot;&gt;an error&lt;/span&gt;&lt;/p&gt;
+&lt;p&gt;&lt;span class=&quot;mono&quot;&gt;acct_7f2k9m&lt;/span&gt; · &lt;span class=&quot;num&quot;&gt;1,234.50&lt;/span&gt; · 12.5 &lt;span class=&quot;unit&quot;&gt;ms&lt;/span&gt; · &lt;span class=&quot;tone bad&quot;&gt;a toned word&lt;/span&gt; · &lt;kbd&gt;/&lt;/kbd&gt; · &lt;code&gt;code&lt;/code&gt;&lt;/p&gt;
+&lt;p class=&quot;ellipsis&quot; style=&quot;max-width: 260px&quot;&gt;A line that is too long for its box ends in an ellipsis&lt;/p&gt;
+&lt;p class=&quot;clamp&quot; style=&quot;--lines: 2; max-width: 320px&quot;&gt;A paragraph that may run long is cut after two lines with an ellipsis, so cards in a row stay the same height whatever their text says.&lt;/p&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">p</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;strong&quot;</span>&gt;Strong&lt;/<span class="c-tag">span</span>&gt; · &lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;muted&quot;</span>&gt;muted&lt;/<span class="c-tag">span</span>&gt; · &lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;faint&quot;</span>&gt;faint&lt;/<span class="c-tag">span</span>&gt; · &lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;sub&quot;</span>&gt;a sub line&lt;/<span class="c-tag">span</span>&gt; · &lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;error-text&quot;</span>&gt;an error&lt;/<span class="c-tag">span</span>&gt;&lt;/<span class="c-tag">p</span>&gt;
+&lt;<span class="c-tag">p</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;mono&quot;</span>&gt;acct_7f2k9m&lt;/<span class="c-tag">span</span>&gt; · &lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;num&quot;</span>&gt;1,234.50&lt;/<span class="c-tag">span</span>&gt; · 12.5 &lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;unit&quot;</span>&gt;ms&lt;/<span class="c-tag">span</span>&gt; · &lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;tone bad&quot;</span>&gt;a toned word&lt;/<span class="c-tag">span</span>&gt; · &lt;<span class="c-tag">kbd</span>&gt;/&lt;/<span class="c-tag">kbd</span>&gt; · &lt;<span class="c-tag">code</span>&gt;code&lt;/<span class="c-tag">code</span>&gt;&lt;/<span class="c-tag">p</span>&gt;
+&lt;<span class="c-tag">p</span> <span class="c-attr">class</span>=<span class="c-str">&quot;ellipsis&quot;</span> <span class="c-attr">style</span>=<span class="c-str">&quot;max-width: 260px&quot;</span>&gt;A line that is too long for its box ends in an ellipsis&lt;/<span class="c-tag">p</span>&gt;
+&lt;<span class="c-tag">p</span> <span class="c-attr">class</span>=<span class="c-str">&quot;clamp&quot;</span> <span class="c-attr">style</span>=<span class="c-str">&quot;--lines: 2; max-width: 320px&quot;</span>&gt;A paragraph that may run long is cut after two lines with an ellipsis, so cards in a row stay the same height whatever their text says.&lt;/<span class="c-tag">p</span>&gt;</code></pre></figure>
+      <p>The <a href="utilities-type.html">type utilities</a> add sizes, weights, alignment and wrapping.</p>
+    </section>
+
+    <section id="pills" data-terms=".pill .dot .pulse .hollow .lg .n Dash.pill">
+      <h2>Status pills</h2>
+      <p><code>.pill</code> is a state, in a tone, usually with a <code>.dot</code>. <code>.dot.pulse</code> pulses, for something happening now; <code>.dot.hollow</code> is a ring, for something waiting. <code>.pill.lg</code> is bigger, and a <code>.n</code> inside holds a count in even digits. <code>Dash.pill(text, tone)</code> writes one with its dot.</p>
+      <figure class="example" id="ex-2"><div class="example-view">
+<div class="row">
+  <span class="pill ok"><span class="dot"></span>Healthy</span>
+  <span class="pill warn"><span class="dot pulse"></span>Deploying</span>
+  <span class="pill bad"><span class="dot"></span>Down</span>
+  <span class="pill idle"><span class="dot hollow"></span>Queued</span>
+  <span class="pill lg blue"><span class="dot"></span>Large</span>
+  <span id="pill-js"></span>
+</div>
+<script>
+  Dash.render('pill-js', Dash.pill('From Dash.pill', 'purple'));
+</script>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;div class=&quot;row&quot;&gt;
+  &lt;span class=&quot;pill ok&quot;&gt;&lt;span class=&quot;dot&quot;&gt;&lt;/span&gt;Healthy&lt;/span&gt;
+  &lt;span class=&quot;pill warn&quot;&gt;&lt;span class=&quot;dot pulse&quot;&gt;&lt;/span&gt;Deploying&lt;/span&gt;
+  &lt;span class=&quot;pill bad&quot;&gt;&lt;span class=&quot;dot&quot;&gt;&lt;/span&gt;Down&lt;/span&gt;
+  &lt;span class=&quot;pill idle&quot;&gt;&lt;span class=&quot;dot hollow&quot;&gt;&lt;/span&gt;Queued&lt;/span&gt;
+  &lt;span class=&quot;pill lg blue&quot;&gt;&lt;span class=&quot;dot&quot;&gt;&lt;/span&gt;Large&lt;/span&gt;
+  &lt;span id=&quot;pill-js&quot;&gt;&lt;/span&gt;
+&lt;/div&gt;
+&lt;script&gt;
+  Dash.render(&#39;pill-js&#39;, Dash.pill(&#39;From Dash.pill&#39;, &#39;purple&#39;));
+&lt;/script&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;row&quot;</span>&gt;
+  &lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;pill ok&quot;</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;dot&quot;</span>&gt;&lt;/<span class="c-tag">span</span>&gt;Healthy&lt;/<span class="c-tag">span</span>&gt;
+  &lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;pill warn&quot;</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;dot pulse&quot;</span>&gt;&lt;/<span class="c-tag">span</span>&gt;Deploying&lt;/<span class="c-tag">span</span>&gt;
+  &lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;pill bad&quot;</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;dot&quot;</span>&gt;&lt;/<span class="c-tag">span</span>&gt;Down&lt;/<span class="c-tag">span</span>&gt;
+  &lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;pill idle&quot;</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;dot hollow&quot;</span>&gt;&lt;/<span class="c-tag">span</span>&gt;Queued&lt;/<span class="c-tag">span</span>&gt;
+  &lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;pill lg blue&quot;</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;dot&quot;</span>&gt;&lt;/<span class="c-tag">span</span>&gt;Large&lt;/<span class="c-tag">span</span>&gt;
+  &lt;<span class="c-tag">span</span> <span class="c-attr">id</span>=<span class="c-str">&quot;pill-js&quot;</span>&gt;&lt;/<span class="c-tag">span</span>&gt;
+&lt;/<span class="c-tag">div</span>&gt;
+&lt;<span class="c-tag">script</span>&gt;
+  <span class="c-fn">Dash</span>.render(<span class="c-str">&#39;pill-js&#39;</span>, <span class="c-fn">Dash</span>.pill(<span class="c-str">&#39;From Dash.pill&#39;</span>, <span class="c-str">&#39;purple&#39;</span>));
+&lt;/<span class="c-tag">script</span>&gt;</code></pre></figure>
+    </section>
+
+    <section id="tags" data-terms=".tag .tags .plain .outline Dash.tag">
+      <h2>Tags</h2>
+      <p><code>.tag</code> is a small fact: a region, a version, a plan. It is tinted in its tone; <code>.tag.plain</code> is neutral and <code>.tag.outline</code> a ring. Put several in <code>.tags</code>. <code>Dash.tag(text, tone)</code> writes one.</p>
+      <figure class="example" id="ex-3"><div class="example-view">
+<div class="tags"><span class="tag blue">eu-west</span><span class="tag plain">v2.4.1</span><span class="tag outline purple">Pro</span><span class="tag ok">TLS</span></div>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;div class=&quot;tags&quot;&gt;&lt;span class=&quot;tag blue&quot;&gt;eu-west&lt;/span&gt;&lt;span class=&quot;tag plain&quot;&gt;v2.4.1&lt;/span&gt;&lt;span class=&quot;tag outline purple&quot;&gt;Pro&lt;/span&gt;&lt;span class=&quot;tag ok&quot;&gt;TLS&lt;/span&gt;&lt;/div&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;tags&quot;</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;tag blue&quot;</span>&gt;eu-west&lt;/<span class="c-tag">span</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;tag plain&quot;</span>&gt;v2.4.1&lt;/<span class="c-tag">span</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;tag outline purple&quot;</span>&gt;Pro&lt;/<span class="c-tag">span</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;tag ok&quot;</span>&gt;TLS&lt;/<span class="c-tag">span</span>&gt;&lt;/<span class="c-tag">div</span>&gt;</code></pre></figure>
+    </section>
+
+    <section id="chips" data-terms=".chip .chips .scroll aria-pressed">
+      <h2>Chips</h2>
+      <p><code>.chip</code> is a pill with a border. A <code>button.chip</code> with <code>aria-pressed</code> is a choice (a filter), and <code>Dash.seg</code> can run a row of them as one choice. <code>.chips</code> wraps them; <code>.chips.scroll</code> keeps them on one line that scrolls sideways.</p>
+      <figure class="example" id="ex-4"><div class="example-view">
+<div class="chips" id="chip-filter">
+  <button type="button" class="chip" data-value="all" aria-pressed="true">All</button>
+  <button type="button" class="chip" data-value="web" aria-pressed="false">Web</button>
+  <button type="button" class="chip" data-value="db" aria-pressed="false">Databases</button>
+  <button type="button" class="chip" data-value="queue" aria-pressed="false">Queues</button>
+</div>
+<script>
+  Dash.seg('chip-filter', { value: 'all', onChange: (v) => Dash.toast(`Showing ${v}`) });
+</script>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;div class=&quot;chips&quot; id=&quot;chip-filter&quot;&gt;
+  &lt;button type=&quot;button&quot; class=&quot;chip&quot; data-value=&quot;all&quot; aria-pressed=&quot;true&quot;&gt;All&lt;/button&gt;
+  &lt;button type=&quot;button&quot; class=&quot;chip&quot; data-value=&quot;web&quot; aria-pressed=&quot;false&quot;&gt;Web&lt;/button&gt;
+  &lt;button type=&quot;button&quot; class=&quot;chip&quot; data-value=&quot;db&quot; aria-pressed=&quot;false&quot;&gt;Databases&lt;/button&gt;
+  &lt;button type=&quot;button&quot; class=&quot;chip&quot; data-value=&quot;queue&quot; aria-pressed=&quot;false&quot;&gt;Queues&lt;/button&gt;
+&lt;/div&gt;
+&lt;script&gt;
+  Dash.seg(&#39;chip-filter&#39;, { value: &#39;all&#39;, onChange: (v) =&gt; Dash.toast(`Showing ${v}`) });
+&lt;/script&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;chips&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;chip-filter&quot;</span>&gt;
+  &lt;<span class="c-tag">button</span> <span class="c-attr">type</span>=<span class="c-str">&quot;button&quot;</span> <span class="c-attr">class</span>=<span class="c-str">&quot;chip&quot;</span> <span class="c-attr">data-value</span>=<span class="c-str">&quot;all&quot;</span> <span class="c-attr">aria-pressed</span>=<span class="c-str">&quot;true&quot;</span>&gt;All&lt;/<span class="c-tag">button</span>&gt;
+  &lt;<span class="c-tag">button</span> <span class="c-attr">type</span>=<span class="c-str">&quot;button&quot;</span> <span class="c-attr">class</span>=<span class="c-str">&quot;chip&quot;</span> <span class="c-attr">data-value</span>=<span class="c-str">&quot;web&quot;</span> <span class="c-attr">aria-pressed</span>=<span class="c-str">&quot;false&quot;</span>&gt;Web&lt;/<span class="c-tag">button</span>&gt;
+  &lt;<span class="c-tag">button</span> <span class="c-attr">type</span>=<span class="c-str">&quot;button&quot;</span> <span class="c-attr">class</span>=<span class="c-str">&quot;chip&quot;</span> <span class="c-attr">data-value</span>=<span class="c-str">&quot;db&quot;</span> <span class="c-attr">aria-pressed</span>=<span class="c-str">&quot;false&quot;</span>&gt;Databases&lt;/<span class="c-tag">button</span>&gt;
+  &lt;<span class="c-tag">button</span> <span class="c-attr">type</span>=<span class="c-str">&quot;button&quot;</span> <span class="c-attr">class</span>=<span class="c-str">&quot;chip&quot;</span> <span class="c-attr">data-value</span>=<span class="c-str">&quot;queue&quot;</span> <span class="c-attr">aria-pressed</span>=<span class="c-str">&quot;false&quot;</span>&gt;Queues&lt;/<span class="c-tag">button</span>&gt;
+&lt;/<span class="c-tag">div</span>&gt;
+&lt;<span class="c-tag">script</span>&gt;
+  <span class="c-fn">Dash</span>.seg(<span class="c-str">&#39;chip-filter&#39;</span>, { value: <span class="c-str">&#39;all&#39;</span>, onChange: (v) =&gt; <span class="c-fn">Dash</span>.toast(<span class="c-str">`Showing ${v}`</span>) });
+&lt;/<span class="c-tag">script</span>&gt;</code></pre></figure>
+    </section>
+
+    <section id="changes" data-terms=".chg .up .down .flat .none Dash.chg .rank Dash.rank">
+      <h2>Changes and ranks</h2>
+      <p><code>.chg</code> is a signed change, green up and red down (<code>.up</code>, <code>.down</code>, <code>.flat</code>). <code>Dash.chg(value, text)</code> picks the class from the sign; <code>{ eps }</code> is how small a change still counts as flat. <code>.rank</code> is "#2 of 14", gold, silver and bronze for the top three; <code>Dash.rank(position, of)</code> writes it.</p>
+      <figure class="example" id="ex-5"><div class="example-view">
+<div class="row" id="chg-box"></div>
+<script>
+  Dash.render('chg-box', Dash.chg(4.2, '+4.2%') + Dash.chg(-1.8, '−1.8%') + Dash.chg(0, '0%') + Dash.rank(1, 14) + Dash.rank(2, 14) + Dash.rank(3, 14) + Dash.rank(9, 14));
+</script>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;div class=&quot;row&quot; id=&quot;chg-box&quot;&gt;&lt;/div&gt;
+&lt;script&gt;
+  Dash.render(&#39;chg-box&#39;, Dash.chg(4.2, &#39;+4.2%&#39;) + Dash.chg(-1.8, &#39;−1.8%&#39;) + Dash.chg(0, &#39;0%&#39;) + Dash.rank(1, 14) + Dash.rank(2, 14) + Dash.rank(3, 14) + Dash.rank(9, 14));
+&lt;/script&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;row&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;chg-box&quot;</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+&lt;<span class="c-tag">script</span>&gt;
+  <span class="c-fn">Dash</span>.render(<span class="c-str">&#39;chg-box&#39;</span>, <span class="c-fn">Dash</span>.chg(<span class="c-num">4.2</span>, <span class="c-str">&#39;+4.2%&#39;</span>) + <span class="c-fn">Dash</span>.chg(-<span class="c-num">1.8</span>, <span class="c-str">&#39;−1.8%&#39;</span>) + <span class="c-fn">Dash</span>.chg(<span class="c-num">0</span>, <span class="c-str">&#39;0%&#39;</span>) + <span class="c-fn">Dash</span>.rank(<span class="c-num">1</span>, <span class="c-num">14</span>) + <span class="c-fn">Dash</span>.rank(<span class="c-num">2</span>, <span class="c-num">14</span>) + <span class="c-fn">Dash</span>.rank(<span class="c-num">3</span>, <span class="c-num">14</span>) + <span class="c-fn">Dash</span>.rank(<span class="c-num">9</span>, <span class="c-num">14</span>));
+&lt;/<span class="c-tag">script</span>&gt;</code></pre></figure>
+    </section>
+
+    <section id="avatars" data-terms=".avatar .avatars .square .extra .sm Dash.avatar Dash.avatars">
+      <h2>Avatars</h2>
+      <p><code>Dash.avatar(name)</code> is the name's initials in a colour picked from the name, so the same person always has the same colour. <code>{ src }</code> shows a picture instead (a <code>data:image/</code> one too), <code>{ tone }</code> picks the colour, <code>{ size: 'sm' | 'lg' }</code> and <code>{ square: true }</code> change its shape. <code>Dash.avatars(people, { max })</code> overlaps a few and counts the rest as "+3"; every name is in its label and tooltip.</p>
+      <figure class="example" id="ex-6"><div class="example-view">
+<div class="row" id="avatar-box"></div>
+<script>
+  const people = ['Ada Lovelace', 'Grace Hopper', 'Alan Turing', 'Katherine Johnson', 'Edsger Dijkstra', 'Barbara Liskov'];
+  Dash.render('avatar-box', Dash.avatars(people, { max: 4 }) + Dash.avatar('Linus Park', { size: 'sm' }) + Dash.avatar('Linus Park')
+    + Dash.avatar('Linus Park', { size: 'lg' }) + Dash.avatar('Build bot', { square: true, tone: 'teal' }));
+</script>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;div class=&quot;row&quot; id=&quot;avatar-box&quot;&gt;&lt;/div&gt;
+&lt;script&gt;
+  const people = [&#39;Ada Lovelace&#39;, &#39;Grace Hopper&#39;, &#39;Alan Turing&#39;, &#39;Katherine Johnson&#39;, &#39;Edsger Dijkstra&#39;, &#39;Barbara Liskov&#39;];
+  Dash.render(&#39;avatar-box&#39;, Dash.avatars(people, { max: 4 }) + Dash.avatar(&#39;Linus Park&#39;, { size: &#39;sm&#39; }) + Dash.avatar(&#39;Linus Park&#39;)
+    + Dash.avatar(&#39;Linus Park&#39;, { size: &#39;lg&#39; }) + Dash.avatar(&#39;Build bot&#39;, { square: true, tone: &#39;teal&#39; }));
+&lt;/script&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;row&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;avatar-box&quot;</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+&lt;<span class="c-tag">script</span>&gt;
+  <span class="c-key">const</span> people = [<span class="c-str">&#39;Ada Lovelace&#39;</span>, <span class="c-str">&#39;Grace Hopper&#39;</span>, <span class="c-str">&#39;Alan Turing&#39;</span>, <span class="c-str">&#39;Katherine Johnson&#39;</span>, <span class="c-str">&#39;Edsger Dijkstra&#39;</span>, <span class="c-str">&#39;Barbara Liskov&#39;</span>];
+  <span class="c-fn">Dash</span>.render(<span class="c-str">&#39;avatar-box&#39;</span>, <span class="c-fn">Dash</span>.avatars(people, { max: <span class="c-num">4</span> }) + <span class="c-fn">Dash</span>.avatar(<span class="c-str">&#39;Linus Park&#39;</span>, { size: <span class="c-str">&#39;sm&#39;</span> }) + <span class="c-fn">Dash</span>.avatar(<span class="c-str">&#39;Linus Park&#39;</span>)
+    + <span class="c-fn">Dash</span>.avatar(<span class="c-str">&#39;Linus Park&#39;</span>, { size: <span class="c-str">&#39;lg&#39;</span> }) + <span class="c-fn">Dash</span>.avatar(<span class="c-str">&#39;Build bot&#39;</span>, { square: <span class="c-key">true</span>, tone: <span class="c-str">&#39;teal&#39;</span> }));
+&lt;/<span class="c-tag">script</span>&gt;</code></pre></figure>
+      <p>By hand: <code>&lt;span class="avatar purple" role="img" aria-label="Ada Lovelace"&gt;AL&lt;/span&gt;</code>, or an <code>&lt;img&gt;</code> inside it.</p>
+    </section>
+
+    <section id="badges" data-terms="data-badge --badge .count-badge">
+      <h2>Badges</h2>
+      <p><code>data-badge="3"</code> on a button or an icon puts a count in its corner, and <code>data-badge=""</code> a dot. <code>--badge</code> changes its colour (red by default). The badge is drawn, not read: say the count in the button's <code>aria-label</code> too. <code>.count-badge</code> is a count beside a word, in a tab or a sidebar heading.</p>
+      <figure class="example" id="ex-7"><div class="example-view">
+<div class="row">
+  <button type="button" class="icon-btn" data-badge="3" aria-label="Messages, 3 new"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2.5 4h11v8h-11zM2.5 4 8 8.5 13.5 4" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></button>
+  <button type="button" class="icon-btn" data-badge="" aria-label="Alerts, new"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1 1.5H3L4 11ZM6.5 14h3" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></button>
+  <button type="button" class="btn" data-badge="12" style="--badge: var(--blue)">Inbox</button>
+  <span>Reviews <span class="count-badge">4</span></span>
+</div>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;div class=&quot;row&quot;&gt;
+  &lt;button type=&quot;button&quot; class=&quot;icon-btn&quot; data-badge=&quot;3&quot; aria-label=&quot;Messages, 3 new&quot;&gt;&lt;svg width=&quot;16&quot; height=&quot;16&quot; viewBox=&quot;0 0 16 16&quot; fill=&quot;none&quot; aria-hidden=&quot;true&quot;&gt;&lt;path d=&quot;M2.5 4h11v8h-11zM2.5 4 8 8.5 13.5 4&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;1.4&quot; stroke-linejoin=&quot;round&quot;/&gt;&lt;/svg&gt;&lt;/button&gt;
+  &lt;button type=&quot;button&quot; class=&quot;icon-btn&quot; data-badge=&quot;&quot; aria-label=&quot;Alerts, new&quot;&gt;&lt;svg width=&quot;16&quot; height=&quot;16&quot; viewBox=&quot;0 0 16 16&quot; fill=&quot;none&quot; aria-hidden=&quot;true&quot;&gt;&lt;path d=&quot;M4 11V7a4 4 0 0 1 8 0v4l1 1.5H3L4 11ZM6.5 14h3&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;1.4&quot; stroke-linejoin=&quot;round&quot;/&gt;&lt;/svg&gt;&lt;/button&gt;
+  &lt;button type=&quot;button&quot; class=&quot;btn&quot; data-badge=&quot;12&quot; style=&quot;--badge: var(--blue)&quot;&gt;Inbox&lt;/button&gt;
+  &lt;span&gt;Reviews &lt;span class=&quot;count-badge&quot;&gt;4&lt;/span&gt;&lt;/span&gt;
+&lt;/div&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;row&quot;</span>&gt;
+  &lt;<span class="c-tag">button</span> <span class="c-attr">type</span>=<span class="c-str">&quot;button&quot;</span> <span class="c-attr">class</span>=<span class="c-str">&quot;icon-btn&quot;</span> <span class="c-attr">data-badge</span>=<span class="c-str">&quot;3&quot;</span> <span class="c-attr">aria-label</span>=<span class="c-str">&quot;Messages, 3 new&quot;</span>&gt;&lt;<span class="c-tag">svg</span> <span class="c-attr">width</span>=<span class="c-str">&quot;16&quot;</span> <span class="c-attr">height</span>=<span class="c-str">&quot;16&quot;</span> <span class="c-attr">viewBox</span>=<span class="c-str">&quot;0 0 16 16&quot;</span> <span class="c-attr">fill</span>=<span class="c-str">&quot;none&quot;</span> <span class="c-attr">aria-hidden</span>=<span class="c-str">&quot;true&quot;</span>&gt;&lt;<span class="c-tag">path</span> <span class="c-attr">d</span>=<span class="c-str">&quot;M2.5 4h11v8h-11zM2.5 4 8 8.5 13.5 4&quot;</span> <span class="c-attr">stroke</span>=<span class="c-str">&quot;currentColor&quot;</span> <span class="c-attr">stroke-width</span>=<span class="c-str">&quot;1.4&quot;</span> <span class="c-attr">stroke-linejoin</span>=<span class="c-str">&quot;round&quot;</span>/&gt;&lt;/<span class="c-tag">svg</span>&gt;&lt;/<span class="c-tag">button</span>&gt;
+  &lt;<span class="c-tag">button</span> <span class="c-attr">type</span>=<span class="c-str">&quot;button&quot;</span> <span class="c-attr">class</span>=<span class="c-str">&quot;icon-btn&quot;</span> <span class="c-attr">data-badge</span>=<span class="c-str">&quot;&quot;</span> <span class="c-attr">aria-label</span>=<span class="c-str">&quot;Alerts, new&quot;</span>&gt;&lt;<span class="c-tag">svg</span> <span class="c-attr">width</span>=<span class="c-str">&quot;16&quot;</span> <span class="c-attr">height</span>=<span class="c-str">&quot;16&quot;</span> <span class="c-attr">viewBox</span>=<span class="c-str">&quot;0 0 16 16&quot;</span> <span class="c-attr">fill</span>=<span class="c-str">&quot;none&quot;</span> <span class="c-attr">aria-hidden</span>=<span class="c-str">&quot;true&quot;</span>&gt;&lt;<span class="c-tag">path</span> <span class="c-attr">d</span>=<span class="c-str">&quot;M4 11V7a4 4 0 0 1 8 0v4l1 1.5H3L4 11ZM6.5 14h3&quot;</span> <span class="c-attr">stroke</span>=<span class="c-str">&quot;currentColor&quot;</span> <span class="c-attr">stroke-width</span>=<span class="c-str">&quot;1.4&quot;</span> <span class="c-attr">stroke-linejoin</span>=<span class="c-str">&quot;round&quot;</span>/&gt;&lt;/<span class="c-tag">svg</span>&gt;&lt;/<span class="c-tag">button</span>&gt;
+  &lt;<span class="c-tag">button</span> <span class="c-attr">type</span>=<span class="c-str">&quot;button&quot;</span> <span class="c-attr">class</span>=<span class="c-str">&quot;btn&quot;</span> <span class="c-attr">data-badge</span>=<span class="c-str">&quot;12&quot;</span> <span class="c-attr">style</span>=<span class="c-str">&quot;--badge: var(--blue)&quot;</span>&gt;Inbox&lt;/<span class="c-tag">button</span>&gt;
+  &lt;<span class="c-tag">span</span>&gt;Reviews &lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;count-badge&quot;</span>&gt;4&lt;/<span class="c-tag">span</span>&gt;&lt;/<span class="c-tag">span</span>&gt;
+&lt;/<span class="c-tag">div</span>&gt;</code></pre></figure>
+    </section>
+
+    <section id="tooltips" data-terms="data-tooltip .tooltip title">
+      <h2>Tooltips</h2>
+      <p><code>data-tooltip="text"</code> shows a tooltip on hover and on keyboard focus, kept inside the window, in an open dialog or popup too. Use it for a word or a line; a <code>title</code> is enough for long text.</p>
+      <figure class="example" id="ex-8"><div class="example-view">
+<div class="row">
+  <button type="button" class="btn" data-tooltip="Runs every 15 minutes">Schedule</button>
+  <span class="tag plain" tabindex="0" data-tooltip="Frankfurt, two zones">eu-west</span>
+</div>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;div class=&quot;row&quot;&gt;
+  &lt;button type=&quot;button&quot; class=&quot;btn&quot; data-tooltip=&quot;Runs every 15 minutes&quot;&gt;Schedule&lt;/button&gt;
+  &lt;span class=&quot;tag plain&quot; tabindex=&quot;0&quot; data-tooltip=&quot;Frankfurt, two zones&quot;&gt;eu-west&lt;/span&gt;
+&lt;/div&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;row&quot;</span>&gt;
+  &lt;<span class="c-tag">button</span> <span class="c-attr">type</span>=<span class="c-str">&quot;button&quot;</span> <span class="c-attr">class</span>=<span class="c-str">&quot;btn&quot;</span> <span class="c-attr">data-tooltip</span>=<span class="c-str">&quot;Runs every 15 minutes&quot;</span>&gt;Schedule&lt;/<span class="c-tag">button</span>&gt;
+  &lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;tag plain&quot;</span> <span class="c-attr">tabindex</span>=<span class="c-str">&quot;0&quot;</span> <span class="c-attr">data-tooltip</span>=<span class="c-str">&quot;Frankfurt, two zones&quot;</span>&gt;eu-west&lt;/<span class="c-tag">span</span>&gt;
+&lt;/<span class="c-tag">div</span>&gt;</code></pre></figure>
+    </section>
+    <nav class="docs-steps" aria-label="More pages"><a class="docs-step prev" href="layout.html"><span class="faint">Previous</span><b>Page layout</b></a><a class="docs-step next" href="buttons.html"><span class="faint">Next</span><b>Buttons</b></a></nav>
+  </main>
+</div>
+<script src="search.js"></script>
+<script src="docs.js"></script>
+</body>
+</html>

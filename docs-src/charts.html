@@ -1,0 +1,122 @@
+    <section id="bars" data-terms=".bar .thin .tinted .meter .split .share Dash.bar Dash.meter Dash.split">
+      <h2>Bars</h2>
+      <p><code>Dash.bar(frac, tone)</code> is a bar filled to <code>frac</code> (0 to 1); <code>.bar.thin</code> is thinner and <code>.bar.tinted</code> has a tinted track. <code>Dash.meter(frac, tone)</code> is the small one for a top bar. <code>Dash.split(parts)</code> shows the parts of a whole, each <code>{ value, tone, label }</code>. <code>.share</code> puts a bar and its percentage side by side.</p>
+      <example>
+        <div class="vstack" style="max-width: 420px" id="bar-box"></div>
+        <script>
+          Dash.render('bar-box', Dash.bar(0.42) + Dash.bar(0.91, 'warn') + `<div class="bar thin tinted ok"><i style="width:64%"></i></div>`
+            + Dash.split([{ value: 61, tone: 'ok', label: 'Paid' }, { value: 27, tone: 'warn', label: 'Due' }, { value: 12, tone: 'bad', label: 'Late' }])
+            + `<div class="share">${Dash.bar(0.36, 'blue')}<span>36%</span></div><div class="row">CPU ${Dash.meter(0.72, 'warn')}</div>`);
+        </script>
+      </example>
+    </section>
+
+    <section id="legend" data-terms=".legend .legend-item .list .zero Dash.legend">
+      <h2>Legends</h2>
+      <p><code>Dash.legend(items, { list, button })</code> names the colours of a chart: each item <code>{ label, value, tone }</code>, a swatch, the name and the value in <code>b</code>. <code>list: true</code> puts one per line (an item with 0 fades, <code>.zero</code>); <code>button: true</code> makes them buttons, for a legend that filters.</p>
+      <example>
+        <div class="grid" id="legend-box"></div>
+        <script>
+          const parts = [{ label: 'Paid', value: '61%', tone: 'ok' }, { label: 'Due', value: '27%', tone: 'warn' }, { label: 'Late', value: '12%', tone: 'bad' }, { label: 'Disputed', value: 0, tone: 'purple' }];
+          Dash.render('legend-box', `<div>${Dash.legend(parts)}</div><div>${Dash.legend(parts, { list: true })}</div>`);
+        </script>
+      </example>
+    </section>
+
+    <section id="hbars" data-terms=".hbars .hbar .hbar-label .hbar-value --hb-label --hb-value Dash.hbars">
+      <h2>Horizontal bars</h2>
+      <p><code>Dash.hbars(rows, { max, format, button })</code> is a list of bars with their names and values, for a top ten: each row <code>{ label, value, tone, text, key }</code>. <code>max</code> sets the full length (the largest value otherwise), <code>format</code> writes the values. <code>--hb-label</code> and <code>--hb-value</code> set the two columns' widths.</p>
+      <example>
+        <div id="top-pages" style="max-width: 520px"></div>
+        <script>
+          Dash.render('top-pages', Dash.hbars([
+            { label: '/checkout', value: 48210 }, { label: '/search', value: 31544 }, { label: '/account/settings', value: 9120, tone: 'teal' }, { label: '/help', value: 2210, tone: 'idle' },
+          ], { format: (v) => Dash.fmt.compact(v) }));
+        </script>
+      </example>
+    </section>
+
+    <section id="columns" data-terms=".chart .chart-read .chart-plot .chart-grid .chart-cols .chart-col .chart-x .partial .stacked .minor .start .end Dash.bars Dash.niceMax">
+      <h2>Column charts</h2>
+      <p><code>Dash.bars(points, { height, ticks, labelEvery, minorEvery, format, max, read })</code> is a column chart with a value axis. A point is <code>{ label, value, tone, title, partial }</code>; <code>partial</code> marks one still running (this hour), and <code>parts: [{ value, tone }]</code> stacks a column, the first part at the bottom. <code>read: 'Total 2.1M'</code> adds a line above it that shows the hovered column's <code>title</code>. Labels marked <code>minor</code> (by <code>minorEvery</code>) hide in a panel under 480 px. <code>Dash.niceMax(n)</code> is the round axis top it uses (87 → 100).</p>
+      <example>
+        <div class="panel"><div id="hourly"></div></div>
+        <script>
+          const hours = Array.from({ length: 24 }, (_, h) => {
+            const ok = Math.round(400 + 300 * Math.sin(h / 3.8) + h * 12), bad = h % 7 === 3 ? 60 : 8;
+            return { label: String(h).padStart(2, '0'), title: `${h}:00 · ${ok + bad} requests, ${bad} errors`, parts: [{ value: ok, tone: 'blue' }, { value: bad, tone: 'bad' }], partial: h === 23 };
+          });
+          Dash.render('hourly', Dash.bars(hours, { height: 160, labelEvery: 3, read: 'Requests by hour (hover a column)', format: (v) => Dash.fmt.compact(v) }));
+        </script>
+      </example>
+    </section>
+
+    <section id="donuts" data-terms=".donut .donut-wrap .seg-arc .ring-track .big-text .small-text Dash.donut">
+      <h2>Donuts</h2>
+      <p><code>Dash.donut(segments, { center, sub })</code> is a ring of <code>{ value, tone, label }</code> segments with a number in the middle. Put it in <code>.donut-wrap</code> beside a <code>Dash.legend(…, { list: true })</code>.</p>
+      <example>
+        <div class="donut-wrap" id="donut-box"></div>
+        <script>
+          const plan = [{ label: 'Business', value: 412, tone: 'purple' }, { label: 'Team', value: 1290, tone: 'blue' }, { label: 'Free', value: 3840, tone: 'idle' }];
+          Dash.render('donut-box', Dash.donut(plan, { center: Dash.fmt.compact(5542), sub: 'accounts' }) + Dash.legend(plan.map((p) => ({ ...p, value: Dash.fmt.int(p.value) })), { list: true }));
+        </script>
+      </example>
+    </section>
+
+    <section id="gauges" data-terms=".gauge .gauges .gauge-name .gauge-sub .val .track .pct Dash.gauge">
+      <h2>Gauges</h2>
+      <p><code>Dash.gauge(frac, { name, sub, tone })</code> is a half-circle gauge. With no tone it goes from ok to warn at 0.7 and bad at 0.9. <code>.gauges</code> lays a few side by side.</p>
+      <example>
+        <div class="gauges" id="gauge-box"></div>
+        <script>
+          Dash.render('gauge-box', Dash.gauge(0.42, { name: 'CPU', sub: '8 cores' }) + Dash.gauge(0.78, { name: 'Memory', sub: '25 of 32 GB' }) + Dash.gauge(0.94, { name: 'Disk', sub: '470 of 500 GB' }));
+        </script>
+      </example>
+    </section>
+
+    <section id="spark" data-terms=".spark .spark-box .spark-labels .area .line Dash.spark">
+      <h2>Sparklines</h2>
+      <p><code>Dash.spark(values, { tone, height, area, labels })</code> is a small line of a trend, with an area under it unless <code>area: false</code>, a dot on the last value, and <code>labels</code> under it (<code>['24 h ago', 'now']</code>).</p>
+      <example>
+        <div class="grid" id="spark-box"></div>
+        <script>
+          const trend = [12, 14, 13, 17, 21, 19, 24, 28, 26, 31, 35, 33];
+          Dash.render('spark-box', `<div class="panel"><div class="kicker">Signups</div>${Dash.spark(trend, { labels: ['12 weeks ago', 'this week'] })}</div>`
+            + `<div class="panel"><div class="kicker">Errors</div>${Dash.spark(trend.map((v) => 40 - v), { tone: 'bad', area: false })}</div>`);
+        </script>
+      </example>
+    </section>
+
+    <section id="lanes" data-terms=".lanes .lane .lane-label .lane-axis .span .mark .major --lane-label Dash.lanes">
+      <h2>Lanes</h2>
+      <p><code>Dash.lanes(el, rows, { from, to, ticks, axis, nouns, labelWidth, empty })</code> draws what happened when, one lane per thing, over the last 24 hours unless <code>from</code> and <code>to</code> say otherwise. A row is <code>{ label, sub, spans: [{ from, to, tone, title }], marks: [{ at, tone, title }] }</code>; a span with no <code>to</code> is still going. Spans are cut at the edges, titles (or the times) are tooltips, and each lane gets a sentence for screen readers. It needs no inline styles, so it works under a strict style policy too.</p>
+      <example>
+        <div class="panel" id="lane-box"></div>
+        <script>
+          const h = 3600e3, now = Date.now();
+          Dash.lanes('lane-box', [
+            { label: 'web-1', sub: 'Frankfurt', spans: [{ from: now - 20 * h, to: now - 14 * h, tone: 'ok', title: 'Up' }, { from: now - 14 * h, to: now - 13 * h, tone: 'bad', title: 'Down' }, { from: now - 13 * h, tone: 'ok', title: 'Up' }] },
+            { label: 'web-2', sub: 'Frankfurt', spans: [{ from: now - 24 * h, tone: 'ok' }], marks: [{ at: now - 6 * h, tone: 'blue', title: 'Deployed v2.4' }] },
+            { label: 'db-1', sub: 'Dublin', spans: [{ from: now - 9 * h, to: now - 2 * h, tone: 'warn', title: 'Slow' }] },
+          ], { labelWidth: 120 });
+        </script>
+      </example>
+    </section>
+
+    <section id="progress" data-terms=".progress .indeterminate .progress-head .progress-circle .fill Dash.progress Dash.progressCircle progressbar">
+      <h2>Progress</h2>
+      <p><code>Dash.progress(frac, { tone, label, value, lg, title })</code> is a progress bar with <code>role="progressbar"</code> and its value. <code>label</code> puts a line above it (<code>.progress-head</code>) with the share on the right, or <code>value</code> in its place ("6.2 of 10 GB"); <code>lg: true</code> is thicker. <code>Dash.progress(null)</code> is one that runs until the amount is known (<code>.indeterminate</code>; a steady bar for readers who turn motion off). <code>Dash.progressCircle(frac, { tone, size, text, label })</code> is the round one, an SVG.</p>
+      <example>
+        <div class="vstack" style="max-width: 420px" id="progress-box"></div>
+        <script>
+          Dash.render('progress-box', Dash.progress(0.62, { label: 'Backup', value: '6.2 of 10 GB' }) + Dash.progress(null, { label: 'Checking the archive' })
+            + Dash.progress(0.9, { tone: 'warn', lg: true, label: 'Storage' })
+            + `<div class="row">${Dash.progressCircle(0.25)}${Dash.progressCircle(0.7, { tone: 'ok', size: 48, text: '70%' })}${Dash.progressCircle(null, { size: 28, label: 'Loading' })}</div>`);
+        </script>
+      </example>
+    </section>
+
+    <section id="strict" data-terms="Dash.config.csp Dash.applyStyles data-css-w Content-Security-Policy">
+      <h2>Under a strict style policy</h2>
+      <p>A page served with <code>Content-Security-Policy: style-src 'self'</code> drops every <code>style=""</code> in its markup, and the builders that size things (<code>Dash.bar</code>, <code>meter</code>, <code>split</code>, <code>hbars</code>, <code>bars</code>, <code>spark</code>, <code>progress</code>) write sizes that way. On such a page, set <code>Dash.config.csp = true</code> before drawing anything: they then write their numbers as <code>data-css-*</code> attributes, and the kit sets them through the CSSOM, which the policy allows. It does so at once wherever the kit puts markup in (<code>Dash.render</code>, popups, modals) and before the next paint for markup the page puts in itself; <code>Dash.applyStyles(el)</code> does it at once. Only numbers are set, and only on the kit's own pieces.</p>
+    </section>

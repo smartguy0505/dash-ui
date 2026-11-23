@@ -1,0 +1,38 @@
+    <section id="scale" data-terms="spacing scale">
+      <h2>The scale</h2>
+      <p>Spacing goes in 4 px steps: <code>1</code> is 4 px, <code>2</code> is 8, <code>4</code> is 16, <code>8</code> is 32, up to <code>96</code> (384 px), plus <code>px</code> (1 px) and halves at the small end (<code>0.5</code>, <code>1.5</code>). With a width prefix the steps are the ones pages switch between: 0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 16 and <code>auto</code>.</p>
+      <example>
+        <div class="flex items-end gap-3">
+          <div class="bg-blue/20 w-1 h-1"></div><div class="bg-blue/20 w-2 h-2"></div><div class="bg-blue/20 w-4 h-4"></div><div class="bg-blue/20 w-6 h-6"></div><div class="bg-blue/20 w-8 h-8"></div><div class="bg-blue/20 w-12 h-12"></div><div class="bg-blue/20 w-16 h-16"></div>
+        </div>
+      </example>
+    </section>
+
+    <section id="padding" data-terms="p px py pt pr pb pl">
+      <h2>Padding</h2>
+      <utilities group="padding"></utilities>
+      <example>
+        <div class="panel p-0"><div class="px-4 py-2 border-b border-line text-sm text-muted">px-4 py-2</div><div class="p-6">p-6</div></div>
+      </example>
+    </section>
+
+    <section id="margin" data-terms="m mx my mt mr mb ml -m m-auto mx-auto">
+      <h2>Margin</h2>
+      <p>Margins, negative ones (<code>-mt-2</code>) and <code>auto</code> (<code>mx-auto</code> centres a box with a width; <code>ml-auto</code> pushes it right).</p>
+      <utilities group="margin"></utilities>
+    </section>
+
+    <section id="gap" data-terms="gap gap-x gap-y">
+      <h2>Gap</h2>
+      <p>The space between flex and grid items: <code>gap-3</code>, or one direction with <code>gap-x-4</code> and <code>gap-y-2</code>.</p>
+      <utilities group="gap"></utilities>
+    </section>
+
+    <section id="space" data-terms="space-x space-y divide-x divide-y">
+      <h2>Space between</h2>
+      <p><code>space-y-3</code> puts room between the children of a box that isn't flex or grid (a list, a form), on all but the last. <code>divide-y</code> (in <a href="utilities-effects.html#borders">borders</a>) draws a line between them instead.</p>
+      <utilities group="space between"></utilities>
+      <example>
+        <ul class="list-none m-0 p-0 space-y-2"><li class="panel px-3 py-2">One</li><li class="panel px-3 py-2">Two</li><li class="panel px-3 py-2">Three</li></ul>
+      </example>
+    </section>

@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en" data-kit="../">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dash.js helpers · dash-ui</title>
+<meta name="description" content="Formatting, times, rendering, fetching and polling, the store, keys, search and the page hash.">
+<link rel="stylesheet" href="../dash.css">
+<link rel="stylesheet" href="../dash-utils.css">
+<link rel="stylesheet" href="docs.css">
+<script src="../dash.js"></script>
+</head>
+<body>
+<!-- dash-ui 1.9.0 docs, written by tools/docs.mjs from docs-src/helpers.html: edit that, not this -->
+<header class="topbar">
+  <button type="button" class="icon-btn docs-menu" data-toggle-side aria-label="Pages"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3 5h12M3 9h12M3 13h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+  <a class="brand" href="./"><span class="mark">d</span><h1>dash-ui</h1></a><span class="tag plain docs-version">1.9.0</span>
+  <div class="top-right">
+    <label class="search docs-search"><span class="sr-only">Search the docs</span><svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.6"/><path d="m11 11 3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><input class="input" type="search" id="docs-search" placeholder="Search" aria-keyshortcuts="/"><kbd class="docs-key">/</kbd></label>
+    <div class="seg" role="group" aria-label="Theme"><button type="button" data-theme-set="system">Auto</button><button type="button" data-theme-set="light">Light</button><button type="button" data-theme-set="dark">Dark</button></div>
+  </div>
+</header>
+<div class="shell offcanvas">
+  <nav class="sidebar" aria-label="Pages"><div class="side-head">Start</div><a class="nav-item" href="./"><span class="nav-main"><span class="nav-name">Getting started</span></span></a><div class="side-head">Foundations</div><a class="nav-item" href="colours.html"><span class="nav-main"><span class="nav-name">Colours and themes</span></span></a><a class="nav-item" href="layout.html"><span class="nav-main"><span class="nav-name">Page layout</span></span></a><a class="nav-item" href="text.html"><span class="nav-main"><span class="nav-name">Text and labels</span></span></a><div class="side-head">Components</div><a class="nav-item" href="buttons.html"><span class="nav-main"><span class="nav-name">Buttons</span></span></a><a class="nav-item" href="forms.html"><span class="nav-main"><span class="nav-name">Forms</span></span></a><a class="nav-item" href="surfaces.html"><span class="nav-main"><span class="nav-name">Panels and cards</span></span></a><a class="nav-item" href="navigation.html"><span class="nav-main"><span class="nav-name">Navigation</span></span></a><a class="nav-item" href="tables.html"><span class="nav-main"><span class="nav-name">Tables</span></span></a><a class="nav-item" href="charts.html"><span class="nav-main"><span class="nav-name">Charts and progress</span></span></a><a class="nav-item" href="overlays.html"><span class="nav-main"><span class="nav-name">Modals and popups</span></span></a><a class="nav-item" href="feedback.html"><span class="nav-main"><span class="nav-name">Feedback</span></span></a><div class="side-head">JavaScript</div><a class="nav-item" href="helpers.html" aria-current="page"><span class="nav-main"><span class="nav-name">dash.js helpers</span></span></a><div class="side-head">Utilities</div><a class="nav-item" href="utilities.html"><span class="nav-main"><span class="nav-name">Utility classes</span></span></a><a class="nav-item" href="utilities-layout.html"><span class="nav-main"><span class="nav-name">Layout utilities</span></span></a><a class="nav-item" href="utilities-spacing.html"><span class="nav-main"><span class="nav-name">Spacing utilities</span></span></a><a class="nav-item" href="utilities-sizing.html"><span class="nav-main"><span class="nav-name">Sizing utilities</span></span></a><a class="nav-item" href="utilities-type.html"><span class="nav-main"><span class="nav-name">Type utilities</span></span></a><a class="nav-item" href="utilities-colour.html"><span class="nav-main"><span class="nav-name">Colour utilities</span></span></a><a class="nav-item" href="utilities-effects.html"><span class="nav-main"><span class="nav-name">Borders and effects</span></span></a></nav>
+  <main class="content docs" id="top">
+    <header class="docs-head"><p class="docs-group">JavaScript</p><h1>dash.js helpers</h1><p class="docs-blurb">Formatting, times, rendering, fetching and polling, the store, keys, search and the page hash.</p><nav class="chips docs-toc" aria-label="On this page"><a class="chip" href="#basics">The basics</a><a class="chip" href="#render">Redrawing without losing the reader&#39;s place</a><a class="chip" href="#numbers">Numbers</a><a class="chip" href="#times">Times</a><a class="chip" href="#fetching">Fetching and polling</a><a class="chip" href="#state">Remembering things</a><a class="chip" href="#keys">Shortcuts and matching</a></nav></header>
+<section id="basics" data-terms="Dash.$ Dash.esc Dash.on Dash.isNum Dash.version">
+      <h2>The basics</h2>
+      <p>The builders return HTML strings with every value escaped; put them in with <code>Dash.render</code> (or <code>innerHTML</code>), and handle clicks with one listener on a parent. Times are milliseconds. A missing number prints as <code>—</code>.</p>
+      <div class="table-wrap"><table class="table compact">
+        <thead><tr><th>Call</th><th>What it does</th></tr></thead>
+        <tbody>
+          <tr><td><code>Dash.$(id)</code></td><td>The element with that id.</td></tr>
+          <tr><td><code>Dash.esc(text)</code></td><td>Text made safe to put in HTML (<code>&lt;</code>, <code>&amp;</code>, quotes).</td></tr>
+          <tr><td><code>Dash.on(parent, type, selector, fn)</code></td><td>One listener on a parent for events on matching children: <code>fn(event, matched)</code>. It keeps working when the children are redrawn.</td></tr>
+          <tr><td><code>Dash.isNum(v)</code></td><td>True for a finite number, or text that is one (<code>'3'</code>); false for blanks, <code>null</code> and booleans.</td></tr>
+          <tr><td><code>Dash.version</code></td><td>The kit's version, <code>'1.9.0'</code>.</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section id="render" data-terms="Dash.render data-key">
+      <h2>Redrawing without losing the reader's place</h2>
+      <p><code>Dash.render(el, html, { force })</code> puts new HTML into a part of the page that refreshes. It skips the write when nothing changed, and while the reader is selecting text there. When it writes, it keeps the focused control (and what's typed in it, and the caret), which <code>&lt;details&gt;</code> are open, and how far inner boxes are scrolled. Elements are matched by <code>id</code>, else <code>data-key</code>. It returns true when it wrote. Type in the box below while it refreshes every second:</p>
+      <figure class="example" id="ex-1"><div class="example-view">
+<div id="ticking"></div>
+<script>
+  let n = 0;
+  const draw = () => Dash.render('ticking', `<p>Refreshed ${++n} times.</p><input class="input" id="keep-typing" placeholder="Type here: it survives every refresh" style="max-width: 360px">`);
+  draw();
+  setInterval(draw, 1000);
+</script>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;div id=&quot;ticking&quot;&gt;&lt;/div&gt;
+&lt;script&gt;
+  let n = 0;
+  const draw = () =&gt; Dash.render(&#39;ticking&#39;, `&lt;p&gt;Refreshed ${++n} times.&lt;/p&gt;&lt;input class=&quot;input&quot; id=&quot;keep-typing&quot; placeholder=&quot;Type here: it survives every refresh&quot; style=&quot;max-width: 360px&quot;&gt;`);
+  draw();
+  setInterval(draw, 1000);
+&lt;/script&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">div</span> <span class="c-attr">id</span>=<span class="c-str">&quot;ticking&quot;</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+&lt;<span class="c-tag">script</span>&gt;
+  <span class="c-key">let</span> n = <span class="c-num">0</span>;
+  <span class="c-key">const</span> draw = () =&gt; <span class="c-fn">Dash</span>.render(<span class="c-str">&#39;ticking&#39;</span>, <span class="c-str">`&lt;p&gt;Refreshed ${++n} times.&lt;/p&gt;&lt;input class=&quot;input&quot; id=&quot;keep-typing&quot; placeholder=&quot;Type here: it survives every refresh&quot; style=&quot;max-width: 360px&quot;&gt;`</span>);
+  draw();
+  setInterval(draw, <span class="c-num">1000</span>);
+&lt;/<span class="c-tag">script</span>&gt;</code></pre></figure>
+    </section>
+
+    <section id="numbers" data-terms="Dash.fmt Dash.fmt.num Dash.fmt.int Dash.fmt.compact Dash.fmt.usd Dash.fmt.pct Dash.fmt.share Dash.fmt.amount Dash.fmt.signed Dash.fmt.signedUsd Dash.fmt.dir Dash.fmt.short Dash.fmt.plural">
+      <h2>Numbers</h2>
+      <div class="table-wrap"><table class="table compact">
+        <thead><tr><th>Call</th><th>Gives</th></tr></thead>
+        <tbody>
+          <tr><td><code>Dash.fmt.num(1234.5, 2)</code>, <code>.int(1234567)</code></td><td><code>1,234.50</code>, <code>1,234,567</code></td></tr>
+          <tr><td><code>Dash.fmt.compact(n)</code></td><td><code>950</code>, <code>2.5k</code>, <code>15k</code>, <code>1.2M</code></td></tr>
+          <tr><td><code>Dash.fmt.usd(n, digits?)</code></td><td><code>$1,235</code> from $100, <code>$12.35</code> below</td></tr>
+          <tr><td><code>Dash.fmt.pct(12.34, 1)</code>, <code>.share(frac)</code></td><td><code>12.3%</code>; a share of 1 as <code>100%</code>, <code>12%</code>, <code>1.5%</code>, <code>&lt;0.1%</code></td></tr>
+          <tr><td><code>Dash.fmt.amount(n, 4)</code></td><td><code>0.1235</code>, and <code>&lt;0.0001</code> for less</td></tr>
+          <tr><td><code>Dash.fmt.signed(n, 4)</code>, <code>.signedUsd(n)</code></td><td><code>+1.2345</code>, <code>−0.0100</code>, <code>0</code>; <code>+$733</code></td></tr>
+          <tr><td><code>Dash.fmt.dir(n, eps)</code></td><td><code>'up'</code>, <code>'down'</code> or <code>'flat'</code>: the class for a change</td></tr>
+          <tr><td><code>Dash.fmt.short(text, 6, 6)</code></td><td><code>acct_7…k2m9xq</code>: a long id with its middle left out</td></tr>
+          <tr><td><code>Dash.fmt.plural(23, 'server')</code></td><td><code>23 servers</code>, <code>1 server</code></td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section id="times" data-terms="Dash.time Dash.ago Dash.until Dash.fmt.dur Dash.fmt.span Dash.fmt.ago Dash.fmt.clock Dash.fmt.when Dash.fmt.utc Dash.fmt.date Dash.fmt.time Dash.fmt.until">
+      <h2>Times</h2>
+      <p><code>Dash.time(x, { seconds })</code> turns what a server sends into milliseconds: milliseconds, a <code>Date</code>, ISO text (no zone means UTC), an HTTP date, or seconds with <code>seconds: true</code>; anything else is <code>NaN</code>. <code>Dash.ago(t)</code> and <code>Dash.until(t)</code> write a <code>&lt;time&gt;</code> that keeps itself current ("12 min ago", "in 3h 5m"; every 15 s), with the full time as its tooltip.</p>
+      <figure class="example" id="ex-2"><div class="example-view">
+<p id="times-box"></p>
+<script>
+  Dash.render('times-box', `Deployed ${Dash.ago(Date.now() - 42 * 60e3)} · the next run ${Dash.until(Date.now() + 3 * 3600e3 + 5 * 60e3)} · took ${Dash.fmt.dur(11100e3)}`);
+</script>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;p id=&quot;times-box&quot;&gt;&lt;/p&gt;
+&lt;script&gt;
+  Dash.render(&#39;times-box&#39;, `Deployed ${Dash.ago(Date.now() - 42 * 60e3)} · the next run ${Dash.until(Date.now() + 3 * 3600e3 + 5 * 60e3)} · took ${Dash.fmt.dur(11100e3)}`);
+&lt;/script&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">p</span> <span class="c-attr">id</span>=<span class="c-str">&quot;times-box&quot;</span>&gt;&lt;/<span class="c-tag">p</span>&gt;
+&lt;<span class="c-tag">script</span>&gt;
+  <span class="c-fn">Dash</span>.render(<span class="c-str">&#39;times-box&#39;</span>, <span class="c-str">`Deployed ${Dash.ago(Date.now() - 42 * 60e3)} · the next run ${Dash.until(Date.now() + 3 * 3600e3 + 5 * 60e3)} · took ${Dash.fmt.dur(11100e3)}`</span>);
+&lt;/<span class="c-tag">script</span>&gt;</code></pre></figure>
+      <div class="table-wrap"><table class="table compact">
+        <thead><tr><th>Call</th><th>Gives</th></tr></thead>
+        <tbody>
+          <tr><td><code>Dash.fmt.dur(ms)</code>, <code>.span(ms)</code></td><td><code>3h 5m</code>; <code>2.7 h</code></td></tr>
+          <tr><td><code>Dash.fmt.ago(t)</code>, <code>.until(t)</code></td><td><code>just now</code>, <code>40 s ago</code>, <code>12 min ago</code>, <code>2.5 h ago</code>, <code>3 d ago</code>; <code>in 3h 5m</code>, <code>now</code> (text, not kept current)</td></tr>
+          <tr><td><code>Dash.fmt.date(t, { utc })</code>, <code>.time(t, { seconds, utc })</code></td><td><code>Nov 21</code> (<code>Nov 21, 2025</code> in another year); <code>14:05:09</code>. Both read <code>t</code> as <code>Dash.time</code> does.</td></tr>
+          <tr><td><code>Dash.fmt.clock(t)</code>, <code>.when(t)</code>, <code>.utc(t)</code></td><td><code>14:05</code>; <code>Nov 21, 14:05</code>; <code>Nov 21, 02:22 UTC</code></td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section id="fetching" data-terms="Dash.api Dash.poll Dash.socket Dash.config.loginUrl etag">
+      <h2>Fetching and polling</h2>
+      <ul>
+        <li><code>Dash.api(url, { method, json, etag, headers })</code> fetches JSON. An error carries <code>.status</code> and the server's <code>{ error }</code> text. A 401 goes to <code>Dash.config.loginUrl</code> when it's set. <code>etag: true</code> reuses the last answer on a 304.</li>
+        <li><code>Dash.poll(fn, ms, { hiddenMs, live, staleAfter })</code> runs <code>fn</code> now and every <code>ms</code>, one run at a time, slower while the tab is hidden (<code>hiddenMs</code>) and again as soon as it's visible. <code>live</code> is the id of a <code>.live</code> status it keeps right (stale after <code>staleAfter</code>, three times <code>ms</code>). It returns <code>{ now(), stop() }</code>.</li>
+        <li><code>Dash.socket(path, { onMessage, onState, retryMs })</code> is a WebSocket that reconnects; a close with code 1008 goes to the sign-in page.</li>
+      </ul>
+      <pre class="code"><code>Dash.poll(async () =&gt; {
+  const servers = await Dash.api('/api/servers', { etag: true });
+  table.update(servers);
+}, 15000, { live: 'live' });</code></pre>
+    </section>
+
+    <section id="state" data-terms="Dash.store Dash.store.get Dash.store.set Dash.hash Dash.hash.get Dash.hash.set Dash.hash.on Dash.hash.parse Dash.hash.format Dash.config Dash.config.themeKey Dash.config.sideKey">
+      <h2>Remembering things</h2>
+      <ul>
+        <li><code>Dash.store.get(key, fallback)</code> and <code>.set(key, value)</code>: JSON in the browser's storage that never throws (a private window, blocked storage: you get the fallback).</li>
+        <li><code>Dash.hash</code>: the part of the address after <code>#</code> as settings, <code>#view=list&amp;id=7</code>. <code>.get(key)</code>, <code>.set({ key: value }, { push })</code> (null removes a key; <code>push</code> adds a history entry), <code>.on(fn)</code> when it changes, <code>.parse(text)</code> and <code>.format(object)</code>.</li>
+        <li><code>Dash.config</code>: <code>loginUrl</code> (null), <code>themeKey</code> (<code>'dash.theme'</code>), <code>sideKey</code> (<code>'dash.side'</code>) and <code>csp</code> (false; see <a href="charts.html#strict">strict style policies</a>).</li>
+      </ul>
+    </section>
+
+    <section id="keys" data-terms="Dash.key Dash.match shortcuts">
+      <h2>Shortcuts and matching</h2>
+      <p><code>Dash.key(combo, fn, { inInputs })</code> adds a keyboard shortcut (<code>'/'</code>, <code>'g'</code>, <code>'mod+k'</code>, <code>'shift+?'</code>) that stays quiet while the reader types in a box, and returns a function that removes it. <code>Dash.match(row, query, fields)</code> is true when every word of the query is in one of the row's fields, in any case: the search behind <code>Dash.table</code>'s filters and the suggestions.</p>
+      <figure class="example" id="ex-3"><div class="example-view">
+<p>Press <kbd>g</kbd> on this page (outside a text box).</p>
+<script>
+  Dash.key('g', () => Dash.toast('You pressed g'));
+</script>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;p&gt;Press &lt;kbd&gt;g&lt;/kbd&gt; on this page (outside a text box).&lt;/p&gt;
+&lt;script&gt;
+  Dash.key(&#39;g&#39;, () =&gt; Dash.toast(&#39;You pressed g&#39;));
+&lt;/script&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">p</span>&gt;Press &lt;<span class="c-tag">kbd</span>&gt;g&lt;/<span class="c-tag">kbd</span>&gt; on this page (outside a text box).&lt;/<span class="c-tag">p</span>&gt;
+&lt;<span class="c-tag">script</span>&gt;
+  <span class="c-fn">Dash</span>.key(<span class="c-str">&#39;g&#39;</span>, () =&gt; <span class="c-fn">Dash</span>.toast(<span class="c-str">&#39;You pressed g&#39;</span>));
+&lt;/<span class="c-tag">script</span>&gt;</code></pre></figure>
+    </section>
+    <nav class="docs-steps" aria-label="More pages"><a class="docs-step prev" href="feedback.html"><span class="faint">Previous</span><b>Feedback</b></a><a class="docs-step next" href="utilities.html"><span class="faint">Next</span><b>Utility classes</b></a></nav>
+  </main>
+</div>
+<script src="search.js"></script>
+<script src="docs.js"></script>
+</body>
+</html>

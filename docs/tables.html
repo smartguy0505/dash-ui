@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en" data-kit="../">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tables · dash-ui</title>
+<meta name="description" content="Tables with sorting, row states, sticky headers, and rows that become cards on a phone.">
+<link rel="stylesheet" href="../dash.css">
+<link rel="stylesheet" href="../dash-utils.css">
+<link rel="stylesheet" href="docs.css">
+<script src="../dash.js"></script>
+</head>
+<body>
+<!-- dash-ui 1.9.0 docs, written by tools/docs.mjs from docs-src/tables.html: edit that, not this -->
+<header class="topbar">
+  <button type="button" class="icon-btn docs-menu" data-toggle-side aria-label="Pages"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3 5h12M3 9h12M3 13h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+  <a class="brand" href="./"><span class="mark">d</span><h1>dash-ui</h1></a><span class="tag plain docs-version">1.9.0</span>
+  <div class="top-right">
+    <label class="search docs-search"><span class="sr-only">Search the docs</span><svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.6"/><path d="m11 11 3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><input class="input" type="search" id="docs-search" placeholder="Search" aria-keyshortcuts="/"><kbd class="docs-key">/</kbd></label>
+    <div class="seg" role="group" aria-label="Theme"><button type="button" data-theme-set="system">Auto</button><button type="button" data-theme-set="light">Light</button><button type="button" data-theme-set="dark">Dark</button></div>
+  </div>
+</header>
+<div class="shell offcanvas">
+  <nav class="sidebar" aria-label="Pages"><div class="side-head">Start</div><a class="nav-item" href="./"><span class="nav-main"><span class="nav-name">Getting started</span></span></a><div class="side-head">Foundations</div><a class="nav-item" href="colours.html"><span class="nav-main"><span class="nav-name">Colours and themes</span></span></a><a class="nav-item" href="layout.html"><span class="nav-main"><span class="nav-name">Page layout</span></span></a><a class="nav-item" href="text.html"><span class="nav-main"><span class="nav-name">Text and labels</span></span></a><div class="side-head">Components</div><a class="nav-item" href="buttons.html"><span class="nav-main"><span class="nav-name">Buttons</span></span></a><a class="nav-item" href="forms.html"><span class="nav-main"><span class="nav-name">Forms</span></span></a><a class="nav-item" href="surfaces.html"><span class="nav-main"><span class="nav-name">Panels and cards</span></span></a><a class="nav-item" href="navigation.html"><span class="nav-main"><span class="nav-name">Navigation</span></span></a><a class="nav-item" href="tables.html" aria-current="page"><span class="nav-main"><span class="nav-name">Tables</span></span></a><a class="nav-item" href="charts.html"><span class="nav-main"><span class="nav-name">Charts and progress</span></span></a><a class="nav-item" href="overlays.html"><span class="nav-main"><span class="nav-name">Modals and popups</span></span></a><a class="nav-item" href="feedback.html"><span class="nav-main"><span class="nav-name">Feedback</span></span></a><div class="side-head">JavaScript</div><a class="nav-item" href="helpers.html"><span class="nav-main"><span class="nav-name">dash.js helpers</span></span></a><div class="side-head">Utilities</div><a class="nav-item" href="utilities.html"><span class="nav-main"><span class="nav-name">Utility classes</span></span></a><a class="nav-item" href="utilities-layout.html"><span class="nav-main"><span class="nav-name">Layout utilities</span></span></a><a class="nav-item" href="utilities-spacing.html"><span class="nav-main"><span class="nav-name">Spacing utilities</span></span></a><a class="nav-item" href="utilities-sizing.html"><span class="nav-main"><span class="nav-name">Sizing utilities</span></span></a><a class="nav-item" href="utilities-type.html"><span class="nav-main"><span class="nav-name">Type utilities</span></span></a><a class="nav-item" href="utilities-colour.html"><span class="nav-main"><span class="nav-name">Colour utilities</span></span></a><a class="nav-item" href="utilities-effects.html"><span class="nav-main"><span class="nav-name">Borders and effects</span></span></a></nav>
+  <main class="content docs" id="top">
+    <header class="docs-head"><p class="docs-group">Components</p><h1>Tables</h1><p class="docs-blurb">Tables with sorting, row states, sticky headers, and rows that become cards on a phone.</p><nav class="chips docs-toc" aria-label="On this page"><a class="chip" href="#table">A table from its columns</a><a class="chip" href="#markup">Tables by hand</a><a class="chip" href="#rows">Row states</a><a class="chip" href="#phones">On a phone, and long tables</a><a class="chip" href="#data">Working with rows</a></nav></header>
+<section id="table" data-terms="Dash.table .table .main columns">
+      <h2>A table from its columns</h2>
+      <p><code>Dash.table(el, { columns, rows, sort, perPage, key, onRow, … })</code> draws a whole table: sortable headers, cells, a pager if asked, and cards on a phone. Give it columns once, then <code>.update(rows)</code> whenever the data changes; it redraws with <code>Dash.render</code>, so a refresh keeps the reader's place.</p>
+      <figure class="example" id="ex-1"><div class="example-view">
+<div class="toolbar"><label class="search" style="max-width: 280px"><span class="sr-only">Search accounts</span><input class="input" type="search" id="acct-q" placeholder="Search accounts"><span class="count"></span></label><button type="button" class="btn sm push" id="acct-csv">Download CSV</button></div>
+<div id="accounts"></div>
+<script>
+  const accounts = Dash.table('accounts', {
+    columns: [
+      { key: 'name', label: 'Account', main: true, firstDir: 'asc' },
+      { key: 'region', label: 'Region' },
+      { key: 'spend', label: 'Spend', num: true, format: (v) => Dash.fmt.usd(v) },
+      { key: 'change', label: '24 h', num: true, html: (r) => Dash.chg(r.change, Dash.fmt.signed(r.change, 1) + '%') },
+      { key: 'state', label: 'State', sort: false, html: (r) => Dash.pill(r.state === 'ok' ? 'Active' : 'Over budget', r.state) },
+    ],
+    rows: [
+      { id: 1, name: 'Northwind', region: 'eu-west', spend: 12480, change: 4.2, state: 'ok' },
+      { id: 2, name: 'Contoso', region: 'us-east', spend: 9310.5, change: -1.8, state: 'ok' },
+      { id: 3, name: 'Fabrikam', region: 'eu-north', spend: 15020, change: 12.5, state: 'warn' },
+      { id: 4, name: 'Tailspin', region: 'us-west', spend: 620, change: 0, state: 'ok' },
+    ],
+    sort: { key: 'spend', dir: 'desc' }, key: 'id', noun: 'account',
+    rowClass: (r) => (r.state === 'warn' ? 'marked warn' : ''),
+    onRow: (r) => Dash.toast(`Open ${r.name}`),
+  });
+  const q = Dash.search('acct-q', { onChange: (text) => { accounts.filter((r) => Dash.match(r, text, ['name', 'region'])); q.count(accounts.count, 4); } });
+  document.getElementById('acct-csv').addEventListener('click', () => accounts.download('accounts.csv'));
+</script>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;div class=&quot;toolbar&quot;&gt;&lt;label class=&quot;search&quot; style=&quot;max-width: 280px&quot;&gt;&lt;span class=&quot;sr-only&quot;&gt;Search accounts&lt;/span&gt;&lt;input class=&quot;input&quot; type=&quot;search&quot; id=&quot;acct-q&quot; placeholder=&quot;Search accounts&quot;&gt;&lt;span class=&quot;count&quot;&gt;&lt;/span&gt;&lt;/label&gt;&lt;button type=&quot;button&quot; class=&quot;btn sm push&quot; id=&quot;acct-csv&quot;&gt;Download CSV&lt;/button&gt;&lt;/div&gt;
+&lt;div id=&quot;accounts&quot;&gt;&lt;/div&gt;
+&lt;script&gt;
+  const accounts = Dash.table(&#39;accounts&#39;, {
+    columns: [
+      { key: &#39;name&#39;, label: &#39;Account&#39;, main: true, firstDir: &#39;asc&#39; },
+      { key: &#39;region&#39;, label: &#39;Region&#39; },
+      { key: &#39;spend&#39;, label: &#39;Spend&#39;, num: true, format: (v) =&gt; Dash.fmt.usd(v) },
+      { key: &#39;change&#39;, label: &#39;24 h&#39;, num: true, html: (r) =&gt; Dash.chg(r.change, Dash.fmt.signed(r.change, 1) + &#39;%&#39;) },
+      { key: &#39;state&#39;, label: &#39;State&#39;, sort: false, html: (r) =&gt; Dash.pill(r.state === &#39;ok&#39; ? &#39;Active&#39; : &#39;Over budget&#39;, r.state) },
+    ],
+    rows: [
+      { id: 1, name: &#39;Northwind&#39;, region: &#39;eu-west&#39;, spend: 12480, change: 4.2, state: &#39;ok&#39; },
+      { id: 2, name: &#39;Contoso&#39;, region: &#39;us-east&#39;, spend: 9310.5, change: -1.8, state: &#39;ok&#39; },
+      { id: 3, name: &#39;Fabrikam&#39;, region: &#39;eu-north&#39;, spend: 15020, change: 12.5, state: &#39;warn&#39; },
+      { id: 4, name: &#39;Tailspin&#39;, region: &#39;us-west&#39;, spend: 620, change: 0, state: &#39;ok&#39; },
+    ],
+    sort: { key: &#39;spend&#39;, dir: &#39;desc&#39; }, key: &#39;id&#39;, noun: &#39;account&#39;,
+    rowClass: (r) =&gt; (r.state === &#39;warn&#39; ? &#39;marked warn&#39; : &#39;&#39;),
+    onRow: (r) =&gt; Dash.toast(`Open ${r.name}`),
+  });
+  const q = Dash.search(&#39;acct-q&#39;, { onChange: (text) =&gt; { accounts.filter((r) =&gt; Dash.match(r, text, [&#39;name&#39;, &#39;region&#39;])); q.count(accounts.count, 4); } });
+  document.getElementById(&#39;acct-csv&#39;).addEventListener(&#39;click&#39;, () =&gt; accounts.download(&#39;accounts.csv&#39;));
+&lt;/script&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;toolbar&quot;</span>&gt;&lt;<span class="c-tag">label</span> <span class="c-attr">class</span>=<span class="c-str">&quot;search&quot;</span> <span class="c-attr">style</span>=<span class="c-str">&quot;max-width: 280px&quot;</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;sr-only&quot;</span>&gt;Search accounts&lt;/<span class="c-tag">span</span>&gt;&lt;<span class="c-tag">input</span> <span class="c-attr">class</span>=<span class="c-str">&quot;input&quot;</span> <span class="c-attr">type</span>=<span class="c-str">&quot;search&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;acct-q&quot;</span> <span class="c-attr">placeholder</span>=<span class="c-str">&quot;Search accounts&quot;</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;count&quot;</span>&gt;&lt;/<span class="c-tag">span</span>&gt;&lt;/<span class="c-tag">label</span>&gt;&lt;<span class="c-tag">button</span> <span class="c-attr">type</span>=<span class="c-str">&quot;button&quot;</span> <span class="c-attr">class</span>=<span class="c-str">&quot;btn sm push&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;acct-csv&quot;</span>&gt;Download CSV&lt;/<span class="c-tag">button</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+&lt;<span class="c-tag">div</span> <span class="c-attr">id</span>=<span class="c-str">&quot;accounts&quot;</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+&lt;<span class="c-tag">script</span>&gt;
+  <span class="c-key">const</span> accounts = <span class="c-fn">Dash</span>.table(<span class="c-str">&#39;accounts&#39;</span>, {
+    columns: [
+      { key: <span class="c-str">&#39;name&#39;</span>, label: <span class="c-str">&#39;Account&#39;</span>, main: <span class="c-key">true</span>, firstDir: <span class="c-str">&#39;asc&#39;</span> },
+      { key: <span class="c-str">&#39;region&#39;</span>, label: <span class="c-str">&#39;Region&#39;</span> },
+      { key: <span class="c-str">&#39;spend&#39;</span>, label: <span class="c-str">&#39;Spend&#39;</span>, num: <span class="c-key">true</span>, format: (v) =&gt; <span class="c-fn">Dash</span>.fmt.usd(v) },
+      { key: <span class="c-str">&#39;change&#39;</span>, label: <span class="c-str">&#39;24 h&#39;</span>, num: <span class="c-key">true</span>, html: (r) =&gt; <span class="c-fn">Dash</span>.chg(r.change, <span class="c-fn">Dash</span>.fmt.signed(r.change, <span class="c-num">1</span>) + <span class="c-str">&#39;%&#39;</span>) },
+      { key: <span class="c-str">&#39;state&#39;</span>, label: <span class="c-str">&#39;State&#39;</span>, sort: <span class="c-key">false</span>, html: (r) =&gt; <span class="c-fn">Dash</span>.pill(r.state === <span class="c-str">&#39;ok&#39;</span> ? <span class="c-str">&#39;Active&#39;</span> : <span class="c-str">&#39;Over budget&#39;</span>, r.state) },
+    ],
+    rows: [
+      { id: <span class="c-num">1</span>, name: <span class="c-str">&#39;Northwind&#39;</span>, region: <span class="c-str">&#39;eu-west&#39;</span>, spend: <span class="c-num">12480</span>, change: <span class="c-num">4.2</span>, state: <span class="c-str">&#39;ok&#39;</span> },
+      { id: <span class="c-num">2</span>, name: <span class="c-str">&#39;Contoso&#39;</span>, region: <span class="c-str">&#39;us-east&#39;</span>, spend: <span class="c-num">9310.5</span>, change: -<span class="c-num">1.8</span>, state: <span class="c-str">&#39;ok&#39;</span> },
+      { id: <span class="c-num">3</span>, name: <span class="c-str">&#39;Fabrikam&#39;</span>, region: <span class="c-str">&#39;eu-north&#39;</span>, spend: <span class="c-num">15020</span>, change: <span class="c-num">12.5</span>, state: <span class="c-str">&#39;warn&#39;</span> },
+      { id: <span class="c-num">4</span>, name: <span class="c-str">&#39;Tailspin&#39;</span>, region: <span class="c-str">&#39;us-west&#39;</span>, spend: <span class="c-num">620</span>, change: <span class="c-num">0</span>, state: <span class="c-str">&#39;ok&#39;</span> },
+    ],
+    sort: { key: <span class="c-str">&#39;spend&#39;</span>, dir: <span class="c-str">&#39;desc&#39;</span> }, key: <span class="c-str">&#39;id&#39;</span>, noun: <span class="c-str">&#39;account&#39;</span>,
+    rowClass: (r) =&gt; (r.state === <span class="c-str">&#39;warn&#39;</span> ? <span class="c-str">&#39;marked warn&#39;</span> : <span class="c-str">&#39;&#39;</span>),
+    onRow: (r) =&gt; <span class="c-fn">Dash</span>.toast(<span class="c-str">`Open ${r.name}`</span>),
+  });
+  <span class="c-key">const</span> q = <span class="c-fn">Dash</span>.search(<span class="c-str">&#39;acct-q&#39;</span>, { onChange: (text) =&gt; { accounts.filter((r) =&gt; <span class="c-fn">Dash</span>.match(r, text, [<span class="c-str">&#39;name&#39;</span>, <span class="c-str">&#39;region&#39;</span>])); q.count(accounts.count, <span class="c-num">4</span>); } });
+  document.getElementById(<span class="c-str">&#39;acct-csv&#39;</span>).addEventListener(<span class="c-str">&#39;click&#39;</span>, () =&gt; accounts.download(<span class="c-str">&#39;accounts.csv&#39;</span>));
+&lt;/<span class="c-tag">script</span>&gt;</code></pre></figure>
+      <h3>Columns</h3>
+      <div class="table-wrap"><table class="table compact">
+        <thead><tr><th>Field</th><th>What it does</th></tr></thead>
+        <tbody>
+          <tr><td><code>key</code>, <code>label</code></td><td>The row's field, and the header's text.</td></tr>
+          <tr><td><code>num: true</code></td><td>Right-aligned, sorted as a number. <code>unit</code> goes after the label (<code>ms</code> stays lower case).</td></tr>
+          <tr><td><code>main: true</code></td><td>The column that titles each card on a phone.</td></tr>
+          <tr><td><code>value: (row) =&gt; …</code></td><td>What it shows and sorts by, when that isn't <code>row[key]</code>.</td></tr>
+          <tr><td><code>format: (value, row) =&gt; text</code></td><td>Text for the cell (escaped).</td></tr>
+          <tr><td><code>html: (row) =&gt; markup</code></td><td>Markup from a builder (<code>Dash.pill</code>, <code>Dash.ago</code>, <code>Dash.bar</code>…), not escaped.</td></tr>
+          <tr><td><code>sort: false</code>, <code>firstDir: 'asc'</code></td><td>A column that doesn't sort; one whose first click sorts up (names, latency).</td></tr>
+          <tr><td><code>title</code>, <code>cls</code></td><td>A tooltip on the header; classes on its cells.</td></tr>
+        </tbody>
+      </table></div>
+      <h3>Options and the handle</h3>
+      <ul>
+        <li><code>sort: { key, dir, store }</code>, remembered under <code>store</code>; <code>perPage</code> (0: no pager) and <code>sizes</code>; <code>noun</code> for "of 23 servers".</li>
+        <li><code>key</code> (a field or a function) gives each row a <code>data-key</code>, so a refresh keeps the focused row. <code>rowClass: (row) =&gt; 'marked bad'</code>, <code>empty</code> text, <code>filter: (row) =&gt; keep?</code>.</li>
+        <li><code>cls</code> sets the table's classes (<code>'stack'</code> by default), <code>wrap: true</code> makes it its own card, <code>onRow(row, event)</code> runs on a click or Enter on a row (not on a button or link in it).</li>
+        <li>The handle: <code>.update(rows)</code>, <code>.filter(fn)</code>, <code>.count</code> (rows shown), <code>.csv()</code>, <code>.download(name)</code>, <code>.goto(page)</code>, <code>.sort</code>.</li>
+      </ul>
+    </section>
+
+    <section id="markup" data-terms=".table-wrap th td aria-sort data-sort .num Dash.th .compact --cell-x">
+      <h2>Tables by hand</h2>
+      <p>A <code>.table</code> inside a <code>.panel</code> gets a rounded header strip; in a <code>.table-wrap</code> the table is its own card and scrolls sideways if it must. Sortable headers are <code>&lt;th aria-sort="descending"&gt;&lt;button data-sort="key"&gt;</code>, which <code>Dash.th(label, key, sort, { num, unit, title, cls, mark })</code> writes. <code>th.num</code> and <code>td.num</code> align right. <code>.table.compact</code> puts 8 px between columns instead of 12 (<code>--cell-x</code>).</p>
+      <figure class="example" id="ex-2"><div class="example-view">
+<div class="table-wrap">
+  <table class="table compact">
+    <thead><tr><th aria-sort="ascending"><button type="button" data-sort="name">Server</button></th><th class="num"><button type="button" data-sort="cpu">CPU</button></th><th class="num">Memory <span class="unit">GB</span></th></tr></thead>
+    <tbody>
+      <tr><td>db-1</td><td class="num">17%</td><td class="num">48.2</td></tr>
+      <tr><td>web-1</td><td class="num">42%</td><td class="num">12.0</td></tr>
+      <tr><td>web-2</td><td class="num">91%</td><td class="num">14.6</td></tr>
+    </tbody>
+  </table>
+</div>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;div class=&quot;table-wrap&quot;&gt;
+  &lt;table class=&quot;table compact&quot;&gt;
+    &lt;thead&gt;&lt;tr&gt;&lt;th aria-sort=&quot;ascending&quot;&gt;&lt;button type=&quot;button&quot; data-sort=&quot;name&quot;&gt;Server&lt;/button&gt;&lt;/th&gt;&lt;th class=&quot;num&quot;&gt;&lt;button type=&quot;button&quot; data-sort=&quot;cpu&quot;&gt;CPU&lt;/button&gt;&lt;/th&gt;&lt;th class=&quot;num&quot;&gt;Memory &lt;span class=&quot;unit&quot;&gt;GB&lt;/span&gt;&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;
+    &lt;tbody&gt;
+      &lt;tr&gt;&lt;td&gt;db-1&lt;/td&gt;&lt;td class=&quot;num&quot;&gt;17%&lt;/td&gt;&lt;td class=&quot;num&quot;&gt;48.2&lt;/td&gt;&lt;/tr&gt;
+      &lt;tr&gt;&lt;td&gt;web-1&lt;/td&gt;&lt;td class=&quot;num&quot;&gt;42%&lt;/td&gt;&lt;td class=&quot;num&quot;&gt;12.0&lt;/td&gt;&lt;/tr&gt;
+      &lt;tr&gt;&lt;td&gt;web-2&lt;/td&gt;&lt;td class=&quot;num&quot;&gt;91%&lt;/td&gt;&lt;td class=&quot;num&quot;&gt;14.6&lt;/td&gt;&lt;/tr&gt;
+    &lt;/tbody&gt;
+  &lt;/table&gt;
+&lt;/div&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;table-wrap&quot;</span>&gt;
+  &lt;<span class="c-tag">table</span> <span class="c-attr">class</span>=<span class="c-str">&quot;table compact&quot;</span>&gt;
+    &lt;<span class="c-tag">thead</span>&gt;&lt;<span class="c-tag">tr</span>&gt;&lt;<span class="c-tag">th</span> <span class="c-attr">aria-sort</span>=<span class="c-str">&quot;ascending&quot;</span>&gt;&lt;<span class="c-tag">button</span> <span class="c-attr">type</span>=<span class="c-str">&quot;button&quot;</span> <span class="c-attr">data-sort</span>=<span class="c-str">&quot;name&quot;</span>&gt;Server&lt;/<span class="c-tag">button</span>&gt;&lt;/<span class="c-tag">th</span>&gt;&lt;<span class="c-tag">th</span> <span class="c-attr">class</span>=<span class="c-str">&quot;num&quot;</span>&gt;&lt;<span class="c-tag">button</span> <span class="c-attr">type</span>=<span class="c-str">&quot;button&quot;</span> <span class="c-attr">data-sort</span>=<span class="c-str">&quot;cpu&quot;</span>&gt;CPU&lt;/<span class="c-tag">button</span>&gt;&lt;/<span class="c-tag">th</span>&gt;&lt;<span class="c-tag">th</span> <span class="c-attr">class</span>=<span class="c-str">&quot;num&quot;</span>&gt;Memory &lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;unit&quot;</span>&gt;GB&lt;/<span class="c-tag">span</span>&gt;&lt;/<span class="c-tag">th</span>&gt;&lt;/<span class="c-tag">tr</span>&gt;&lt;/<span class="c-tag">thead</span>&gt;
+    &lt;<span class="c-tag">tbody</span>&gt;
+      &lt;<span class="c-tag">tr</span>&gt;&lt;<span class="c-tag">td</span>&gt;db-1&lt;/<span class="c-tag">td</span>&gt;&lt;<span class="c-tag">td</span> <span class="c-attr">class</span>=<span class="c-str">&quot;num&quot;</span>&gt;17%&lt;/<span class="c-tag">td</span>&gt;&lt;<span class="c-tag">td</span> <span class="c-attr">class</span>=<span class="c-str">&quot;num&quot;</span>&gt;48.2&lt;/<span class="c-tag">td</span>&gt;&lt;/<span class="c-tag">tr</span>&gt;
+      &lt;<span class="c-tag">tr</span>&gt;&lt;<span class="c-tag">td</span>&gt;web-1&lt;/<span class="c-tag">td</span>&gt;&lt;<span class="c-tag">td</span> <span class="c-attr">class</span>=<span class="c-str">&quot;num&quot;</span>&gt;42%&lt;/<span class="c-tag">td</span>&gt;&lt;<span class="c-tag">td</span> <span class="c-attr">class</span>=<span class="c-str">&quot;num&quot;</span>&gt;12.0&lt;/<span class="c-tag">td</span>&gt;&lt;/<span class="c-tag">tr</span>&gt;
+      &lt;<span class="c-tag">tr</span>&gt;&lt;<span class="c-tag">td</span>&gt;web-2&lt;/<span class="c-tag">td</span>&gt;&lt;<span class="c-tag">td</span> <span class="c-attr">class</span>=<span class="c-str">&quot;num&quot;</span>&gt;91%&lt;/<span class="c-tag">td</span>&gt;&lt;<span class="c-tag">td</span> <span class="c-attr">class</span>=<span class="c-str">&quot;num&quot;</span>&gt;14.6&lt;/<span class="c-tag">td</span>&gt;&lt;/<span class="c-tag">tr</span>&gt;
+    &lt;/<span class="c-tag">tbody</span>&gt;
+  &lt;/<span class="c-tag">table</span>&gt;
+&lt;/<span class="c-tag">div</span>&gt;</code></pre></figure>
+      <p><code>Dash.sortBy(rows, key, 'asc' | 'desc')</code> sorts a copy: numbers as numbers, text as a person would (<code>web-2</code> before <code>web-10</code>), blanks last. <code>Dash.sorter({ key, dir, store, firstDir })</code> keeps the state for your own headers: <code>.toggle(key)</code>, <code>.apply(rows, getters)</code>.</p>
+    </section>
+
+    <section id="rows" data-terms="tr.marked tr.dim tr.sub tr.group tr.cut tr.click .marked .dim .group .cut .click .empty-row td.actions .actions --actions-w">
+      <h2>Row states</h2>
+      <ul>
+        <li><code>tr.marked</code>: a bar on the left and a tint, blue unless a tone is added (<code>marked bad</code>). <code>tr.dim</code>: faded.</li>
+        <li><code>tr.sub</code>: smaller rows that belong to the one above. <code>tr.group</code>: a heading row. <code>tr.cut</code>: a dashed line, for "below this, not paid".</li>
+        <li><code>tr.click</code>: a pointer, for rows that open something. <code>.empty-row</code>: one row saying there is nothing.</li>
+        <li><code>td.actions</code> (and <code>th.actions</code>): a row's buttons at the right, as narrow as they are; on a phone's card they sit in its top corner (<code>--actions-w</code> keeps the title clear of them).</li>
+      </ul>
+      <figure class="example" id="ex-3"><div class="example-view">
+<div class="table-wrap">
+  <table class="table">
+    <thead><tr><th>Server</th><th class="num">CPU</th><th class="actions"><span class="sr-only">Actions</span></th></tr></thead>
+    <tbody>
+      <tr class="group"><td colspan="3">Frankfurt</td></tr>
+      <tr class="marked bad click"><td>web-2</td><td class="num">98%</td><td class="actions"><button type="button" class="btn sm">Restart</button></td></tr>
+      <tr class="sub"><td>worker</td><td class="num">71%</td><td></td></tr>
+      <tr><td>web-1</td><td class="num">42%</td><td class="actions"><button type="button" class="btn sm">Restart</button></td></tr>
+      <tr class="cut dim"><td>web-9 (stopped)</td><td class="num">0%</td><td></td></tr>
+    </tbody>
+  </table>
+</div>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;div class=&quot;table-wrap&quot;&gt;
+  &lt;table class=&quot;table&quot;&gt;
+    &lt;thead&gt;&lt;tr&gt;&lt;th&gt;Server&lt;/th&gt;&lt;th class=&quot;num&quot;&gt;CPU&lt;/th&gt;&lt;th class=&quot;actions&quot;&gt;&lt;span class=&quot;sr-only&quot;&gt;Actions&lt;/span&gt;&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;
+    &lt;tbody&gt;
+      &lt;tr class=&quot;group&quot;&gt;&lt;td colspan=&quot;3&quot;&gt;Frankfurt&lt;/td&gt;&lt;/tr&gt;
+      &lt;tr class=&quot;marked bad click&quot;&gt;&lt;td&gt;web-2&lt;/td&gt;&lt;td class=&quot;num&quot;&gt;98%&lt;/td&gt;&lt;td class=&quot;actions&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;btn sm&quot;&gt;Restart&lt;/button&gt;&lt;/td&gt;&lt;/tr&gt;
+      &lt;tr class=&quot;sub&quot;&gt;&lt;td&gt;worker&lt;/td&gt;&lt;td class=&quot;num&quot;&gt;71%&lt;/td&gt;&lt;td&gt;&lt;/td&gt;&lt;/tr&gt;
+      &lt;tr&gt;&lt;td&gt;web-1&lt;/td&gt;&lt;td class=&quot;num&quot;&gt;42%&lt;/td&gt;&lt;td class=&quot;actions&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;btn sm&quot;&gt;Restart&lt;/button&gt;&lt;/td&gt;&lt;/tr&gt;
+      &lt;tr class=&quot;cut dim&quot;&gt;&lt;td&gt;web-9 (stopped)&lt;/td&gt;&lt;td class=&quot;num&quot;&gt;0%&lt;/td&gt;&lt;td&gt;&lt;/td&gt;&lt;/tr&gt;
+    &lt;/tbody&gt;
+  &lt;/table&gt;
+&lt;/div&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;table-wrap&quot;</span>&gt;
+  &lt;<span class="c-tag">table</span> <span class="c-attr">class</span>=<span class="c-str">&quot;table&quot;</span>&gt;
+    &lt;<span class="c-tag">thead</span>&gt;&lt;<span class="c-tag">tr</span>&gt;&lt;<span class="c-tag">th</span>&gt;Server&lt;/<span class="c-tag">th</span>&gt;&lt;<span class="c-tag">th</span> <span class="c-attr">class</span>=<span class="c-str">&quot;num&quot;</span>&gt;CPU&lt;/<span class="c-tag">th</span>&gt;&lt;<span class="c-tag">th</span> <span class="c-attr">class</span>=<span class="c-str">&quot;actions&quot;</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;sr-only&quot;</span>&gt;Actions&lt;/<span class="c-tag">span</span>&gt;&lt;/<span class="c-tag">th</span>&gt;&lt;/<span class="c-tag">tr</span>&gt;&lt;/<span class="c-tag">thead</span>&gt;
+    &lt;<span class="c-tag">tbody</span>&gt;
+      &lt;<span class="c-tag">tr</span> <span class="c-attr">class</span>=<span class="c-str">&quot;group&quot;</span>&gt;&lt;<span class="c-tag">td</span> <span class="c-attr">colspan</span>=<span class="c-str">&quot;3&quot;</span>&gt;Frankfurt&lt;/<span class="c-tag">td</span>&gt;&lt;/<span class="c-tag">tr</span>&gt;
+      &lt;<span class="c-tag">tr</span> <span class="c-attr">class</span>=<span class="c-str">&quot;marked bad click&quot;</span>&gt;&lt;<span class="c-tag">td</span>&gt;web-2&lt;/<span class="c-tag">td</span>&gt;&lt;<span class="c-tag">td</span> <span class="c-attr">class</span>=<span class="c-str">&quot;num&quot;</span>&gt;98%&lt;/<span class="c-tag">td</span>&gt;&lt;<span class="c-tag">td</span> <span class="c-attr">class</span>=<span class="c-str">&quot;actions&quot;</span>&gt;&lt;<span class="c-tag">button</span> <span class="c-attr">type</span>=<span class="c-str">&quot;button&quot;</span> <span class="c-attr">class</span>=<span class="c-str">&quot;btn sm&quot;</span>&gt;Restart&lt;/<span class="c-tag">button</span>&gt;&lt;/<span class="c-tag">td</span>&gt;&lt;/<span class="c-tag">tr</span>&gt;
+      &lt;<span class="c-tag">tr</span> <span class="c-attr">class</span>=<span class="c-str">&quot;sub&quot;</span>&gt;&lt;<span class="c-tag">td</span>&gt;worker&lt;/<span class="c-tag">td</span>&gt;&lt;<span class="c-tag">td</span> <span class="c-attr">class</span>=<span class="c-str">&quot;num&quot;</span>&gt;71%&lt;/<span class="c-tag">td</span>&gt;&lt;<span class="c-tag">td</span>&gt;&lt;/<span class="c-tag">td</span>&gt;&lt;/<span class="c-tag">tr</span>&gt;
+      &lt;<span class="c-tag">tr</span>&gt;&lt;<span class="c-tag">td</span>&gt;web-1&lt;/<span class="c-tag">td</span>&gt;&lt;<span class="c-tag">td</span> <span class="c-attr">class</span>=<span class="c-str">&quot;num&quot;</span>&gt;42%&lt;/<span class="c-tag">td</span>&gt;&lt;<span class="c-tag">td</span> <span class="c-attr">class</span>=<span class="c-str">&quot;actions&quot;</span>&gt;&lt;<span class="c-tag">button</span> <span class="c-attr">type</span>=<span class="c-str">&quot;button&quot;</span> <span class="c-attr">class</span>=<span class="c-str">&quot;btn sm&quot;</span>&gt;Restart&lt;/<span class="c-tag">button</span>&gt;&lt;/<span class="c-tag">td</span>&gt;&lt;/<span class="c-tag">tr</span>&gt;
+      &lt;<span class="c-tag">tr</span> <span class="c-attr">class</span>=<span class="c-str">&quot;cut dim&quot;</span>&gt;&lt;<span class="c-tag">td</span>&gt;web-9 (stopped)&lt;/<span class="c-tag">td</span>&gt;&lt;<span class="c-tag">td</span> <span class="c-attr">class</span>=<span class="c-str">&quot;num&quot;</span>&gt;0%&lt;/<span class="c-tag">td</span>&gt;&lt;<span class="c-tag">td</span>&gt;&lt;/<span class="c-tag">td</span>&gt;&lt;/<span class="c-tag">tr</span>&gt;
+    &lt;/<span class="c-tag">tbody</span>&gt;
+  &lt;/<span class="c-tag">table</span>&gt;
+&lt;/<span class="c-tag">div</span>&gt;</code></pre></figure>
+    </section>
+
+    <section id="phones" data-terms=".stack .stack-md data-label td.main .sticky .open">
+      <h2>On a phone, and long tables</h2>
+      <p><code>.table.stack</code> turns each row into a small card on a phone. Give each <code>td</code> a <code>data-label</code>; the <code>td.main</code> cell is the card's title. <code>.stack-md</code> does it from 900 px down instead, for a table too wide for a tablet. <code>Dash.table</code> does all of this by itself.</p>
+      <p><code>.table.sticky</code> inside a <code>.table-wrap.open</code> keeps the header under the top bar while a long page scrolls (<code>.open</code> lets the header out of the card's own scrolling).</p>
+      <figure class="example" id="ex-4"><div class="example-view">
+<table class="table stack">
+  <thead><tr><th>Server</th><th class="num">CPU</th><th>Region</th></tr></thead>
+  <tbody>
+    <tr><td class="main" data-label="Server">web-1</td><td class="num" data-label="CPU">42%</td><td data-label="Region">Frankfurt</td></tr>
+    <tr><td class="main" data-label="Server">db-1</td><td class="num" data-label="CPU">17%</td><td data-label="Region">Dublin</td></tr>
+  </tbody>
+</table>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;table class=&quot;table stack&quot;&gt;
+  &lt;thead&gt;&lt;tr&gt;&lt;th&gt;Server&lt;/th&gt;&lt;th class=&quot;num&quot;&gt;CPU&lt;/th&gt;&lt;th&gt;Region&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;&lt;td class=&quot;main&quot; data-label=&quot;Server&quot;&gt;web-1&lt;/td&gt;&lt;td class=&quot;num&quot; data-label=&quot;CPU&quot;&gt;42%&lt;/td&gt;&lt;td data-label=&quot;Region&quot;&gt;Frankfurt&lt;/td&gt;&lt;/tr&gt;
+    &lt;tr&gt;&lt;td class=&quot;main&quot; data-label=&quot;Server&quot;&gt;db-1&lt;/td&gt;&lt;td class=&quot;num&quot; data-label=&quot;CPU&quot;&gt;17%&lt;/td&gt;&lt;td data-label=&quot;Region&quot;&gt;Dublin&lt;/td&gt;&lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">table</span> <span class="c-attr">class</span>=<span class="c-str">&quot;table stack&quot;</span>&gt;
+  &lt;<span class="c-tag">thead</span>&gt;&lt;<span class="c-tag">tr</span>&gt;&lt;<span class="c-tag">th</span>&gt;Server&lt;/<span class="c-tag">th</span>&gt;&lt;<span class="c-tag">th</span> <span class="c-attr">class</span>=<span class="c-str">&quot;num&quot;</span>&gt;CPU&lt;/<span class="c-tag">th</span>&gt;&lt;<span class="c-tag">th</span>&gt;Region&lt;/<span class="c-tag">th</span>&gt;&lt;/<span class="c-tag">tr</span>&gt;&lt;/<span class="c-tag">thead</span>&gt;
+  &lt;<span class="c-tag">tbody</span>&gt;
+    &lt;<span class="c-tag">tr</span>&gt;&lt;<span class="c-tag">td</span> <span class="c-attr">class</span>=<span class="c-str">&quot;main&quot;</span> <span class="c-attr">data-label</span>=<span class="c-str">&quot;Server&quot;</span>&gt;web-1&lt;/<span class="c-tag">td</span>&gt;&lt;<span class="c-tag">td</span> <span class="c-attr">class</span>=<span class="c-str">&quot;num&quot;</span> <span class="c-attr">data-label</span>=<span class="c-str">&quot;CPU&quot;</span>&gt;42%&lt;/<span class="c-tag">td</span>&gt;&lt;<span class="c-tag">td</span> <span class="c-attr">data-label</span>=<span class="c-str">&quot;Region&quot;</span>&gt;Frankfurt&lt;/<span class="c-tag">td</span>&gt;&lt;/<span class="c-tag">tr</span>&gt;
+    &lt;<span class="c-tag">tr</span>&gt;&lt;<span class="c-tag">td</span> <span class="c-attr">class</span>=<span class="c-str">&quot;main&quot;</span> <span class="c-attr">data-label</span>=<span class="c-str">&quot;Server&quot;</span>&gt;db-1&lt;/<span class="c-tag">td</span>&gt;&lt;<span class="c-tag">td</span> <span class="c-attr">class</span>=<span class="c-str">&quot;num&quot;</span> <span class="c-attr">data-label</span>=<span class="c-str">&quot;CPU&quot;</span>&gt;17%&lt;/<span class="c-tag">td</span>&gt;&lt;<span class="c-tag">td</span> <span class="c-attr">data-label</span>=<span class="c-str">&quot;Region&quot;</span>&gt;Dublin&lt;/<span class="c-tag">td</span>&gt;&lt;/<span class="c-tag">tr</span>&gt;
+  &lt;/<span class="c-tag">tbody</span>&gt;
+&lt;/<span class="c-tag">table</span>&gt;</code></pre></figure>
+    </section>
+
+    <section id="data" data-terms="Dash.sum Dash.groupBy Dash.csv Dash.download Dash.sortBy Dash.sorter">
+      <h2>Working with rows</h2>
+      <ul>
+        <li><code>Dash.sum(rows, key)</code>: a column's total (blanks count as 0). <code>Dash.groupBy(rows, key)</code>: an object of the rows by a key, in the order first seen (<code>key</code> may be a function).</li>
+        <li><code>Dash.csv(rows, columns)</code>: rows as CSV; columns as for <code>Dash.table</code> (<code>{ key, label, value }</code>) or plain keys. Text that a spreadsheet would read as a formula gets a leading <code>'</code>; text that is just a number stays a number. <code>Dash.download(name, content)</code> hands the reader a file.</li>
+      </ul>
+      <pre class="code"><code>const byRegion = Dash.groupBy(servers, 'region');        // { 'eu-west': [rows], … }
+Dash.download('servers.csv', Dash.csv(servers, ['name', 'region', 'cpu']));</code></pre>
+    </section>
+    <nav class="docs-steps" aria-label="More pages"><a class="docs-step prev" href="navigation.html"><span class="faint">Previous</span><b>Navigation</b></a><a class="docs-step next" href="charts.html"><span class="faint">Next</span><b>Charts and progress</b></a></nav>
+  </main>
+</div>
+<script src="search.js"></script>
+<script src="docs.js"></script>
+</body>
+</html>

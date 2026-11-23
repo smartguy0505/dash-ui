@@ -1,4 +1,4 @@
-/* dash-ui 1.8.0: the look shared by my dashboards (agents, fleet, leaderboard, payouts, balances).
+/* dash-ui 1.9.0: the look shared by my dashboards (agents, fleet, leaderboard, payouts, balances).
    Warm neutral backgrounds, white panels, tinted status colours, light and dark from the system setting
    (or data-theme="light|dark" on <html>). No build step, no dependencies: link this file, or paste it into a page.
 
@@ -919,6 +919,39 @@ textarea.input.autosize { min-height: 62px; max-height: var(--max-h, 320px); fie
 /* a picture across the top of a card: <div class="card"><div class="card-media"><img src alt></div>… */
 .card-media { margin: -16px -18px 4px; overflow: hidden; border-radius: var(--radius) var(--radius) 0 0; background: var(--soft); aspect-ratio: 16 / 9; }
 .card-media img { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+/* ---- suggestions and a calendar (1.9): Dash.combobox and Dash.datepicker write these ---- */
+.popup.combo-list { padding: 4px; overflow-y: auto; }
+.combo-option { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 6px 10px; border-radius: 7px; font-size: 14px; cursor: pointer; }
+.combo-option[aria-selected="true"] { background: var(--soft); }
+.combo-option mark { background: none; color: inherit; font-weight: 700; }
+.combo-sub { flex: none; color: var(--muted); font-size: 12.5px; }
+.combo-empty { padding: 6px 10px; color: var(--muted); font-size: 13.5px; }
+
+/* a date box with its calendar button: Dash.datepicker('when') puts the button in */
+.date-field { position: relative; display: inline-flex; min-width: 0; vertical-align: middle; }
+.field .date-field { display: flex; }
+.date-field > .input { width: 100%; padding-right: 36px; font-variant-numeric: tabular-nums; }
+.date-field > .date-btn { position: absolute; top: 50%; right: 4px; transform: translateY(-50%); }
+.date-field > .input[aria-invalid="true"] { border-color: var(--bad); }
+.popup.calendar { padding: 10px; max-width: none; }
+.cal-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.cal-head .icon-btn { font-size: 18px; line-height: 1; }
+.cal-head .icon-btn:disabled { opacity: .35; }
+.cal-title { font-size: 14px; }
+.cal-grid { border-collapse: collapse; }
+.cal-grid th { width: 36px; padding: 2px 0 4px; color: var(--faint); font-size: 11.5px; font-weight: 600; text-align: center; }
+.cal-grid td { padding: 1px; text-align: center; }
+.cal-grid button { width: 34px; height: 32px; padding: 0; border: 0; border-radius: 8px; background: none; color: var(--text); font-size: 13.5px;
+  font-variant-numeric: tabular-nums; cursor: pointer; }
+.cal-grid button:hover { background: var(--soft); }
+.cal-grid button:focus-visible { outline-offset: -2px; }
+.cal-grid button[aria-current="date"] { box-shadow: inset 0 0 0 1px var(--line); font-weight: 700; }
+.cal-grid [aria-selected="true"] > button { background: var(--blue); color: var(--card); }
+.cal-grid button[aria-disabled="true"] { color: var(--faint); background: none; cursor: default; opacity: .55; }
+@media (forced-colors: active) {
+  .combo-option[aria-selected="true"], .cal-grid [aria-selected="true"] > button { outline: 2px solid Highlight; outline-offset: -2px; }
+}
 
 /* ---- tones: set --c; after the components so they win over their defaults ---- */
 .ok { --c: var(--ok); } .warn { --c: var(--warn); } .bad { --c: var(--bad); } .blue { --c: var(--blue); } .accent { --c: var(--accent); }

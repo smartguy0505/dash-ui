@@ -1,0 +1,87 @@
+    <section id="what" data-terms="dash.css dash.js dash-utils.css">
+      <h2>What it is</h2>
+      <p>dash-ui is a small kit for dashboards and admin pages: one stylesheet, <code>dash.css</code>, and one script, <code>dash.js</code>. There is nothing to install or build. A page links the two files, uses the kit's classes in its HTML, and calls <code>Dash</code> helpers for the parts that move: tables that sort, charts, toasts, modals, popups, polling.</p>
+      <ul>
+        <li><b>Components</b>: panels, cards, stat tiles, tables, forms, buttons, menus, tabs, charts, modals and more, each in light and dark, from a phone to a wide screen.</li>
+        <li><b>Builders</b> in dash.js write a component's HTML from data, with every value escaped: <code>Dash.pill('Healthy', 'ok')</code>, <code>Dash.bars(points)</code>, <code>Dash.table(el, { columns })</code>.</li>
+        <li><b>Utility classes</b>, in the style of Tailwind, in an optional third file, <code>dash-utils.css</code>: <code>flex gap-3 md:grid-cols-3 p-4 text-muted</code>. They are made from the same tokens, so they match the components.</li>
+      </ul>
+      <p>Every page in these docs shows each piece live, with its code under it. Copy takes the code, Phone shows it at a phone's width, and the theme button shows it in the other theme.</p>
+    </section>
+
+    <section id="install" data-terms="install link script">
+      <h2>Add it to a page</h2>
+      <p>Copy <code>dash.css</code> and <code>dash.js</code> next to your page, or point at them where they are served, and link them in the head. <code>dash-utils.css</code> is optional and goes after <code>dash.css</code>.</p>
+      <pre class="code"><code>&lt;link rel="stylesheet" href="dash.css"&gt;
+&lt;link rel="stylesheet" href="dash-utils.css"&gt;   &lt;!-- optional: the utility classes --&gt;
+&lt;script src="dash.js"&gt;&lt;/script&gt;</code></pre>
+      <p>The script goes in the head so that the page's own scripts can use <code>Dash</code> anywhere below it. It waits for the page itself where it needs to.</p>
+      <h3>One file</h3>
+      <p>For a page that has to be one file (a report sent by mail, a page a server writes out), <code>tools/paste.py page.html</code> puts the kit into the page's <code>&lt;style id="dash-ui-css"&gt;</code> and <code>&lt;script id="dash-ui-js"&gt;</code> blocks, and the utilities into <code>&lt;style id="dash-ui-utils"&gt;</code> if the page has one. Run it again after updating the kit.</p>
+      <h3>Versions</h3>
+      <p>The first line of each file names its version (<code>/* dash-ui 1.9.0: …</code>), and <code>Dash.version</code> says it in a script. Versions only add things: a page that works with an older copy works the same with a newer one, so a page can update when it likes.</p>
+    </section>
+
+    <section id="first-page" data-terms="Dash.version">
+      <h2>A first page</h2>
+      <p>A top bar, then a <code>.page</code> holding the content: here a row of stat tiles and a panel with a table built from its columns. Data would come from <code>Dash.poll</code> and <code>Dash.api</code>; the rows are written in so the example stands alone.</p>
+      <example title="A small dashboard" class="on-page">
+        <header class="topbar">
+          <div class="brand"><span class="mark">S</span><h1>Servers</h1></div>
+          <span class="sub">eu-west</span>
+        </header>
+        <main class="page">
+          <div class="stats" id="first-stats"></div>
+          <div class="panel">
+            <div class="panel-head"><h3>Servers</h3><span class="read" id="first-count"></span></div>
+            <div id="first-table"></div>
+          </div>
+        </main>
+        <script>
+          const rows = [
+            { name: 'web-1', load: 0.42, state: 'ok', seen: Date.now() - 40e3 },
+            { name: 'web-2', load: 0.91, state: 'warn', seen: Date.now() - 4 * 60e3 },
+            { name: 'db-1', load: 0.17, state: 'ok', seen: Date.now() - 20e3 },
+          ];
+          const LABEL = { ok: 'Healthy', warn: 'Busy', bad: 'Down' };
+          Dash.render('first-stats', Dash.stat('Servers', rows.length) + Dash.stat('Busy', rows.filter((r) => r.state === 'warn').length, { tone: 'warn' })
+            + Dash.stat('Average load', Dash.fmt.pct(Dash.sum(rows, 'load') / rows.length * 100, 0)));
+          Dash.render('first-count', Dash.fmt.plural(rows.length, 'server'));
+          Dash.table('first-table', {
+            columns: [
+              { key: 'name', label: 'Name', main: true, firstDir: 'asc' },
+              { key: 'load', label: 'Load', num: true, format: (v) => Dash.fmt.pct(v * 100, 0) },
+              { key: 'state', label: 'State', sort: false, html: (r) => Dash.pill(LABEL[r.state], r.state) },
+              { key: 'seen', label: 'Seen', num: true, html: (r) => Dash.ago(r.seen) },
+            ],
+            rows, sort: { key: 'load', dir: 'desc' },
+          });
+        </script>
+      </example>
+      <p>On a phone the table's rows become small cards, and the stat tiles go two across. Nothing on the page has to ask for that.</p>
+    </section>
+
+    <section id="parts" data-terms="docs">
+      <h2>What's in the kit</h2>
+      <div class="cards">
+        <a class="card" href="layout.html"><div class="card-title">Page layout</div><div class="card-sub">Top bar, sidebar and drawer, grids, the phone's bottom navigation.</div></a>
+        <a class="card" href="forms.html"><div class="card-title">Forms</div><div class="card-sub">Inputs, selects, choices, switches, sliders, file drops, suggestions, dates.</div></a>
+        <a class="card" href="surfaces.html"><div class="card-title">Panels and cards</div><div class="card-sub">Panels, cards, stat tiles, callouts, lists, accordions.</div></a>
+        <a class="card" href="tables.html"><div class="card-title">Tables</div><div class="card-sub">Sorting, pages, row states, rows as cards on a phone.</div></a>
+        <a class="card" href="charts.html"><div class="card-title">Charts and progress</div><div class="card-sub">Bars, columns, donuts, gauges, sparklines, lanes, progress.</div></a>
+        <a class="card" href="overlays.html"><div class="card-title">Modals and popups</div><div class="card-sub">Modals, questions, popups and menus that stay inside the window.</div></a>
+        <a class="card" href="helpers.html"><div class="card-title">dash.js helpers</div><div class="card-sub">Numbers and times, fetching and polling, redrawing without losing the reader's place.</div></a>
+        <a class="card" href="utilities.html"><div class="card-title">Utility classes</div><div class="card-sub">Layout, spacing, type and colour as classes, with widths, states and dark.</div></a>
+      </div>
+    </section>
+
+    <section id="principles" data-terms="accessibility escaping">
+      <h2>What every piece does</h2>
+      <ul>
+        <li><b>Escapes what it's given.</b> A builder writes text as text, so a name with <code>&lt;</code> in it shows as a name. Links that would run script (<code>javascript:</code>) become <code>#</code>.</li>
+        <li><b>Works with a keyboard and a screen reader.</b> Menus, tabs, popups, modals, the drawer, the suggestions and the calendar move with the keys a reader expects, say what they are, and give the focus back when they close.</li>
+        <li><b>Keeps the reader's place.</b> <code>Dash.render</code> redraws a part of the page without losing what is being typed, the focus or the scroll.</li>
+        <li><b>Fits a phone.</b> Nothing scrolls sideways; tables become cards, the sidebar a drawer, tile rows two across.</li>
+        <li><b>Follows the reader's settings:</b> dark mode, less motion and forced colours.</li>
+      </ul>
+    </section>

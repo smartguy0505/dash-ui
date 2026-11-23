@@ -1,0 +1,80 @@
+    <section id="toasts" data-terms="Dash.toast .toast .toast-text .toast-act .act .show">
+      <h2>Toasts</h2>
+      <p><code>Dash.toast(message, { tone, ms, action, onAction })</code> is a short message at the bottom of the window that goes away on its own. With <code>action: 'Undo'</code> it has a button and stays six seconds. Screen readers hear it. Toasts and notices show above an open modal too.</p>
+      <example>
+        <div class="row">
+          <button type="button" class="btn" id="t-plain">Saved</button>
+          <button type="button" class="btn" id="t-tone">Something failed</button>
+          <button type="button" class="btn" id="t-undo">Archive, with Undo</button>
+        </div>
+        <script>
+          document.getElementById('t-plain').addEventListener('click', () => Dash.toast('Saved', { tone: 'ok' }));
+          document.getElementById('t-tone').addEventListener('click', () => Dash.toast("Couldn't reach the server", { tone: 'bad' }));
+          document.getElementById('t-undo').addEventListener('click', () => Dash.toast('Archived 3 alerts', { action: 'Undo', onAction: () => Dash.toast('Back in the inbox') }));
+        </script>
+      </example>
+    </section>
+
+    <section id="notices" data-terms="Dash.notify Dash.notify.dismiss .notices .notice .notice-body .notice-title .notice-text .notice-x">
+      <h2>Notices</h2>
+      <p><code>Dash.notify({ key, title, status, text, tone, onClick, ms, max })</code> is an alert in the corner that stays until it's closed (or for <code>ms</code>). A second notice with the same <code>key</code> replaces the first, so a repeating alert doesn't pile up; <code>Dash.notify.dismiss(key)</code> takes it away. <code>onClick</code> makes it a button. On a phone, the newest two show.</p>
+      <example>
+        <button type="button" class="btn" id="n-show">Alert</button>
+        <script>
+          document.getElementById('n-show').addEventListener('click', () => Dash.notify({
+            key: 'disk-web-2', title: 'web-2 is almost full', status: 'Disk', text: '470 of 500 GB used', tone: 'warn', onClick: () => Dash.toast('Open web-2'),
+          }));
+        </script>
+      </example>
+    </section>
+
+    <section id="live" data-terms=".live data-state Dash.live Dash.poll">
+      <h2>The live status</h2>
+      <p><code>.live</code> says whether the page's data is current: <code>data-state</code> is <code>on</code>, <code>stale</code>, <code>off</code> or <code>connecting</code> (its dot pulses). <code>Dash.live(el, state, text, title)</code> sets it, and <code>Dash.poll(fn, ms, { live })</code> keeps it right by itself: Live while answers come, stale when they stop, the error when one fails.</p>
+      <example>
+        <div class="row">
+          <span class="live" data-state="on"><span class="dot"></span><span>Live</span></span>
+          <span class="live" data-state="stale"><span class="dot"></span><span>Updated 4 min ago</span></span>
+          <span class="live" data-state="connecting"><span class="dot"></span><span>Connecting</span></span>
+          <span class="live" data-state="off"><span class="dot"></span><span>Can't reach the server</span></span>
+        </div>
+      </example>
+    </section>
+
+    <section id="flash" data-terms=".flash Dash.flash">
+      <h2>Flashing a change</h2>
+      <p><code>Dash.flash(el)</code> (or the <code>.flash</code> class) briefly highlights a value that just changed, so the eye finds it.</p>
+      <example>
+        <div class="row"><span class="stat px-4 py-2"><span class="label">Queue</span> <span class="value" id="queue">128</span></span><button type="button" class="btn sm" id="bump">New jobs</button></div>
+        <script>
+          let queued = 128;
+          document.getElementById('bump').addEventListener('click', () => { queued += 7; const v = document.getElementById('queue'); v.textContent = queued; Dash.flash(v); });
+        </script>
+      </example>
+    </section>
+
+    <section id="ips" data-terms=".ip .shown Dash.maskIps Dash.hideIps">
+      <h2>Hidden addresses</h2>
+      <p><code>Dash.maskIps(text)</code> escapes the text and blurs each IPv4 address in it, so they stay out of screen shares; a click or Enter on one shows every copy of that address on the page (<code>.ip.shown</code>). <code>Dash.hideIps(text)</code> writes <code>(IP hidden)</code> instead, for tooltips.</p>
+      <example>
+        <p id="log-line"></p>
+        <script>
+          Dash.render('log-line', Dash.maskIps('Blocked 203.0.113.10 after 12 tries; 198.51.100.7 is allowed.'));
+        </script>
+      </example>
+    </section>
+
+    <section id="login" data-terms=".login-page .login .lead .note">
+      <h2>The sign-in page</h2>
+      <p>Put <code>.login-page</code> on the <code>body</code> and a <code>form.login</code> in it: a title, a <code>.lead</code> line, the fields, a <code>btn primary block</code> and a <code>.note</code> under it. <code>Dash.config.loginUrl</code> sends any request that comes back 401 there.</p>
+      <example frame title="A sign-in page">
+        <form class="login">
+          <h1>Fleet</h1>
+          <p class="lead">Sign in to see the servers.</p>
+          <div class="field"><label for="pw">Password</label><input class="input" type="password" id="pw" autocomplete="current-password" required></div>
+          <button type="submit" class="btn primary block">Sign in</button>
+          <p class="note">You stay signed in on this browser until you sign out.</p>
+        </form>
+        <script>document.body.classList.add('login-page');</script>
+      </example>
+    </section>

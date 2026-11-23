@@ -1,0 +1,104 @@
+    <section id="topbar" data-terms=".topbar .brand .mark .brand-name .sub .top-right .top-link .topstat .v .side-toggle .static-md">
+      <h2>The top bar</h2>
+      <p><code>.topbar</code> stays at the top while the page scrolls. It holds a <code>.brand</code> (a <code>.mark</code> and the name in an <code>h1</code> or <code>.brand-name</code>), an optional <code>.sub</code> line, and <code>.top-right</code>, which pushes what's in it to the right. It wraps onto more lines on a phone, and scrolls away there instead of staying.</p>
+      <example>
+        <header class="topbar">
+          <div class="brand"><span class="mark">F</span><h1>Fleet</h1></div>
+          <span class="sub">eu-west · 24 servers</span>
+          <div class="top-right">
+            <span class="topstat warn"><b>CPU</b><span class="meter"><i style="width:72%"></i></span><span class="v">72%</span></span>
+            <a class="top-link" href="#topbar">Settings</a>
+            <span class="live" data-state="on"><span class="dot"></span><span>Live</span></span>
+          </div>
+        </header>
+      </example>
+      <ul>
+        <li><code>.topstat</code> is a reading: a name in <code>b</code>, an optional <code>.meter</code>, and the value in <code>.v</code>. A tone on the <code>.topstat</code> colours the meter and the value.</li>
+        <li><code>.top-link</code> is a quiet link or button. <code>.side-toggle</code> is the square button that folds the sidebar (give it <code>data-toggle-side</code>).</li>
+        <li><code>.topbar.static-md</code> lets the bar scroll away from 900 px down too, for a page whose sidebar stacks above the content there.</li>
+      </ul>
+    </section>
+
+    <section id="page" data-terms=".page .wide .narrow .page-head .page-title .page-note .section .section-head .section-title .kicker .footer --page-max">
+      <h2>The page</h2>
+      <p><code>.page</code> holds the content, centred, up to <code>--page-max</code> wide (1320 px; <code>.page.wide</code> 1480, <code>.page.narrow</code> 1000). A <code>.page-head</code> with a <code>.page-title</code> and a <code>.page-note</code> opens it; each <code>.section</code> has a <code>.section-title</code>, or a <code>.section-head</code> when something sits beside the title. <code>.kicker</code> is a small bold muted label, and <code>.footer</code> small print at the end.</p>
+      <example>
+        <div class="page-head"><h2 class="page-title">Billing</h2><p class="page-note">The current month, updated hourly.</p></div>
+        <section class="section">
+          <div class="section-head"><h3 class="section-title">Invoices</h3><span class="sub">3 open</span><button type="button" class="btn sm push">Export</button></div>
+          <p class="muted">The section's content.</p>
+        </section>
+        <p class="kicker">Last run</p>
+        <footer class="footer"><p>Prices exclude tax.</p></footer>
+      </example>
+    </section>
+
+    <section id="sidebar" data-terms=".shell .sidebar .content .side-head .nav-item .nav-icon .nav-main .nav-name .nav-sub .nav-meta .attn .collapsed data-toggle-side --side-w dash:side">
+      <h2>A sidebar</h2>
+      <p><code>.shell</code> puts a <code>.sidebar</code> beside the <code>.content</code>. The sidebar holds <code>.side-head</code> labels and <code>.nav-item</code> links or buttons. An item has an optional <code>.nav-icon</code>, a <code>.nav-main</code> with a <code>.nav-name</code> and a <code>.nav-sub</code>, and a <code>.nav-meta</code> on the right. <code>aria-current="page"</code> marks where the reader is; <code>.attn</code> with a tone tints one that needs a look.</p>
+      <example title="A sidebar (shown here at its own height)">
+        <div class="shell">
+          <nav class="sidebar h-auto static" aria-label="Places">
+            <div class="side-head">Servers <span class="count-badge">3</span></div>
+            <a class="nav-item" href="#sidebar" aria-current="page"><span class="nav-main"><span class="nav-name">Overview</span></span></a>
+            <a class="nav-item" href="#sidebar"><span class="nav-main"><span class="nav-name">web-1</span><span class="nav-sub">Frankfurt</span></span><span class="nav-meta"><span>42%</span></span></a>
+            <a class="nav-item attn warn" href="#sidebar"><span class="nav-main"><span class="nav-name">web-2</span><span class="nav-sub">Busy for 12 min</span></span><span class="nav-meta"><span class="tone warn">91%</span></span></a>
+          </nav>
+          <main class="content"><p class="muted">The page's content.</p></main>
+        </div>
+      </example>
+      <p>A button with <code>data-toggle-side</code> folds the sidebar to a 64 px rail of icons (<code>.shell.collapsed</code>) and back; the choice is remembered (<code>Dash.config.sideKey</code>), and <code>document</code> gets a <code>dash:side</code> event with <code>e.detail.collapsed</code>. <code>--side-w</code> sets the sidebar's width.</p>
+    </section>
+
+    <section id="drawer" data-terms=".offcanvas .side-open Dash.side Dash.side.open Dash.side.close">
+      <h2>The sidebar as a drawer</h2>
+      <p>Add <code>.offcanvas</code> to the shell and, from 900 px down, the sidebar becomes a drawer over the page. The same <code>data-toggle-side</code> button opens it there (and still folds the rail on a wider screen). While it's open, the rest of the page is inert; Escape, a click outside it or a link inside closes it, and the focus goes back to the button. These docs use it: make the window narrow and press ≡.</p>
+      <example frame title="A page with a drawer">
+        <header class="topbar">
+          <button type="button" class="side-toggle" data-toggle-side aria-label="Pages">≡</button>
+          <div class="brand"><span class="mark">F</span><h1>Fleet</h1></div>
+        </header>
+        <div class="shell offcanvas">
+          <nav class="sidebar" aria-label="Pages">
+            <a class="nav-item" href="#" aria-current="page"><span class="nav-main"><span class="nav-name">Overview</span></span></a>
+            <a class="nav-item" href="#"><span class="nav-main"><span class="nav-name">Servers</span></span></a>
+            <a class="nav-item" href="#"><span class="nav-main"><span class="nav-name">Alerts</span></span></a>
+          </nav>
+          <main class="content"><p>Press ≡ to open the drawer; Escape or a click beside it closes it.</p></main>
+        </div>
+      </example>
+      <p><code>Dash.side.open()</code> and <code>Dash.side.close()</code> do it from code; <code>open</code> returns <code>false</code> on a wider screen, where there is no drawer.</p>
+    </section>
+
+    <section id="grids" data-terms=".grid .span-2 --cols .cards --card-min .vstack .row .toolbar .push .grow">
+      <h2>Grids, stacks and rows</h2>
+      <ul>
+        <li><code>.grid</code>: equal columns, two unless <code>--cols</code> says more, one from 900 px down. <code>.span-2</code> spans two.</li>
+        <li><code>.cards</code>: as many cards across as fit, each at least <code>--card-min</code> (300 px) wide.</li>
+        <li><code>.vstack</code>: a column with a 14 px gap. <code>.row</code>: a line that wraps, with gaps. <code>.toolbar</code>: a row for a search box and filters above a table.</li>
+        <li><code>.push</code> pushes itself, and what follows, to the right of a row; <code>.grow</code> takes the room that's left.</li>
+      </ul>
+      <example>
+        <div class="grid" style="--cols: 3">
+          <div class="panel">One</div><div class="panel">Two</div><div class="panel">Three</div>
+          <div class="panel span-2">Two columns wide</div><div class="panel">Four</div>
+        </div>
+        <div class="row mt-4"><span class="tag plain">a</span><span class="tag plain">row</span><span class="grow muted">grows</span><button type="button" class="btn sm">At the end</button></div>
+      </example>
+      <p>For anything else, the <a href="utilities-layout.html">layout utilities</a> give flex and grid with widths: <code>grid grid-cols-1 md:grid-cols-3 gap-4</code>.</p>
+    </section>
+
+    <section id="phone" data-terms=".bottom-nav .fab .extended .hide-sm .show-sm">
+      <h2>On a phone</h2>
+      <p><code>.bottom-nav</code> is a row of links along the bottom of a phone (640 px down; hidden wider). Each is an <code>a</code> with an <code>svg</code> and a word, and <code>aria-current="page"</code> on the one you're on. It has to be a direct child of <code>&lt;body&gt;</code>: the page then gets room under it. <code>.fab</code> is a round floating button for the page's main action (<code>btn primary fab</code>; <code>.fab.extended</code> has a label). It sits above the bottom navigation.</p>
+      <example frame title="A bottom navigation and a floating button">
+        <main class="page"><h2 class="page-title">Inbox</h2><p class="muted">Open this on a phone: the links sit along the bottom, the button above them.</p></main>
+        <button type="button" class="btn primary fab" aria-label="New message"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+        <nav class="bottom-nav" aria-label="Main">
+          <a href="#" aria-current="page"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M3 6h14v9H3zM3 6l7 5 7-5" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>Inbox</a>
+          <a href="#"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="10" r="6.5" stroke="currentColor" stroke-width="1.6"/><path d="M10 6.5V10l2.5 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>Later</a>
+          <a href="#"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="7" r="3" stroke="currentColor" stroke-width="1.6"/><path d="M4 17c.8-3 3.2-4.5 6-4.5s5.2 1.5 6 4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>Me</a>
+        </nav>
+      </example>
+      <p><code>.hide-sm</code> hides something on a phone, <code>.show-sm</code> shows it only there.</p>
+    </section>

@@ -6,7 +6,7 @@
 //
 // It serves this folder itself on 127.0.0.1 (a free port), so nothing else needs to run.
 import { createServer } from 'node:http';
-import { readFile, mkdir } from 'node:fs/promises';
+import { readFile, mkdir, readdir } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -32,7 +32,8 @@ const server = createServer(async (req, res) => {
 await new Promise((ok) => server.listen(0, '127.0.0.1', ok));
 const base = `http://127.0.0.1:${server.address().port}/`;
 
-const PAGES = ['index.html', 'examples/overview.html', 'examples/portfolio.html', 'examples/fleet.html', 'examples/login.html', 'examples/starter.html', 'examples/utilities.html'];
+const PAGES = ['index.html', 'examples/overview.html', 'examples/portfolio.html', 'examples/fleet.html', 'examples/login.html', 'examples/starter.html', 'examples/utilities.html',
+  ...(await readdir(join(root, 'docs'))).filter((f) => f.endsWith('.html')).sort().map((f) => 'docs/' + f)];
 const WIDTHS = [390, 700, 860, 1440];
 const shots = process.env.SHOTS === '1';
 if (shots) await mkdir(join(root, 'screens'), { recursive: true });

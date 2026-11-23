@@ -1,0 +1,163 @@
+    <section id="inputs" data-terms=".input .mono .sm .lg textarea .autosize --max-h">
+      <h2>Inputs</h2>
+      <p><code>.input</code> styles a text box, a <code>select</code> and a <code>textarea</code> alike. <code>.input.mono</code> is for addresses and ids; <code>.input.sm</code> and <code>.input.lg</code> change its size. <code>textarea.input.autosize</code> grows as it's typed into, up to <code>--max-h</code> (320 px), where the browser supports <code>field-sizing</code> (elsewhere it keeps its size).</p>
+      <example>
+        <div class="vstack" style="max-width: 420px">
+          <input class="input" aria-label="Name" placeholder="Name">
+          <input class="input mono" aria-label="Account" value="acct_7f2k9m">
+          <div class="row"><input class="input sm" aria-label="Small" placeholder="Small"><input class="input lg" aria-label="Large" placeholder="Large"></div>
+          <textarea class="input autosize" aria-label="Notes" placeholder="Notes: this box grows as you type"></textarea>
+        </div>
+      </example>
+    </section>
+
+    <section id="fields" data-terms=".field .field-label .hint .err .invalid">
+      <h2>Fields</h2>
+      <p><code>.field</code> stacks a <code>label</code>, the input, then a <code>.hint</code> or an <code>.err</code>. <code>.field.invalid</code> turns it red; set <code>aria-invalid="true"</code> on the input as well, and point <code>aria-describedby</code> at the message. <code>.field-label</code> is the same label for a group that isn't one input (a row of choices).</p>
+      <example>
+        <div style="max-width: 420px">
+          <div class="field"><label for="f-name">Name</label><input class="input" id="f-name" value="Treasury" aria-describedby="f-name-hint"><div class="hint" id="f-name-hint">Shown in the table.</div></div>
+          <div class="field invalid"><label for="f-acct">Account ID</label><input class="input mono" id="f-acct" value="acct_bad" aria-invalid="true" aria-describedby="f-acct-err"><div class="err" id="f-acct-err">That isn't a valid account ID.</div></div>
+        </div>
+      </example>
+    </section>
+
+    <section id="search" data-terms=".search .count --count-w Dash.search">
+      <h2>Search boxes</h2>
+      <p><code>.search</code> wraps an input with an icon and an optional <code>.count</code>. <code>Dash.search(input, { onChange, debounce, key, store })</code> calls <code>onChange(query)</code> once typing pauses; Escape clears it, <code>/</code> jumps to it, and <code>.count(shown, total)</code> fills the count. With <code>store</code> the last query comes back on the next visit.</p>
+      <example>
+        <label class="search" style="max-width: 360px"><span class="sr-only">Search servers</span>
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.6"/><path d="m11 11 3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          <input class="input" type="search" id="server-search" placeholder="Search servers"><span class="count"></span>
+        </label>
+        <ul class="mt-2" id="server-list"></ul>
+        <script>
+          const servers = ['web-1 Frankfurt', 'web-2 Frankfurt', 'db-1 Dublin', 'queue-1 Dublin', 'web-3 Virginia'];
+          const box = Dash.search('server-search', {
+            onChange: (q) => {
+              const shown = servers.filter((s) => Dash.match({ s }, q));
+              Dash.render('server-list', shown.map((s) => `<li>${Dash.esc(s)}</li>`).join(''));
+              box.count(shown.length, servers.length);
+            },
+          });
+          box.count(servers.length, servers.length);
+          Dash.render('server-list', servers.map((s) => `<li>${Dash.esc(s)}</li>`).join(''));
+        </script>
+      </example>
+    </section>
+
+    <section id="select" data-terms=".select">
+      <h2>Selects</h2>
+      <p>Wrap a <code>&lt;select class="input"&gt;</code> in <code>.select</code> to give it the kit's arrow in place of the browser's. Inside a <code>.field</code> it is full width.</p>
+      <example>
+        <div class="field" style="max-width: 320px"><label for="f-region">Region</label><span class="select"><select class="input" id="f-region"><option>eu-west (Frankfurt)</option><option>eu-north (Stockholm)</option><option>us-east (Virginia)</option></select></span></div>
+      </example>
+    </section>
+
+    <section id="input-group" data-terms=".input-group .affix">
+      <h2>Input groups</h2>
+      <p><code>.input-group</code> joins an input to text and buttons around it: <code>.affix</code> for a unit or a prefix, <code>.btn</code> for an action, and a <code>.select</code> too.</p>
+      <example>
+        <div class="vstack" style="max-width: 420px">
+          <div class="input-group"><span class="affix">$</span><input class="input" aria-label="Monthly limit" value="250" inputmode="decimal"><span class="affix">USD</span><button type="button" class="btn">Set</button></div>
+          <div class="input-group"><span class="select"><select class="input" aria-label="Protocol"><option>https://</option><option>http://</option></select></span><input class="input" aria-label="Address" placeholder="status.example.com"></div>
+        </div>
+      </example>
+    </section>
+
+    <section id="checks" data-terms=".checkline .checks .across checkbox radio fieldset">
+      <h2>Checkboxes and radios</h2>
+      <p><code>.checkline</code> is a checkbox or radio with its label. <code>.checks</code> stacks a few, and <code>.checks.across</code> puts them on one line. Give the group a name: <code>role="group"</code> (or <code>radiogroup</code>) and an <code>aria-label</code>, or a <code>fieldset</code> with a <code>legend</code>.</p>
+      <example>
+        <p class="field-label" id="notify-label">Tell me about</p>
+        <div class="checks" role="group" aria-labelledby="notify-label">
+          <label class="checkline"><input type="checkbox" checked> Outages</label>
+          <label class="checkline"><input type="checkbox" checked> Deploys</label>
+          <label class="checkline"><input type="checkbox"> Weekly summary</label>
+        </div>
+        <div class="checks across" role="radiogroup" aria-label="Billing">
+          <label class="checkline"><input type="radio" name="bill" checked> Monthly</label>
+          <label class="checkline"><input type="radio" name="bill"> Yearly</label>
+        </div>
+      </example>
+    </section>
+
+    <section id="choices" data-terms=".choices .choice .choice-body --choice-min">
+      <h2>Choices as cards</h2>
+      <p><code>.choices</code> makes radios (or checkboxes) into cards: each a <code>label.choice</code> holding the input, then a <code>.choice-body</code> with a <code>b</code> and a <code>.hint</code>. The checked one is outlined in its tone (blue by default). <code>--choice-min</code> (200 px) is how narrow a card gets before they stack.</p>
+      <example>
+        <p class="field-label" id="plan-label">Plan</p>
+        <div class="choices" role="radiogroup" aria-labelledby="plan-label">
+          <label class="choice"><input type="radio" name="plan" checked><span class="choice-body"><b>Team</b><span class="hint">Up to 20 people, shared dashboards</span></span></label>
+          <label class="choice"><input type="radio" name="plan"><span class="choice-body"><b>Business</b><span class="hint">Single sign-on and an audit log</span></span></label>
+          <label class="choice"><input type="radio" name="plan" disabled><span class="choice-body"><b>Enterprise</b><span class="hint">Ask us</span></span></label>
+        </div>
+      </example>
+    </section>
+
+    <section id="switch" data-terms=".switch .track">
+      <h2>Switches</h2>
+      <p><code>.switch</code> is a checkbox drawn as a switch, for a setting that applies at once: <code>&lt;label class="switch"&gt;&lt;input type="checkbox"&gt;&lt;span class="track"&gt;&lt;/span&gt; Label&lt;/label&gt;</code>. A tone colours it on.</p>
+      <example>
+        <div class="row">
+          <label class="switch"><input type="checkbox" checked><span class="track"></span>Count in the total</label>
+          <label class="switch blue"><input type="checkbox"><span class="track"></span>Alerts</label>
+          <label class="switch"><input type="checkbox" disabled><span class="track"></span>Locked</label>
+        </div>
+      </example>
+    </section>
+
+    <section id="slider" data-terms=".slider Dash.slider output data-unit">
+      <h2>Sliders</h2>
+      <p><code>Dash.slider({ label, name, min, max, step, value, unit, tone, disabled })</code> writes a range input with its value beside it, and dash.js keeps the value current as it moves. By hand: <code>&lt;label class="slider"&gt;&lt;span&gt;Volume&lt;/span&gt;&lt;input type="range" data-unit="%"&gt;&lt;output&gt;50%&lt;/output&gt;&lt;/label&gt;</code>. Inside a <code>.field</code> its name reads as the field's label.</p>
+      <example>
+        <div style="max-width: 420px">
+          <div class="field" id="alert-at"></div>
+          <div id="volume"></div>
+        </div>
+        <script>
+          Dash.render('alert-at', Dash.slider({ label: 'Alert at', name: 'alert', min: 50, max: 100, value: 85, unit: '%' }));
+          Dash.render('volume', Dash.slider({ label: 'Retries', name: 'retries', min: 0, max: 10, value: 3, tone: 'teal' }));
+        </script>
+      </example>
+    </section>
+
+    <section id="dropzone" data-terms=".dropzone .files .over input-file accept">
+      <h2>Dropping files</h2>
+      <p><code>.dropzone</code> is a <code>&lt;label&gt;</code> around an <code>input type="file"</code>, so a click chooses files, and files dropped on it go into the input (only the kinds its <code>accept</code> allows), with <code>input</code> and <code>change</code> events as if they had been chosen. The chosen names show in its <code>.files</code>; <code>.over</code> marks it while files are dragged over.</p>
+      <example>
+        <label class="dropzone"><input type="file" multiple accept=".csv,text/csv"><b>Drop a CSV here</b><span>or <u>choose files</u></span><span class="files"></span></label>
+      </example>
+    </section>
+
+    <section id="combobox" data-terms="Dash.combobox .combo-list .combo-option .combo-sub .combo-empty combobox autocomplete">
+      <h2>Suggestions</h2>
+      <p><code>Dash.combobox(input, { options, onPick })</code> gives a text box a list of suggestions that narrows as the reader types. Arrow keys move through it, Enter or a click picks, Escape closes the list (only the list, inside a dialog too), and the box keeps the focus throughout. The typed words are bold in each suggestion.</p>
+      <ul>
+        <li><code>options</code>: strings, or <code>{ value, label, sub }</code> (<code>sub</code> is a second, quieter part), or a function <code>(query) =&gt; list</code> or a promise of one, for a server search. Answers that arrive after the reader typed on are dropped. <code>debounce</code> (150 ms) is how long typing has to pause first.</li>
+        <li><code>strict: true</code>: on leaving, text that is no suggestion is put back to the last pick (or emptied).</li>
+        <li><code>max</code> (50) suggestions, <code>minChars</code> before any show, <code>empty</code> for the line when none match.</li>
+        <li>It returns <code>{ value, set(value), close(), destroy() }</code>. It's an ARIA combobox: the box has <code>role="combobox"</code>, the list <code>listbox</code>, the active suggestion <code>aria-activedescendant</code>.</li>
+      </ul>
+      <example>
+        <div class="field" style="max-width: 320px"><label for="city">City</label><input class="input" id="city" placeholder="Start typing: ber, bu, am…"></div>
+        <script>
+          Dash.combobox('city', {
+            options: ['Amsterdam', { label: 'Berlin', sub: 'Germany', value: 'ber' }, 'Bern', 'Brussels', 'Budapest', 'Copenhagen', 'Dublin', 'Lisbon'],
+            onPick: (city) => Dash.toast(`Picked ${city.label}`),
+          });
+        </script>
+      </example>
+    </section>
+
+    <section id="datepicker" data-terms="Dash.datepicker .date-field .date-btn .calendar .cal-head .cal-title .cal-grid date">
+      <h2>Dates</h2>
+      <p><code>Dash.datepicker(input, { min, max, onPick, firstDay })</code> puts a calendar button in a date box. Dates are <code>YYYY-MM-DD</code>, what <code>&lt;input type="date"&gt;</code> sends. The calendar opens on the box's date (or today): arrows move a day or a week, Home and End go to the week's ends, PageUp and PageDown a month (with Shift, a year), Enter picks and Escape closes. Days before <code>min</code> or after <code>max</code> can't be picked. Typing works too: a short date like <code>2026-3-7</code> is written out, and one that doesn't exist is marked <code>aria-invalid</code>. Weeks start on Monday; <code>firstDay: 0</code> starts them on Sunday. Month and day names are in the reader's language.</p>
+      <example>
+        <div class="field" style="max-width: 240px"><label for="due">Due</label><input class="input" id="due" value="2026-12-04"></div>
+        <script>
+          Dash.datepicker('due', { min: '2026-11-01', max: '2027-03-31', onPick: (day) => Dash.toast(`Due ${day}`) });
+        </script>
+      </example>
+      <p>It returns <code>{ value, set(day), open(), close(), destroy() }</code>; <code>value</code> is the box's date if it's a real one in range, or null.</p>
+    </section>

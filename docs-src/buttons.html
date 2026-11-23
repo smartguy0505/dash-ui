@@ -1,0 +1,104 @@
+    <section id="buttons" data-terms=".btn .primary .ghost .danger .sm .round .block">
+      <h2>Buttons</h2>
+      <p><code>.btn</code> is a plain button. <code>.primary</code> is the page's main action (in the text colour; with a tone, in that colour: <code>btn primary blue</code>), <code>.ghost</code> has no border, <code>.danger</code> is for something that can't be undone. <code>.sm</code> is smaller, <code>.round</code> fully rounded, <code>.block</code> full width.</p>
+      <example>
+        <div class="row">
+          <button type="button" class="btn">Refresh</button>
+          <button type="button" class="btn primary">Add server</button>
+          <button type="button" class="btn primary blue">Save</button>
+          <button type="button" class="btn ghost">Cancel</button>
+          <button type="button" class="btn danger">Delete</button>
+          <button type="button" class="btn" disabled>Disabled</button>
+          <button type="button" class="btn sm">Small</button>
+          <button type="button" class="btn round">Round</button>
+        </div>
+        <button type="button" class="btn primary block mt-3">Continue</button>
+      </example>
+      <p>A link can look like a button too: <code>&lt;a class="btn" href="…"&gt;</code>.</p>
+    </section>
+
+    <section id="busy" data-terms=".busy .spin aria-busy Dash.busy .spinner">
+      <h2>Busy buttons and spinners</h2>
+      <p><code>Dash.busy(button, work)</code> disables the button and puts a spinner before its label until <code>work</code> (a function or a promise) is done, and returns its result. It sets <code>aria-busy="true"</code>, which is what draws the spinner. <code>.btn.busy</code> spins the button's own icon instead (an <code>svg</code>, or one with <code>.spin</code>). <code>.spinner</code> is a loading ring on its own; <code>.spinner.lg</code> is bigger, and a tone colours it.</p>
+      <example>
+        <div class="row">
+          <button type="button" class="btn primary" id="save-btn">Save</button>
+          <button type="button" class="btn busy"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M14 8a6 6 0 1 1-1.8-4.3M14 2v4h-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>Syncing</button>
+          <span class="spinner" role="status" aria-label="Loading"></span>
+          <span class="spinner lg blue" role="status" aria-label="Loading"></span>
+        </div>
+        <script>
+          document.getElementById('save-btn').addEventListener('click', (e) =>
+            Dash.busy(e.currentTarget, () => new Promise((done) => setTimeout(done, 1500))).then(() => Dash.toast('Saved', { tone: 'ok' })));
+        </script>
+      </example>
+    </section>
+
+    <section id="icon-buttons" data-terms=".icon-btn aria-expanded">
+      <h2>Icon buttons</h2>
+      <p><code>.icon-btn</code> is a 28 px square button for an icon. Give it an <code>aria-label</code> (or a <code>title</code>) to say what it does. With <code>aria-expanded</code> its chevron turns; <code>.danger</code> turns it red on hover.</p>
+      <example>
+        <div class="row">
+          <button type="button" class="icon-btn" aria-label="Copy" data-copy="203.0.113.10"><svg width="14" height="14" viewBox="0 0 15 15" fill="none" aria-hidden="true"><rect x="5" y="5" width="8" height="8" rx="1.6" stroke="currentColor" stroke-width="1.4"/><path d="M10 3.5V3a1.5 1.5 0 0 0-1.5-1.5h-5A1.5 1.5 0 0 0 2 3v5.5A1.5 1.5 0 0 0 3.5 10H4" stroke="currentColor" stroke-width="1.4"/></svg></button>
+          <button type="button" class="icon-btn danger" aria-label="Remove"><svg width="14" height="14" viewBox="0 0 15 15" fill="none" aria-hidden="true"><path d="M3 4h9M6 4V2.5h3V4M4.2 4l.6 8.5h5.4l.6-8.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          <button type="button" class="icon-btn" aria-expanded="false" aria-label="Details" id="expander"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M4 2.5 7.5 6 4 9.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        </div>
+        <script>
+          document.getElementById('expander').addEventListener('click', (e) => e.currentTarget.setAttribute('aria-expanded', String(e.currentTarget.getAttribute('aria-expanded') !== 'true')));
+        </script>
+      </example>
+    </section>
+
+    <section id="links" data-terms=".link .quiet">
+      <h2>Buttons that look like links</h2>
+      <p><code>.link</code> is a button styled as a link, for an action inside text ("Show all"); <code>.link.quiet</code> is muted until hovered.</p>
+      <example>
+        <p>12 more servers. <button type="button" class="link">Show all</button> · <button type="button" class="link quiet">Sign out</button></p>
+      </example>
+    </section>
+
+    <section id="segmented" data-terms=".seg .solid Dash.seg data-value">
+      <h2>Segmented controls</h2>
+      <p><code>.seg</code> is a row of buttons where one is chosen. <code>Dash.seg(el, { value, store, onChange })</code> runs it: buttons with <code>data-value</code>, <code>aria-pressed</code> on the chosen one, the choice remembered under <code>store</code>. It returns <code>{ value, set(v) }</code>. A <code>span</code> in a button holds a count. Links with <code>aria-current="page"</code> make it a row of views instead. <code>.seg.lg</code> is for views in a top bar, <code>.seg.solid</code> a bordered look.</p>
+      <example>
+        <div class="vstack">
+          <div class="seg" id="range"><button type="button" data-value="24">24 h</button><button type="button" data-value="72">3 d</button><button type="button" data-value="168">7 d</button></div>
+          <div class="seg solid" id="kind"><button type="button" data-value="">All</button><button type="button" data-value="open">Open <span>41</span></button><button type="button" data-value="done">Done <span>7</span></button></div>
+          <div class="seg lg"><a href="#segmented" aria-current="page">Overview</a><a href="#segmented">Traffic</a><a href="#segmented">Billing</a></div>
+        </div>
+        <script>
+          const range = Dash.seg('range', { value: '24', onChange: (v) => Dash.toast(`The last ${v} hours`) });
+          Dash.seg('kind', { value: '' });
+        </script>
+      </example>
+    </section>
+
+    <section id="menus" data-terms=".menu .menu-list .menu-label .end details.menu">
+      <h2>Menus without code</h2>
+      <p>A <code>&lt;details class="menu"&gt;</code> with a <code>summary</code> (styled as a button) and a <code>.menu-list</code> of buttons and links is a menu with no script of your own. It closes on a click outside, on Escape and once an item is chosen. The list takes <code>&lt;hr&gt;</code> lines and <code>.menu-label</code> headings, and a tone on an item colours it. <code>.menu.end</code> opens to the left. Inside a table that scrolls sideways the list would be cut off: use <a href="overlays.html#menus"><code>Dash.menu</code></a> there, which floats above everything.</p>
+      <example>
+        <details class="menu">
+          <summary class="btn">Actions</summary>
+          <div class="menu-list">
+            <span class="menu-label">Server</span>
+            <button type="button">Restart</button>
+            <button type="button">Rename</button>
+            <hr>
+            <button type="button" class="bad">Delete</button>
+          </div>
+        </details>
+      </example>
+    </section>
+
+    <section id="copy" data-terms="data-copy data-quiet .copied Dash.copyButton Dash.copy">
+      <h2>Copy buttons</h2>
+      <p>Any button with <code>data-copy="text"</code> copies the text when pressed, shows "Copied" in a toast (not with <code>data-quiet</code>) and says so on itself for a moment (<code>.copied</code>). <code>Dash.copyButton(text, label)</code> writes one; <code>Dash.copy(text)</code> copies from code and returns true or false (it works on plain-HTTP pages too).</p>
+      <example>
+        <div class="row" id="copy-box">
+          <button type="button" class="btn sm" data-copy="203.0.113.10">Copy address</button>
+        </div>
+        <script>
+          document.getElementById('copy-box').insertAdjacentHTML('beforeend', Dash.copyButton('acct_7f2k9m', 'Copy account'));
+        </script>
+      </example>
+    </section>

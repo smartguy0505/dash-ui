@@ -1,0 +1,124 @@
+    <section id="questions" data-terms="Dash.confirm Dash.ask Dash.alert Dash.dialog .dialog-input">
+      <h2>Asking a question</h2>
+      <p>Three helpers cover most questions, each a promise of the answer. <code>Dash.confirm(text, { title, ok, cancel, tone, anchor })</code> is yes or no (Cancel has the focus; <code>tone: 'bad'</code> makes the button red; <code>anchor</code> asks in a popup beside that button instead). <code>Dash.ask(title, { value, placeholder, type, required })</code> asks for one line of text, or null. <code>Dash.alert(text, { title, ok, tone })</code> is a message with one button.</p>
+      <example>
+        <div class="row">
+          <button type="button" class="btn danger" id="q-delete">Delete web-9</button>
+          <button type="button" class="btn" id="q-rename">Rename</button>
+          <button type="button" class="btn" id="q-beside">Ask beside the button</button>
+        </div>
+        <script>
+          document.getElementById('q-delete').addEventListener('click', async () => {
+            if (await Dash.confirm('web-9 and its history will be deleted.', { title: 'Delete web-9?', ok: 'Delete', tone: 'bad' })) Dash.toast('Deleted', { tone: 'bad' });
+          });
+          document.getElementById('q-rename').addEventListener('click', async () => {
+            const name = await Dash.ask('Rename web-9', { value: 'web-9', required: true });
+            if (name) Dash.toast(`Renamed to ${name}`);
+          });
+          document.getElementById('q-beside').addEventListener('click', async (e) => {
+            if (await Dash.confirm('Restart now?', { anchor: e.currentTarget, ok: 'Restart' })) Dash.toast('Restarting');
+          });
+        </script>
+      </example>
+      <p><code>Dash.dialog({ title, text, body, actions, cancel, drawer, focus })</code> is a dialog made on the spot, for a small form: it resolves <code>{ value, fields }</code>, where <code>fields</code> are the named inputs in <code>body</code> and <code>value</code> is null when cancelled.</p>
+    </section>
+
+    <section id="modal" data-terms="Dash.modal .modal .modal-head .modal-title .modal-x .modal-text .modal-body .modal-foot .modal-error .modal-form data-size">
+      <h2>Modals</h2>
+      <p><code>Dash.modal(options)</code> is for more than a question: a form that saves, details that keep updating, a long list. It returns a handle you keep.</p>
+      <example>
+        <button type="button" class="btn primary" id="edit-server">Edit web-1</button>
+        <script>
+          document.getElementById('edit-server').addEventListener('click', async () => {
+            const m = Dash.modal({
+              title: 'Edit web-1', text: 'Changes apply at the next check.', size: 'md', cancel: 'Cancel',
+              body: '<div class="field"><label for="m-name">Name</label><input class="input" id="m-name" name="name" value="web-1" required></div>'
+                + '<div class="field"><label for="m-every">Check every</label><span class="select"><select class="input" id="m-every" name="every"><option>30 s</option><option selected>60 s</option><option>5 min</option></select></span></div>',
+              actions: [{ label: 'Save', value: 'save', primary: true }],
+              onAction: () => new Promise((done) => setTimeout(done, 800)), // the button is busy while this runs; throw to show an error, return false to stay open
+            });
+            const { value, fields } = await m.closed;
+            if (value === 'save') Dash.toast(`Saved ${fields.name}`, { tone: 'ok' });
+          });
+        </script>
+      </example>
+      <ul>
+        <li><code>title</code>, <code>text</code> (a line under it), <code>body</code> (HTML or an element), <code>cancel</code> (a ghost button's label), <code>actions</code>: <code>{ label, value, primary, tone }</code>.</li>
+        <li><code>size</code>: <code>sm</code> (400 px), <code>md</code> (560), <code>lg</code> (760), <code>xl</code> (1040) or <code>full</code>. <code>drawer: true</code> slides it in from the right, full height.</li>
+        <li><code>onAction(value, modal)</code> runs on a button; the button is busy until it's done. An error it throws shows in the foot (<code>.modal-error</code>) and keeps the modal open, and so does returning <code>false</code>.</li>
+        <li>Enter in a field presses the <code>primary</code> action, after the fields' own checks (<code>required</code>, <code>type="email"</code>). Your own buttons in the body need <code>type="button"</code>.</li>
+        <li><code>dismissable: false</code>: no ×, and Escape and clicks outside do nothing, for something that must finish.</li>
+        <li>The handle: <code>.el</code>, <code>.body</code> (the part that scrolls), <code>.fields()</code>, <code>.update({ title, text, body, actions })</code> (redrawn like <code>Dash.render</code>, so typing isn't lost), <code>.error(text)</code>, <code>.close(value)</code>, and <code>.closed</code>, a promise of <code>{ value, fields }</code> (<code>value</code> is null after ×, Cancel, Escape or a click outside).</li>
+      </ul>
+    </section>
+
+    <section id="dialogs" data-terms=".dialog .dialog-body .dialog-actions .drawer .drawer-body .drawer-head data-dismiss showModal">
+      <h2>Dialogs and drawers by hand</h2>
+      <p>A <code>&lt;dialog class="dialog"&gt;</code> is centred, with a <code>.dialog-body</code> and <code>.dialog-actions</code>; a <code>&lt;dialog class="drawer"&gt;</code> slides in from the right, with a <code>.drawer-head</code> and a <code>.drawer-body</code>. Open either with <code>el.showModal()</code>. Anything with <code>data-dismiss</code> inside closes it, and so do Escape and a click on the backdrop.</p>
+      <example>
+        <button type="button" class="btn" id="open-drawer">Show details</button>
+        <dialog class="drawer" id="details" aria-labelledby="details-title">
+          <div class="drawer-head"><h2 id="details-title">web-1</h2><button type="button" class="icon-btn" data-dismiss aria-label="Close">×</button></div>
+          <div class="drawer-body"><dl class="kv"><dt>Region</dt><dd>eu-west</dd><dt>CPU</dt><dd>42%</dd></dl></div>
+        </dialog>
+        <script>
+          document.getElementById('open-drawer').addEventListener('click', () => document.getElementById('details').showModal());
+        </script>
+      </example>
+    </section>
+
+    <section id="popups" data-terms="Dash.popup .popup .popup-title .popup-text .popup-actions data-popup Dash.place">
+      <h2>Popups</h2>
+      <p><code>Dash.popup(anchor, content, { placement, align, width, cls, label, focus, onClose })</code> is a box beside an element (or at a point: a right-click). It floats above everything, a sideways-scrolling table or an open dialog included, flips when there's no room and stays inside the window. It closes on a click outside, on Escape (the focus goes back to its button) or with <code>.close()</code>, and follows its button when the page scrolls or a refresh redraws it. Called again for the same button it closes, like a toggle.</p>
+      <example>
+        <div class="row">
+          <button type="button" class="btn" id="when-checked">Last check</button>
+          <button type="button" class="btn" data-popup="help-text">What's this?</button>
+          <template id="help-text"><p class="popup-title">Error budget</p><p class="popup-text">How many failed requests the month can still take before the 99.9% goal is missed.</p></template>
+        </div>
+        <script>
+          document.getElementById('when-checked').addEventListener('click', (e) => {
+            const p = Dash.popup(e.currentTarget, '<p class="popup-title">web-1</p><p class="popup-text">Checked 2 min ago from Frankfurt.</p>'
+              + '<div class="popup-actions"><button type="button" class="btn sm" data-dismiss>Close</button><button type="button" class="btn sm primary" id="check-now">Check now</button></div>', { align: 'start' });
+            if (p) p.el.querySelector('#check-now').addEventListener('click', () => { p.close(); Dash.toast('Checking web-1'); });
+          });
+        </script>
+      </example>
+      <ul>
+        <li><code>content</code>: HTML, an element, or a function <code>(popup) =&gt; …</code>. <code>placement</code>: <code>bottom</code>, <code>top</code>, <code>right</code> or <code>left</code>; <code>align</code>: <code>start</code>, <code>center</code> or <code>end</code>. <code>focus: true</code> (or a selector) puts the focus inside.</li>
+        <li>Inside: <code>.popup-title</code>, <code>.popup-text</code> and <code>.popup-actions</code> give a small note or question its shape.</li>
+        <li>The handle: <code>.el</code>, <code>.close(value)</code>, <code>.update(content)</code>, <code>.place()</code> and <code>.closed</code>.</li>
+        <li>No code: <code>data-popup="id"</code> on a button opens the content of <code>&lt;template id="id"&gt;</code> (or of any element with that id).</li>
+        <li><code>Dash.place(rect, size, view, { placement, align, offset })</code> is the placing it uses, for a box of your own.</li>
+      </ul>
+    </section>
+
+    <section id="menus" data-terms="Dash.menu .menu-hint .menu-text .menu-tick contextmenu">
+      <h2>Menus</h2>
+      <p><code>Dash.menu(anchor, items, { placement, align, label })</code> is a menu beside a button, or at the pointer for a right-click, and resolves to the chosen value (or null). An item is a string or <code>{ label, value, hint, tone, disabled, checked, href }</code>; <code>'-'</code> is a line and <code>{ heading }</code> a small label. It moves with the arrow keys, Home, End and first letters; Enter picks, Tab and Escape leave.</p>
+      <example>
+        <div class="row">
+          <button type="button" class="btn" id="server-menu" aria-haspopup="menu">Actions ▾</button>
+          <div class="panel py-2 px-3" id="right-click">Right-click here</div>
+        </div>
+        <script>
+          const items = [
+            { heading: 'web-1' },
+            { label: 'Restart', value: 'restart', hint: 'R' },
+            { label: 'Rename', value: 'rename', hint: 'F2' },
+            { label: 'Show in charts', value: 'charts', checked: true },
+            '-',
+            { label: 'Delete', value: 'delete', tone: 'bad' },
+          ];
+          document.getElementById('server-menu').addEventListener('click', async (e) => {
+            const v = await Dash.menu(e.currentTarget, items);
+            if (v) Dash.toast(`Chose ${v}`);
+          });
+          document.getElementById('right-click').addEventListener('contextmenu', async (e) => {
+            e.preventDefault();
+            const v = await Dash.menu(e, items);
+            if (v) Dash.toast(`Chose ${v}`);
+          });
+        </script>
+      </example>
+    </section>

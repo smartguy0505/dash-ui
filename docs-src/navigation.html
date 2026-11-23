@@ -1,0 +1,83 @@
+    <section id="tabs" data-terms=".tabs data-tab Dash.tabs .count-badge">
+      <h2>Tabs</h2>
+      <p><code>.tabs</code> is a row of buttons with <code>data-value</code> over panels with a matching <code>data-tab</code>. <code>Dash.tabs(el, { value, store, hash, panels, onChange })</code> shows the chosen panel and hides the others; arrow keys move between tabs. <code>store</code> remembers the tab, <code>hash: 'view'</code> keeps it in the address (<code>#view=list</code>) so a link or a reload opens it, and <code>panels</code> says where the panels are when a page has two sets. It returns <code>{ value, set(v) }</code>. A <code>.count-badge</code> in a tab holds a count.</p>
+      <example>
+        <div class="tabs" id="server-tabs">
+          <button type="button" data-value="list">List</button>
+          <button type="button" data-value="alerts">Alerts <span class="count-badge">3</span></button>
+          <button type="button" data-value="settings">Settings</button>
+        </div>
+        <div id="server-panels">
+          <section data-tab="list"><p>24 servers in three regions.</p></section>
+          <section data-tab="alerts"><p>Three alerts: two disks over 90%, one certificate.</p></section>
+          <section data-tab="settings"><p>Check every 60 seconds.</p></section>
+        </div>
+        <script>
+          Dash.tabs('server-tabs', { value: 'list', panels: 'server-panels' });
+        </script>
+      </example>
+    </section>
+
+    <section id="crumbs" data-terms=".crumbs Dash.crumbs breadcrumbs">
+      <h2>Breadcrumbs</h2>
+      <p><code>Dash.crumbs(items, { label })</code> writes where the reader is: <code>{ label, href }</code> for each level, and plain text for the last, which is marked <code>aria-current="page"</code>. A link that would run script becomes <code>#</code>. It's a <code>nav</code> named "Breadcrumb" with an <code>ol</code>, so screen readers announce it as a trail.</p>
+      <example>
+        <div id="trail"></div>
+        <script>
+          Dash.render('trail', Dash.crumbs([{ label: 'Fleet', href: '#crumbs' }, { label: 'eu-west', href: '#crumbs' }, 'web-04']));
+        </script>
+      </example>
+    </section>
+
+    <section id="stepper" data-terms=".stepper .done .failed .vertical Dash.stepper steps">
+      <h2>Steps</h2>
+      <p><code>Dash.stepper(steps, current, { vertical, tone, label })</code> shows the steps of a task: those before <code>current</code> are done (a tick), the current one is marked <code>aria-current="step"</code>, and a step <code>{ failed: true }</code> is red, with a "!". Screen readers hear "done" and "failed" with the names. A step is text or <code>{ label, sub, failed }</code>; <code>current</code> past the last means all are done. On a phone only the current step's name shows, and the others are still read out. <code>vertical: true</code> stacks them, with the <code>sub</code> line under each name.</p>
+      <example>
+        <div class="vstack">
+          <div id="signup-steps"></div>
+          <div id="import-steps"></div>
+        </div>
+        <script>
+          Dash.render('signup-steps', Dash.stepper(['Account', 'Plan', 'Payment', 'Done'], 2));
+          Dash.render('import-steps', Dash.stepper([{ label: 'Upload', sub: '3 files, 12 MB' }, { label: 'Check', sub: 'Two rows had no date', failed: true }, { label: 'Import' }], 1, { vertical: true, tone: 'teal' }));
+        </script>
+      </example>
+    </section>
+
+    <section id="pager" data-terms=".pager .pager-info .pages .pg .gap data-page data-per-page Dash.pager Dash.paginate Dash.pageItems">
+      <h2>Pages of rows</h2>
+      <p><code>Dash.paginate(rows, page, perPage)</code> cuts one page out of the rows and says where it is (<code>{ rows, page, pages, total, from, to, perPage }</code>). <code>Dash.pager(that, { noun, sizes })</code> writes the bar under a table: "21–40 of 140 servers", a rows-per-page select (<code>data-per-page</code>) and page buttons (<code>data-page</code>). <code>Dash.pageItems(page, pages)</code> is the list of page numbers it shows, with gaps. <code>Dash.table</code> does all of this itself.</p>
+      <example>
+        <div class="panel flush">
+          <ul class="m-0 p-4" id="page-rows"></ul>
+          <div id="page-bar"></div>
+        </div>
+        <script>
+          const all = Array.from({ length: 140 }, (_, i) => `server ${i + 1}`);
+          let page = 1, perPage = 20;
+          const draw = () => {
+            const p = Dash.paginate(all, page, perPage);
+            Dash.render('page-rows', p.rows.slice(0, 3).map((r) => `<li>${Dash.esc(r)}</li>`).join('') + '<li class="faint">…</li>');
+            Dash.render('page-bar', Dash.pager(p, { noun: 'server' }));
+          };
+          Dash.on('page-bar', 'click', '[data-page]', (e, b) => { page = Number(b.dataset.page); draw(); });
+          Dash.on('page-bar', 'change', '[data-per-page]', (e, s) => { perPage = Number(s.value); page = 1; draw(); });
+          draw();
+        </script>
+      </example>
+    </section>
+
+    <section id="timeline" data-terms=".timeline .timeline-head .timeline-title .timeline-time .timeline-text Dash.timeline">
+      <h2>Timelines</h2>
+      <p><code>Dash.timeline(items, { empty })</code> lists events on a line, newest first as given, each with a dot in its tone: <code>{ title, time, text, tone }</code>. A <code>time</code> that <code>Dash.time</code> can read shows as "12 min ago" and keeps itself current; other text shows as it is.</p>
+      <example>
+        <div id="events"></div>
+        <script>
+          Dash.render('events', Dash.timeline([
+            { title: 'Deployed v2.4.1', time: Date.now() - 20 * 60e3, text: 'by Ada · 3 servers', tone: 'ok' },
+            { title: 'Error rate over 1%', time: Date.now() - 3 * 3600e3, text: 'Payments, eu-west, for 6 minutes', tone: 'bad' },
+            { title: 'Certificate renewed', time: 'Yesterday', tone: 'blue' },
+          ]));
+        </script>
+      </example>
+    </section>

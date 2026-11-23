@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en" data-kit="../">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Modals and popups · dash-ui</title>
+<meta name="description" content="Modals, dialogs, drawers, questions, popups and menus.">
+<link rel="stylesheet" href="../dash.css">
+<link rel="stylesheet" href="../dash-utils.css">
+<link rel="stylesheet" href="docs.css">
+<script src="../dash.js"></script>
+</head>
+<body>
+<!-- dash-ui 1.9.0 docs, written by tools/docs.mjs from docs-src/overlays.html: edit that, not this -->
+<header class="topbar">
+  <button type="button" class="icon-btn docs-menu" data-toggle-side aria-label="Pages"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3 5h12M3 9h12M3 13h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+  <a class="brand" href="./"><span class="mark">d</span><h1>dash-ui</h1></a><span class="tag plain docs-version">1.9.0</span>
+  <div class="top-right">
+    <label class="search docs-search"><span class="sr-only">Search the docs</span><svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.6"/><path d="m11 11 3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><input class="input" type="search" id="docs-search" placeholder="Search" aria-keyshortcuts="/"><kbd class="docs-key">/</kbd></label>
+    <div class="seg" role="group" aria-label="Theme"><button type="button" data-theme-set="system">Auto</button><button type="button" data-theme-set="light">Light</button><button type="button" data-theme-set="dark">Dark</button></div>
+  </div>
+</header>
+<div class="shell offcanvas">
+  <nav class="sidebar" aria-label="Pages"><div class="side-head">Start</div><a class="nav-item" href="./"><span class="nav-main"><span class="nav-name">Getting started</span></span></a><div class="side-head">Foundations</div><a class="nav-item" href="colours.html"><span class="nav-main"><span class="nav-name">Colours and themes</span></span></a><a class="nav-item" href="layout.html"><span class="nav-main"><span class="nav-name">Page layout</span></span></a><a class="nav-item" href="text.html"><span class="nav-main"><span class="nav-name">Text and labels</span></span></a><div class="side-head">Components</div><a class="nav-item" href="buttons.html"><span class="nav-main"><span class="nav-name">Buttons</span></span></a><a class="nav-item" href="forms.html"><span class="nav-main"><span class="nav-name">Forms</span></span></a><a class="nav-item" href="surfaces.html"><span class="nav-main"><span class="nav-name">Panels and cards</span></span></a><a class="nav-item" href="navigation.html"><span class="nav-main"><span class="nav-name">Navigation</span></span></a><a class="nav-item" href="tables.html"><span class="nav-main"><span class="nav-name">Tables</span></span></a><a class="nav-item" href="charts.html"><span class="nav-main"><span class="nav-name">Charts and progress</span></span></a><a class="nav-item" href="overlays.html" aria-current="page"><span class="nav-main"><span class="nav-name">Modals and popups</span></span></a><a class="nav-item" href="feedback.html"><span class="nav-main"><span class="nav-name">Feedback</span></span></a><div class="side-head">JavaScript</div><a class="nav-item" href="helpers.html"><span class="nav-main"><span class="nav-name">dash.js helpers</span></span></a><div class="side-head">Utilities</div><a class="nav-item" href="utilities.html"><span class="nav-main"><span class="nav-name">Utility classes</span></span></a><a class="nav-item" href="utilities-layout.html"><span class="nav-main"><span class="nav-name">Layout utilities</span></span></a><a class="nav-item" href="utilities-spacing.html"><span class="nav-main"><span class="nav-name">Spacing utilities</span></span></a><a class="nav-item" href="utilities-sizing.html"><span class="nav-main"><span class="nav-name">Sizing utilities</span></span></a><a class="nav-item" href="utilities-type.html"><span class="nav-main"><span class="nav-name">Type utilities</span></span></a><a class="nav-item" href="utilities-colour.html"><span class="nav-main"><span class="nav-name">Colour utilities</span></span></a><a class="nav-item" href="utilities-effects.html"><span class="nav-main"><span class="nav-name">Borders and effects</span></span></a></nav>
+  <main class="content docs" id="top">
+    <header class="docs-head"><p class="docs-group">Components</p><h1>Modals and popups</h1><p class="docs-blurb">Modals, dialogs, drawers, questions, popups and menus.</p><nav class="chips docs-toc" aria-label="On this page"><a class="chip" href="#questions">Asking a question</a><a class="chip" href="#modal">Modals</a><a class="chip" href="#dialogs">Dialogs and drawers by hand</a><a class="chip" href="#popups">Popups</a><a class="chip" href="#menus">Menus</a></nav></header>
+<section id="questions" data-terms="Dash.confirm Dash.ask Dash.alert Dash.dialog .dialog-input">
+      <h2>Asking a question</h2>
+      <p>Three helpers cover most questions, each a promise of the answer. <code>Dash.confirm(text, { title, ok, cancel, tone, anchor })</code> is yes or no (Cancel has the focus; <code>tone: 'bad'</code> makes the button red; <code>anchor</code> asks in a popup beside that button instead). <code>Dash.ask(title, { value, placeholder, type, required })</code> asks for one line of text, or null. <code>Dash.alert(text, { title, ok, tone })</code> is a message with one button.</p>
+      <figure class="example" id="ex-1"><div class="example-view">
+<div class="row">
+  <button type="button" class="btn danger" id="q-delete">Delete web-9</button>
+  <button type="button" class="btn" id="q-rename">Rename</button>
+  <button type="button" class="btn" id="q-beside">Ask beside the button</button>
+</div>
+<script>
+  document.getElementById('q-delete').addEventListener('click', async () => {
+    if (await Dash.confirm('web-9 and its history will be deleted.', { title: 'Delete web-9?', ok: 'Delete', tone: 'bad' })) Dash.toast('Deleted', { tone: 'bad' });
+  });
+  document.getElementById('q-rename').addEventListener('click', async () => {
+    const name = await Dash.ask('Rename web-9', { value: 'web-9', required: true });
+    if (name) Dash.toast(`Renamed to ${name}`);
+  });
+  document.getElementById('q-beside').addEventListener('click', async (e) => {
+    if (await Dash.confirm('Restart now?', { anchor: e.currentTarget, ok: 'Restart' })) Dash.toast('Restarting');
+  });
+</script>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;div class=&quot;row&quot;&gt;
+  &lt;button type=&quot;button&quot; class=&quot;btn danger&quot; id=&quot;q-delete&quot;&gt;Delete web-9&lt;/button&gt;
+  &lt;button type=&quot;button&quot; class=&quot;btn&quot; id=&quot;q-rename&quot;&gt;Rename&lt;/button&gt;
+  &lt;button type=&quot;button&quot; class=&quot;btn&quot; id=&quot;q-beside&quot;&gt;Ask beside the button&lt;/button&gt;
+&lt;/div&gt;
+&lt;script&gt;
+  document.getElementById(&#39;q-delete&#39;).addEventListener(&#39;click&#39;, async () =&gt; {
+    if (await Dash.confirm(&#39;web-9 and its history will be deleted.&#39;, { title: &#39;Delete web-9?&#39;, ok: &#39;Delete&#39;, tone: &#39;bad&#39; })) Dash.toast(&#39;Deleted&#39;, { tone: &#39;bad&#39; });
+  });
+  document.getElementById(&#39;q-rename&#39;).addEventListener(&#39;click&#39;, async () =&gt; {
+    const name = await Dash.ask(&#39;Rename web-9&#39;, { value: &#39;web-9&#39;, required: true });
+    if (name) Dash.toast(`Renamed to ${name}`);
+  });
+  document.getElementById(&#39;q-beside&#39;).addEventListener(&#39;click&#39;, async (e) =&gt; {
+    if (await Dash.confirm(&#39;Restart now?&#39;, { anchor: e.currentTarget, ok: &#39;Restart&#39; })) Dash.toast(&#39;Restarting&#39;);
+  });
+&lt;/script&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;row&quot;</span>&gt;
+  &lt;<span class="c-tag">button</span> <span class="c-attr">type</span>=<span class="c-str">&quot;button&quot;</span> <span class="c-attr">class</span>=<span class="c-str">&quot;btn danger&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;q-delete&quot;</span>&gt;Delete web-9&lt;/<span class="c-tag">button</span>&gt;
+  &lt;<span class="c-tag">button</span> <span class="c-attr">type</span>=<span class="c-str">&quot;button&quot;</span> <span class="c-attr">class</span>=<span class="c-str">&quot;btn&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;q-rename&quot;</span>&gt;Rename&lt;/<span class="c-tag">button</span>&gt;
+  &lt;<span class="c-tag">button</span> <span class="c-attr">type</span>=<span class="c-str">&quot;button&quot;</span> <span class="c-attr">class</span>=<span class="c-str">&quot;btn&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;q-beside&quot;</span>&gt;Ask beside the button&lt;/<span class="c-tag">button</span>&gt;
+&lt;/<span class="c-tag">div</span>&gt;
+&lt;<span class="c-tag">script</span>&gt;
+  document.getElementById(<span class="c-str">&#39;q-delete&#39;</span>).addEventListener(<span class="c-str">&#39;click&#39;</span>, <span class="c-key">async</span> () =&gt; {
+    <span class="c-key">if</span> (<span class="c-key">await</span> <span class="c-fn">Dash</span>.confirm(<span class="c-str">&#39;web-9 and its history will be deleted.&#39;</span>, { title: <span class="c-str">&#39;Delete web-9?&#39;</span>, ok: <span class="c-str">&#39;Delete&#39;</span>, tone: <span class="c-str">&#39;bad&#39;</span> })) <span class="c-fn">Dash</span>.toast(<span class="c-str">&#39;Deleted&#39;</span>, { tone: <span class="c-str">&#39;bad&#39;</span> });
+  });
+  document.getElementById(<span class="c-str">&#39;q-rename&#39;</span>).addEventListener(<span class="c-str">&#39;click&#39;</span>, <span class="c-key">async</span> () =&gt; {
+    <span class="c-key">const</span> name = <span class="c-key">await</span> <span class="c-fn">Dash</span>.ask(<span class="c-str">&#39;Rename web-9&#39;</span>, { value: <span class="c-str">&#39;web-9&#39;</span>, required: <span class="c-key">true</span> });
+    <span class="c-key">if</span> (name) <span class="c-fn">Dash</span>.toast(<span class="c-str">`Renamed to ${name}`</span>);
+  });
+  document.getElementById(<span class="c-str">&#39;q-beside&#39;</span>).addEventListener(<span class="c-str">&#39;click&#39;</span>, <span class="c-key">async</span> (e) =&gt; {
+    <span class="c-key">if</span> (<span class="c-key">await</span> <span class="c-fn">Dash</span>.confirm(<span class="c-str">&#39;Restart now?&#39;</span>, { anchor: e.currentTarget, ok: <span class="c-str">&#39;Restart&#39;</span> })) <span class="c-fn">Dash</span>.toast(<span class="c-str">&#39;Restarting&#39;</span>);
+  });
+&lt;/<span class="c-tag">script</span>&gt;</code></pre></figure>
+      <p><code>Dash.dialog({ title, text, body, actions, cancel, drawer, focus })</code> is a dialog made on the spot, for a small form: it resolves <code>{ value, fields }</code>, where <code>fields</code> are the named inputs in <code>body</code> and <code>value</code> is null when cancelled.</p>
+    </section>
+
+    <section id="modal" data-terms="Dash.modal .modal .modal-head .modal-title .modal-x .modal-text .modal-body .modal-foot .modal-error .modal-form data-size">
+      <h2>Modals</h2>
+      <p><code>Dash.modal(options)</code> is for more than a question: a form that saves, details that keep updating, a long list. It returns a handle you keep.</p>
+      <figure class="example" id="ex-2"><div class="example-view">
+<button type="button" class="btn primary" id="edit-server">Edit web-1</button>
+<script>
+  document.getElementById('edit-server').addEventListener('click', async () => {
+    const m = Dash.modal({
+      title: 'Edit web-1', text: 'Changes apply at the next check.', size: 'md', cancel: 'Cancel',
+      body: '<div class="field"><label for="m-name">Name</label><input class="input" id="m-name" name="name" value="web-1" required></div>'
+        + '<div class="field"><label for="m-every">Check every</label><span class="select"><select class="input" id="m-every" name="every"><option>30 s</option><option selected>60 s</option><option>5 min</option></select></span></div>',
+      actions: [{ label: 'Save', value: 'save', primary: true }],
+      onAction: () => new Promise((done) => setTimeout(done, 800)), // the button is busy while this runs; throw to show an error, return false to stay open
+    });
+    const { value, fields } = await m.closed;
+    if (value === 'save') Dash.toast(`Saved ${fields.name}`, { tone: 'ok' });
+  });
+</script>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;button type=&quot;button&quot; class=&quot;btn primary&quot; id=&quot;edit-server&quot;&gt;Edit web-1&lt;/button&gt;
+&lt;script&gt;
+  document.getElementById(&#39;edit-server&#39;).addEventListener(&#39;click&#39;, async () =&gt; {
+    const m = Dash.modal({
+      title: &#39;Edit web-1&#39;, text: &#39;Changes apply at the next check.&#39;, size: &#39;md&#39;, cancel: &#39;Cancel&#39;,
+      body: &#39;&lt;div class=&quot;field&quot;&gt;&lt;label for=&quot;m-name&quot;&gt;Name&lt;/label&gt;&lt;input class=&quot;input&quot; id=&quot;m-name&quot; name=&quot;name&quot; value=&quot;web-1&quot; required&gt;&lt;/div&gt;&#39;
+        + &#39;&lt;div class=&quot;field&quot;&gt;&lt;label for=&quot;m-every&quot;&gt;Check every&lt;/label&gt;&lt;span class=&quot;select&quot;&gt;&lt;select class=&quot;input&quot; id=&quot;m-every&quot; name=&quot;every&quot;&gt;&lt;option&gt;30 s&lt;/option&gt;&lt;option selected&gt;60 s&lt;/option&gt;&lt;option&gt;5 min&lt;/option&gt;&lt;/select&gt;&lt;/span&gt;&lt;/div&gt;&#39;,
+      actions: [{ label: &#39;Save&#39;, value: &#39;save&#39;, primary: true }],
+      onAction: () =&gt; new Promise((done) =&gt; setTimeout(done, 800)), // the button is busy while this runs; throw to show an error, return false to stay open
+    });
+    const { value, fields } = await m.closed;
+    if (value === &#39;save&#39;) Dash.toast(`Saved ${fields.name}`, { tone: &#39;ok&#39; });
+  });
+&lt;/script&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">button</span> <span class="c-attr">type</span>=<span class="c-str">&quot;button&quot;</span> <span class="c-attr">class</span>=<span class="c-str">&quot;btn primary&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;edit-server&quot;</span>&gt;Edit web-1&lt;/<span class="c-tag">button</span>&gt;
+&lt;<span class="c-tag">script</span>&gt;
+  document.getElementById(<span class="c-str">&#39;edit-server&#39;</span>).addEventListener(<span class="c-str">&#39;click&#39;</span>, <span class="c-key">async</span> () =&gt; {
+    <span class="c-key">const</span> m = <span class="c-fn">Dash</span>.modal({
+      title: <span class="c-str">&#39;Edit web-1&#39;</span>, text: <span class="c-str">&#39;Changes apply at the next check.&#39;</span>, size: <span class="c-str">&#39;md&#39;</span>, cancel: <span class="c-str">&#39;Cancel&#39;</span>,
+      body: <span class="c-str">&#39;&lt;div class=&quot;field&quot;&gt;&lt;label for=&quot;m-name&quot;&gt;Name&lt;/label&gt;&lt;input class=&quot;input&quot; id=&quot;m-name&quot; name=&quot;name&quot; value=&quot;web-1&quot; required&gt;&lt;/div&gt;&#39;</span>
+        + <span class="c-str">&#39;&lt;div class=&quot;field&quot;&gt;&lt;label for=&quot;m-every&quot;&gt;Check every&lt;/label&gt;&lt;span class=&quot;select&quot;&gt;&lt;select class=&quot;input&quot; id=&quot;m-every&quot; name=&quot;every&quot;&gt;&lt;option&gt;30 s&lt;/option&gt;&lt;option selected&gt;60 s&lt;/option&gt;&lt;option&gt;5 min&lt;/option&gt;&lt;/select&gt;&lt;/span&gt;&lt;/div&gt;&#39;</span>,
+      actions: [{ label: <span class="c-str">&#39;Save&#39;</span>, value: <span class="c-str">&#39;save&#39;</span>, primary: <span class="c-key">true</span> }],
+      onAction: () =&gt; <span class="c-key">new</span> Promise((done) =&gt; setTimeout(done, <span class="c-num">800</span>)), <span class="c-com">// the button is busy while this runs; throw to show an error, return false to stay open</span>
+    });
+    <span class="c-key">const</span> { value, fields } = <span class="c-key">await</span> m.closed;
+    <span class="c-key">if</span> (value === <span class="c-str">&#39;save&#39;</span>) <span class="c-fn">Dash</span>.toast(<span class="c-str">`Saved ${fields.name}`</span>, { tone: <span class="c-str">&#39;ok&#39;</span> });
+  });
+&lt;/<span class="c-tag">script</span>&gt;</code></pre></figure>
+      <ul>
+        <li><code>title</code>, <code>text</code> (a line under it), <code>body</code> (HTML or an element), <code>cancel</code> (a ghost button's label), <code>actions</code>: <code>{ label, value, primary, tone }</code>.</li>
+        <li><code>size</code>: <code>sm</code> (400 px), <code>md</code> (560), <code>lg</code> (760), <code>xl</code> (1040) or <code>full</code>. <code>drawer: true</code> slides it in from the right, full height.</li>
+        <li><code>onAction(value, modal)</code> runs on a button; the button is busy until it's done. An error it throws shows in the foot (<code>.modal-error</code>) and keeps the modal open, and so does returning <code>false</code>.</li>
+        <li>Enter in a field presses the <code>primary</code> action, after the fields' own checks (<code>required</code>, <code>type="email"</code>). Your own buttons in the body need <code>type="button"</code>.</li>
+        <li><code>dismissable: false</code>: no ×, and Escape and clicks outside do nothing, for something that must finish.</li>
+        <li>The handle: <code>.el</code>, <code>.body</code> (the part that scrolls), <code>.fields()</code>, <code>.update({ title, text, body, actions })</code> (redrawn like <code>Dash.render</code>, so typing isn't lost), <code>.error(text)</code>, <code>.close(value)</code>, and <code>.closed</code>, a promise of <code>{ value, fields }</code> (<code>value</code> is null after ×, Cancel, Escape or a click outside).</li>
+      </ul>
+    </section>
+
+    <section id="dialogs" data-terms=".dialog .dialog-body .dialog-actions .drawer .drawer-body .drawer-head data-dismiss showModal">
+      <h2>Dialogs and drawers by hand</h2>
+      <p>A <code>&lt;dialog class="dialog"&gt;</code> is centred, with a <code>.dialog-body</code> and <code>.dialog-actions</code>; a <code>&lt;dialog class="drawer"&gt;</code> slides in from the right, with a <code>.drawer-head</code> and a <code>.drawer-body</code>. Open either with <code>el.showModal()</code>. Anything with <code>data-dismiss</code> inside closes it, and so do Escape and a click on the backdrop.</p>
+      <figure class="example" id="ex-3"><div class="example-view">
+<button type="button" class="btn" id="open-drawer">Show details</button>
+<dialog class="drawer" id="details" aria-labelledby="details-title">
+  <div class="drawer-head"><h2 id="details-title">web-1</h2><button type="button" class="icon-btn" data-dismiss aria-label="Close">×</button></div>
+  <div class="drawer-body"><dl class="kv"><dt>Region</dt><dd>eu-west</dd><dt>CPU</dt><dd>42%</dd></dl></div>
+</dialog>
+<script>
+  document.getElementById('open-drawer').addEventListener('click', () => document.getElementById('details').showModal());
+</script>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;button type=&quot;button&quot; class=&quot;btn&quot; id=&quot;open-drawer&quot;&gt;Show details&lt;/button&gt;
+&lt;dialog class=&quot;drawer&quot; id=&quot;details&quot; aria-labelledby=&quot;details-title&quot;&gt;
+  &lt;div class=&quot;drawer-head&quot;&gt;&lt;h2 id=&quot;details-title&quot;&gt;web-1&lt;/h2&gt;&lt;button type=&quot;button&quot; class=&quot;icon-btn&quot; data-dismiss aria-label=&quot;Close&quot;&gt;×&lt;/button&gt;&lt;/div&gt;
+  &lt;div class=&quot;drawer-body&quot;&gt;&lt;dl class=&quot;kv&quot;&gt;&lt;dt&gt;Region&lt;/dt&gt;&lt;dd&gt;eu-west&lt;/dd&gt;&lt;dt&gt;CPU&lt;/dt&gt;&lt;dd&gt;42%&lt;/dd&gt;&lt;/dl&gt;&lt;/div&gt;
+&lt;/dialog&gt;
+&lt;script&gt;
+  document.getElementById(&#39;open-drawer&#39;).addEventListener(&#39;click&#39;, () =&gt; document.getElementById(&#39;details&#39;).showModal());
+&lt;/script&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">button</span> <span class="c-attr">type</span>=<span class="c-str">&quot;button&quot;</span> <span class="c-attr">class</span>=<span class="c-str">&quot;btn&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;open-drawer&quot;</span>&gt;Show details&lt;/<span class="c-tag">button</span>&gt;
+&lt;<span class="c-tag">dialog</span> <span class="c-attr">class</span>=<span class="c-str">&quot;drawer&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;details&quot;</span> <span class="c-attr">aria-labelledby</span>=<span class="c-str">&quot;details-title&quot;</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;drawer-head&quot;</span>&gt;&lt;<span class="c-tag">h2</span> <span class="c-attr">id</span>=<span class="c-str">&quot;details-title&quot;</span>&gt;web-1&lt;/<span class="c-tag">h2</span>&gt;&lt;<span class="c-tag">button</span> <span class="c-attr">type</span>=<span class="c-str">&quot;button&quot;</span> <span class="c-attr">class</span>=<span class="c-str">&quot;icon-btn&quot;</span> <span class="c-attr">data-dismiss</span> <span class="c-attr">aria-label</span>=<span class="c-str">&quot;Close&quot;</span>&gt;×&lt;/<span class="c-tag">button</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;drawer-body&quot;</span>&gt;&lt;<span class="c-tag">dl</span> <span class="c-attr">class</span>=<span class="c-str">&quot;kv&quot;</span>&gt;&lt;<span class="c-tag">dt</span>&gt;Region&lt;/<span class="c-tag">dt</span>&gt;&lt;<span class="c-tag">dd</span>&gt;eu-west&lt;/<span class="c-tag">dd</span>&gt;&lt;<span class="c-tag">dt</span>&gt;CPU&lt;/<span class="c-tag">dt</span>&gt;&lt;<span class="c-tag">dd</span>&gt;42%&lt;/<span class="c-tag">dd</span>&gt;&lt;/<span class="c-tag">dl</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+&lt;/<span class="c-tag">dialog</span>&gt;
+&lt;<span class="c-tag">script</span>&gt;
+  document.getElementById(<span class="c-str">&#39;open-drawer&#39;</span>).addEventListener(<span class="c-str">&#39;click&#39;</span>, () =&gt; document.getElementById(<span class="c-str">&#39;details&#39;</span>).showModal());
+&lt;/<span class="c-tag">script</span>&gt;</code></pre></figure>
+    </section>
+
+    <section id="popups" data-terms="Dash.popup .popup .popup-title .popup-text .popup-actions data-popup Dash.place">
+      <h2>Popups</h2>
+      <p><code>Dash.popup(anchor, content, { placement, align, width, cls, label, focus, onClose })</code> is a box beside an element (or at a point: a right-click). It floats above everything, a sideways-scrolling table or an open dialog included, flips when there's no room and stays inside the window. It closes on a click outside, on Escape (the focus goes back to its button) or with <code>.close()</code>, and follows its button when the page scrolls or a refresh redraws it. Called again for the same button it closes, like a toggle.</p>
+      <figure class="example" id="ex-4"><div class="example-view">
+<div class="row">
+  <button type="button" class="btn" id="when-checked">Last check</button>
+  <button type="button" class="btn" data-popup="help-text">What's this?</button>
+  <template id="help-text"><p class="popup-title">Error budget</p><p class="popup-text">How many failed requests the month can still take before the 99.9% goal is missed.</p></template>
+</div>
+<script>
+  document.getElementById('when-checked').addEventListener('click', (e) => {
+    const p = Dash.popup(e.currentTarget, '<p class="popup-title">web-1</p><p class="popup-text">Checked 2 min ago from Frankfurt.</p>'
+      + '<div class="popup-actions"><button type="button" class="btn sm" data-dismiss>Close</button><button type="button" class="btn sm primary" id="check-now">Check now</button></div>', { align: 'start' });
+    if (p) p.el.querySelector('#check-now').addEventListener('click', () => { p.close(); Dash.toast('Checking web-1'); });
+  });
+</script>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;div class=&quot;row&quot;&gt;
+  &lt;button type=&quot;button&quot; class=&quot;btn&quot; id=&quot;when-checked&quot;&gt;Last check&lt;/button&gt;
+  &lt;button type=&quot;button&quot; class=&quot;btn&quot; data-popup=&quot;help-text&quot;&gt;What&#39;s this?&lt;/button&gt;
+  &lt;template id=&quot;help-text&quot;&gt;&lt;p class=&quot;popup-title&quot;&gt;Error budget&lt;/p&gt;&lt;p class=&quot;popup-text&quot;&gt;How many failed requests the month can still take before the 99.9% goal is missed.&lt;/p&gt;&lt;/template&gt;
+&lt;/div&gt;
+&lt;script&gt;
+  document.getElementById(&#39;when-checked&#39;).addEventListener(&#39;click&#39;, (e) =&gt; {
+    const p = Dash.popup(e.currentTarget, &#39;&lt;p class=&quot;popup-title&quot;&gt;web-1&lt;/p&gt;&lt;p class=&quot;popup-text&quot;&gt;Checked 2 min ago from Frankfurt.&lt;/p&gt;&#39;
+      + &#39;&lt;div class=&quot;popup-actions&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;btn sm&quot; data-dismiss&gt;Close&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;btn sm primary&quot; id=&quot;check-now&quot;&gt;Check now&lt;/button&gt;&lt;/div&gt;&#39;, { align: &#39;start&#39; });
+    if (p) p.el.querySelector(&#39;#check-now&#39;).addEventListener(&#39;click&#39;, () =&gt; { p.close(); Dash.toast(&#39;Checking web-1&#39;); });
+  });
+&lt;/script&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;row&quot;</span>&gt;
+  &lt;<span class="c-tag">button</span> <span class="c-attr">type</span>=<span class="c-str">&quot;button&quot;</span> <span class="c-attr">class</span>=<span class="c-str">&quot;btn&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;when-checked&quot;</span>&gt;Last check&lt;/<span class="c-tag">button</span>&gt;
+  &lt;<span class="c-tag">button</span> <span class="c-attr">type</span>=<span class="c-str">&quot;button&quot;</span> <span class="c-attr">class</span>=<span class="c-str">&quot;btn&quot;</span> <span class="c-attr">data-popup</span>=<span class="c-str">&quot;help-text&quot;</span>&gt;What&#39;s this?&lt;/<span class="c-tag">button</span>&gt;
+  &lt;<span class="c-tag">template</span> <span class="c-attr">id</span>=<span class="c-str">&quot;help-text&quot;</span>&gt;&lt;<span class="c-tag">p</span> <span class="c-attr">class</span>=<span class="c-str">&quot;popup-title&quot;</span>&gt;Error budget&lt;/<span class="c-tag">p</span>&gt;&lt;<span class="c-tag">p</span> <span class="c-attr">class</span>=<span class="c-str">&quot;popup-text&quot;</span>&gt;How many failed requests the month can still take before the 99.9% goal is missed.&lt;/<span class="c-tag">p</span>&gt;&lt;/<span class="c-tag">template</span>&gt;
+&lt;/<span class="c-tag">div</span>&gt;
+&lt;<span class="c-tag">script</span>&gt;
+  document.getElementById(<span class="c-str">&#39;when-checked&#39;</span>).addEventListener(<span class="c-str">&#39;click&#39;</span>, (e) =&gt; {
+    <span class="c-key">const</span> p = <span class="c-fn">Dash</span>.popup(e.currentTarget, <span class="c-str">&#39;&lt;p class=&quot;popup-title&quot;&gt;web-1&lt;/p&gt;&lt;p class=&quot;popup-text&quot;&gt;Checked 2 min ago from Frankfurt.&lt;/p&gt;&#39;</span>
+      + <span class="c-str">&#39;&lt;div class=&quot;popup-actions&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;btn sm&quot; data-dismiss&gt;Close&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;btn sm primary&quot; id=&quot;check-now&quot;&gt;Check now&lt;/button&gt;&lt;/div&gt;&#39;</span>, { align: <span class="c-str">&#39;start&#39;</span> });
+    <span class="c-key">if</span> (p) p.el.querySelector(<span class="c-str">&#39;#check-now&#39;</span>).addEventListener(<span class="c-str">&#39;click&#39;</span>, () =&gt; { p.close(); <span class="c-fn">Dash</span>.toast(<span class="c-str">&#39;Checking web-1&#39;</span>); });
+  });
+&lt;/<span class="c-tag">script</span>&gt;</code></pre></figure>
+      <ul>
+        <li><code>content</code>: HTML, an element, or a function <code>(popup) =&gt; …</code>. <code>placement</code>: <code>bottom</code>, <code>top</code>, <code>right</code> or <code>left</code>; <code>align</code>: <code>start</code>, <code>center</code> or <code>end</code>. <code>focus: true</code> (or a selector) puts the focus inside.</li>
+        <li>Inside: <code>.popup-title</code>, <code>.popup-text</code> and <code>.popup-actions</code> give a small note or question its shape.</li>
+        <li>The handle: <code>.el</code>, <code>.close(value)</code>, <code>.update(content)</code>, <code>.place()</code> and <code>.closed</code>.</li>
+        <li>No code: <code>data-popup="id"</code> on a button opens the content of <code>&lt;template id="id"&gt;</code> (or of any element with that id).</li>
+        <li><code>Dash.place(rect, size, view, { placement, align, offset })</code> is the placing it uses, for a box of your own.</li>
+      </ul>
+    </section>
+
+    <section id="menus" data-terms="Dash.menu .menu-hint .menu-text .menu-tick contextmenu">
+      <h2>Menus</h2>
+      <p><code>Dash.menu(anchor, items, { placement, align, label })</code> is a menu beside a button, or at the pointer for a right-click, and resolves to the chosen value (or null). An item is a string or <code>{ label, value, hint, tone, disabled, checked, href }</code>; <code>'-'</code> is a line and <code>{ heading }</code> a small label. It moves with the arrow keys, Home, End and first letters; Enter picks, Tab and Escape leave.</p>
+      <figure class="example" id="ex-5"><div class="example-view">
+<div class="row">
+  <button type="button" class="btn" id="server-menu" aria-haspopup="menu">Actions ▾</button>
+  <div class="panel py-2 px-3" id="right-click">Right-click here</div>
+</div>
+<script>
+  const items = [
+    { heading: 'web-1' },
+    { label: 'Restart', value: 'restart', hint: 'R' },
+    { label: 'Rename', value: 'rename', hint: 'F2' },
+    { label: 'Show in charts', value: 'charts', checked: true },
+    '-',
+    { label: 'Delete', value: 'delete', tone: 'bad' },
+  ];
+  document.getElementById('server-menu').addEventListener('click', async (e) => {
+    const v = await Dash.menu(e.currentTarget, items);
+    if (v) Dash.toast(`Chose ${v}`);
+  });
+  document.getElementById('right-click').addEventListener('contextmenu', async (e) => {
+    e.preventDefault();
+    const v = await Dash.menu(e, items);
+    if (v) Dash.toast(`Chose ${v}`);
+  });
+</script>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;div class=&quot;row&quot;&gt;
+  &lt;button type=&quot;button&quot; class=&quot;btn&quot; id=&quot;server-menu&quot; aria-haspopup=&quot;menu&quot;&gt;Actions ▾&lt;/button&gt;
+  &lt;div class=&quot;panel py-2 px-3&quot; id=&quot;right-click&quot;&gt;Right-click here&lt;/div&gt;
+&lt;/div&gt;
+&lt;script&gt;
+  const items = [
+    { heading: &#39;web-1&#39; },
+    { label: &#39;Restart&#39;, value: &#39;restart&#39;, hint: &#39;R&#39; },
+    { label: &#39;Rename&#39;, value: &#39;rename&#39;, hint: &#39;F2&#39; },
+    { label: &#39;Show in charts&#39;, value: &#39;charts&#39;, checked: true },
+    &#39;-&#39;,
+    { label: &#39;Delete&#39;, value: &#39;delete&#39;, tone: &#39;bad&#39; },
+  ];
+  document.getElementById(&#39;server-menu&#39;).addEventListener(&#39;click&#39;, async (e) =&gt; {
+    const v = await Dash.menu(e.currentTarget, items);
+    if (v) Dash.toast(`Chose ${v}`);
+  });
+  document.getElementById(&#39;right-click&#39;).addEventListener(&#39;contextmenu&#39;, async (e) =&gt; {
+    e.preventDefault();
+    const v = await Dash.menu(e, items);
+    if (v) Dash.toast(`Chose ${v}`);
+  });
+&lt;/script&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;row&quot;</span>&gt;
+  &lt;<span class="c-tag">button</span> <span class="c-attr">type</span>=<span class="c-str">&quot;button&quot;</span> <span class="c-attr">class</span>=<span class="c-str">&quot;btn&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;server-menu&quot;</span> <span class="c-attr">aria-haspopup</span>=<span class="c-str">&quot;menu&quot;</span>&gt;Actions ▾&lt;/<span class="c-tag">button</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;panel py-2 px-3&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;right-click&quot;</span>&gt;Right-click here&lt;/<span class="c-tag">div</span>&gt;
+&lt;/<span class="c-tag">div</span>&gt;
+&lt;<span class="c-tag">script</span>&gt;
+  <span class="c-key">const</span> items = [
+    { heading: <span class="c-str">&#39;web-1&#39;</span> },
+    { label: <span class="c-str">&#39;Restart&#39;</span>, value: <span class="c-str">&#39;restart&#39;</span>, hint: <span class="c-str">&#39;R&#39;</span> },
+    { label: <span class="c-str">&#39;Rename&#39;</span>, value: <span class="c-str">&#39;rename&#39;</span>, hint: <span class="c-str">&#39;F2&#39;</span> },
+    { label: <span class="c-str">&#39;Show in charts&#39;</span>, value: <span class="c-str">&#39;charts&#39;</span>, checked: <span class="c-key">true</span> },
+    <span class="c-str">&#39;-&#39;</span>,
+    { label: <span class="c-str">&#39;Delete&#39;</span>, value: <span class="c-str">&#39;delete&#39;</span>, tone: <span class="c-str">&#39;bad&#39;</span> },
+  ];
+  document.getElementById(<span class="c-str">&#39;server-menu&#39;</span>).addEventListener(<span class="c-str">&#39;click&#39;</span>, <span class="c-key">async</span> (e) =&gt; {
+    <span class="c-key">const</span> v = <span class="c-key">await</span> <span class="c-fn">Dash</span>.menu(e.currentTarget, items);
+    <span class="c-key">if</span> (v) <span class="c-fn">Dash</span>.toast(<span class="c-str">`Chose ${v}`</span>);
+  });
+  document.getElementById(<span class="c-str">&#39;right-click&#39;</span>).addEventListener(<span class="c-str">&#39;contextmenu&#39;</span>, <span class="c-key">async</span> (e) =&gt; {
+    e.preventDefault();
+    <span class="c-key">const</span> v = <span class="c-key">await</span> <span class="c-fn">Dash</span>.menu(e, items);
+    <span class="c-key">if</span> (v) <span class="c-fn">Dash</span>.toast(<span class="c-str">`Chose ${v}`</span>);
+  });
+&lt;/<span class="c-tag">script</span>&gt;</code></pre></figure>
+    </section>
+    <nav class="docs-steps" aria-label="More pages"><a class="docs-step prev" href="charts.html"><span class="faint">Previous</span><b>Charts and progress</b></a><a class="docs-step next" href="feedback.html"><span class="faint">Next</span><b>Feedback</b></a></nav>
+  </main>
+</div>
+<script src="search.js"></script>
+<script src="docs.js"></script>
+</body>
+</html>

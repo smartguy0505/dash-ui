@@ -1,4 +1,4 @@
-/* dash-ui 1.8.0 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
+/* dash-ui 1.9.0 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
    A plain script with no dependencies: a script tag for dash.js in <head> gives window.Dash, and puts the
    saved light/dark choice on the page before it paints. In Node, require('./dash.js') returns the same object
    (the parts that need a page are skipped).
@@ -8,7 +8,7 @@
 (function (root) {
   'use strict';
   const hasDom = typeof document !== 'undefined';
-  const Dash = { version: '1.8.0', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side', csp: false } };
+  const Dash = { version: '1.9.0', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side', csp: false } };
 
   // ---- basics
 
@@ -1731,6 +1731,289 @@
     node.classList.remove('flash');
     void node.offsetWidth;
     node.classList.add('flash');
+  };
+
+  // ---- a text box with suggestions (1.9)
+  // Dash.combobox(input, { options, onPick }): options is a list (strings, or { value, label, sub }), or a function
+  // (query) => a list or a promise of one, asked as the reader types (for a server search). The suggestions open as the
+  // reader types, or on ArrowDown or a click; arrows move, Enter or a click picks, Escape or Tab closes. What's typed
+  // stays unless strict: true, which puts the last pick back (or empties the box) when it matches no suggestion.
+  // Returns { value (the picked option), set(value), close(), destroy() }.
+  Dash.combobox = (target, { options = [], onPick, max = 50, empty = 'No matches', strict = false, minChars = 0, debounce = 150, label } = {}) => {
+    const input = el(target);
+    if (!input || !hasDom) return null;
+    const norm = (o) => (o && typeof o === 'object' ? { ...o, value: o.value ?? o.label, label: String(o.label ?? o.value ?? '') } : { value: o, label: String(o ?? '') });
+    const all = () => (Array.isArray(options) ? options.map(norm) : []);
+    const box = document.createElement('div');
+    box.className = 'popup combo-list';
+    box.id = 'dash-combo-' + ++ids;
+    box.setAttribute('role', 'listbox');
+    box.setAttribute('aria-label', label || input.getAttribute('aria-label') || 'Suggestions');
+    if (nativePop) box.setAttribute('popover', 'manual'); else box.hidden = true;
+    input.setAttribute('role', 'combobox');
+    input.setAttribute('aria-autocomplete', 'list');
+    input.setAttribute('aria-expanded', 'false');
+    input.setAttribute('aria-controls', box.id);
+    input.setAttribute('autocomplete', 'off');
+    let shown = [], active = -1, open = false, picked = null, seq = 0, timer = 0;
+    const optEl = (i) => box.querySelector(`[data-i="${i}"]`);
+    // the typed words in bold where they are in a suggestion
+    const marked = (text, q) => {
+      const words = String(q).toLowerCase().split(/\s+/).filter(Boolean);
+      if (!words.length) return esc(text);
+      const low = text.toLowerCase(), hit = new Array(text.length).fill(false);
+      for (const w of words) { const i = low.indexOf(w); if (i >= 0) hit.fill(true, i, i + w.length); }
+      let out = '', on = false;
+      for (let i = 0; i < text.length; i++) {
+        if (hit[i] !== on) { out += on ? '</mark>' : '<mark>'; on = hit[i]; }
+        out += esc(text[i]);
+      }
+      return out + (on ? '</mark>' : '');
+    };
+    const place = () => {
+      if (!open) return;
+      const r = input.getBoundingClientRect();
+      if (!r.width && !r.height) { close(); return; }
+      box.style.minWidth = Math.round(r.width) + 'px';
+      const view = { width: document.documentElement.clientWidth, height: document.documentElement.clientHeight };
+      const pos = Dash.place(r, { width: box.offsetWidth, height: box.scrollHeight + 2 }, view, { placement: 'bottom', align: 'start', offset: 4 });
+      box.style.left = Math.round(pos.left) + 'px';
+      box.style.top = Math.round(pos.top) + 'px';
+      box.style.maxHeight = Math.round(Math.min(pos.maxHeight, 320)) + 'px';
+    };
+    const show = () => {
+      if (!open) {
+        lift(box, input);
+        if (nativePop) try { box.showPopover(); } catch { /* not in the page */ } else box.hidden = false;
+        open = true;
+        input.setAttribute('aria-expanded', 'true');
+        window.addEventListener('scroll', place, true);
+        window.addEventListener('resize', place);
+      }
+      place();
+    };
+    const close = () => {
+      clearTimeout(timer);
+      seq++; // an answer still on its way is no longer wanted
+      if (!open) return;
+      open = false;
+      active = -1;
+      if (nativePop) try { box.hidePopover(); } catch { /* hidden */ } else box.hidden = true;
+      input.setAttribute('aria-expanded', 'false');
+      input.removeAttribute('aria-activedescendant');
+      window.removeEventListener('scroll', place, true);
+      window.removeEventListener('resize', place);
+    };
+    const move = (i) => {
+      if (!shown.length) return;
+      const was = optEl(active);
+      if (was) was.setAttribute('aria-selected', 'false');
+      active = ((i % shown.length) + shown.length) % shown.length;
+      const o = optEl(active);
+      o.setAttribute('aria-selected', 'true');
+      input.setAttribute('aria-activedescendant', o.id);
+      o.scrollIntoView({ block: 'nearest' });
+    };
+    const draw = (items, q, note, then) => {
+      shown = items.slice(0, max);
+      active = -1;
+      input.removeAttribute('aria-activedescendant');
+      box.innerHTML = shown.length
+        ? shown.map((o, i) => `<div class="combo-option" role="option" id="${box.id}-${i}" data-i="${i}" aria-selected="false"><span>${marked(o.label, q)}</span>`
+          + `${o.sub ? `<span class="combo-sub">${esc(o.sub)}</span>` : ''}</div>`).join('')
+        : `<div class="combo-empty" role="option" aria-disabled="true" aria-selected="false">${esc(note || empty)}</div>`;
+      show();
+      if (then != null && shown.length) move(then);
+    };
+    // ask for the suggestions for what's typed; then: the option to make active once they are there
+    const ask = (then) => {
+      const q = input.value;
+      if (q.trim().length < minChars) { close(); return; }
+      const my = ++seq;
+      if (typeof options !== 'function') { draw(all().filter((o) => Dash.match(o, q, ['label', 'sub'])), q, null, then); return; }
+      clearTimeout(timer);
+      timer = setTimeout(async () => {
+        let got;
+        try { got = await options(q); } catch { got = null; }
+        if (my !== seq || document.activeElement !== input) return; // typed on, or left, meanwhile
+        draw(Array.isArray(got) ? got.map(norm) : [], q, Array.isArray(got) ? null : 'Couldn’t load suggestions', then);
+      }, debounce);
+    };
+    const pick = (i) => {
+      const o = shown[i];
+      if (!o) return;
+      picked = o;
+      input.value = o.label;
+      close();
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      if (onPick) onPick(o);
+    };
+    const onInput = () => ask(null);
+    const onClick = () => { if (!open) ask(null); };
+    const onKey = (e) => {
+      if (e.altKey && e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        const down = e.key === 'ArrowDown';
+        if (!open) ask(e.altKey ? null : down ? 0 : -1);
+        else if (!e.altKey) move(active < 0 ? (down ? 0 : -1) : active + (down ? 1 : -1));
+      } else if (e.key === 'Enter' && open && active >= 0) {
+        e.preventDefault(); // not the form's submit
+        pick(active);
+      } else if (e.key === 'Escape' && open) {
+        e.preventDefault();
+        e.stopPropagation(); // only the suggestions: a dialog or drawer around it stays
+        close();
+      } else if (e.key === 'Tab') close();
+    };
+    const onBlur = () => setTimeout(() => {
+      if (document.activeElement === input) return;
+      close();
+      if (strict && (!picked || input.value !== picked.label)) {
+        const exact = all().find((o) => o.label.toLowerCase() === input.value.trim().toLowerCase());
+        if (exact) { picked = exact; input.value = exact.label; if (onPick) onPick(exact); } else input.value = picked ? picked.label : '';
+      }
+    });
+    input.addEventListener('input', onInput);
+    input.addEventListener('click', onClick);
+    input.addEventListener('keydown', onKey);
+    input.addEventListener('blur', onBlur);
+    box.addEventListener('pointerdown', (e) => e.preventDefault()); // the box keeps the focus
+    box.addEventListener('click', (e) => { const o = e.target.closest('[data-i]'); if (o) pick(Number(o.dataset.i)); });
+    box.addEventListener('mousemove', (e) => { const o = e.target.closest('[data-i]'); if (o && Number(o.dataset.i) !== active) move(Number(o.dataset.i)); });
+    return {
+      get value() { return picked; },
+      set: (v) => { const o = v == null ? null : all().find((x) => x.value === v) || norm(v); picked = o; input.value = o ? o.label : ''; },
+      close,
+      destroy: () => {
+        close();
+        box.remove();
+        input.removeEventListener('input', onInput);
+        input.removeEventListener('click', onClick);
+        input.removeEventListener('keydown', onKey);
+        input.removeEventListener('blur', onBlur);
+        for (const a of ['role', 'aria-autocomplete', 'aria-expanded', 'aria-controls', 'aria-activedescendant']) input.removeAttribute(a);
+      },
+    };
+  };
+
+  // ---- a date picker (1.9)
+  // Dash.datepicker(input, { min, max, onPick, firstDay }): puts a calendar button in a date box (YYYY-MM-DD, what
+  // <input type="date"> sends). The calendar opens beside it with the box's date (or today) focused: arrows move a day
+  // or a week, Home and End to the week's ends, PageUp and PageDown a month (with Shift a year), Enter picks, Escape
+  // closes. Days before min or after max can't be picked. Typing a date works too; one that isn't a date is marked
+  // aria-invalid. firstDay: 1 (Monday, the default) or 0 (Sunday). Returns { value, set(iso), open(), close(), destroy() }.
+  const pad2 = (n) => String(n).padStart(2, '0');
+  const isoDay = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+  // 'YYYY-MM-DD' (or with / or .) as a local date, or null when it isn't a real day
+  const dayOf = (s) => {
+    const m = /^\s*(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})\s*$/.exec(String(s ?? ''));
+    if (!m) return null;
+    const d = new Date(+m[1], +m[2] - 1, +m[3]);
+    return d.getFullYear() === +m[1] && d.getMonth() === +m[2] - 1 && d.getDate() === +m[3] ? d : null;
+  };
+  Dash.datepicker = (target, { min, max, onPick, firstDay = 1, label = 'Choose a date' } = {}) => {
+    const input = el(target);
+    if (!input || !hasDom) return null;
+    const lo = dayOf(min), hi = dayOf(max);
+    const inRange = (d) => (!lo || d >= lo) && (!hi || d <= hi);
+    const wrap = document.createElement('span');
+    wrap.className = 'date-field';
+    input.before(wrap);
+    wrap.append(input);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'icon-btn date-btn';
+    btn.setAttribute('aria-label', label);
+    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="2" y="3" width="12" height="11" rx="2"/><path d="M2 6.5h12M5.5 1.5v3M10.5 1.5v3"/></svg>';
+    wrap.append(btn);
+    if (!input.placeholder) input.placeholder = 'YYYY-MM-DD';
+    let pop = null, focusDay = null;
+    const value = () => dayOf(input.value);
+    const title = (d) => d.toLocaleDateString([], { month: 'long', year: 'numeric' });
+    const grid = () => {
+      const f = focusDay, y = f.getFullYear(), m = f.getMonth();
+      const first = new Date(y, m, 1), days = new Date(y, m + 1, 0).getDate();
+      const lead = (first.getDay() - firstDay + 7) % 7;
+      const chosen = value(), today = isoDay(new Date());
+      const names = Array.from({ length: 7 }, (_, i) => new Date(2024, 0, 1 + ((i + firstDay + 6) % 7))); // 2024-01-01 was a Monday
+      let cells = '';
+      for (let i = 0; i < lead + days; i++) {
+        if (i % 7 === 0) cells += '<tr>';
+        if (i < lead) cells += '<td></td>';
+        else {
+          const d = new Date(y, m, i - lead + 1), iso = isoDay(d), ok = inRange(d);
+          cells += `<td role="gridcell"${chosen && iso === isoDay(chosen) ? ' aria-selected="true"' : ''}><button type="button" data-date="${iso}"`
+            + ` tabindex="${iso === isoDay(f) ? 0 : -1}"${iso === today ? ' aria-current="date"' : ''}${ok ? '' : ' aria-disabled="true"'}`
+            + ` aria-label="${esc(d.toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }))}">${d.getDate()}</button></td>`;
+        }
+        if (i % 7 === 6) cells += '</tr>';
+      }
+      if ((lead + days) % 7) cells += '<td></td>'.repeat(7 - ((lead + days) % 7)) + '</tr>';
+      const prevOk = !lo || new Date(y, m, 0) >= lo, nextOk = !hi || new Date(y, m + 1, 1) <= hi;
+      return `<div class="cal-head"><button type="button" class="icon-btn" data-cal="-1" aria-label="Previous month"${prevOk ? '' : ' disabled'}>‹</button>`
+        + `<b class="cal-title" aria-live="polite">${esc(title(f))}</b><button type="button" class="icon-btn" data-cal="1" aria-label="Next month"${nextOk ? '' : ' disabled'}>›</button></div>`
+        + `<table class="cal-grid" role="grid" aria-label="${esc(title(f))}"><thead><tr>${names.map((n) => `<th scope="col" abbr="${esc(n.toLocaleDateString([], { weekday: 'long' }))}">`
+        + `${esc(n.toLocaleDateString([], { weekday: 'narrow' }))}</th>`).join('')}</tr></thead><tbody>${cells}</tbody></table>`;
+    };
+    const redraw = () => {
+      if (!pop) return;
+      pop.update(grid());
+      const b = pop.el.querySelector('[tabindex="0"]');
+      if (b) b.focus({ preventScroll: true });
+    };
+    const go = (d) => { focusDay = d; redraw(); };
+    const addMonths = (d, n) => { const t = new Date(d.getFullYear(), d.getMonth() + n, 1); t.setDate(Math.min(d.getDate(), new Date(t.getFullYear(), t.getMonth() + 1, 0).getDate())); return t; };
+    const pick = (iso) => {
+      const d = dayOf(iso);
+      if (!d || !inRange(d)) return;
+      input.value = iso;
+      input.removeAttribute('aria-invalid');
+      close();
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      if (onPick) onPick(iso);
+    };
+    const open = () => {
+      if (pop) return;
+      const v = value();
+      focusDay = v || (lo && new Date() < lo ? lo : hi && new Date() > hi ? hi : new Date());
+      focusDay = new Date(focusDay.getFullYear(), focusDay.getMonth(), focusDay.getDate());
+      pop = Dash.popup(btn, grid(), { role: 'dialog', label, cls: 'calendar', focus: '[tabindex="0"]', align: 'end', onClose: () => { pop = null; } });
+      if (!pop) return;
+      pop.el.addEventListener('click', (e) => {
+        const nav = e.target.closest('[data-cal]');
+        if (nav && !nav.disabled) { go(addMonths(focusDay, Number(nav.dataset.cal))); const n = pop && pop.el.querySelector(`[data-cal="${nav.dataset.cal}"]`); if (n && !n.disabled) n.focus(); return; }
+        const day = e.target.closest('[data-date]');
+        if (day && day.getAttribute('aria-disabled') !== 'true') pick(day.dataset.date);
+      });
+      pop.el.addEventListener('keydown', (e) => {
+        const day = e.target.closest && e.target.closest('[data-date]');
+        if (!day) return;
+        const d = dayOf(day.dataset.date), wd = (d.getDay() - firstDay + 7) % 7;
+        const to = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7, Home: -wd, End: 6 - wd }[e.key];
+        if (to != null) { e.preventDefault(); go(new Date(d.getFullYear(), d.getMonth(), d.getDate() + to)); }
+        else if (e.key === 'PageUp' || e.key === 'PageDown') { e.preventDefault(); go(addMonths(d, (e.key === 'PageUp' ? -1 : 1) * (e.shiftKey ? 12 : 1))); }
+      });
+    };
+    const close = () => { if (pop) pop.close(); };
+    const onBtn = () => (pop ? close() : open());
+    const onChange = () => {
+      const t = input.value.trim();
+      if (!t) { input.removeAttribute('aria-invalid'); return; }
+      const d = dayOf(t);
+      if (d && inRange(d)) { input.removeAttribute('aria-invalid'); if (isoDay(d) !== t) input.value = isoDay(d); } else input.setAttribute('aria-invalid', 'true');
+    };
+    const onKey = (e) => { if (e.key === 'ArrowDown' && e.altKey) { e.preventDefault(); open(); } };
+    btn.addEventListener('click', onBtn);
+    input.addEventListener('change', onChange);
+    input.addEventListener('keydown', onKey);
+    return {
+      get value() { const d = value(); return d && inRange(d) ? isoDay(d) : null; },
+      set: (iso) => { const d = dayOf(iso); input.value = d ? isoDay(d) : ''; onChange(); },
+      open, close,
+      destroy: () => { close(); btn.remove(); wrap.replaceWith(input); input.removeEventListener('change', onChange); input.removeEventListener('keydown', onKey); },
+    };
   };
 
   // ---- menus and tooltips (wired below; no code needed)

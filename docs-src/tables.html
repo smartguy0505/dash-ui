@@ -1,0 +1,118 @@
+    <section id="table" data-terms="Dash.table .table .main columns">
+      <h2>A table from its columns</h2>
+      <p><code>Dash.table(el, { columns, rows, sort, perPage, key, onRow, … })</code> draws a whole table: sortable headers, cells, a pager if asked, and cards on a phone. Give it columns once, then <code>.update(rows)</code> whenever the data changes; it redraws with <code>Dash.render</code>, so a refresh keeps the reader's place.</p>
+      <example>
+        <div class="toolbar"><label class="search" style="max-width: 280px"><span class="sr-only">Search accounts</span><input class="input" type="search" id="acct-q" placeholder="Search accounts"><span class="count"></span></label><button type="button" class="btn sm push" id="acct-csv">Download CSV</button></div>
+        <div id="accounts"></div>
+        <script>
+          const accounts = Dash.table('accounts', {
+            columns: [
+              { key: 'name', label: 'Account', main: true, firstDir: 'asc' },
+              { key: 'region', label: 'Region' },
+              { key: 'spend', label: 'Spend', num: true, format: (v) => Dash.fmt.usd(v) },
+              { key: 'change', label: '24 h', num: true, html: (r) => Dash.chg(r.change, Dash.fmt.signed(r.change, 1) + '%') },
+              { key: 'state', label: 'State', sort: false, html: (r) => Dash.pill(r.state === 'ok' ? 'Active' : 'Over budget', r.state) },
+            ],
+            rows: [
+              { id: 1, name: 'Northwind', region: 'eu-west', spend: 12480, change: 4.2, state: 'ok' },
+              { id: 2, name: 'Contoso', region: 'us-east', spend: 9310.5, change: -1.8, state: 'ok' },
+              { id: 3, name: 'Fabrikam', region: 'eu-north', spend: 15020, change: 12.5, state: 'warn' },
+              { id: 4, name: 'Tailspin', region: 'us-west', spend: 620, change: 0, state: 'ok' },
+            ],
+            sort: { key: 'spend', dir: 'desc' }, key: 'id', noun: 'account',
+            rowClass: (r) => (r.state === 'warn' ? 'marked warn' : ''),
+            onRow: (r) => Dash.toast(`Open ${r.name}`),
+          });
+          const q = Dash.search('acct-q', { onChange: (text) => { accounts.filter((r) => Dash.match(r, text, ['name', 'region'])); q.count(accounts.count, 4); } });
+          document.getElementById('acct-csv').addEventListener('click', () => accounts.download('accounts.csv'));
+        </script>
+      </example>
+      <h3>Columns</h3>
+      <div class="table-wrap"><table class="table compact">
+        <thead><tr><th>Field</th><th>What it does</th></tr></thead>
+        <tbody>
+          <tr><td><code>key</code>, <code>label</code></td><td>The row's field, and the header's text.</td></tr>
+          <tr><td><code>num: true</code></td><td>Right-aligned, sorted as a number. <code>unit</code> goes after the label (<code>ms</code> stays lower case).</td></tr>
+          <tr><td><code>main: true</code></td><td>The column that titles each card on a phone.</td></tr>
+          <tr><td><code>value: (row) =&gt; …</code></td><td>What it shows and sorts by, when that isn't <code>row[key]</code>.</td></tr>
+          <tr><td><code>format: (value, row) =&gt; text</code></td><td>Text for the cell (escaped).</td></tr>
+          <tr><td><code>html: (row) =&gt; markup</code></td><td>Markup from a builder (<code>Dash.pill</code>, <code>Dash.ago</code>, <code>Dash.bar</code>…), not escaped.</td></tr>
+          <tr><td><code>sort: false</code>, <code>firstDir: 'asc'</code></td><td>A column that doesn't sort; one whose first click sorts up (names, latency).</td></tr>
+          <tr><td><code>title</code>, <code>cls</code></td><td>A tooltip on the header; classes on its cells.</td></tr>
+        </tbody>
+      </table></div>
+      <h3>Options and the handle</h3>
+      <ul>
+        <li><code>sort: { key, dir, store }</code>, remembered under <code>store</code>; <code>perPage</code> (0: no pager) and <code>sizes</code>; <code>noun</code> for "of 23 servers".</li>
+        <li><code>key</code> (a field or a function) gives each row a <code>data-key</code>, so a refresh keeps the focused row. <code>rowClass: (row) =&gt; 'marked bad'</code>, <code>empty</code> text, <code>filter: (row) =&gt; keep?</code>.</li>
+        <li><code>cls</code> sets the table's classes (<code>'stack'</code> by default), <code>wrap: true</code> makes it its own card, <code>onRow(row, event)</code> runs on a click or Enter on a row (not on a button or link in it).</li>
+        <li>The handle: <code>.update(rows)</code>, <code>.filter(fn)</code>, <code>.count</code> (rows shown), <code>.csv()</code>, <code>.download(name)</code>, <code>.goto(page)</code>, <code>.sort</code>.</li>
+      </ul>
+    </section>
+
+    <section id="markup" data-terms=".table-wrap th td aria-sort data-sort .num Dash.th .compact --cell-x">
+      <h2>Tables by hand</h2>
+      <p>A <code>.table</code> inside a <code>.panel</code> gets a rounded header strip; in a <code>.table-wrap</code> the table is its own card and scrolls sideways if it must. Sortable headers are <code>&lt;th aria-sort="descending"&gt;&lt;button data-sort="key"&gt;</code>, which <code>Dash.th(label, key, sort, { num, unit, title, cls, mark })</code> writes. <code>th.num</code> and <code>td.num</code> align right. <code>.table.compact</code> puts 8 px between columns instead of 12 (<code>--cell-x</code>).</p>
+      <example>
+        <div class="table-wrap">
+          <table class="table compact">
+            <thead><tr><th aria-sort="ascending"><button type="button" data-sort="name">Server</button></th><th class="num"><button type="button" data-sort="cpu">CPU</button></th><th class="num">Memory <span class="unit">GB</span></th></tr></thead>
+            <tbody>
+              <tr><td>db-1</td><td class="num">17%</td><td class="num">48.2</td></tr>
+              <tr><td>web-1</td><td class="num">42%</td><td class="num">12.0</td></tr>
+              <tr><td>web-2</td><td class="num">91%</td><td class="num">14.6</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </example>
+      <p><code>Dash.sortBy(rows, key, 'asc' | 'desc')</code> sorts a copy: numbers as numbers, text as a person would (<code>web-2</code> before <code>web-10</code>), blanks last. <code>Dash.sorter({ key, dir, store, firstDir })</code> keeps the state for your own headers: <code>.toggle(key)</code>, <code>.apply(rows, getters)</code>.</p>
+    </section>
+
+    <section id="rows" data-terms="tr.marked tr.dim tr.sub tr.group tr.cut tr.click .marked .dim .group .cut .click .empty-row td.actions .actions --actions-w">
+      <h2>Row states</h2>
+      <ul>
+        <li><code>tr.marked</code>: a bar on the left and a tint, blue unless a tone is added (<code>marked bad</code>). <code>tr.dim</code>: faded.</li>
+        <li><code>tr.sub</code>: smaller rows that belong to the one above. <code>tr.group</code>: a heading row. <code>tr.cut</code>: a dashed line, for "below this, not paid".</li>
+        <li><code>tr.click</code>: a pointer, for rows that open something. <code>.empty-row</code>: one row saying there is nothing.</li>
+        <li><code>td.actions</code> (and <code>th.actions</code>): a row's buttons at the right, as narrow as they are; on a phone's card they sit in its top corner (<code>--actions-w</code> keeps the title clear of them).</li>
+      </ul>
+      <example>
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr><th>Server</th><th class="num">CPU</th><th class="actions"><span class="sr-only">Actions</span></th></tr></thead>
+            <tbody>
+              <tr class="group"><td colspan="3">Frankfurt</td></tr>
+              <tr class="marked bad click"><td>web-2</td><td class="num">98%</td><td class="actions"><button type="button" class="btn sm">Restart</button></td></tr>
+              <tr class="sub"><td>worker</td><td class="num">71%</td><td></td></tr>
+              <tr><td>web-1</td><td class="num">42%</td><td class="actions"><button type="button" class="btn sm">Restart</button></td></tr>
+              <tr class="cut dim"><td>web-9 (stopped)</td><td class="num">0%</td><td></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </example>
+    </section>
+
+    <section id="phones" data-terms=".stack .stack-md data-label td.main .sticky .open">
+      <h2>On a phone, and long tables</h2>
+      <p><code>.table.stack</code> turns each row into a small card on a phone. Give each <code>td</code> a <code>data-label</code>; the <code>td.main</code> cell is the card's title. <code>.stack-md</code> does it from 900 px down instead, for a table too wide for a tablet. <code>Dash.table</code> does all of this by itself.</p>
+      <p><code>.table.sticky</code> inside a <code>.table-wrap.open</code> keeps the header under the top bar while a long page scrolls (<code>.open</code> lets the header out of the card's own scrolling).</p>
+      <example>
+        <table class="table stack">
+          <thead><tr><th>Server</th><th class="num">CPU</th><th>Region</th></tr></thead>
+          <tbody>
+            <tr><td class="main" data-label="Server">web-1</td><td class="num" data-label="CPU">42%</td><td data-label="Region">Frankfurt</td></tr>
+            <tr><td class="main" data-label="Server">db-1</td><td class="num" data-label="CPU">17%</td><td data-label="Region">Dublin</td></tr>
+          </tbody>
+        </table>
+      </example>
+    </section>
+
+    <section id="data" data-terms="Dash.sum Dash.groupBy Dash.csv Dash.download Dash.sortBy Dash.sorter">
+      <h2>Working with rows</h2>
+      <ul>
+        <li><code>Dash.sum(rows, key)</code>: a column's total (blanks count as 0). <code>Dash.groupBy(rows, key)</code>: an object of the rows by a key, in the order first seen (<code>key</code> may be a function).</li>
+        <li><code>Dash.csv(rows, columns)</code>: rows as CSV; columns as for <code>Dash.table</code> (<code>{ key, label, value }</code>) or plain keys. Text that a spreadsheet would read as a formula gets a leading <code>'</code>; text that is just a number stays a number. <code>Dash.download(name, content)</code> hands the reader a file.</li>
+      </ul>
+      <pre class="code"><code>const byRegion = Dash.groupBy(servers, 'region');        // { 'eu-west': [rows], … }
+Dash.download('servers.csv', Dash.csv(servers, ['name', 'region', 'cpu']));</code></pre>
+    </section>

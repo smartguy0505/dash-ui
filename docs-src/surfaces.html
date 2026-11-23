@@ -1,0 +1,146 @@
+    <section id="panels" data-terms=".panel .panel-head .read .panel-note .flush">
+      <h2>Panels</h2>
+      <p><code>.panel</code> is a section of a page: a card-coloured box with a border. Its <code>.panel-head</code> holds the title (an <code>h2</code> or <code>h3</code>) and, on the right, a <code>.read</code> (a reading or count), a <code>.seg</code> or a <code>.btn</code>. <code>.panel-note</code> is small print at its foot. <code>.panel.flush</code> has no padding, for a table or a picture that runs to its edges.</p>
+      <example>
+        <div class="panel">
+          <div class="panel-head"><h3>Requests</h3><span class="read">2.4M today</span></div>
+          <p class="m-0">What the panel shows.</p>
+          <p class="panel-note">Counted every minute; the last hour is still running.</p>
+        </div>
+      </example>
+      <p>Panels in a <code>.grid</code> or a <code>.vstack</code> are spaced by it; one after another, they get a 14 px gap.</p>
+    </section>
+
+    <section id="cards" data-terms=".card .cards .card-head .card-title .card-sub .card-foot .card-media --card-min">
+      <h2>Cards</h2>
+      <p><code>.card</code> is one of many, in <code>.cards</code> (as many across as fit, each at least <code>--card-min</code>, 300 px). Inside: a <code>.card-head</code> with a <code>.card-title</code> (one line) and things beside it, a <code>.card-sub</code>, and a <code>.card-foot</code> that sits at the bottom, so cards in a row line up. <code>.card-media</code> is a picture across the top.</p>
+      <example>
+        <div class="cards" style="--card-min: 220px">
+          <div class="card">
+            <div class="card-head"><div class="card-title">web-1</div><span class="pill ok push"><span class="dot"></span>Healthy</span></div>
+            <div class="card-sub">Frankfurt · 8 cores · 42% CPU</div>
+            <div class="card-foot">Checked 1 min ago</div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div class="card-title">web-2</div><span class="pill warn push"><span class="dot"></span>Busy</span></div>
+            <div class="card-sub">Frankfurt · 8 cores · 91% CPU for 12 minutes</div>
+            <div class="card-foot">Checked 1 min ago</div>
+          </div>
+          <div class="card">
+            <div class="card-media"><svg viewBox="0 0 300 120" role="img" aria-label="A map of the region"><rect width="300" height="120" fill="var(--soft)"/><path d="M20 90 C80 30, 140 110, 200 50 S 280 40, 290 30" fill="none" stroke="var(--blue)" stroke-width="3"/></svg></div>
+            <div class="card-title">Dublin</div>
+            <div class="card-sub">A card with a picture across its top.</div>
+          </div>
+        </div>
+      </example>
+    </section>
+
+    <section id="stats" data-terms=".stat .stats .label .value .note .wrap .fixed --stat-cols --stat-min --stat-min-sm Dash.stat">
+      <h2>Stat tiles</h2>
+      <p><code>.stat</code> is a number at a glance: a <code>.label</code>, a <code>.value</code> (with a <code>small</code> unit) and a one-line <code>.note</code> (<code>.note.wrap</code> may take two). <code>.stats</code> lays them out, as many as fit at <code>--stat-min</code> (180 px) and two across on a phone; <code>.stats.fixed</code> puts exactly <code>--stat-cols</code> (4) across. <code>Dash.stat(label, value, { unit, note, tone, title })</code> writes one, the value in its tone. A <code>button.stat</code> can be clicked.</p>
+      <example>
+        <div class="stats" id="stat-row"></div>
+        <script>
+          Dash.render('stat-row', Dash.stat('Requests', '2.4', { unit: 'M', note: 'today' }) + Dash.stat('Errors', '0.3%', { tone: 'warn', note: 'up from 0.1%' })
+            + Dash.stat('p95 latency', '182', { unit: 'ms', note: 'the last hour' }) + Dash.stat('Uptime', '99.98%', { tone: 'ok', note: '30 days' }));
+        </script>
+      </example>
+    </section>
+
+    <section id="hero" data-terms=".hero .big .hero-line">
+      <h2>The big number</h2>
+      <p><code>.hero</code> is the one number a page is about, with what explains it beside it (it stacks on a phone). <code>.big</code> is the number, with a <code>small</code> unit; <code>.hero-line</code> a line under it, with <code>b</code> for figures.</p>
+      <example>
+        <div class="panel hero">
+          <div><div class="kicker">This month</div><div class="big">$12,480<small> spent</small></div><div class="hero-line"><b>$3,520</b> left of the $16,000 budget</div></div>
+          <div id="hero-bar"></div>
+        </div>
+        <script>
+          Dash.render('hero-bar', Dash.progress(12480 / 16000, { label: 'Budget used', tone: 'warn', lg: true }));
+        </script>
+      </example>
+    </section>
+
+    <section id="banner" data-terms=".banner .badge .banner-title .banner-text .active">
+      <h2>Status banners</h2>
+      <p><code>.banner</code> is the page's status in one line with a big dot: a <code>.badge</code> (with an <code>i</code> inside), a <code>.banner-title</code> and a <code>.banner-text</code>. <code>.banner.active</code> tints it and pulses the dot, so <code>banner active bad</code> is an incident going on now.</p>
+      <example>
+        <div class="banner ok"><span class="badge"><i></i></span><div class="grow"><div class="banner-title">All systems working</div><div class="banner-text">The last incident ended <b>3 days</b> ago.</div></div></div>
+        <div class="banner active bad"><span class="badge"><i></i></span><div class="grow"><div class="banner-title">Payments are failing in eu-west</div><div class="banner-text">Since 14:05 · 12% of checkouts</div></div><button type="button" class="btn">Open the incident</button></div>
+      </example>
+    </section>
+
+    <section id="callouts" data-terms=".callout .callout-title .solid .ring">
+      <h2>Callouts and rings</h2>
+      <p><code>.callout</code> is a soft block for a note, tinted when it has a tone, with a <code>.callout-title</code>. <code>.callout.solid</code> is coloured text on its own. <code>.ring</code> on a panel or card rings it in orange (or its tone), for the one that needs attention.</p>
+      <example>
+        <div class="vstack">
+          <div class="callout">A plain note inside a card.</div>
+          <div class="callout warn"><div class="callout-title">Before you deploy</div>Two servers are still on the old certificate.</div>
+          <div class="callout bad solid">The import stopped at row 1,204.</div>
+          <div class="card ring"><div class="card-title">web-2</div><div class="card-sub">Ringed: busy for 12 minutes.</div></div>
+        </div>
+      </example>
+    </section>
+
+    <section id="facts" data-terms=".kv .facts dl dt dd">
+      <h2>Facts</h2>
+      <p><code>.kv</code> is a <code>dl</code> of names and values in columns (<code>--cols</code>, 2). <code>.facts</code> is a line of facts with dots between them, wrapping as it needs.</p>
+      <example>
+        <dl class="kv"><dt>Region</dt><dd>eu-west</dd><dt>Plan</dt><dd>Business</dd><dt>Created</dt><dd>Mar 3, 2025</dd><dt>Owner</dt><dd>Ada Lovelace</dd></dl>
+        <div class="facts mt-3"><span>8 cores</span><span>32 GB</span><span>Ubuntu 24.04</span><span>203.0.113.10</span></div>
+      </example>
+    </section>
+
+    <section id="entries" data-terms=".entries .entry .entry-lead .entry-text .entry-title .entry-sub .entry-end Dash.entries">
+      <h2>Lists</h2>
+      <p><code>Dash.entries(rows, options)</code> is a list of things, a line or two each: a <code>lead</code> (an avatar or an icon), a <code>title</code> and <code>sub</code>, and an <code>end</code> (a time, a pill). <code>title</code> and <code>sub</code> are keys or functions and are escaped; <code>lead</code> and <code>end</code> return HTML. <code>href: (row) =&gt; url</code> makes each a link, <code>button: true</code> a button (with <code>key</code> as its <code>data-key</code>, for a click handler and so a redraw keeps the focus). <code>wrap: true</code> lets long text wrap instead of ending in …; <code>empty</code> is the text when there are no rows.</p>
+      <example>
+        <div class="panel flush" id="people"></div>
+        <script>
+          const team = [
+            { id: 1, name: 'Ada Lovelace', role: 'Owner', seen: Date.now() - 5 * 60e3 },
+            { id: 2, name: 'Grace Hopper', role: 'Admin', seen: Date.now() - 3 * 3600e3 },
+            { id: 3, name: 'Alan Turing', role: 'Viewer · invited, not joined yet', seen: null },
+          ];
+          Dash.render('people', Dash.entries(team, {
+            title: 'name', sub: 'role', key: 'id', button: true, label: 'Team',
+            lead: (p) => Dash.avatar(p.name), end: (p) => (p.seen ? Dash.ago(p.seen) : Dash.pill('Invited', 'idle')),
+          }));
+          Dash.on('people', 'click', '[data-key]', (e, b) => Dash.toast(`Open person ${b.dataset.key}`));
+        </script>
+      </example>
+      <p>By hand: <code>ul.entries</code> › <code>li.entry</code> (or an <code>a.entry</code> or <code>button.entry</code> in the <code>li</code>) › <code>.entry-lead</code>, <code>.entry-text</code> with <code>.entry-title</code> and <code>.entry-sub</code>, <code>.entry-end</code>.</p>
+    </section>
+
+    <section id="accordion" data-terms=".accordion details summary name">
+      <h2>Accordions</h2>
+      <p><code>.accordion</code> joins <code>&lt;details&gt;</code> blocks into one box, with a chevron on each <code>summary</code>. Give them the same <code>name</code> and the browser keeps one open at a time. A lone <code>&lt;details&gt;</code> anywhere is styled too.</p>
+      <example>
+        <div class="accordion">
+          <details name="faq" open><summary>Why is a server grey?</summary><p>It hasn't reported for five minutes. It turns red after fifteen.</p></details>
+          <details name="faq"><summary>Can I move a server to another team?</summary><p>Yes: open it and choose Move. Its history moves with it.</p></details>
+          <details name="faq"><summary>How long is history kept?</summary><p>Thirteen months, so a year can be compared with the one before.</p></details>
+        </div>
+      </example>
+    </section>
+
+    <section id="divider" data-terms=".divider hr">
+      <h2>Dividers</h2>
+      <p><code>.divider</code> is a line between things, with a word in it if it has one.</p>
+      <example>
+        <div class="divider">or</div>
+        <hr class="divider">
+      </example>
+    </section>
+
+    <section id="empty" data-terms=".empty .empty-title .boxed .skel .wide .mid .short">
+      <h2>Empty and loading</h2>
+      <p><code>.empty</code> is what a list shows with nothing in it: an <code>.empty-title</code> (or <code>h2</code>), a line, and a button. <code>.empty.boxed</code> is a dashed box, for a whole page with nothing yet. <code>.skel</code> is a loading line (<code>.wide</code>, <code>.mid</code>, <code>.short</code>), until the data comes.</p>
+      <example>
+        <div class="grid">
+          <div class="panel"><div class="empty"><span class="empty-title">No alerts</span><p>Alerts you set up show here.</p><button type="button" class="btn sm">Add an alert</button></div></div>
+          <div class="panel" aria-busy="true"><span class="skel wide"></span><span class="skel"></span><span class="skel mid"></span><span class="skel short"></span></div>
+        </div>
+      </example>
+    </section>

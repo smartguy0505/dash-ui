@@ -1,0 +1,81 @@
+    <section id="overview" data-terms="dash-utils.css utilities tailwind">
+      <h2>What they are</h2>
+      <p><code>dash-utils.css</code> is an optional file of about 3,600 small classes, each setting one thing: <code>flex</code>, <code>gap-3</code>, <code>p-4</code>, <code>text-muted</code>, <code>md:grid-cols-3</code>. Link it after <code>dash.css</code> and a page can be laid out with no <code>&lt;style&gt;</code> of its own. The names are Tailwind's wherever the kit allows, so what you know carries over.</p>
+      <pre class="code"><code>&lt;link rel="stylesheet" href="dash.css"&gt;
+&lt;link rel="stylesheet" href="dash-utils.css"&gt;</code></pre>
+      <p>There is no build step: the file is a fixed set (220 KB, 26 KB gzipped), written from the kit's tokens by <code>tools/utils.mjs</code>. The values are the kit's own, so a utility page and a component page look like one site.</p>
+      <example title="A header row, laid out with utilities only">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+          <div><h3 class="m-0 text-lg font-bold">Releases</h3><p class="m-0 text-sm text-muted">Every deploy in the last 30 days</p></div>
+          <div class="flex gap-2"><button type="button" class="btn sm">Export</button><button type="button" class="btn sm primary">New release</button></div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div class="panel p-4"><div class="text-sm text-muted">Deploys</div><div class="text-2xl font-bold tabular-nums">48</div></div>
+          <div class="panel p-4"><div class="text-sm text-muted">Rolled back</div><div class="text-2xl font-bold tabular-nums text-bad">2</div></div>
+          <div class="panel p-4 bg-ok/10 border-ok/30"><div class="text-sm text-muted">Change failure rate</div><div class="text-2xl font-bold tabular-nums text-ok">4.2%</div></div>
+        </div>
+      </example>
+    </section>
+
+    <section id="specificity" data-terms=":not(#\#) specificity !important">
+      <h2>A utility beats the kit</h2>
+      <p><code>class="btn px-8"</code> or <code>class="panel p-0"</code> does what it says, though the kit's own rules have two or three classes. Every utility is written <code>.p-0:not(#\#)</code>: the <code>:not()</code> matches every element but counts as an id, so it outranks the kit without <code>!important</code>. A <code>style=""</code>, the <code>hidden</code> attribute and <code>!important</code> rules (the kit's <code>.hide-sm</code>, say) still win. When the page's own CSS must beat a utility, use an id or <code>!important</code> there.</p>
+      <example>
+        <div class="row"><button type="button" class="btn">The kit's padding</button><button type="button" class="btn px-8">px-8 wins</button><button type="button" class="btn rounded-full">rounded-full</button></div>
+      </example>
+    </section>
+
+    <section id="variants" data-terms="hover: group-hover: focus: focus-visible: focus-within: active: disabled: .group">
+      <h2>States</h2>
+      <p>A prefix applies a class in a state: <code>hover:bg-soft</code>, <code>focus-visible:ring-2</code>, <code>active:scale-95</code>, <code>disabled:opacity-50</code>. <code>hover:</code> applies only where hovering is real (not on a touch screen). <code>group-hover:</code> applies when a parent with the class <code>group</code> is hovered; the kit's grouped table rows (<code>tr.group</code>) count too. Each group page says which of its classes take which prefix.</p>
+      <example>
+        <a href="#variants" class="group flex items-center justify-between gap-3 p-3 rounded-lg border border-line hover:bg-soft focus-visible:ring-2 no-underline text-inherit" style="max-width: 420px">
+          <span><b>web-1</b> <span class="text-muted">· Frankfurt</span></span>
+          <span class="invisible group-hover:visible text-sm text-blue">Open →</span>
+        </a>
+      </example>
+    </section>
+
+    <section id="widths" data-terms="sm: md: lg: xl: max-sm: max-md: breakpoints responsive">
+      <h2>Widths</h2>
+      <p>The widths are the kit's own: <code>sm:</code> from 641 px (past the kit's phone layout, 640 px and below), <code>md:</code> from 901 px (past its smaller-screen layout), <code>lg:</code> from 1024 px and <code>xl:</code> from 1280 px. As in Tailwind, a class without a prefix works at every width and a prefixed one from that width up. <code>max-sm:</code> and <code>max-md:</code> work up to the kit's two widths, as <code>.hide-sm</code> and <code>.stack-md</code> do. These differ from Tailwind's numbers on purpose: a page switches where the kit's components switch.</p>
+      <example>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div class="panel p-3">One</div><div class="panel p-3">Two</div><div class="panel p-3">Three</div><div class="panel p-3">Four</div>
+        </div>
+        <p class="mt-3 text-sm text-muted"><span class="max-sm:hidden">Wider than a phone: two or four across.</span><span class="hidden max-sm:inline">On a phone: one across.</span></p>
+      </example>
+    </section>
+
+    <section id="dark-print" data-terms="dark: print:">
+      <h2>Dark and print</h2>
+      <p>Colours are the kit's tokens, so <code>bg-card text-muted border-line</code> follow light and dark by themselves. <code>dark:</code> is for the few things that should differ, like <code>dark:hidden</code> on a light-only picture; it follows the system setting unless the page is set to light, and <code>data-theme="dark"</code>, the same two ways the palette does. <code>print:</code> applies when printing (<code>print:hidden</code> on buttons).</p>
+      <example>
+        <div class="flex gap-3">
+          <span class="tag plain dark:hidden">Shown in light</span>
+          <span class="tag plain hidden dark:inline-flex">Shown in dark</span>
+          <button type="button" class="btn sm print:hidden">Not printed</button>
+        </div>
+      </example>
+    </section>
+
+    <section id="names" data-terms="grid grow invisible sr-only block fixed sticky arbitrary">
+      <h2>Names the kit already uses</h2>
+      <ul>
+        <li><code>grid</code> is the kit's grid: display grid with a 14 px gap and <code>var(--cols, 2)</code> columns. With <code>grid-cols-*</code> and <code>gap-*</code> it works like Tailwind's. <code>sm:grid</code> and the other prefixed forms are plain <code>display: grid</code>.</li>
+        <li><code>grow</code> is the kit's <code>flex: 1; min-width: 0</code>. <code>invisible</code> and <code>sr-only</code> come from <code>dash.css</code> and mean what they do in Tailwind.</li>
+        <li><code>table</code>, <code>ring</code> and <code>outline</code> are kit pieces, so there is no plain <code>table</code>, <code>ring</code> or <code>outline</code> utility: use <code>ring-2</code> or <code>outline-none</code>.</li>
+        <li>On a <code>.btn</code>, <code>block</code> is the kit's full-width button; on <code>.stats</code>, <code>fixed</code> is the kit's fixed column count; on a <code>.table</code>, <code>sticky</code> is its sticky header. Everywhere else they are <code>display: block</code> and <code>position: fixed</code> or <code>sticky</code>.</li>
+        <li>No arbitrary values (<code>w-[37px]</code>): with no build step there is nothing to write them. Use the page's CSS, a <code>style=""</code>, or a custom property the kit reads (<code>--cols</code>, <code>--lines</code>, <code>--stat-min</code>…).</li>
+      </ul>
+    </section>
+
+    <section id="adding" data-terms="tools/utils.mjs paste.py dash-ui-utils">
+      <h2>Adding it to a page</h2>
+      <ul>
+        <li>Before adding the file to an existing page, look for classes in the page's own CSS with the same names (<code>hidden</code>, <code>flex</code>, <code>border</code>, <code>truncate</code>…): they would get the utility as well.</li>
+        <li>Pages with a strict style policy can use every utility: it's a stylesheet, not <code>style=""</code>.</li>
+        <li>A page that must be one file adds <code>&lt;style id="dash-ui-utils"&gt;&lt;/style&gt;</code> after <code>&lt;style id="dash-ui-css"&gt;</code>, and <code>tools/paste.py</code> fills it too.</li>
+        <li>To change the set, edit <code>tools/utils.mjs</code> and run <code>node tools/utils.mjs</code> (or <code>npm run utils</code>), then the tests. These docs list every class from the same script.</li>
+      </ul>
+    </section>

@@ -8,8 +8,11 @@ The look of my dashboards (an agent monitor, a fleet monitor, a leaderboard, a p
 
 It's plain CSS and one plain script: no build step, no dependencies, no framework. A page links the two files (or pastes them in) and writes ordinary HTML.
 
+**The docs** are in `docs/`: a page for each part of the kit and each utility group, with live examples, their code to copy, a preview on a phone and in the other theme, and a search. Serve this folder and open `/docs/`.
+
 | | |
 |---|---|
+| `docs/` | the docs site (written by `node tools/docs.mjs` from `docs-src/`) |
 | `index.html` | every component, with made-up data, light and dark |
 | `examples/overview.html` | an agent-dash style page: top-bar limits, a collapsible sidebar, donut, gauges, column chart, cards |
 | `examples/portfolio.html` | balances and payout style: hero number, stats, toolbar, sortable paged table, editor dialog, live updates |
@@ -246,6 +249,8 @@ Surfaces and text: `--bg`, `--card`, `--soft` (a block inside a card, table head
 - `.choices` › `label.choice`: radios or checkboxes as cards, `<input>` then `.choice-body` (a `b` and a `.hint`). The checked one is outlined. `--choice-min` (200 px) sets how narrow a card can be before they stack.
 - `.slider` (`Dash.slider`): a name, `input type="range"` and an `<output>` that dash.js keeps on the value (`data-unit` adds the unit). A tone colours it.
 - `.dropzone`: a `<label>` round an `input type="file"`, so a click chooses files and a drop puts them in the input (only the kinds its `accept` allows), with `input` and `change` events as if chosen. The names show in its `.files`.
+- `.combo-list` (`Dash.combobox`): suggestions under a text box, narrowing as the reader types; `.combo-option` with a quieter `.combo-sub`, `.combo-empty` when nothing matches.
+- `.date-field` (`Dash.datepicker`): a date box with a `.date-btn` that opens a `.popup.calendar` (`.cal-head`, `.cal-title`, `.cal-grid`).
 - `.menu`: `<details class="menu"><summary class="btn">Actions</summary><div class="menu-list">…</div></details>`. The list holds buttons and links, `<hr>` and `.menu-label`; a tone on an item colours it (`class="bad"`). `.menu.end` opens leftwards. It closes on a click outside, on Escape (only the menu, inside a dialog too) and once an item is chosen. Inside a sideways-scrolling `.table-wrap` the list gets cut off: there, use `Dash.menu`, which draws the same list above everything.
 - `data-tooltip="text"`: a tooltip on hover and keyboard focus, kept inside the window, in an open dialog or popup too. Use it for a word or a line; a `title` is enough for long text.
 - `.popup` (`Dash.popup`, `Dash.menu`, `data-popup`): a box beside a button, above everything. Inside it, `.popup-title`, `.popup-text` and `.popup-actions` give a small question or note its shape.
@@ -363,6 +368,8 @@ Builders return HTML strings, with every value escaped. Put them in with `innerH
 | `Dash.modal({ title, text, body, actions, cancel, size, drawer, dismissable, focus, onAction, onClose })` | a modal you keep a handle on (below) |
 | `Dash.popup(anchor, content, { placement, align, width, cls, label, focus, onClose })` | a box beside an element or at a point (below); calling it again for the same element closes it |
 | `Dash.menu(anchor, items, { placement, align, label })` | a menu beside a button, or at the pointer for a right-click; resolves to the chosen value or null (below) |
+| `Dash.combobox(input, { options, onPick, strict, minChars, max, empty, debounce, label })` | suggestions for a text box: `options` are strings, `{ value, label, sub }`, or a function `(query) => list` (or a promise of one) for a server search, whose late answers are dropped. Arrows, Enter, a click; Escape closes only the list; `strict: true` allows only a suggestion. Returns `{ value, set(value), close(), destroy() }` |
+| `Dash.datepicker(input, { min, max, onPick, firstDay, label })` | a calendar for a `YYYY-MM-DD` box: arrows by day and week, Home/End, PageUp/PageDown by month (Shift: year); days outside `min`/`max` can't be picked; a typed day that doesn't exist is `aria-invalid`. `firstDay` 1 = Monday (0 = Sunday). Returns `{ value, set(day), open(), close(), destroy() }` |
 | `Dash.busy(button, work)` | the button is disabled with a spinner until `work` (a function or a promise) is done; returns its result |
 | `Dash.place(rect, size, view, { placement, align, offset })` | where a box goes beside a rectangle, flipped and kept inside the window (what `Dash.popup` uses) |
 | `Dash.theme.get/set/current()`, `Dash.color(name)` | light/dark; a token's current value (for a canvas) |
@@ -466,15 +473,25 @@ Where the dashboards disagreed, this kit follows agent-dash and the balances das
    - a status that names a colour goes through a lookup table (`{ waiting: 'orange', … }[s] || 'idle'`), never straight into `class`: some status words are also kit classes (`.shell` is the sidebar layout).
 4. Keep the page's own `<style>` for what is really its own, such as a one-off grid of columns.
 
+## The docs
+
+`docs/` is written by `node tools/docs.mjs` from the pages in `docs-src/`: edit those, then run it (the tests fail while `docs/` is out of date). In a source page:
+
+- `<section id="select" data-terms=".select Dash.slider">` with an `<h2>`: a section of the page, a chip in its list of contents, and the names the search finds there. Every class in `dash.css` and every `Dash` function has to be named in some section (a test counts them).
+- `<example>…</example>`: HTML, and scripts, shown live where it stands and printed under it from the same text, with Copy, Phone (a 390 px preview) and the other theme. `<example frame>` is for something that takes the whole screen, like a bottom nav: it is only printed, and the previews show it alone.
+- `<utilities group="flex"></utilities>`: that group's classes from `tools/utils.mjs`, with what each sets and which prefixes it takes.
+
+The pages link the kit as `../dash.css`, so GitHub Pages serving this repository from its root shows them at `/docs/`. `node tools/docs.mjs --flat DIR` writes the same pages with the kit beside them, for hosting the docs on their own.
+
 ## Tests
 
 ```sh
 node --test test/dash.test.mjs
 ```
 
-The tests cover the formatters, sorting, paging, escaping in every builder, and chart sizes. For `dash-utils.css`, they check four things: it is what `tools/utils.mjs` writes; no utility takes the name of a kit class; shorthands come before their parts and the variants come in order; and it stays within its size budget. They also check that the two dark palettes in `dash.css` are equal, that every token has a dark value, and that every class used in the pages and in dash.js exists in `dash.css`. For layout, `test/screens.mjs` loads every page in headless Chromium at 390, 700, 860 and 1440 px, light and dark. It fails on a page wider than the window, a console error, or a stacked table whose rows aren't cards at the right widths (or whose `td.actions` left the card's corner). It needs Playwright, which the kit itself doesn't:
+The tests cover the formatters, sorting, paging, escaping in every builder, and chart sizes. For `dash-utils.css`, they check four things: it is what `tools/utils.mjs` writes; no utility takes the name of a kit class; shorthands come before their parts and the variants come in order; and it stays within its size budget. They also check that the two dark palettes in `dash.css` are equal, that every token has a dark value, and that every class used in the pages and in dash.js exists in `dash.css`. For the docs, they check that `docs/` is what `tools/docs.mjs` writes, that every kit class and `Dash` function is named on some page, that every class the docs use exists, and that the links between the pages lead somewhere. For layout, `test/screens.mjs` loads every page (the docs too) in headless Chromium at 390, 700, 860 and 1440 px, light and dark. It fails on a page wider than the window, a console error, or a stacked table whose rows aren't cards at the right widths (or whose `td.actions` left the card's corner). It needs Playwright, which the kit itself doesn't:
 
-`test/behaviour.mjs` checks in the same browser what a node test can't see: `Dash.render` keeping focus, typing, open details, scroll and a selection; the poll's live status; the chart readout; copy buttons across a redraw; the sidebar event; the search count; saved choices in `Dash.seg`; `.topbar.static-md` and phone tiles; `Dash.table`, tabs, menus, tooltips, dialogs, `Dash.search`, `Dash.key`, live times and stacked columns; and modals, popups and menus (each popup check runs with the browser's own popovers and without them), and what shows above an open dialog; lanes; and, on a page served with `style-src 'self'` (`test/csp.html`), `Dash.lanes` and the sizing builders with `Dash.config.csp`, drawn as without the policy and with no violations; and `dash-utils.css` next to the kit (`test/utils.html`): every rule parses, utilities beat the kit's rules while its modifiers keep their meaning, and the widths, `dark:` both ways, hover, focus and print work. `KIT=<dir>` serves `dash.css`, `dash.js` and `dash-utils.css` from another folder, to try a change (the node tests read it too, and `tools/utils.mjs` from there when it has one).
+`test/behaviour.mjs` checks in the same browser what a node test can't see: `Dash.render` keeping focus, typing, open details, scroll and a selection; the poll's live status; the chart readout; copy buttons across a redraw; the sidebar event; the search count; saved choices in `Dash.seg`; `.topbar.static-md` and phone tiles; `Dash.table`, tabs, menus, tooltips, dialogs, `Dash.search`, `Dash.key`, live times and stacked columns; and modals, popups and menus (each popup check runs with the browser's own popovers and without them), and what shows above an open dialog; lanes; and, on a page served with `style-src 'self'` (`test/csp.html`), `Dash.lanes` and the sizing builders with `Dash.config.csp`, drawn as without the policy and with no violations; and `dash-utils.css` next to the kit (`test/utils.html`): every rule parses, utilities beat the kit's rules while its modifiers keep their meaning, and the widths, `dark:` both ways, hover, focus and print work; the components on `test/components.html` (slider values, file drops, the offcanvas drawer, the stepper on a phone, the combobox with the keyboard, the mouse, a server search and inside a dialog, and the date picker's keyboard grid, range and typed dates); and the docs' search and their phone and theme previews. `KIT=<dir>` serves `dash.css`, `dash.js` and `dash-utils.css` from another folder, to try a change (the node tests read it too, and `tools/utils.mjs` from there when it has one).
 
 ```sh
 npm i --no-save playwright-core && npx playwright-core install --only-shell chromium

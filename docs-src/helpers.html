@@ -1,0 +1,99 @@
+    <section id="basics" data-terms="Dash.$ Dash.esc Dash.on Dash.isNum Dash.version">
+      <h2>The basics</h2>
+      <p>The builders return HTML strings with every value escaped; put them in with <code>Dash.render</code> (or <code>innerHTML</code>), and handle clicks with one listener on a parent. Times are milliseconds. A missing number prints as <code>—</code>.</p>
+      <div class="table-wrap"><table class="table compact">
+        <thead><tr><th>Call</th><th>What it does</th></tr></thead>
+        <tbody>
+          <tr><td><code>Dash.$(id)</code></td><td>The element with that id.</td></tr>
+          <tr><td><code>Dash.esc(text)</code></td><td>Text made safe to put in HTML (<code>&lt;</code>, <code>&amp;</code>, quotes).</td></tr>
+          <tr><td><code>Dash.on(parent, type, selector, fn)</code></td><td>One listener on a parent for events on matching children: <code>fn(event, matched)</code>. It keeps working when the children are redrawn.</td></tr>
+          <tr><td><code>Dash.isNum(v)</code></td><td>True for a finite number, or text that is one (<code>'3'</code>); false for blanks, <code>null</code> and booleans.</td></tr>
+          <tr><td><code>Dash.version</code></td><td>The kit's version, <code>'1.9.0'</code>.</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section id="render" data-terms="Dash.render data-key">
+      <h2>Redrawing without losing the reader's place</h2>
+      <p><code>Dash.render(el, html, { force })</code> puts new HTML into a part of the page that refreshes. It skips the write when nothing changed, and while the reader is selecting text there. When it writes, it keeps the focused control (and what's typed in it, and the caret), which <code>&lt;details&gt;</code> are open, and how far inner boxes are scrolled. Elements are matched by <code>id</code>, else <code>data-key</code>. It returns true when it wrote. Type in the box below while it refreshes every second:</p>
+      <example>
+        <div id="ticking"></div>
+        <script>
+          let n = 0;
+          const draw = () => Dash.render('ticking', `<p>Refreshed ${++n} times.</p><input class="input" id="keep-typing" placeholder="Type here: it survives every refresh" style="max-width: 360px">`);
+          draw();
+          setInterval(draw, 1000);
+        </script>
+      </example>
+    </section>
+
+    <section id="numbers" data-terms="Dash.fmt Dash.fmt.num Dash.fmt.int Dash.fmt.compact Dash.fmt.usd Dash.fmt.pct Dash.fmt.share Dash.fmt.amount Dash.fmt.signed Dash.fmt.signedUsd Dash.fmt.dir Dash.fmt.short Dash.fmt.plural">
+      <h2>Numbers</h2>
+      <div class="table-wrap"><table class="table compact">
+        <thead><tr><th>Call</th><th>Gives</th></tr></thead>
+        <tbody>
+          <tr><td><code>Dash.fmt.num(1234.5, 2)</code>, <code>.int(1234567)</code></td><td><code>1,234.50</code>, <code>1,234,567</code></td></tr>
+          <tr><td><code>Dash.fmt.compact(n)</code></td><td><code>950</code>, <code>2.5k</code>, <code>15k</code>, <code>1.2M</code></td></tr>
+          <tr><td><code>Dash.fmt.usd(n, digits?)</code></td><td><code>$1,235</code> from $100, <code>$12.35</code> below</td></tr>
+          <tr><td><code>Dash.fmt.pct(12.34, 1)</code>, <code>.share(frac)</code></td><td><code>12.3%</code>; a share of 1 as <code>100%</code>, <code>12%</code>, <code>1.5%</code>, <code>&lt;0.1%</code></td></tr>
+          <tr><td><code>Dash.fmt.amount(n, 4)</code></td><td><code>0.1235</code>, and <code>&lt;0.0001</code> for less</td></tr>
+          <tr><td><code>Dash.fmt.signed(n, 4)</code>, <code>.signedUsd(n)</code></td><td><code>+1.2345</code>, <code>−0.0100</code>, <code>0</code>; <code>+$733</code></td></tr>
+          <tr><td><code>Dash.fmt.dir(n, eps)</code></td><td><code>'up'</code>, <code>'down'</code> or <code>'flat'</code>: the class for a change</td></tr>
+          <tr><td><code>Dash.fmt.short(text, 6, 6)</code></td><td><code>acct_7…k2m9xq</code>: a long id with its middle left out</td></tr>
+          <tr><td><code>Dash.fmt.plural(23, 'server')</code></td><td><code>23 servers</code>, <code>1 server</code></td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section id="times" data-terms="Dash.time Dash.ago Dash.until Dash.fmt.dur Dash.fmt.span Dash.fmt.ago Dash.fmt.clock Dash.fmt.when Dash.fmt.utc Dash.fmt.date Dash.fmt.time Dash.fmt.until">
+      <h2>Times</h2>
+      <p><code>Dash.time(x, { seconds })</code> turns what a server sends into milliseconds: milliseconds, a <code>Date</code>, ISO text (no zone means UTC), an HTTP date, or seconds with <code>seconds: true</code>; anything else is <code>NaN</code>. <code>Dash.ago(t)</code> and <code>Dash.until(t)</code> write a <code>&lt;time&gt;</code> that keeps itself current ("12 min ago", "in 3h 5m"; every 15 s), with the full time as its tooltip.</p>
+      <example>
+        <p id="times-box"></p>
+        <script>
+          Dash.render('times-box', `Deployed ${Dash.ago(Date.now() - 42 * 60e3)} · the next run ${Dash.until(Date.now() + 3 * 3600e3 + 5 * 60e3)} · took ${Dash.fmt.dur(11100e3)}`);
+        </script>
+      </example>
+      <div class="table-wrap"><table class="table compact">
+        <thead><tr><th>Call</th><th>Gives</th></tr></thead>
+        <tbody>
+          <tr><td><code>Dash.fmt.dur(ms)</code>, <code>.span(ms)</code></td><td><code>3h 5m</code>; <code>2.7 h</code></td></tr>
+          <tr><td><code>Dash.fmt.ago(t)</code>, <code>.until(t)</code></td><td><code>just now</code>, <code>40 s ago</code>, <code>12 min ago</code>, <code>2.5 h ago</code>, <code>3 d ago</code>; <code>in 3h 5m</code>, <code>now</code> (text, not kept current)</td></tr>
+          <tr><td><code>Dash.fmt.date(t, { utc })</code>, <code>.time(t, { seconds, utc })</code></td><td><code>Nov 21</code> (<code>Nov 21, 2025</code> in another year); <code>14:05:09</code>. Both read <code>t</code> as <code>Dash.time</code> does.</td></tr>
+          <tr><td><code>Dash.fmt.clock(t)</code>, <code>.when(t)</code>, <code>.utc(t)</code></td><td><code>14:05</code>; <code>Nov 21, 14:05</code>; <code>Nov 21, 02:22 UTC</code></td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section id="fetching" data-terms="Dash.api Dash.poll Dash.socket Dash.config.loginUrl etag">
+      <h2>Fetching and polling</h2>
+      <ul>
+        <li><code>Dash.api(url, { method, json, etag, headers })</code> fetches JSON. An error carries <code>.status</code> and the server's <code>{ error }</code> text. A 401 goes to <code>Dash.config.loginUrl</code> when it's set. <code>etag: true</code> reuses the last answer on a 304.</li>
+        <li><code>Dash.poll(fn, ms, { hiddenMs, live, staleAfter })</code> runs <code>fn</code> now and every <code>ms</code>, one run at a time, slower while the tab is hidden (<code>hiddenMs</code>) and again as soon as it's visible. <code>live</code> is the id of a <code>.live</code> status it keeps right (stale after <code>staleAfter</code>, three times <code>ms</code>). It returns <code>{ now(), stop() }</code>.</li>
+        <li><code>Dash.socket(path, { onMessage, onState, retryMs })</code> is a WebSocket that reconnects; a close with code 1008 goes to the sign-in page.</li>
+      </ul>
+      <pre class="code"><code>Dash.poll(async () =&gt; {
+  const servers = await Dash.api('/api/servers', { etag: true });
+  table.update(servers);
+}, 15000, { live: 'live' });</code></pre>
+    </section>
+
+    <section id="state" data-terms="Dash.store Dash.store.get Dash.store.set Dash.hash Dash.hash.get Dash.hash.set Dash.hash.on Dash.hash.parse Dash.hash.format Dash.config Dash.config.themeKey Dash.config.sideKey">
+      <h2>Remembering things</h2>
+      <ul>
+        <li><code>Dash.store.get(key, fallback)</code> and <code>.set(key, value)</code>: JSON in the browser's storage that never throws (a private window, blocked storage: you get the fallback).</li>
+        <li><code>Dash.hash</code>: the part of the address after <code>#</code> as settings, <code>#view=list&amp;id=7</code>. <code>.get(key)</code>, <code>.set({ key: value }, { push })</code> (null removes a key; <code>push</code> adds a history entry), <code>.on(fn)</code> when it changes, <code>.parse(text)</code> and <code>.format(object)</code>.</li>
+        <li><code>Dash.config</code>: <code>loginUrl</code> (null), <code>themeKey</code> (<code>'dash.theme'</code>), <code>sideKey</code> (<code>'dash.side'</code>) and <code>csp</code> (false; see <a href="charts.html#strict">strict style policies</a>).</li>
+      </ul>
+    </section>
+
+    <section id="keys" data-terms="Dash.key Dash.match shortcuts">
+      <h2>Shortcuts and matching</h2>
+      <p><code>Dash.key(combo, fn, { inInputs })</code> adds a keyboard shortcut (<code>'/'</code>, <code>'g'</code>, <code>'mod+k'</code>, <code>'shift+?'</code>) that stays quiet while the reader types in a box, and returns a function that removes it. <code>Dash.match(row, query, fields)</code> is true when every word of the query is in one of the row's fields, in any case: the search behind <code>Dash.table</code>'s filters and the suggestions.</p>
+      <example>
+        <p>Press <kbd>g</kbd> on this page (outside a text box).</p>
+        <script>
+          Dash.key('g', () => Dash.toast('You pressed g'));
+        </script>
+      </example>
+    </section>

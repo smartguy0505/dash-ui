@@ -1,0 +1,61 @@
+    <section id="display" data-terms="block inline-block inline flex inline-flex inline-grid contents flow-root list-item hidden">
+      <h2>Display</h2>
+      <p>How a box lays itself out. <code>hidden</code> removes it; with a width prefix it shows or hides from that width (<code>hidden md:flex</code>). <code>grid</code> is the kit's own grid (see <a href="utilities.html#names">names the kit uses</a>); <code>sm:grid</code> and the like are plain <code>display: grid</code>.</p>
+      <utilities group="display"></utilities>
+      <example>
+        <div class="flex gap-2"><span class="tag plain">flex</span><span class="tag plain">items</span><span class="tag plain hidden md:inline-flex">shown from md</span></div>
+      </example>
+    </section>
+
+    <section id="position" data-terms="static relative absolute fixed sticky inset top right bottom left z">
+      <h2>Position, inset and layers</h2>
+      <p><code>relative</code>, <code>absolute</code>, <code>fixed</code> and <code>sticky</code>, then where: <code>inset-0</code>, <code>top-2</code>, <code>right-0</code>, <code>-top-1</code>, <code>inset-x-0</code>, <code>left-1/2</code>. <code>z-*</code> sets the layer.</p>
+      <utilities group="position"></utilities>
+      <utilities group="inset"></utilities>
+      <utilities group="z-index"></utilities>
+      <example>
+        <div class="relative panel p-6"><span class="absolute top-2 right-2 tag warn">New</span>A panel with a tag pinned to its corner.</div>
+      </example>
+    </section>
+
+    <section id="overflow" data-terms="overflow overflow-x overflow-y box-border box-content float clear isolate">
+      <h2>Overflow and the box</h2>
+      <utilities group="overflow"></utilities>
+      <utilities group="box"></utilities>
+    </section>
+
+    <section id="visibility" data-terms="visible invisible group-hover:visible">
+      <h2>Showing on hover</h2>
+      <p><code>invisible group-hover:visible</code> keeps a control's space but shows it only while its row is hovered (and <code>focus-within:visible</code> while it has the focus, for the keyboard).</p>
+      <utilities group="visibility on hover"></utilities>
+    </section>
+
+    <section id="flex" data-terms="flex-row flex-col flex-wrap flex-1 flex-auto flex-none grow-0 shrink shrink-0 basis order">
+      <h2>Flex</h2>
+      <p>The direction, wrapping and sizes of flex items. <code>grow</code> is the kit's <code>flex: 1; min-width: 0</code>.</p>
+      <utilities group="flex"></utilities>
+      <example>
+        <div class="flex flex-col sm:flex-row gap-3">
+          <div class="panel p-3 flex-1">flex-1</div><div class="panel p-3 flex-none w-40">flex-none w-40</div><div class="panel p-3 flex-1">flex-1</div>
+        </div>
+      </example>
+    </section>
+
+    <section id="grid" data-terms="grid-cols grid-cols-fit col-span col-start grid-rows row-span grid-flow">
+      <h2>Grid</h2>
+      <p>Columns and spans. <code>grid-cols-fit-48</code> puts as many columns as fit, each at least 192 px (<code>-32</code> to <code>-96</code>: 128 to 384 px), for cards that wrap with no width prefixes at all.</p>
+      <utilities group="grid"></utilities>
+      <example>
+        <div class="grid grid-cols-fit-40 gap-3">
+          <div class="panel p-3">One</div><div class="panel p-3">Two</div><div class="panel p-3">Three</div><div class="panel p-3">Four</div><div class="panel p-3">Five</div>
+        </div>
+      </example>
+    </section>
+
+    <section id="alignment" data-terms="justify items self content place justify-items">
+      <h2>Alignment</h2>
+      <utilities group="alignment"></utilities>
+      <example>
+        <div class="flex items-center justify-between gap-3 p-3 rounded-lg bg-soft"><b>web-1</b><span class="pill ok"><span class="dot"></span>Healthy</span></div>
+      </example>
+    </section>

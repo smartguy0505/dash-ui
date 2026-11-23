@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="en" data-kit="../">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Forms · dash-ui</title>
+<meta name="description" content="Inputs, fields, selects, input groups, checkboxes and radios, choices, switches, sliders, file drops, suggestions and dates.">
+<link rel="stylesheet" href="../dash.css">
+<link rel="stylesheet" href="../dash-utils.css">
+<link rel="stylesheet" href="docs.css">
+<script src="../dash.js"></script>
+</head>
+<body>
+<!-- dash-ui 1.9.0 docs, written by tools/docs.mjs from docs-src/forms.html: edit that, not this -->
+<header class="topbar">
+  <button type="button" class="icon-btn docs-menu" data-toggle-side aria-label="Pages"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3 5h12M3 9h12M3 13h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+  <a class="brand" href="./"><span class="mark">d</span><h1>dash-ui</h1></a><span class="tag plain docs-version">1.9.0</span>
+  <div class="top-right">
+    <label class="search docs-search"><span class="sr-only">Search the docs</span><svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.6"/><path d="m11 11 3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><input class="input" type="search" id="docs-search" placeholder="Search" aria-keyshortcuts="/"><kbd class="docs-key">/</kbd></label>
+    <div class="seg" role="group" aria-label="Theme"><button type="button" data-theme-set="system">Auto</button><button type="button" data-theme-set="light">Light</button><button type="button" data-theme-set="dark">Dark</button></div>
+  </div>
+</header>
+<div class="shell offcanvas">
+  <nav class="sidebar" aria-label="Pages"><div class="side-head">Start</div><a class="nav-item" href="./"><span class="nav-main"><span class="nav-name">Getting started</span></span></a><div class="side-head">Foundations</div><a class="nav-item" href="colours.html"><span class="nav-main"><span class="nav-name">Colours and themes</span></span></a><a class="nav-item" href="layout.html"><span class="nav-main"><span class="nav-name">Page layout</span></span></a><a class="nav-item" href="text.html"><span class="nav-main"><span class="nav-name">Text and labels</span></span></a><div class="side-head">Components</div><a class="nav-item" href="buttons.html"><span class="nav-main"><span class="nav-name">Buttons</span></span></a><a class="nav-item" href="forms.html" aria-current="page"><span class="nav-main"><span class="nav-name">Forms</span></span></a><a class="nav-item" href="surfaces.html"><span class="nav-main"><span class="nav-name">Panels and cards</span></span></a><a class="nav-item" href="navigation.html"><span class="nav-main"><span class="nav-name">Navigation</span></span></a><a class="nav-item" href="tables.html"><span class="nav-main"><span class="nav-name">Tables</span></span></a><a class="nav-item" href="charts.html"><span class="nav-main"><span class="nav-name">Charts and progress</span></span></a><a class="nav-item" href="overlays.html"><span class="nav-main"><span class="nav-name">Modals and popups</span></span></a><a class="nav-item" href="feedback.html"><span class="nav-main"><span class="nav-name">Feedback</span></span></a><div class="side-head">JavaScript</div><a class="nav-item" href="helpers.html"><span class="nav-main"><span class="nav-name">dash.js helpers</span></span></a><div class="side-head">Utilities</div><a class="nav-item" href="utilities.html"><span class="nav-main"><span class="nav-name">Utility classes</span></span></a><a class="nav-item" href="utilities-layout.html"><span class="nav-main"><span class="nav-name">Layout utilities</span></span></a><a class="nav-item" href="utilities-spacing.html"><span class="nav-main"><span class="nav-name">Spacing utilities</span></span></a><a class="nav-item" href="utilities-sizing.html"><span class="nav-main"><span class="nav-name">Sizing utilities</span></span></a><a class="nav-item" href="utilities-type.html"><span class="nav-main"><span class="nav-name">Type utilities</span></span></a><a class="nav-item" href="utilities-colour.html"><span class="nav-main"><span class="nav-name">Colour utilities</span></span></a><a class="nav-item" href="utilities-effects.html"><span class="nav-main"><span class="nav-name">Borders and effects</span></span></a></nav>
+  <main class="content docs" id="top">
+    <header class="docs-head"><p class="docs-group">Components</p><h1>Forms</h1><p class="docs-blurb">Inputs, fields, selects, input groups, checkboxes and radios, choices, switches, sliders, file drops, suggestions and dates.</p><nav class="chips docs-toc" aria-label="On this page"><a class="chip" href="#inputs">Inputs</a><a class="chip" href="#fields">Fields</a><a class="chip" href="#search">Search boxes</a><a class="chip" href="#select">Selects</a><a class="chip" href="#input-group">Input groups</a><a class="chip" href="#checks">Checkboxes and radios</a><a class="chip" href="#choices">Choices as cards</a><a class="chip" href="#switch">Switches</a><a class="chip" href="#slider">Sliders</a><a class="chip" href="#dropzone">Dropping files</a><a class="chip" href="#combobox">Suggestions</a><a class="chip" href="#datepicker">Dates</a></nav></header>
+<section id="inputs" data-terms=".input .mono .sm .lg textarea .autosize --max-h">
+      <h2>Inputs</h2>
+      <p><code>.input</code> styles a text box, a <code>select</code> and a <code>textarea</code> alike. <code>.input.mono</code> is for addresses and ids; <code>.input.sm</code> and <code>.input.lg</code> change its size. <code>textarea.input.autosize</code> grows as it's typed into, up to <code>--max-h</code> (320 px), where the browser supports <code>field-sizing</code> (elsewhere it keeps its size).</p>
+      <figure class="example" id="ex-1"><div class="example-view">
+<div class="vstack" style="max-width: 420px">
+  <input class="input" aria-label="Name" placeholder="Name">
+  <input class="input mono" aria-label="Account" value="acct_7f2k9m">
+  <div class="row"><input class="input sm" aria-label="Small" placeholder="Small"><input class="input lg" aria-label="Large" placeholder="Large"></div>
+  <textarea class="input autosize" aria-label="Notes" placeholder="Notes: this box grows as you type"></textarea>
+</div>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;div class=&quot;vstack&quot; style=&quot;max-width: 420px&quot;&gt;
+  &lt;input class=&quot;input&quot; aria-label=&quot;Name&quot; placeholder=&quot;Name&quot;&gt;
+  &lt;input class=&quot;input mono&quot; aria-label=&quot;Account&quot; value=&quot;acct_7f2k9m&quot;&gt;
+  &lt;div class=&quot;row&quot;&gt;&lt;input class=&quot;input sm&quot; aria-label=&quot;Small&quot; placeholder=&quot;Small&quot;&gt;&lt;input class=&quot;input lg&quot; aria-label=&quot;Large&quot; placeholder=&quot;Large&quot;&gt;&lt;/div&gt;
+  &lt;textarea class=&quot;input autosize&quot; aria-label=&quot;Notes&quot; placeholder=&quot;Notes: this box grows as you type&quot;&gt;&lt;/textarea&gt;
+&lt;/div&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;vstack&quot;</span> <span class="c-attr">style</span>=<span class="c-str">&quot;max-width: 420px&quot;</span>&gt;
+  &lt;<span class="c-tag">input</span> <span class="c-attr">class</span>=<span class="c-str">&quot;input&quot;</span> <span class="c-attr">aria-label</span>=<span class="c-str">&quot;Name&quot;</span> <span class="c-attr">placeholder</span>=<span class="c-str">&quot;Name&quot;</span>&gt;
+  &lt;<span class="c-tag">input</span> <span class="c-attr">class</span>=<span class="c-str">&quot;input mono&quot;</span> <span class="c-attr">aria-label</span>=<span class="c-str">&quot;Account&quot;</span> <span class="c-attr">value</span>=<span class="c-str">&quot;acct_7f2k9m&quot;</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;row&quot;</span>&gt;&lt;<span class="c-tag">input</span> <span class="c-attr">class</span>=<span class="c-str">&quot;input sm&quot;</span> <span class="c-attr">aria-label</span>=<span class="c-str">&quot;Small&quot;</span> <span class="c-attr">placeholder</span>=<span class="c-str">&quot;Small&quot;</span>&gt;&lt;<span class="c-tag">input</span> <span class="c-attr">class</span>=<span class="c-str">&quot;input lg&quot;</span> <span class="c-attr">aria-label</span>=<span class="c-str">&quot;Large&quot;</span> <span class="c-attr">placeholder</span>=<span class="c-str">&quot;Large&quot;</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+  &lt;<span class="c-tag">textarea</span> <span class="c-attr">class</span>=<span class="c-str">&quot;input autosize&quot;</span> <span class="c-attr">aria-label</span>=<span class="c-str">&quot;Notes&quot;</span> <span class="c-attr">placeholder</span>=<span class="c-str">&quot;Notes: this box grows as you type&quot;</span>&gt;&lt;/<span class="c-tag">textarea</span>&gt;
+&lt;/<span class="c-tag">div</span>&gt;</code></pre></figure>
+    </section>
+
+    <section id="fields" data-terms=".field .field-label .hint .err .invalid">
+      <h2>Fields</h2>
+      <p><code>.field</code> stacks a <code>label</code>, the input, then a <code>.hint</code> or an <code>.err</code>. <code>.field.invalid</code> turns it red; set <code>aria-invalid="true"</code> on the input as well, and point <code>aria-describedby</code> at the message. <code>.field-label</code> is the same label for a group that isn't one input (a row of choices).</p>
+      <figure class="example" id="ex-2"><div class="example-view">
+<div style="max-width: 420px">
+  <div class="field"><label for="f-name">Name</label><input class="input" id="f-name" value="Treasury" aria-describedby="f-name-hint"><div class="hint" id="f-name-hint">Shown in the table.</div></div>
+  <div class="field invalid"><label for="f-acct">Account ID</label><input class="input mono" id="f-acct" value="acct_bad" aria-invalid="true" aria-describedby="f-acct-err"><div class="err" id="f-acct-err">That isn't a valid account ID.</div></div>
+</div>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;div style=&quot;max-width: 420px&quot;&gt;
+  &lt;div class=&quot;field&quot;&gt;&lt;label for=&quot;f-name&quot;&gt;Name&lt;/label&gt;&lt;input class=&quot;input&quot; id=&quot;f-name&quot; value=&quot;Treasury&quot; aria-describedby=&quot;f-name-hint&quot;&gt;&lt;div class=&quot;hint&quot; id=&quot;f-name-hint&quot;&gt;Shown in the table.&lt;/div&gt;&lt;/div&gt;
+  &lt;div class=&quot;field invalid&quot;&gt;&lt;label for=&quot;f-acct&quot;&gt;Account ID&lt;/label&gt;&lt;input class=&quot;input mono&quot; id=&quot;f-acct&quot; value=&quot;acct_bad&quot; aria-invalid=&quot;true&quot; aria-describedby=&quot;f-acct-err&quot;&gt;&lt;div class=&quot;err&quot; id=&quot;f-acct-err&quot;&gt;That isn&#39;t a valid account ID.&lt;/div&gt;&lt;/div&gt;
+&lt;/div&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">div</span> <span class="c-attr">style</span>=<span class="c-str">&quot;max-width: 420px&quot;</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;field&quot;</span>&gt;&lt;<span class="c-tag">label</span> <span class="c-attr">for</span>=<span class="c-str">&quot;f-name&quot;</span>&gt;Name&lt;/<span class="c-tag">label</span>&gt;&lt;<span class="c-tag">input</span> <span class="c-attr">class</span>=<span class="c-str">&quot;input&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;f-name&quot;</span> <span class="c-attr">value</span>=<span class="c-str">&quot;Treasury&quot;</span> <span class="c-attr">aria-describedby</span>=<span class="c-str">&quot;f-name-hint&quot;</span>&gt;&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;hint&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;f-name-hint&quot;</span>&gt;Shown in the table.&lt;/<span class="c-tag">div</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;field invalid&quot;</span>&gt;&lt;<span class="c-tag">label</span> <span class="c-attr">for</span>=<span class="c-str">&quot;f-acct&quot;</span>&gt;Account ID&lt;/<span class="c-tag">label</span>&gt;&lt;<span class="c-tag">input</span> <span class="c-attr">class</span>=<span class="c-str">&quot;input mono&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;f-acct&quot;</span> <span class="c-attr">value</span>=<span class="c-str">&quot;acct_bad&quot;</span> <span class="c-attr">aria-invalid</span>=<span class="c-str">&quot;true&quot;</span> <span class="c-attr">aria-describedby</span>=<span class="c-str">&quot;f-acct-err&quot;</span>&gt;&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;err&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;f-acct-err&quot;</span>&gt;That isn&#39;t a valid account ID.&lt;/<span class="c-tag">div</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+&lt;/<span class="c-tag">div</span>&gt;</code></pre></figure>
+    </section>
+
+    <section id="search" data-terms=".search .count --count-w Dash.search">
+      <h2>Search boxes</h2>
+      <p><code>.search</code> wraps an input with an icon and an optional <code>.count</code>. <code>Dash.search(input, { onChange, debounce, key, store })</code> calls <code>onChange(query)</code> once typing pauses; Escape clears it, <code>/</code> jumps to it, and <code>.count(shown, total)</code> fills the count. With <code>store</code> the last query comes back on the next visit.</p>
+      <figure class="example" id="ex-3"><div class="example-view">
+<label class="search" style="max-width: 360px"><span class="sr-only">Search servers</span>
+  <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.6"/><path d="m11 11 3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+  <input class="input" type="search" id="server-search" placeholder="Search servers"><span class="count"></span>
+</label>
+<ul class="mt-2" id="server-list"></ul>
+<script>
+  const servers = ['web-1 Frankfurt', 'web-2 Frankfurt', 'db-1 Dublin', 'queue-1 Dublin', 'web-3 Virginia'];
+  const box = Dash.search('server-search', {
+    onChange: (q) => {
+      const shown = servers.filter((s) => Dash.match({ s }, q));
+      Dash.render('server-list', shown.map((s) => `<li>${Dash.esc(s)}</li>`).join(''));
+      box.count(shown.length, servers.length);
+    },
+  });
+  box.count(servers.length, servers.length);
+  Dash.render('server-list', servers.map((s) => `<li>${Dash.esc(s)}</li>`).join(''));
+</script>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;label class=&quot;search&quot; style=&quot;max-width: 360px&quot;&gt;&lt;span class=&quot;sr-only&quot;&gt;Search servers&lt;/span&gt;
+  &lt;svg width=&quot;15&quot; height=&quot;15&quot; viewBox=&quot;0 0 16 16&quot; fill=&quot;none&quot; aria-hidden=&quot;true&quot;&gt;&lt;circle cx=&quot;7&quot; cy=&quot;7&quot; r=&quot;5&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;1.6&quot;/&gt;&lt;path d=&quot;m11 11 3.5 3.5&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;1.6&quot; stroke-linecap=&quot;round&quot;/&gt;&lt;/svg&gt;
+  &lt;input class=&quot;input&quot; type=&quot;search&quot; id=&quot;server-search&quot; placeholder=&quot;Search servers&quot;&gt;&lt;span class=&quot;count&quot;&gt;&lt;/span&gt;
+&lt;/label&gt;
+&lt;ul class=&quot;mt-2&quot; id=&quot;server-list&quot;&gt;&lt;/ul&gt;
+&lt;script&gt;
+  const servers = [&#39;web-1 Frankfurt&#39;, &#39;web-2 Frankfurt&#39;, &#39;db-1 Dublin&#39;, &#39;queue-1 Dublin&#39;, &#39;web-3 Virginia&#39;];
+  const box = Dash.search(&#39;server-search&#39;, {
+    onChange: (q) =&gt; {
+      const shown = servers.filter((s) =&gt; Dash.match({ s }, q));
+      Dash.render(&#39;server-list&#39;, shown.map((s) =&gt; `&lt;li&gt;${Dash.esc(s)}&lt;/li&gt;`).join(&#39;&#39;));
+      box.count(shown.length, servers.length);
+    },
+  });
+  box.count(servers.length, servers.length);
+  Dash.render(&#39;server-list&#39;, servers.map((s) =&gt; `&lt;li&gt;${Dash.esc(s)}&lt;/li&gt;`).join(&#39;&#39;));
+&lt;/script&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">label</span> <span class="c-attr">class</span>=<span class="c-str">&quot;search&quot;</span> <span class="c-attr">style</span>=<span class="c-str">&quot;max-width: 360px&quot;</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;sr-only&quot;</span>&gt;Search servers&lt;/<span class="c-tag">span</span>&gt;
+  &lt;<span class="c-tag">svg</span> <span class="c-attr">width</span>=<span class="c-str">&quot;15&quot;</span> <span class="c-attr">height</span>=<span class="c-str">&quot;15&quot;</span> <span class="c-attr">viewBox</span>=<span class="c-str">&quot;0 0 16 16&quot;</span> <span class="c-attr">fill</span>=<span class="c-str">&quot;none&quot;</span> <span class="c-attr">aria-hidden</span>=<span class="c-str">&quot;true&quot;</span>&gt;&lt;<span class="c-tag">circle</span> <span class="c-attr">cx</span>=<span class="c-str">&quot;7&quot;</span> <span class="c-attr">cy</span>=<span class="c-str">&quot;7&quot;</span> <span class="c-attr">r</span>=<span class="c-str">&quot;5&quot;</span> <span class="c-attr">stroke</span>=<span class="c-str">&quot;currentColor&quot;</span> <span class="c-attr">stroke-width</span>=<span class="c-str">&quot;1.6&quot;</span>/&gt;&lt;<span class="c-tag">path</span> <span class="c-attr">d</span>=<span class="c-str">&quot;m11 11 3.5 3.5&quot;</span> <span class="c-attr">stroke</span>=<span class="c-str">&quot;currentColor&quot;</span> <span class="c-attr">stroke-width</span>=<span class="c-str">&quot;1.6&quot;</span> <span class="c-attr">stroke-linecap</span>=<span class="c-str">&quot;round&quot;</span>/&gt;&lt;/<span class="c-tag">svg</span>&gt;
+  &lt;<span class="c-tag">input</span> <span class="c-attr">class</span>=<span class="c-str">&quot;input&quot;</span> <span class="c-attr">type</span>=<span class="c-str">&quot;search&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;server-search&quot;</span> <span class="c-attr">placeholder</span>=<span class="c-str">&quot;Search servers&quot;</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;count&quot;</span>&gt;&lt;/<span class="c-tag">span</span>&gt;
+&lt;/<span class="c-tag">label</span>&gt;
+&lt;<span class="c-tag">ul</span> <span class="c-attr">class</span>=<span class="c-str">&quot;mt-2&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;server-list&quot;</span>&gt;&lt;/<span class="c-tag">ul</span>&gt;
+&lt;<span class="c-tag">script</span>&gt;
+  <span class="c-key">const</span> servers = [<span class="c-str">&#39;web-1 Frankfurt&#39;</span>, <span class="c-str">&#39;web-2 Frankfurt&#39;</span>, <span class="c-str">&#39;db-1 Dublin&#39;</span>, <span class="c-str">&#39;queue-1 Dublin&#39;</span>, <span class="c-str">&#39;web-3 Virginia&#39;</span>];
+  <span class="c-key">const</span> box = <span class="c-fn">Dash</span>.search(<span class="c-str">&#39;server-search&#39;</span>, {
+    onChange: (q) =&gt; {
+      <span class="c-key">const</span> shown = servers.filter((s) =&gt; <span class="c-fn">Dash</span>.match({ s }, q));
+      <span class="c-fn">Dash</span>.render(<span class="c-str">&#39;server-list&#39;</span>, shown.map((s) =&gt; <span class="c-str">`&lt;li&gt;${Dash.esc(s)}&lt;/li&gt;`</span>).join(<span class="c-str">&#39;&#39;</span>));
+      box.count(shown.length, servers.length);
+    },
+  });
+  box.count(servers.length, servers.length);
+  <span class="c-fn">Dash</span>.render(<span class="c-str">&#39;server-list&#39;</span>, servers.map((s) =&gt; <span class="c-str">`&lt;li&gt;${Dash.esc(s)}&lt;/li&gt;`</span>).join(<span class="c-str">&#39;&#39;</span>));
+&lt;/<span class="c-tag">script</span>&gt;</code></pre></figure>
+    </section>
+
+    <section id="select" data-terms=".select">
+      <h2>Selects</h2>
+      <p>Wrap a <code>&lt;select class="input"&gt;</code> in <code>.select</code> to give it the kit's arrow in place of the browser's. Inside a <code>.field</code> it is full width.</p>
+      <figure class="example" id="ex-4"><div class="example-view">
+<div class="field" style="max-width: 320px"><label for="f-region">Region</label><span class="select"><select class="input" id="f-region"><option>eu-west (Frankfurt)</option><option>eu-north (Stockholm)</option><option>us-east (Virginia)</option></select></span></div>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;div class=&quot;field&quot; style=&quot;max-width: 320px&quot;&gt;&lt;label for=&quot;f-region&quot;&gt;Region&lt;/label&gt;&lt;span class=&quot;select&quot;&gt;&lt;select class=&quot;input&quot; id=&quot;f-region&quot;&gt;&lt;option&gt;eu-west (Frankfurt)&lt;/option&gt;&lt;option&gt;eu-north (Stockholm)&lt;/option&gt;&lt;option&gt;us-east (Virginia)&lt;/option&gt;&lt;/select&gt;&lt;/span&gt;&lt;/div&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;field&quot;</span> <span class="c-attr">style</span>=<span class="c-str">&quot;max-width: 320px&quot;</span>&gt;&lt;<span class="c-tag">label</span> <span class="c-attr">for</span>=<span class="c-str">&quot;f-region&quot;</span>&gt;Region&lt;/<span class="c-tag">label</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;select&quot;</span>&gt;&lt;<span class="c-tag">select</span> <span class="c-attr">class</span>=<span class="c-str">&quot;input&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;f-region&quot;</span>&gt;&lt;<span class="c-tag">option</span>&gt;eu-west (Frankfurt)&lt;/<span class="c-tag">option</span>&gt;&lt;<span class="c-tag">option</span>&gt;eu-north (Stockholm)&lt;/<span class="c-tag">option</span>&gt;&lt;<span class="c-tag">option</span>&gt;us-east (Virginia)&lt;/<span class="c-tag">option</span>&gt;&lt;/<span class="c-tag">select</span>&gt;&lt;/<span class="c-tag">span</span>&gt;&lt;/<span class="c-tag">div</span>&gt;</code></pre></figure>
+    </section>
+
+    <section id="input-group" data-terms=".input-group .affix">
+      <h2>Input groups</h2>
+      <p><code>.input-group</code> joins an input to text and buttons around it: <code>.affix</code> for a unit or a prefix, <code>.btn</code> for an action, and a <code>.select</code> too.</p>
+      <figure class="example" id="ex-5"><div class="example-view">
+<div class="vstack" style="max-width: 420px">
+  <div class="input-group"><span class="affix">$</span><input class="input" aria-label="Monthly limit" value="250" inputmode="decimal"><span class="affix">USD</span><button type="button" class="btn">Set</button></div>
+  <div class="input-group"><span class="select"><select class="input" aria-label="Protocol"><option>https://</option><option>http://</option></select></span><input class="input" aria-label="Address" placeholder="status.example.com"></div>
+</div>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;div class=&quot;vstack&quot; style=&quot;max-width: 420px&quot;&gt;
+  &lt;div class=&quot;input-group&quot;&gt;&lt;span class=&quot;affix&quot;&gt;$&lt;/span&gt;&lt;input class=&quot;input&quot; aria-label=&quot;Monthly limit&quot; value=&quot;250&quot; inputmode=&quot;decimal&quot;&gt;&lt;span class=&quot;affix&quot;&gt;USD&lt;/span&gt;&lt;button type=&quot;button&quot; class=&quot;btn&quot;&gt;Set&lt;/button&gt;&lt;/div&gt;
+  &lt;div class=&quot;input-group&quot;&gt;&lt;span class=&quot;select&quot;&gt;&lt;select class=&quot;input&quot; aria-label=&quot;Protocol&quot;&gt;&lt;option&gt;https://&lt;/option&gt;&lt;option&gt;http://&lt;/option&gt;&lt;/select&gt;&lt;/span&gt;&lt;input class=&quot;input&quot; aria-label=&quot;Address&quot; placeholder=&quot;status.example.com&quot;&gt;&lt;/div&gt;
+&lt;/div&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;vstack&quot;</span> <span class="c-attr">style</span>=<span class="c-str">&quot;max-width: 420px&quot;</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;input-group&quot;</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;affix&quot;</span>&gt;$&lt;/<span class="c-tag">span</span>&gt;&lt;<span class="c-tag">input</span> <span class="c-attr">class</span>=<span class="c-str">&quot;input&quot;</span> <span class="c-attr">aria-label</span>=<span class="c-str">&quot;Monthly limit&quot;</span> <span class="c-attr">value</span>=<span class="c-str">&quot;250&quot;</span> <span class="c-attr">inputmode</span>=<span class="c-str">&quot;decimal&quot;</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;affix&quot;</span>&gt;USD&lt;/<span class="c-tag">span</span>&gt;&lt;<span class="c-tag">button</span> <span class="c-attr">type</span>=<span class="c-str">&quot;button&quot;</span> <span class="c-attr">class</span>=<span class="c-str">&quot;btn&quot;</span>&gt;Set&lt;/<span class="c-tag">button</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;input-group&quot;</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;select&quot;</span>&gt;&lt;<span class="c-tag">select</span> <span class="c-attr">class</span>=<span class="c-str">&quot;input&quot;</span> <span class="c-attr">aria-label</span>=<span class="c-str">&quot;Protocol&quot;</span>&gt;&lt;<span class="c-tag">option</span>&gt;https://&lt;/<span class="c-tag">option</span>&gt;&lt;<span class="c-tag">option</span>&gt;http://&lt;/<span class="c-tag">option</span>&gt;&lt;/<span class="c-tag">select</span>&gt;&lt;/<span class="c-tag">span</span>&gt;&lt;<span class="c-tag">input</span> <span class="c-attr">class</span>=<span class="c-str">&quot;input&quot;</span> <span class="c-attr">aria-label</span>=<span class="c-str">&quot;Address&quot;</span> <span class="c-attr">placeholder</span>=<span class="c-str">&quot;status.example.com&quot;</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+&lt;/<span class="c-tag">div</span>&gt;</code></pre></figure>
+    </section>
+
+    <section id="checks" data-terms=".checkline .checks .across checkbox radio fieldset">
+      <h2>Checkboxes and radios</h2>
+      <p><code>.checkline</code> is a checkbox or radio with its label. <code>.checks</code> stacks a few, and <code>.checks.across</code> puts them on one line. Give the group a name: <code>role="group"</code> (or <code>radiogroup</code>) and an <code>aria-label</code>, or a <code>fieldset</code> with a <code>legend</code>.</p>
+      <figure class="example" id="ex-6"><div class="example-view">
+<p class="field-label" id="notify-label">Tell me about</p>
+<div class="checks" role="group" aria-labelledby="notify-label">
+  <label class="checkline"><input type="checkbox" checked> Outages</label>
+  <label class="checkline"><input type="checkbox" checked> Deploys</label>
+  <label class="checkline"><input type="checkbox"> Weekly summary</label>
+</div>
+<div class="checks across" role="radiogroup" aria-label="Billing">
+  <label class="checkline"><input type="radio" name="bill" checked> Monthly</label>
+  <label class="checkline"><input type="radio" name="bill"> Yearly</label>
+</div>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;p class=&quot;field-label&quot; id=&quot;notify-label&quot;&gt;Tell me about&lt;/p&gt;
+&lt;div class=&quot;checks&quot; role=&quot;group&quot; aria-labelledby=&quot;notify-label&quot;&gt;
+  &lt;label class=&quot;checkline&quot;&gt;&lt;input type=&quot;checkbox&quot; checked&gt; Outages&lt;/label&gt;
+  &lt;label class=&quot;checkline&quot;&gt;&lt;input type=&quot;checkbox&quot; checked&gt; Deploys&lt;/label&gt;
+  &lt;label class=&quot;checkline&quot;&gt;&lt;input type=&quot;checkbox&quot;&gt; Weekly summary&lt;/label&gt;
+&lt;/div&gt;
+&lt;div class=&quot;checks across&quot; role=&quot;radiogroup&quot; aria-label=&quot;Billing&quot;&gt;
+  &lt;label class=&quot;checkline&quot;&gt;&lt;input type=&quot;radio&quot; name=&quot;bill&quot; checked&gt; Monthly&lt;/label&gt;
+  &lt;label class=&quot;checkline&quot;&gt;&lt;input type=&quot;radio&quot; name=&quot;bill&quot;&gt; Yearly&lt;/label&gt;
+&lt;/div&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">p</span> <span class="c-attr">class</span>=<span class="c-str">&quot;field-label&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;notify-label&quot;</span>&gt;Tell me about&lt;/<span class="c-tag">p</span>&gt;
+&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;checks&quot;</span> <span class="c-attr">role</span>=<span class="c-str">&quot;group&quot;</span> <span class="c-attr">aria-labelledby</span>=<span class="c-str">&quot;notify-label&quot;</span>&gt;
+  &lt;<span class="c-tag">label</span> <span class="c-attr">class</span>=<span class="c-str">&quot;checkline&quot;</span>&gt;&lt;<span class="c-tag">input</span> <span class="c-attr">type</span>=<span class="c-str">&quot;checkbox&quot;</span> <span class="c-attr">checked</span>&gt; Outages&lt;/<span class="c-tag">label</span>&gt;
+  &lt;<span class="c-tag">label</span> <span class="c-attr">class</span>=<span class="c-str">&quot;checkline&quot;</span>&gt;&lt;<span class="c-tag">input</span> <span class="c-attr">type</span>=<span class="c-str">&quot;checkbox&quot;</span> <span class="c-attr">checked</span>&gt; Deploys&lt;/<span class="c-tag">label</span>&gt;
+  &lt;<span class="c-tag">label</span> <span class="c-attr">class</span>=<span class="c-str">&quot;checkline&quot;</span>&gt;&lt;<span class="c-tag">input</span> <span class="c-attr">type</span>=<span class="c-str">&quot;checkbox&quot;</span>&gt; Weekly summary&lt;/<span class="c-tag">label</span>&gt;
+&lt;/<span class="c-tag">div</span>&gt;
+&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;checks across&quot;</span> <span class="c-attr">role</span>=<span class="c-str">&quot;radiogroup&quot;</span> <span class="c-attr">aria-label</span>=<span class="c-str">&quot;Billing&quot;</span>&gt;
+  &lt;<span class="c-tag">label</span> <span class="c-attr">class</span>=<span class="c-str">&quot;checkline&quot;</span>&gt;&lt;<span class="c-tag">input</span> <span class="c-attr">type</span>=<span class="c-str">&quot;radio&quot;</span> <span class="c-attr">name</span>=<span class="c-str">&quot;bill&quot;</span> <span class="c-attr">checked</span>&gt; Monthly&lt;/<span class="c-tag">label</span>&gt;
+  &lt;<span class="c-tag">label</span> <span class="c-attr">class</span>=<span class="c-str">&quot;checkline&quot;</span>&gt;&lt;<span class="c-tag">input</span> <span class="c-attr">type</span>=<span class="c-str">&quot;radio&quot;</span> <span class="c-attr">name</span>=<span class="c-str">&quot;bill&quot;</span>&gt; Yearly&lt;/<span class="c-tag">label</span>&gt;
+&lt;/<span class="c-tag">div</span>&gt;</code></pre></figure>
+    </section>
+
+    <section id="choices" data-terms=".choices .choice .choice-body --choice-min">
+      <h2>Choices as cards</h2>
+      <p><code>.choices</code> makes radios (or checkboxes) into cards: each a <code>label.choice</code> holding the input, then a <code>.choice-body</code> with a <code>b</code> and a <code>.hint</code>. The checked one is outlined in its tone (blue by default). <code>--choice-min</code> (200 px) is how narrow a card gets before they stack.</p>
+      <figure class="example" id="ex-7"><div class="example-view">
+<p class="field-label" id="plan-label">Plan</p>
+<div class="choices" role="radiogroup" aria-labelledby="plan-label">
+  <label class="choice"><input type="radio" name="plan" checked><span class="choice-body"><b>Team</b><span class="hint">Up to 20 people, shared dashboards</span></span></label>
+  <label class="choice"><input type="radio" name="plan"><span class="choice-body"><b>Business</b><span class="hint">Single sign-on and an audit log</span></span></label>
+  <label class="choice"><input type="radio" name="plan" disabled><span class="choice-body"><b>Enterprise</b><span class="hint">Ask us</span></span></label>
+</div>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;p class=&quot;field-label&quot; id=&quot;plan-label&quot;&gt;Plan&lt;/p&gt;
+&lt;div class=&quot;choices&quot; role=&quot;radiogroup&quot; aria-labelledby=&quot;plan-label&quot;&gt;
+  &lt;label class=&quot;choice&quot;&gt;&lt;input type=&quot;radio&quot; name=&quot;plan&quot; checked&gt;&lt;span class=&quot;choice-body&quot;&gt;&lt;b&gt;Team&lt;/b&gt;&lt;span class=&quot;hint&quot;&gt;Up to 20 people, shared dashboards&lt;/span&gt;&lt;/span&gt;&lt;/label&gt;
+  &lt;label class=&quot;choice&quot;&gt;&lt;input type=&quot;radio&quot; name=&quot;plan&quot;&gt;&lt;span class=&quot;choice-body&quot;&gt;&lt;b&gt;Business&lt;/b&gt;&lt;span class=&quot;hint&quot;&gt;Single sign-on and an audit log&lt;/span&gt;&lt;/span&gt;&lt;/label&gt;
+  &lt;label class=&quot;choice&quot;&gt;&lt;input type=&quot;radio&quot; name=&quot;plan&quot; disabled&gt;&lt;span class=&quot;choice-body&quot;&gt;&lt;b&gt;Enterprise&lt;/b&gt;&lt;span class=&quot;hint&quot;&gt;Ask us&lt;/span&gt;&lt;/span&gt;&lt;/label&gt;
+&lt;/div&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">p</span> <span class="c-attr">class</span>=<span class="c-str">&quot;field-label&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;plan-label&quot;</span>&gt;Plan&lt;/<span class="c-tag">p</span>&gt;
+&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;choices&quot;</span> <span class="c-attr">role</span>=<span class="c-str">&quot;radiogroup&quot;</span> <span class="c-attr">aria-labelledby</span>=<span class="c-str">&quot;plan-label&quot;</span>&gt;
+  &lt;<span class="c-tag">label</span> <span class="c-attr">class</span>=<span class="c-str">&quot;choice&quot;</span>&gt;&lt;<span class="c-tag">input</span> <span class="c-attr">type</span>=<span class="c-str">&quot;radio&quot;</span> <span class="c-attr">name</span>=<span class="c-str">&quot;plan&quot;</span> <span class="c-attr">checked</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;choice-body&quot;</span>&gt;&lt;<span class="c-tag">b</span>&gt;Team&lt;/<span class="c-tag">b</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;hint&quot;</span>&gt;Up to 20 people, shared dashboards&lt;/<span class="c-tag">span</span>&gt;&lt;/<span class="c-tag">span</span>&gt;&lt;/<span class="c-tag">label</span>&gt;
+  &lt;<span class="c-tag">label</span> <span class="c-attr">class</span>=<span class="c-str">&quot;choice&quot;</span>&gt;&lt;<span class="c-tag">input</span> <span class="c-attr">type</span>=<span class="c-str">&quot;radio&quot;</span> <span class="c-attr">name</span>=<span class="c-str">&quot;plan&quot;</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;choice-body&quot;</span>&gt;&lt;<span class="c-tag">b</span>&gt;Business&lt;/<span class="c-tag">b</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;hint&quot;</span>&gt;Single sign-on and an audit log&lt;/<span class="c-tag">span</span>&gt;&lt;/<span class="c-tag">span</span>&gt;&lt;/<span class="c-tag">label</span>&gt;
+  &lt;<span class="c-tag">label</span> <span class="c-attr">class</span>=<span class="c-str">&quot;choice&quot;</span>&gt;&lt;<span class="c-tag">input</span> <span class="c-attr">type</span>=<span class="c-str">&quot;radio&quot;</span> <span class="c-attr">name</span>=<span class="c-str">&quot;plan&quot;</span> <span class="c-attr">disabled</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;choice-body&quot;</span>&gt;&lt;<span class="c-tag">b</span>&gt;Enterprise&lt;/<span class="c-tag">b</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;hint&quot;</span>&gt;Ask us&lt;/<span class="c-tag">span</span>&gt;&lt;/<span class="c-tag">span</span>&gt;&lt;/<span class="c-tag">label</span>&gt;
+&lt;/<span class="c-tag">div</span>&gt;</code></pre></figure>
+    </section>
+
+    <section id="switch" data-terms=".switch .track">
+      <h2>Switches</h2>
+      <p><code>.switch</code> is a checkbox drawn as a switch, for a setting that applies at once: <code>&lt;label class="switch"&gt;&lt;input type="checkbox"&gt;&lt;span class="track"&gt;&lt;/span&gt; Label&lt;/label&gt;</code>. A tone colours it on.</p>
+      <figure class="example" id="ex-8"><div class="example-view">
+<div class="row">
+  <label class="switch"><input type="checkbox" checked><span class="track"></span>Count in the total</label>
+  <label class="switch blue"><input type="checkbox"><span class="track"></span>Alerts</label>
+  <label class="switch"><input type="checkbox" disabled><span class="track"></span>Locked</label>
+</div>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;div class=&quot;row&quot;&gt;
+  &lt;label class=&quot;switch&quot;&gt;&lt;input type=&quot;checkbox&quot; checked&gt;&lt;span class=&quot;track&quot;&gt;&lt;/span&gt;Count in the total&lt;/label&gt;
+  &lt;label class=&quot;switch blue&quot;&gt;&lt;input type=&quot;checkbox&quot;&gt;&lt;span class=&quot;track&quot;&gt;&lt;/span&gt;Alerts&lt;/label&gt;
+  &lt;label class=&quot;switch&quot;&gt;&lt;input type=&quot;checkbox&quot; disabled&gt;&lt;span class=&quot;track&quot;&gt;&lt;/span&gt;Locked&lt;/label&gt;
+&lt;/div&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;row&quot;</span>&gt;
+  &lt;<span class="c-tag">label</span> <span class="c-attr">class</span>=<span class="c-str">&quot;switch&quot;</span>&gt;&lt;<span class="c-tag">input</span> <span class="c-attr">type</span>=<span class="c-str">&quot;checkbox&quot;</span> <span class="c-attr">checked</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;track&quot;</span>&gt;&lt;/<span class="c-tag">span</span>&gt;Count in the total&lt;/<span class="c-tag">label</span>&gt;
+  &lt;<span class="c-tag">label</span> <span class="c-attr">class</span>=<span class="c-str">&quot;switch blue&quot;</span>&gt;&lt;<span class="c-tag">input</span> <span class="c-attr">type</span>=<span class="c-str">&quot;checkbox&quot;</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;track&quot;</span>&gt;&lt;/<span class="c-tag">span</span>&gt;Alerts&lt;/<span class="c-tag">label</span>&gt;
+  &lt;<span class="c-tag">label</span> <span class="c-attr">class</span>=<span class="c-str">&quot;switch&quot;</span>&gt;&lt;<span class="c-tag">input</span> <span class="c-attr">type</span>=<span class="c-str">&quot;checkbox&quot;</span> <span class="c-attr">disabled</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;track&quot;</span>&gt;&lt;/<span class="c-tag">span</span>&gt;Locked&lt;/<span class="c-tag">label</span>&gt;
+&lt;/<span class="c-tag">div</span>&gt;</code></pre></figure>
+    </section>
+
+    <section id="slider" data-terms=".slider Dash.slider output data-unit">
+      <h2>Sliders</h2>
+      <p><code>Dash.slider({ label, name, min, max, step, value, unit, tone, disabled })</code> writes a range input with its value beside it, and dash.js keeps the value current as it moves. By hand: <code>&lt;label class="slider"&gt;&lt;span&gt;Volume&lt;/span&gt;&lt;input type="range" data-unit="%"&gt;&lt;output&gt;50%&lt;/output&gt;&lt;/label&gt;</code>. Inside a <code>.field</code> its name reads as the field's label.</p>
+      <figure class="example" id="ex-9"><div class="example-view">
+<div style="max-width: 420px">
+  <div class="field" id="alert-at"></div>
+  <div id="volume"></div>
+</div>
+<script>
+  Dash.render('alert-at', Dash.slider({ label: 'Alert at', name: 'alert', min: 50, max: 100, value: 85, unit: '%' }));
+  Dash.render('volume', Dash.slider({ label: 'Retries', name: 'retries', min: 0, max: 10, value: 3, tone: 'teal' }));
+</script>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;div style=&quot;max-width: 420px&quot;&gt;
+  &lt;div class=&quot;field&quot; id=&quot;alert-at&quot;&gt;&lt;/div&gt;
+  &lt;div id=&quot;volume&quot;&gt;&lt;/div&gt;
+&lt;/div&gt;
+&lt;script&gt;
+  Dash.render(&#39;alert-at&#39;, Dash.slider({ label: &#39;Alert at&#39;, name: &#39;alert&#39;, min: 50, max: 100, value: 85, unit: &#39;%&#39; }));
+  Dash.render(&#39;volume&#39;, Dash.slider({ label: &#39;Retries&#39;, name: &#39;retries&#39;, min: 0, max: 10, value: 3, tone: &#39;teal&#39; }));
+&lt;/script&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">div</span> <span class="c-attr">style</span>=<span class="c-str">&quot;max-width: 420px&quot;</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;field&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;alert-at&quot;</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">id</span>=<span class="c-str">&quot;volume&quot;</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+&lt;/<span class="c-tag">div</span>&gt;
+&lt;<span class="c-tag">script</span>&gt;
+  <span class="c-fn">Dash</span>.render(<span class="c-str">&#39;alert-at&#39;</span>, <span class="c-fn">Dash</span>.slider({ label: <span class="c-str">&#39;Alert at&#39;</span>, name: <span class="c-str">&#39;alert&#39;</span>, min: <span class="c-num">50</span>, max: <span class="c-num">100</span>, value: <span class="c-num">85</span>, unit: <span class="c-str">&#39;%&#39;</span> }));
+  <span class="c-fn">Dash</span>.render(<span class="c-str">&#39;volume&#39;</span>, <span class="c-fn">Dash</span>.slider({ label: <span class="c-str">&#39;Retries&#39;</span>, name: <span class="c-str">&#39;retries&#39;</span>, min: <span class="c-num">0</span>, max: <span class="c-num">10</span>, value: <span class="c-num">3</span>, tone: <span class="c-str">&#39;teal&#39;</span> }));
+&lt;/<span class="c-tag">script</span>&gt;</code></pre></figure>
+    </section>
+
+    <section id="dropzone" data-terms=".dropzone .files .over input-file accept">
+      <h2>Dropping files</h2>
+      <p><code>.dropzone</code> is a <code>&lt;label&gt;</code> around an <code>input type="file"</code>, so a click chooses files, and files dropped on it go into the input (only the kinds its <code>accept</code> allows), with <code>input</code> and <code>change</code> events as if they had been chosen. The chosen names show in its <code>.files</code>; <code>.over</code> marks it while files are dragged over.</p>
+      <figure class="example" id="ex-10"><div class="example-view">
+<label class="dropzone"><input type="file" multiple accept=".csv,text/csv"><b>Drop a CSV here</b><span>or <u>choose files</u></span><span class="files"></span></label>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;label class=&quot;dropzone&quot;&gt;&lt;input type=&quot;file&quot; multiple accept=&quot;.csv,text/csv&quot;&gt;&lt;b&gt;Drop a CSV here&lt;/b&gt;&lt;span&gt;or &lt;u&gt;choose files&lt;/u&gt;&lt;/span&gt;&lt;span class=&quot;files&quot;&gt;&lt;/span&gt;&lt;/label&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">label</span> <span class="c-attr">class</span>=<span class="c-str">&quot;dropzone&quot;</span>&gt;&lt;<span class="c-tag">input</span> <span class="c-attr">type</span>=<span class="c-str">&quot;file&quot;</span> <span class="c-attr">multiple</span> <span class="c-attr">accept</span>=<span class="c-str">&quot;.csv,text/csv&quot;</span>&gt;&lt;<span class="c-tag">b</span>&gt;Drop a CSV here&lt;/<span class="c-tag">b</span>&gt;&lt;<span class="c-tag">span</span>&gt;or &lt;<span class="c-tag">u</span>&gt;choose files&lt;/<span class="c-tag">u</span>&gt;&lt;/<span class="c-tag">span</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;files&quot;</span>&gt;&lt;/<span class="c-tag">span</span>&gt;&lt;/<span class="c-tag">label</span>&gt;</code></pre></figure>
+    </section>
+
+    <section id="combobox" data-terms="Dash.combobox .combo-list .combo-option .combo-sub .combo-empty combobox autocomplete">
+      <h2>Suggestions</h2>
+      <p><code>Dash.combobox(input, { options, onPick })</code> gives a text box a list of suggestions that narrows as the reader types. Arrow keys move through it, Enter or a click picks, Escape closes the list (only the list, inside a dialog too), and the box keeps the focus throughout. The typed words are bold in each suggestion.</p>
+      <ul>
+        <li><code>options</code>: strings, or <code>{ value, label, sub }</code> (<code>sub</code> is a second, quieter part), or a function <code>(query) =&gt; list</code> or a promise of one, for a server search. Answers that arrive after the reader typed on are dropped. <code>debounce</code> (150 ms) is how long typing has to pause first.</li>
+        <li><code>strict: true</code>: on leaving, text that is no suggestion is put back to the last pick (or emptied).</li>
+        <li><code>max</code> (50) suggestions, <code>minChars</code> before any show, <code>empty</code> for the line when none match.</li>
+        <li>It returns <code>{ value, set(value), close(), destroy() }</code>. It's an ARIA combobox: the box has <code>role="combobox"</code>, the list <code>listbox</code>, the active suggestion <code>aria-activedescendant</code>.</li>
+      </ul>
+      <figure class="example" id="ex-11"><div class="example-view">
+<div class="field" style="max-width: 320px"><label for="city">City</label><input class="input" id="city" placeholder="Start typing: ber, bu, am…"></div>
+<script>
+  Dash.combobox('city', {
+    options: ['Amsterdam', { label: 'Berlin', sub: 'Germany', value: 'ber' }, 'Bern', 'Brussels', 'Budapest', 'Copenhagen', 'Dublin', 'Lisbon'],
+    onPick: (city) => Dash.toast(`Picked ${city.label}`),
+  });
+</script>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;div class=&quot;field&quot; style=&quot;max-width: 320px&quot;&gt;&lt;label for=&quot;city&quot;&gt;City&lt;/label&gt;&lt;input class=&quot;input&quot; id=&quot;city&quot; placeholder=&quot;Start typing: ber, bu, am…&quot;&gt;&lt;/div&gt;
+&lt;script&gt;
+  Dash.combobox(&#39;city&#39;, {
+    options: [&#39;Amsterdam&#39;, { label: &#39;Berlin&#39;, sub: &#39;Germany&#39;, value: &#39;ber&#39; }, &#39;Bern&#39;, &#39;Brussels&#39;, &#39;Budapest&#39;, &#39;Copenhagen&#39;, &#39;Dublin&#39;, &#39;Lisbon&#39;],
+    onPick: (city) =&gt; Dash.toast(`Picked ${city.label}`),
+  });
+&lt;/script&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;field&quot;</span> <span class="c-attr">style</span>=<span class="c-str">&quot;max-width: 320px&quot;</span>&gt;&lt;<span class="c-tag">label</span> <span class="c-attr">for</span>=<span class="c-str">&quot;city&quot;</span>&gt;City&lt;/<span class="c-tag">label</span>&gt;&lt;<span class="c-tag">input</span> <span class="c-attr">class</span>=<span class="c-str">&quot;input&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;city&quot;</span> <span class="c-attr">placeholder</span>=<span class="c-str">&quot;Start typing: ber, bu, am…&quot;</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+&lt;<span class="c-tag">script</span>&gt;
+  <span class="c-fn">Dash</span>.combobox(<span class="c-str">&#39;city&#39;</span>, {
+    options: [<span class="c-str">&#39;Amsterdam&#39;</span>, { label: <span class="c-str">&#39;Berlin&#39;</span>, sub: <span class="c-str">&#39;Germany&#39;</span>, value: <span class="c-str">&#39;ber&#39;</span> }, <span class="c-str">&#39;Bern&#39;</span>, <span class="c-str">&#39;Brussels&#39;</span>, <span class="c-str">&#39;Budapest&#39;</span>, <span class="c-str">&#39;Copenhagen&#39;</span>, <span class="c-str">&#39;Dublin&#39;</span>, <span class="c-str">&#39;Lisbon&#39;</span>],
+    onPick: (city) =&gt; <span class="c-fn">Dash</span>.toast(<span class="c-str">`Picked ${city.label}`</span>),
+  });
+&lt;/<span class="c-tag">script</span>&gt;</code></pre></figure>
+    </section>
+
+    <section id="datepicker" data-terms="Dash.datepicker .date-field .date-btn .calendar .cal-head .cal-title .cal-grid date">
+      <h2>Dates</h2>
+      <p><code>Dash.datepicker(input, { min, max, onPick, firstDay })</code> puts a calendar button in a date box. Dates are <code>YYYY-MM-DD</code>, what <code>&lt;input type="date"&gt;</code> sends. The calendar opens on the box's date (or today): arrows move a day or a week, Home and End go to the week's ends, PageUp and PageDown a month (with Shift, a year), Enter picks and Escape closes. Days before <code>min</code> or after <code>max</code> can't be picked. Typing works too: a short date like <code>2026-3-7</code> is written out, and one that doesn't exist is marked <code>aria-invalid</code>. Weeks start on Monday; <code>firstDay: 0</code> starts them on Sunday. Month and day names are in the reader's language.</p>
+      <figure class="example" id="ex-12"><div class="example-view">
+<div class="field" style="max-width: 240px"><label for="due">Due</label><input class="input" id="due" value="2026-12-04"></div>
+<script>
+  Dash.datepicker('due', { min: '2026-11-01', max: '2027-03-31', onPick: (day) => Dash.toast(`Due ${day}`) });
+</script>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;div class=&quot;field&quot; style=&quot;max-width: 240px&quot;&gt;&lt;label for=&quot;due&quot;&gt;Due&lt;/label&gt;&lt;input class=&quot;input&quot; id=&quot;due&quot; value=&quot;2026-12-04&quot;&gt;&lt;/div&gt;
+&lt;script&gt;
+  Dash.datepicker(&#39;due&#39;, { min: &#39;2026-11-01&#39;, max: &#39;2027-03-31&#39;, onPick: (day) =&gt; Dash.toast(`Due ${day}`) });
+&lt;/script&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;field&quot;</span> <span class="c-attr">style</span>=<span class="c-str">&quot;max-width: 240px&quot;</span>&gt;&lt;<span class="c-tag">label</span> <span class="c-attr">for</span>=<span class="c-str">&quot;due&quot;</span>&gt;Due&lt;/<span class="c-tag">label</span>&gt;&lt;<span class="c-tag">input</span> <span class="c-attr">class</span>=<span class="c-str">&quot;input&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;due&quot;</span> <span class="c-attr">value</span>=<span class="c-str">&quot;2026-12-04&quot;</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+&lt;<span class="c-tag">script</span>&gt;
+  <span class="c-fn">Dash</span>.datepicker(<span class="c-str">&#39;due&#39;</span>, { min: <span class="c-str">&#39;2026-11-01&#39;</span>, max: <span class="c-str">&#39;2027-03-31&#39;</span>, onPick: (day) =&gt; <span class="c-fn">Dash</span>.toast(<span class="c-str">`Due ${day}`</span>) });
+&lt;/<span class="c-tag">script</span>&gt;</code></pre></figure>
+      <p>It returns <code>{ value, set(day), open(), close(), destroy() }</code>; <code>value</code> is the box's date if it's a real one in range, or null.</p>
+    </section>
+    <nav class="docs-steps" aria-label="More pages"><a class="docs-step prev" href="buttons.html"><span class="faint">Previous</span><b>Buttons</b></a><a class="docs-step next" href="surfaces.html"><span class="faint">Next</span><b>Panels and cards</b></a></nav>
+  </main>
+</div>
+<script src="search.js"></script>
+<script src="docs.js"></script>
+</body>
+</html>

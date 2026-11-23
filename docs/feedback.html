@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en" data-kit="../">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Feedback · dash-ui</title>
+<meta name="description" content="Toasts, notices, the live status, flashes and the sign-in page.">
+<link rel="stylesheet" href="../dash.css">
+<link rel="stylesheet" href="../dash-utils.css">
+<link rel="stylesheet" href="docs.css">
+<script src="../dash.js"></script>
+</head>
+<body>
+<!-- dash-ui 1.9.0 docs, written by tools/docs.mjs from docs-src/feedback.html: edit that, not this -->
+<header class="topbar">
+  <button type="button" class="icon-btn docs-menu" data-toggle-side aria-label="Pages"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3 5h12M3 9h12M3 13h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+  <a class="brand" href="./"><span class="mark">d</span><h1>dash-ui</h1></a><span class="tag plain docs-version">1.9.0</span>
+  <div class="top-right">
+    <label class="search docs-search"><span class="sr-only">Search the docs</span><svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.6"/><path d="m11 11 3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><input class="input" type="search" id="docs-search" placeholder="Search" aria-keyshortcuts="/"><kbd class="docs-key">/</kbd></label>
+    <div class="seg" role="group" aria-label="Theme"><button type="button" data-theme-set="system">Auto</button><button type="button" data-theme-set="light">Light</button><button type="button" data-theme-set="dark">Dark</button></div>
+  </div>
+</header>
+<div class="shell offcanvas">
+  <nav class="sidebar" aria-label="Pages"><div class="side-head">Start</div><a class="nav-item" href="./"><span class="nav-main"><span class="nav-name">Getting started</span></span></a><div class="side-head">Foundations</div><a class="nav-item" href="colours.html"><span class="nav-main"><span class="nav-name">Colours and themes</span></span></a><a class="nav-item" href="layout.html"><span class="nav-main"><span class="nav-name">Page layout</span></span></a><a class="nav-item" href="text.html"><span class="nav-main"><span class="nav-name">Text and labels</span></span></a><div class="side-head">Components</div><a class="nav-item" href="buttons.html"><span class="nav-main"><span class="nav-name">Buttons</span></span></a><a class="nav-item" href="forms.html"><span class="nav-main"><span class="nav-name">Forms</span></span></a><a class="nav-item" href="surfaces.html"><span class="nav-main"><span class="nav-name">Panels and cards</span></span></a><a class="nav-item" href="navigation.html"><span class="nav-main"><span class="nav-name">Navigation</span></span></a><a class="nav-item" href="tables.html"><span class="nav-main"><span class="nav-name">Tables</span></span></a><a class="nav-item" href="charts.html"><span class="nav-main"><span class="nav-name">Charts and progress</span></span></a><a class="nav-item" href="overlays.html"><span class="nav-main"><span class="nav-name">Modals and popups</span></span></a><a class="nav-item" href="feedback.html" aria-current="page"><span class="nav-main"><span class="nav-name">Feedback</span></span></a><div class="side-head">JavaScript</div><a class="nav-item" href="helpers.html"><span class="nav-main"><span class="nav-name">dash.js helpers</span></span></a><div class="side-head">Utilities</div><a class="nav-item" href="utilities.html"><span class="nav-main"><span class="nav-name">Utility classes</span></span></a><a class="nav-item" href="utilities-layout.html"><span class="nav-main"><span class="nav-name">Layout utilities</span></span></a><a class="nav-item" href="utilities-spacing.html"><span class="nav-main"><span class="nav-name">Spacing utilities</span></span></a><a class="nav-item" href="utilities-sizing.html"><span class="nav-main"><span class="nav-name">Sizing utilities</span></span></a><a class="nav-item" href="utilities-type.html"><span class="nav-main"><span class="nav-name">Type utilities</span></span></a><a class="nav-item" href="utilities-colour.html"><span class="nav-main"><span class="nav-name">Colour utilities</span></span></a><a class="nav-item" href="utilities-effects.html"><span class="nav-main"><span class="nav-name">Borders and effects</span></span></a></nav>
+  <main class="content docs" id="top">
+    <header class="docs-head"><p class="docs-group">Components</p><h1>Feedback</h1><p class="docs-blurb">Toasts, notices, the live status, flashes and the sign-in page.</p><nav class="chips docs-toc" aria-label="On this page"><a class="chip" href="#toasts">Toasts</a><a class="chip" href="#notices">Notices</a><a class="chip" href="#live">The live status</a><a class="chip" href="#flash">Flashing a change</a><a class="chip" href="#ips">Hidden addresses</a><a class="chip" href="#login">The sign-in page</a></nav></header>
+<section id="toasts" data-terms="Dash.toast .toast .toast-text .toast-act .act .show">
+      <h2>Toasts</h2>
+      <p><code>Dash.toast(message, { tone, ms, action, onAction })</code> is a short message at the bottom of the window that goes away on its own. With <code>action: 'Undo'</code> it has a button and stays six seconds. Screen readers hear it. Toasts and notices show above an open modal too.</p>
+      <figure class="example" id="ex-1"><div class="example-view">
+<div class="row">
+  <button type="button" class="btn" id="t-plain">Saved</button>
+  <button type="button" class="btn" id="t-tone">Something failed</button>
+  <button type="button" class="btn" id="t-undo">Archive, with Undo</button>
+</div>
+<script>
+  document.getElementById('t-plain').addEventListener('click', () => Dash.toast('Saved', { tone: 'ok' }));
+  document.getElementById('t-tone').addEventListener('click', () => Dash.toast("Couldn't reach the server", { tone: 'bad' }));
+  document.getElementById('t-undo').addEventListener('click', () => Dash.toast('Archived 3 alerts', { action: 'Undo', onAction: () => Dash.toast('Back in the inbox') }));
+</script>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;div class=&quot;row&quot;&gt;
+  &lt;button type=&quot;button&quot; class=&quot;btn&quot; id=&quot;t-plain&quot;&gt;Saved&lt;/button&gt;
+  &lt;button type=&quot;button&quot; class=&quot;btn&quot; id=&quot;t-tone&quot;&gt;Something failed&lt;/button&gt;
+  &lt;button type=&quot;button&quot; class=&quot;btn&quot; id=&quot;t-undo&quot;&gt;Archive, with Undo&lt;/button&gt;
+&lt;/div&gt;
+&lt;script&gt;
+  document.getElementById(&#39;t-plain&#39;).addEventListener(&#39;click&#39;, () =&gt; Dash.toast(&#39;Saved&#39;, { tone: &#39;ok&#39; }));
+  document.getElementById(&#39;t-tone&#39;).addEventListener(&#39;click&#39;, () =&gt; Dash.toast(&quot;Couldn&#39;t reach the server&quot;, { tone: &#39;bad&#39; }));
+  document.getElementById(&#39;t-undo&#39;).addEventListener(&#39;click&#39;, () =&gt; Dash.toast(&#39;Archived 3 alerts&#39;, { action: &#39;Undo&#39;, onAction: () =&gt; Dash.toast(&#39;Back in the inbox&#39;) }));
+&lt;/script&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;row&quot;</span>&gt;
+  &lt;<span class="c-tag">button</span> <span class="c-attr">type</span>=<span class="c-str">&quot;button&quot;</span> <span class="c-attr">class</span>=<span class="c-str">&quot;btn&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;t-plain&quot;</span>&gt;Saved&lt;/<span class="c-tag">button</span>&gt;
+  &lt;<span class="c-tag">button</span> <span class="c-attr">type</span>=<span class="c-str">&quot;button&quot;</span> <span class="c-attr">class</span>=<span class="c-str">&quot;btn&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;t-tone&quot;</span>&gt;Something failed&lt;/<span class="c-tag">button</span>&gt;
+  &lt;<span class="c-tag">button</span> <span class="c-attr">type</span>=<span class="c-str">&quot;button&quot;</span> <span class="c-attr">class</span>=<span class="c-str">&quot;btn&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;t-undo&quot;</span>&gt;Archive, with Undo&lt;/<span class="c-tag">button</span>&gt;
+&lt;/<span class="c-tag">div</span>&gt;
+&lt;<span class="c-tag">script</span>&gt;
+  document.getElementById(<span class="c-str">&#39;t-plain&#39;</span>).addEventListener(<span class="c-str">&#39;click&#39;</span>, () =&gt; <span class="c-fn">Dash</span>.toast(<span class="c-str">&#39;Saved&#39;</span>, { tone: <span class="c-str">&#39;ok&#39;</span> }));
+  document.getElementById(<span class="c-str">&#39;t-tone&#39;</span>).addEventListener(<span class="c-str">&#39;click&#39;</span>, () =&gt; <span class="c-fn">Dash</span>.toast(<span class="c-str">&quot;Couldn&#39;t reach the server&quot;</span>, { tone: <span class="c-str">&#39;bad&#39;</span> }));
+  document.getElementById(<span class="c-str">&#39;t-undo&#39;</span>).addEventListener(<span class="c-str">&#39;click&#39;</span>, () =&gt; <span class="c-fn">Dash</span>.toast(<span class="c-str">&#39;Archived 3 alerts&#39;</span>, { action: <span class="c-str">&#39;Undo&#39;</span>, onAction: () =&gt; <span class="c-fn">Dash</span>.toast(<span class="c-str">&#39;Back in the inbox&#39;</span>) }));
+&lt;/<span class="c-tag">script</span>&gt;</code></pre></figure>
+    </section>
+
+    <section id="notices" data-terms="Dash.notify Dash.notify.dismiss .notices .notice .notice-body .notice-title .notice-text .notice-x">
+      <h2>Notices</h2>
+      <p><code>Dash.notify({ key, title, status, text, tone, onClick, ms, max })</code> is an alert in the corner that stays until it's closed (or for <code>ms</code>). A second notice with the same <code>key</code> replaces the first, so a repeating alert doesn't pile up; <code>Dash.notify.dismiss(key)</code> takes it away. <code>onClick</code> makes it a button. On a phone, the newest two show.</p>
+      <figure class="example" id="ex-2"><div class="example-view">
+<button type="button" class="btn" id="n-show">Alert</button>
+<script>
+  document.getElementById('n-show').addEventListener('click', () => Dash.notify({
+    key: 'disk-web-2', title: 'web-2 is almost full', status: 'Disk', text: '470 of 500 GB used', tone: 'warn', onClick: () => Dash.toast('Open web-2'),
+  }));
+</script>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;button type=&quot;button&quot; class=&quot;btn&quot; id=&quot;n-show&quot;&gt;Alert&lt;/button&gt;
+&lt;script&gt;
+  document.getElementById(&#39;n-show&#39;).addEventListener(&#39;click&#39;, () =&gt; Dash.notify({
+    key: &#39;disk-web-2&#39;, title: &#39;web-2 is almost full&#39;, status: &#39;Disk&#39;, text: &#39;470 of 500 GB used&#39;, tone: &#39;warn&#39;, onClick: () =&gt; Dash.toast(&#39;Open web-2&#39;),
+  }));
+&lt;/script&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">button</span> <span class="c-attr">type</span>=<span class="c-str">&quot;button&quot;</span> <span class="c-attr">class</span>=<span class="c-str">&quot;btn&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;n-show&quot;</span>&gt;Alert&lt;/<span class="c-tag">button</span>&gt;
+&lt;<span class="c-tag">script</span>&gt;
+  document.getElementById(<span class="c-str">&#39;n-show&#39;</span>).addEventListener(<span class="c-str">&#39;click&#39;</span>, () =&gt; <span class="c-fn">Dash</span>.notify({
+    key: <span class="c-str">&#39;disk-web-2&#39;</span>, title: <span class="c-str">&#39;web-2 is almost full&#39;</span>, status: <span class="c-str">&#39;Disk&#39;</span>, text: <span class="c-str">&#39;470 of 500 GB used&#39;</span>, tone: <span class="c-str">&#39;warn&#39;</span>, onClick: () =&gt; <span class="c-fn">Dash</span>.toast(<span class="c-str">&#39;Open web-2&#39;</span>),
+  }));
+&lt;/<span class="c-tag">script</span>&gt;</code></pre></figure>
+    </section>
+
+    <section id="live" data-terms=".live data-state Dash.live Dash.poll">
+      <h2>The live status</h2>
+      <p><code>.live</code> says whether the page's data is current: <code>data-state</code> is <code>on</code>, <code>stale</code>, <code>off</code> or <code>connecting</code> (its dot pulses). <code>Dash.live(el, state, text, title)</code> sets it, and <code>Dash.poll(fn, ms, { live })</code> keeps it right by itself: Live while answers come, stale when they stop, the error when one fails.</p>
+      <figure class="example" id="ex-3"><div class="example-view">
+<div class="row">
+  <span class="live" data-state="on"><span class="dot"></span><span>Live</span></span>
+  <span class="live" data-state="stale"><span class="dot"></span><span>Updated 4 min ago</span></span>
+  <span class="live" data-state="connecting"><span class="dot"></span><span>Connecting</span></span>
+  <span class="live" data-state="off"><span class="dot"></span><span>Can't reach the server</span></span>
+</div>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;div class=&quot;row&quot;&gt;
+  &lt;span class=&quot;live&quot; data-state=&quot;on&quot;&gt;&lt;span class=&quot;dot&quot;&gt;&lt;/span&gt;&lt;span&gt;Live&lt;/span&gt;&lt;/span&gt;
+  &lt;span class=&quot;live&quot; data-state=&quot;stale&quot;&gt;&lt;span class=&quot;dot&quot;&gt;&lt;/span&gt;&lt;span&gt;Updated 4 min ago&lt;/span&gt;&lt;/span&gt;
+  &lt;span class=&quot;live&quot; data-state=&quot;connecting&quot;&gt;&lt;span class=&quot;dot&quot;&gt;&lt;/span&gt;&lt;span&gt;Connecting&lt;/span&gt;&lt;/span&gt;
+  &lt;span class=&quot;live&quot; data-state=&quot;off&quot;&gt;&lt;span class=&quot;dot&quot;&gt;&lt;/span&gt;&lt;span&gt;Can&#39;t reach the server&lt;/span&gt;&lt;/span&gt;
+&lt;/div&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;row&quot;</span>&gt;
+  &lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;live&quot;</span> <span class="c-attr">data-state</span>=<span class="c-str">&quot;on&quot;</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;dot&quot;</span>&gt;&lt;/<span class="c-tag">span</span>&gt;&lt;<span class="c-tag">span</span>&gt;Live&lt;/<span class="c-tag">span</span>&gt;&lt;/<span class="c-tag">span</span>&gt;
+  &lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;live&quot;</span> <span class="c-attr">data-state</span>=<span class="c-str">&quot;stale&quot;</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;dot&quot;</span>&gt;&lt;/<span class="c-tag">span</span>&gt;&lt;<span class="c-tag">span</span>&gt;Updated 4 min ago&lt;/<span class="c-tag">span</span>&gt;&lt;/<span class="c-tag">span</span>&gt;
+  &lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;live&quot;</span> <span class="c-attr">data-state</span>=<span class="c-str">&quot;connecting&quot;</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;dot&quot;</span>&gt;&lt;/<span class="c-tag">span</span>&gt;&lt;<span class="c-tag">span</span>&gt;Connecting&lt;/<span class="c-tag">span</span>&gt;&lt;/<span class="c-tag">span</span>&gt;
+  &lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;live&quot;</span> <span class="c-attr">data-state</span>=<span class="c-str">&quot;off&quot;</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;dot&quot;</span>&gt;&lt;/<span class="c-tag">span</span>&gt;&lt;<span class="c-tag">span</span>&gt;Can&#39;t reach the server&lt;/<span class="c-tag">span</span>&gt;&lt;/<span class="c-tag">span</span>&gt;
+&lt;/<span class="c-tag">div</span>&gt;</code></pre></figure>
+    </section>
+
+    <section id="flash" data-terms=".flash Dash.flash">
+      <h2>Flashing a change</h2>
+      <p><code>Dash.flash(el)</code> (or the <code>.flash</code> class) briefly highlights a value that just changed, so the eye finds it.</p>
+      <figure class="example" id="ex-4"><div class="example-view">
+<div class="row"><span class="stat px-4 py-2"><span class="label">Queue</span> <span class="value" id="queue">128</span></span><button type="button" class="btn sm" id="bump">New jobs</button></div>
+<script>
+  let queued = 128;
+  document.getElementById('bump').addEventListener('click', () => { queued += 7; const v = document.getElementById('queue'); v.textContent = queued; Dash.flash(v); });
+</script>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;div class=&quot;row&quot;&gt;&lt;span class=&quot;stat px-4 py-2&quot;&gt;&lt;span class=&quot;label&quot;&gt;Queue&lt;/span&gt; &lt;span class=&quot;value&quot; id=&quot;queue&quot;&gt;128&lt;/span&gt;&lt;/span&gt;&lt;button type=&quot;button&quot; class=&quot;btn sm&quot; id=&quot;bump&quot;&gt;New jobs&lt;/button&gt;&lt;/div&gt;
+&lt;script&gt;
+  let queued = 128;
+  document.getElementById(&#39;bump&#39;).addEventListener(&#39;click&#39;, () =&gt; { queued += 7; const v = document.getElementById(&#39;queue&#39;); v.textContent = queued; Dash.flash(v); });
+&lt;/script&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;row&quot;</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;stat px-4 py-2&quot;</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;label&quot;</span>&gt;Queue&lt;/<span class="c-tag">span</span>&gt; &lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;value&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;queue&quot;</span>&gt;128&lt;/<span class="c-tag">span</span>&gt;&lt;/<span class="c-tag">span</span>&gt;&lt;<span class="c-tag">button</span> <span class="c-attr">type</span>=<span class="c-str">&quot;button&quot;</span> <span class="c-attr">class</span>=<span class="c-str">&quot;btn sm&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;bump&quot;</span>&gt;New jobs&lt;/<span class="c-tag">button</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+&lt;<span class="c-tag">script</span>&gt;
+  <span class="c-key">let</span> queued = <span class="c-num">128</span>;
+  document.getElementById(<span class="c-str">&#39;bump&#39;</span>).addEventListener(<span class="c-str">&#39;click&#39;</span>, () =&gt; { queued += <span class="c-num">7</span>; <span class="c-key">const</span> v = document.getElementById(<span class="c-str">&#39;queue&#39;</span>); v.textContent = queued; <span class="c-fn">Dash</span>.flash(v); });
+&lt;/<span class="c-tag">script</span>&gt;</code></pre></figure>
+    </section>
+
+    <section id="ips" data-terms=".ip .shown Dash.maskIps Dash.hideIps">
+      <h2>Hidden addresses</h2>
+      <p><code>Dash.maskIps(text)</code> escapes the text and blurs each IPv4 address in it, so they stay out of screen shares; a click or Enter on one shows every copy of that address on the page (<code>.ip.shown</code>). <code>Dash.hideIps(text)</code> writes <code>(IP hidden)</code> instead, for tooltips.</p>
+      <figure class="example" id="ex-5"><div class="example-view">
+<p id="log-line"></p>
+<script>
+  Dash.render('log-line', Dash.maskIps('Blocked 203.0.113.10 after 12 tries; 198.51.100.7 is allowed.'));
+</script>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;p id=&quot;log-line&quot;&gt;&lt;/p&gt;
+&lt;script&gt;
+  Dash.render(&#39;log-line&#39;, Dash.maskIps(&#39;Blocked 203.0.113.10 after 12 tries; 198.51.100.7 is allowed.&#39;));
+&lt;/script&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">p</span> <span class="c-attr">id</span>=<span class="c-str">&quot;log-line&quot;</span>&gt;&lt;/<span class="c-tag">p</span>&gt;
+&lt;<span class="c-tag">script</span>&gt;
+  <span class="c-fn">Dash</span>.render(<span class="c-str">&#39;log-line&#39;</span>, <span class="c-fn">Dash</span>.maskIps(<span class="c-str">&#39;Blocked 203.0.113.10 after 12 tries; 198.51.100.7 is allowed.&#39;</span>));
+&lt;/<span class="c-tag">script</span>&gt;</code></pre></figure>
+    </section>
+
+    <section id="login" data-terms=".login-page .login .lead .note">
+      <h2>The sign-in page</h2>
+      <p>Put <code>.login-page</code> on the <code>body</code> and a <code>form.login</code> in it: a title, a <code>.lead</code> line, the fields, a <code>btn primary block</code> and a <code>.note</code> under it. <code>Dash.config.loginUrl</code> sends any request that comes back 401 there.</p>
+      <figure class="example framed" id="ex-6"><figcaption>A sign-in page</figcaption><div class="example-view"><p class="muted">This one takes the whole screen, so it isn't shown in the page: open it with Phone or Other theme.</p></div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;form class=&quot;login&quot;&gt;
+  &lt;h1&gt;Fleet&lt;/h1&gt;
+  &lt;p class=&quot;lead&quot;&gt;Sign in to see the servers.&lt;/p&gt;
+  &lt;div class=&quot;field&quot;&gt;&lt;label for=&quot;pw&quot;&gt;Password&lt;/label&gt;&lt;input class=&quot;input&quot; type=&quot;password&quot; id=&quot;pw&quot; autocomplete=&quot;current-password&quot; required&gt;&lt;/div&gt;
+  &lt;button type=&quot;submit&quot; class=&quot;btn primary block&quot;&gt;Sign in&lt;/button&gt;
+  &lt;p class=&quot;note&quot;&gt;You stay signed in on this browser until you sign out.&lt;/p&gt;
+&lt;/form&gt;
+&lt;script&gt;document.body.classList.add(&#39;login-page&#39;);&lt;/script&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">form</span> <span class="c-attr">class</span>=<span class="c-str">&quot;login&quot;</span>&gt;
+  &lt;<span class="c-tag">h1</span>&gt;Fleet&lt;/<span class="c-tag">h1</span>&gt;
+  &lt;<span class="c-tag">p</span> <span class="c-attr">class</span>=<span class="c-str">&quot;lead&quot;</span>&gt;Sign in to see the servers.&lt;/<span class="c-tag">p</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;field&quot;</span>&gt;&lt;<span class="c-tag">label</span> <span class="c-attr">for</span>=<span class="c-str">&quot;pw&quot;</span>&gt;Password&lt;/<span class="c-tag">label</span>&gt;&lt;<span class="c-tag">input</span> <span class="c-attr">class</span>=<span class="c-str">&quot;input&quot;</span> <span class="c-attr">type</span>=<span class="c-str">&quot;password&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;pw&quot;</span> <span class="c-attr">autocomplete</span>=<span class="c-str">&quot;current-password&quot;</span> <span class="c-attr">required</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+  &lt;<span class="c-tag">button</span> <span class="c-attr">type</span>=<span class="c-str">&quot;submit&quot;</span> <span class="c-attr">class</span>=<span class="c-str">&quot;btn primary block&quot;</span>&gt;Sign in&lt;/<span class="c-tag">button</span>&gt;
+  &lt;<span class="c-tag">p</span> <span class="c-attr">class</span>=<span class="c-str">&quot;note&quot;</span>&gt;You stay signed in on this browser until you sign out.&lt;/<span class="c-tag">p</span>&gt;
+&lt;/<span class="c-tag">form</span>&gt;
+&lt;<span class="c-tag">script</span>&gt;document.body.classList.add(<span class="c-str">&#39;login-page&#39;</span>);&lt;/<span class="c-tag">script</span>&gt;</code></pre></figure>
+    </section>
+    <nav class="docs-steps" aria-label="More pages"><a class="docs-step prev" href="overlays.html"><span class="faint">Previous</span><b>Modals and popups</b></a><a class="docs-step next" href="helpers.html"><span class="faint">Next</span><b>dash.js helpers</b></a></nav>
+  </main>
+</div>
+<script src="search.js"></script>
+<script src="docs.js"></script>
+</body>
+</html>

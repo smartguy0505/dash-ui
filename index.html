@@ -344,7 +344,7 @@
 
   <!-- forms, steps and lists (1.8) -->
   <section class="section" id="forms">
-    <div class="section-head"><h2 class="section-title">Forms, steps and lists</h2><span class="sub">choices · select · input groups · Dash.slider · drop zone · Dash.crumbs · Dash.stepper · Dash.avatars · badges · Dash.progress · Dash.entries · accordion</span></div>
+    <div class="section-head"><h2 class="section-title">Forms, steps and lists</h2><span class="sub">choices · select · input groups · Dash.slider · Dash.combobox · Dash.datepicker · drop zone · Dash.crumbs · Dash.stepper · Dash.avatars · badges · Dash.progress · Dash.entries · accordion</span></div>
     <div class="grid">
       <div class="panel">
         <div class="panel-head"><h3>Form pieces</h3></div>
@@ -360,6 +360,8 @@
         <div class="field"><label for="f-region">Region</label><span class="select"><select class="input" id="f-region"><option>eu-west (Frankfurt)</option><option>us-east (Virginia)</option></select></span></div>
         <div class="field"><label for="f-limit">Monthly limit</label><div class="input-group"><span class="affix">$</span><input class="input" id="f-limit" value="250" inputmode="decimal"><span class="affix">USD</span><button type="button" class="btn">Set</button></div></div>
         <div class="field" id="slider-demo"></div>
+        <div class="field"><label for="f-city">City</label><input class="input" id="f-city" placeholder="Start typing: ber, bu, am…" autocomplete="off"></div>
+        <div class="field"><label for="f-due">Due</label><input class="input" id="f-due" value="2026-12-04"></div>
         <label class="dropzone"><input type="file" multiple><b>Drop a CSV here</b><span>or <u>choose files</u></span><span class="files"></span></label>
       </div>
       <div class="panel">
@@ -711,6 +713,8 @@
 
   // 1.8: forms, steps and lists
   Dash.render('slider-demo', Dash.slider({ label: 'Alert at', name: 'alert', min: 50, max: 100, value: 85, unit: '%' }));
+  Dash.combobox('f-city', { options: ['Amsterdam', { label: 'Berlin', sub: 'Germany', value: 'ber' }, 'Bern', 'Brussels', 'Budapest', 'Copenhagen', 'Dublin', 'Lisbon'] });
+  Dash.datepicker('f-due', { min: '2026-11-01', max: '2027-03-31' });
   Dash.render('crumbs-demo', Dash.crumbs([{ label: 'Fleet', href: '#forms' }, { label: 'eu-west', href: '#forms' }, 'web-04']));
   Dash.render('stepper-demo', Dash.stepper(['Account', 'Plan', 'Payment', 'Done'], 2));
   Dash.render('avatars-demo', Dash.avatars(['Ada Lovelace', 'Grace Hopper', 'Alan Turing', 'Katherine Johnson', 'Edsger Dijkstra', 'Barbara Liskov'], { max: 4 })

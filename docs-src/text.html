@@ -1,0 +1,102 @@
+    <section id="text" data-terms=".muted .faint .strong .sub .mono .num .unit .r .nowrap .tone .ellipsis .clamp --lines .invisible .sr-only .error-text kbd code">
+      <h2>Text</h2>
+      <p>Small classes for the text in a dashboard. <code>.num</code> lines digits up in columns and <code>.r</code> aligns right; <code>.unit</code> is a unit after a number; <code>.nowrap</code> keeps text on one line; <code>.tone</code> is text in its tone's colour (<code>class="tone bad"</code>, or the colour of the toned box it's in); <code>.ellipsis</code> ends a line that doesn't fit in …, and <code>.clamp</code> does it after <code>--lines</code> lines (2). <code>.invisible</code> hides something but keeps its space; <code>.sr-only</code> keeps it for screen readers only.</p>
+      <example>
+        <p><span class="strong">Strong</span> · <span class="muted">muted</span> · <span class="faint">faint</span> · <span class="sub">a sub line</span> · <span class="error-text">an error</span></p>
+        <p><span class="mono">acct_7f2k9m</span> · <span class="num">1,234.50</span> · 12.5 <span class="unit">ms</span> · <span class="tone bad">a toned word</span> · <kbd>/</kbd> · <code>code</code></p>
+        <p class="ellipsis" style="max-width: 260px">A line that is too long for its box ends in an ellipsis</p>
+        <p class="clamp" style="--lines: 2; max-width: 320px">A paragraph that may run long is cut after two lines with an ellipsis, so cards in a row stay the same height whatever their text says.</p>
+      </example>
+      <p>The <a href="utilities-type.html">type utilities</a> add sizes, weights, alignment and wrapping.</p>
+    </section>
+
+    <section id="pills" data-terms=".pill .dot .pulse .hollow .lg .n Dash.pill">
+      <h2>Status pills</h2>
+      <p><code>.pill</code> is a state, in a tone, usually with a <code>.dot</code>. <code>.dot.pulse</code> pulses, for something happening now; <code>.dot.hollow</code> is a ring, for something waiting. <code>.pill.lg</code> is bigger, and a <code>.n</code> inside holds a count in even digits. <code>Dash.pill(text, tone)</code> writes one with its dot.</p>
+      <example>
+        <div class="row">
+          <span class="pill ok"><span class="dot"></span>Healthy</span>
+          <span class="pill warn"><span class="dot pulse"></span>Deploying</span>
+          <span class="pill bad"><span class="dot"></span>Down</span>
+          <span class="pill idle"><span class="dot hollow"></span>Queued</span>
+          <span class="pill lg blue"><span class="dot"></span>Large</span>
+          <span id="pill-js"></span>
+        </div>
+        <script>
+          Dash.render('pill-js', Dash.pill('From Dash.pill', 'purple'));
+        </script>
+      </example>
+    </section>
+
+    <section id="tags" data-terms=".tag .tags .plain .outline Dash.tag">
+      <h2>Tags</h2>
+      <p><code>.tag</code> is a small fact: a region, a version, a plan. It is tinted in its tone; <code>.tag.plain</code> is neutral and <code>.tag.outline</code> a ring. Put several in <code>.tags</code>. <code>Dash.tag(text, tone)</code> writes one.</p>
+      <example>
+        <div class="tags"><span class="tag blue">eu-west</span><span class="tag plain">v2.4.1</span><span class="tag outline purple">Pro</span><span class="tag ok">TLS</span></div>
+      </example>
+    </section>
+
+    <section id="chips" data-terms=".chip .chips .scroll aria-pressed">
+      <h2>Chips</h2>
+      <p><code>.chip</code> is a pill with a border. A <code>button.chip</code> with <code>aria-pressed</code> is a choice (a filter), and <code>Dash.seg</code> can run a row of them as one choice. <code>.chips</code> wraps them; <code>.chips.scroll</code> keeps them on one line that scrolls sideways.</p>
+      <example>
+        <div class="chips" id="chip-filter">
+          <button type="button" class="chip" data-value="all" aria-pressed="true">All</button>
+          <button type="button" class="chip" data-value="web" aria-pressed="false">Web</button>
+          <button type="button" class="chip" data-value="db" aria-pressed="false">Databases</button>
+          <button type="button" class="chip" data-value="queue" aria-pressed="false">Queues</button>
+        </div>
+        <script>
+          Dash.seg('chip-filter', { value: 'all', onChange: (v) => Dash.toast(`Showing ${v}`) });
+        </script>
+      </example>
+    </section>
+
+    <section id="changes" data-terms=".chg .up .down .flat .none Dash.chg .rank Dash.rank">
+      <h2>Changes and ranks</h2>
+      <p><code>.chg</code> is a signed change, green up and red down (<code>.up</code>, <code>.down</code>, <code>.flat</code>). <code>Dash.chg(value, text)</code> picks the class from the sign; <code>{ eps }</code> is how small a change still counts as flat. <code>.rank</code> is "#2 of 14", gold, silver and bronze for the top three; <code>Dash.rank(position, of)</code> writes it.</p>
+      <example>
+        <div class="row" id="chg-box"></div>
+        <script>
+          Dash.render('chg-box', Dash.chg(4.2, '+4.2%') + Dash.chg(-1.8, '−1.8%') + Dash.chg(0, '0%') + Dash.rank(1, 14) + Dash.rank(2, 14) + Dash.rank(3, 14) + Dash.rank(9, 14));
+        </script>
+      </example>
+    </section>
+
+    <section id="avatars" data-terms=".avatar .avatars .square .extra .sm Dash.avatar Dash.avatars">
+      <h2>Avatars</h2>
+      <p><code>Dash.avatar(name)</code> is the name's initials in a colour picked from the name, so the same person always has the same colour. <code>{ src }</code> shows a picture instead (a <code>data:image/</code> one too), <code>{ tone }</code> picks the colour, <code>{ size: 'sm' | 'lg' }</code> and <code>{ square: true }</code> change its shape. <code>Dash.avatars(people, { max })</code> overlaps a few and counts the rest as "+3"; every name is in its label and tooltip.</p>
+      <example>
+        <div class="row" id="avatar-box"></div>
+        <script>
+          const people = ['Ada Lovelace', 'Grace Hopper', 'Alan Turing', 'Katherine Johnson', 'Edsger Dijkstra', 'Barbara Liskov'];
+          Dash.render('avatar-box', Dash.avatars(people, { max: 4 }) + Dash.avatar('Linus Park', { size: 'sm' }) + Dash.avatar('Linus Park')
+            + Dash.avatar('Linus Park', { size: 'lg' }) + Dash.avatar('Build bot', { square: true, tone: 'teal' }));
+        </script>
+      </example>
+      <p>By hand: <code>&lt;span class="avatar purple" role="img" aria-label="Ada Lovelace"&gt;AL&lt;/span&gt;</code>, or an <code>&lt;img&gt;</code> inside it.</p>
+    </section>
+
+    <section id="badges" data-terms="data-badge --badge .count-badge">
+      <h2>Badges</h2>
+      <p><code>data-badge="3"</code> on a button or an icon puts a count in its corner, and <code>data-badge=""</code> a dot. <code>--badge</code> changes its colour (red by default). The badge is drawn, not read: say the count in the button's <code>aria-label</code> too. <code>.count-badge</code> is a count beside a word, in a tab or a sidebar heading.</p>
+      <example>
+        <div class="row">
+          <button type="button" class="icon-btn" data-badge="3" aria-label="Messages, 3 new"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2.5 4h11v8h-11zM2.5 4 8 8.5 13.5 4" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></button>
+          <button type="button" class="icon-btn" data-badge="" aria-label="Alerts, new"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1 1.5H3L4 11ZM6.5 14h3" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></button>
+          <button type="button" class="btn" data-badge="12" style="--badge: var(--blue)">Inbox</button>
+          <span>Reviews <span class="count-badge">4</span></span>
+        </div>
+      </example>
+    </section>
+
+    <section id="tooltips" data-terms="data-tooltip .tooltip title">
+      <h2>Tooltips</h2>
+      <p><code>data-tooltip="text"</code> shows a tooltip on hover and on keyboard focus, kept inside the window, in an open dialog or popup too. Use it for a word or a line; a <code>title</code> is enough for long text.</p>
+      <example>
+        <div class="row">
+          <button type="button" class="btn" data-tooltip="Runs every 15 minutes">Schedule</button>
+          <span class="tag plain" tabindex="0" data-tooltip="Frankfurt, two zones">eu-west</span>
+        </div>
+      </example>
+    </section>
