@@ -2,6 +2,25 @@
 
 Dashboards keep a copy of `dash.css` and `dash.js`; the first line of each file says which version it is. Versions only add things: a page that worked with an older copy works the same with a newer one.
 
+## 1.4.0 (2026-11-23)
+
+Modals, popups and menus, and things that show properly above an open dialog. All additive.
+
+- `Dash.modal`: a dialog you keep a handle on. It has a head with the title and ×, a body that scrolls when long, and buttons at its foot. It comes in five sizes, or as a drawer. `onAction` can save first: returning false or throwing keeps it open, and the error shows in the foot. While it runs the button is busy. `update()` changes it while it is open without losing what is being typed. With `dismissable: false`, only its buttons end it.
+- `Dash.popup`: a box beside a button or at a point. It sits above everything and closes on a click outside or on Escape. It follows its button through a scroll or a table refresh. Calling it twice toggles it. With no code, `data-popup="id"` does the same with a `<template>`.
+- `Dash.menu`: a menu of choices beside a button, or at the pointer for a right-click. It has arrow keys, first letters, ticks, hints, headings, disabled and red items. It resolves to the chosen value. It is never cut off by a box that scrolls.
+- `Dash.confirm(text, { anchor })` asks in a small popup beside the button. `Dash.alert(text)` shows a message with one button.
+- `Dash.busy(button, work)` disables the button with a spinner until the work is done. `aria-busy="true"` on a `.btn` and `.spinner` are the CSS for it.
+- `Dash.toast(msg, { action: 'Undo', onAction })` gives a toast a button.
+- `Dash.place` holds the placement maths `Dash.popup` uses: below or beside, flipped, kept inside the window.
+
+Fixes:
+
+- With a dialog open, toasts and notices showed dimmed under it and could not be clicked. They now show inside it.
+- Escape on an open `.menu` inside a dialog closed the dialog too. Now it closes the menu only.
+- Pressing in a dialog's field and letting go over the backdrop, as when selecting text, closed the dialog. A backdrop click now has to start there.
+- Tests: 121 browser checks, each popup check run with and without the browser's own popovers. All 85 deliberate breakages of the kit are caught. A check whose run crashes still reports the failures found before it.
+
 ## 1.3.1 (2026-11-21)
 
 Fixes in 1.3.0's new pieces, found by checking the paths around each one:

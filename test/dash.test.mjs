@@ -350,3 +350,44 @@ test('every class the pages and helpers use is in dash.css (or the page’s own 
   }
   assert.deepEqual([...new Set(missing)], []);
 });
+
+test('1.4: Dash.place puts a box beside its anchor, flips when there is no room, stays inside the window', () => {
+  const view = { width: 1000, height: 800 };
+  const size = { width: 200, height: 150 };
+  const btn = { left: 100, top: 100, right: 180, bottom: 130 };
+  assert.deepEqual(Dash.place(btn, size, view), { side: 'bottom', maxHeight: 656, left: 100, top: 136 });
+  const low = { left: 100, top: 700, right: 180, bottom: 730 };
+  assert.deepEqual(Dash.place(low, size, view), { side: 'top', maxHeight: 686, left: 100, top: 544 });
+  const mid = { left: 500, top: 100, right: 580, bottom: 130 };
+  assert.equal(Dash.place(mid, size, view, { align: 'end' }).left, 380);
+  assert.equal(Dash.place(mid, size, view, { align: 'center' }).left, 440);
+  assert.equal(Dash.place({ left: 900, top: 100, right: 980, bottom: 130 }, size, view).left, 792); // kept 8 px from the edge
+  assert.deepEqual(Dash.place({ x: 990, y: 790 }, size, view), { side: 'top', maxHeight: 776, left: 792, top: 634 }); // a right-click near the corner
+  assert.deepEqual(Dash.place(btn, size, view, { placement: 'right' }), { side: 'right', maxHeight: 784, left: 186, top: 100 });
+  assert.equal(Dash.place(btn, size, view, { placement: 'right', align: 'center' }).top, 40);
+  assert.equal(Dash.place({ left: 850, top: 100, right: 980, bottom: 130 }, size, view, { placement: 'right' }).left, 644);
+  assert.equal(Dash.place(btn, size, view, { placement: 'sideways' }).side, 'bottom');
+  // a small window: the side with more room, and a box taller than that scrolls
+  const small = Dash.place({ left: 10, top: 140, right: 60, bottom: 160 }, { width: 200, height: 250 }, { width: 390, height: 300 });
+  assert.deepEqual(small, { side: 'bottom', maxHeight: 126, left: 10, top: 166 });
+  // no room on either side: it covers the anchor instead of shrinking to nothing
+  const none = Dash.place({ left: 10, top: 40, right: 60, bottom: 60 }, { width: 200, height: 250 }, { width: 390, height: 100 });
+  assert.equal(none.maxHeight, 84);
+  assert.ok(none.top >= 8 && none.top + Math.min(250, none.maxHeight) <= 92, JSON.stringify(none));
+});
+
+test('1.4: menu items escape, and carry their roles', () => {
+  const html = Dash.menu.html(['Open', { label: '<b>Rename</b>', value: 'r', hint: 'F2' }, '-', { heading: 'Danger <zone>' },
+    { label: 'Delete', tone: 'bad" onclick="x', disabled: true }, { label: 'Wrap lines', checked: true }, { label: 'Raw', checked: false }, { label: 'Docs', href: '/docs?a=1&b=2' }]);
+  // a ticked item in the menu: every item has the tick column, so the labels line up
+  assert.match(html, /^<button type="button" role="menuitem" data-item="0" tabindex="-1"><span class="menu-tick" aria-hidden="true"><\/span><span class="menu-text">Open<\/span><\/button>/);
+  assert.match(html, /data-item="1"[^>]*><span class="menu-tick" aria-hidden="true"><\/span><span class="menu-text">&lt;b&gt;Rename&lt;\/b&gt;<\/span><kbd class="menu-hint">F2<\/kbd><\/button>/);
+  assert.match(html, /<hr><div class="menu-label" role="presentation">Danger &lt;zone&gt;<\/div>/);
+  assert.match(html, /data-item="4" tabindex="-1" class="bad&quot; onclick=&quot;x" disabled>/);
+  assert.match(html, /role="menuitemcheckbox" data-item="5" tabindex="-1" aria-checked="true"><span class="menu-tick" aria-hidden="true">✓<\/span>/);
+  assert.match(html, /data-item="6" tabindex="-1" aria-checked="false"><span class="menu-tick" aria-hidden="true"><\/span>/);
+  assert.match(html, /<a role="menuitem" data-item="7" tabindex="-1" href="\/docs\?a=1&amp;b=2">/);
+  assert.equal(Dash.menu.html([]), '');
+  assert.equal(Dash.menu.html(['One', { label: 'Two', value: 2 }]),
+    '<button type="button" role="menuitem" data-item="0" tabindex="-1"><span class="menu-text">One</span></button><button type="button" role="menuitem" data-item="1" tabindex="-1"><span class="menu-text">Two</span></button>');
+});

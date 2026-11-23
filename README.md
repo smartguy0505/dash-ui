@@ -171,8 +171,9 @@ Surfaces and text: `--bg`, `--card`, `--soft` (a block inside a card, table head
 - Text utilities: `.muted`, `.faint`, `.strong`, `.sub`, `.mono`, `.num`, `.unit` (a unit after a number: `12.5 <span class="unit">ms</span>`), `.ellipsis`, `.clamp` (`--lines`), `.invisible` (hidden, keeps its space), `kbd`, `code`.
 
 **Controls**
-- `.btn`: also `.primary` (text-coloured; `.primary.blue` for a blue one), `.ghost`, `.danger`, `.sm`, `.round` and `.block`. `.btn.busy` spins its icon.
-- `.icon-btn`: a 28 px icon button. `aria-expanded` turns its chevron; `.danger` turns it red on hover.
+- `.btn`: also `.primary` (text-coloured; `.primary.blue` for a blue one), `.ghost`, `.danger`, `.sm`, `.round` and `.block`. `.btn.busy` spins its icon; `aria-busy="true"` (what `Dash.busy` sets) puts a spinner before the label.
+- `.spinner`: a loading ring on its own, `.spinner.lg` a bigger one; a tone colours it (`<span class="spinner blue" role="status" aria-label="Loading"></span>`).
+- `.icon-btn`: a 28 px icon button. `aria-expanded` turns its chevron (not on a button that opens a popup, which has `aria-haspopup`); `.danger` turns it red on hover.
 - `.link`: a button that looks like a link. `.link.quiet` is muted.
 - `.seg`: a segmented control.
   - Buttons with `aria-pressed` are a choice; links with `aria-current="page"` are views.
@@ -184,8 +185,9 @@ Surfaces and text: `--bg`, `--card`, `--soft` (a block inside a card, table head
 - `.field`: a label, an `.input`, then `.hint` or `.err`. `.field.invalid` turns it red.
 - `.switch`: `<label class="switch"><input type="checkbox"><span class="track"></span> Label</label>`.
 - `.checkline`, and `details > summary`.
-- `.menu`: `<details class="menu"><summary class="btn">Actions</summary><div class="menu-list">…</div></details>`. The list holds buttons and links, `<hr>` and `.menu-label`; a tone on an item colours it (`class="bad"`). `.menu.end` opens leftwards. It closes on a click outside, on Escape and once an item is chosen. Inside a sideways-scrolling `.table-wrap` the list gets cut off, so keep menus out of scrolling boxes.
-- `data-tooltip="text"`: a tooltip on hover and keyboard focus, kept inside the window, in an open dialog too. Use it for a word or a line; a `title` is enough for long text.
+- `.menu`: `<details class="menu"><summary class="btn">Actions</summary><div class="menu-list">…</div></details>`. The list holds buttons and links, `<hr>` and `.menu-label`; a tone on an item colours it (`class="bad"`). `.menu.end` opens leftwards. It closes on a click outside, on Escape (only the menu, inside a dialog too) and once an item is chosen. Inside a sideways-scrolling `.table-wrap` the list gets cut off: there, use `Dash.menu`, which draws the same list above everything.
+- `data-tooltip="text"`: a tooltip on hover and keyboard focus, kept inside the window, in an open dialog or popup too. Use it for a word or a line; a `title` is enough for long text.
+- `.popup` (`Dash.popup`, `Dash.menu`, `data-popup`): a box beside a button, above everything. Inside it, `.popup-title`, `.popup-text` and `.popup-actions` give a small question or note its shape.
 
 **Tables**
 - `.table` inside a `.panel` has a rounded header strip. Wrap it in `.table-wrap` to make the table its own card.
@@ -219,10 +221,11 @@ Surfaces and text: `--bg`, `--card`, `--soft` (a block inside a card, table head
 - `.lanes`: the fleet dashboard's timeline. `.lane-label`, then a `.lane` with `.span` (a run) and `.mark` (an event) placed with `left:%`, then a `.lane-axis`.
 
 **Feedback**
-- `.toast` (`Dash.toast`): a short message at the bottom.
+- `.toast` (`Dash.toast`): a short message at the bottom; with an action (`Undo`) it has a button. Toasts and notices show above an open dialog, inside it.
 - `.notices` › `.notice` (`Dash.notify`): an alert in the corner that stays.
 - `<dialog class="dialog">`: centred. Use `.dialog-body`, `.hint` and `.dialog-actions`.
-- `<dialog class="drawer">`: from the right. Use `.drawer-body` and `.drawer-head`. Open either with `el.showModal()`. `[data-dismiss]`, Escape or a click on the backdrop closes it. For a question, `Dash.confirm`, `Dash.ask` and `Dash.dialog` build one on the spot.
+- `<dialog class="drawer">`: from the right. Use `.drawer-body` and `.drawer-head`. Open either with `el.showModal()`. `[data-dismiss]`, Escape or a click on the backdrop closes it. For a question, `Dash.confirm`, `Dash.ask` and `Dash.dialog` build one on the spot. A click on the backdrop closes it only when the press started there too, so selecting text in a field and letting go outside keeps it open.
+- `<dialog class="modal">` (`Dash.modal`): a head with the title and ×, a `.modal-body` that scrolls when long, and a `.modal-foot` with the buttons. `data-size` is `sm` (400 px), `md` (560), `lg` (760), `xl` (1040) or `full`; `data-drawer` puts it on the right, full height.
 - `.live` with `data-state="on|stale|off|connecting"`: the connection status (the dot pulses while connecting).
 - `.flash`: highlights a value that just changed.
 - `.ip`: a blurred IP address (`Dash.maskIps`).
@@ -264,7 +267,7 @@ Builders return HTML strings, with every value escaped. Put them in with `innerH
 | `Dash.donut(segments, { center, sub })`, `Dash.gauge(frac, { name, sub, tone })`, `Dash.spark(values, { tone, height, area, labels })` | donut; gauge (ok → warn at 0.7 → bad at 0.9 unless a tone is given); sparkline |
 | `Dash.maskIps(text)`, `Dash.hideIps(text)` | blur IPv4 addresses (a click shows every copy of that address); `(IP hidden)` for tooltips |
 | `Dash.copy(text)` | clipboard with the old fallback for plain-HTTP pages; returns true/false |
-| `Dash.toast(msg, { tone, ms })` | short message |
+| `Dash.toast(msg, { tone, ms, action, onAction })` | short message; with `action: 'Undo'` it has a button and stays 6 s |
 | `Dash.notify({ key, title, status, text, tone, onClick, ms, max })`, `Dash.notify.dismiss(key)` | alert in the corner |
 | `Dash.api(url, { method, json, etag, headers })` | fetch JSON. Errors carry `.status` and the server's `{ error }` text. A 401 goes to `Dash.config.loginUrl` when set. `etag: true` reuses the last body on a 304. |
 | `Dash.poll(fn, ms, { hiddenMs, live, staleAfter })` | run now and every `ms`, one at a time, again as soon as the tab is visible; `.now()`, `.stop()`. `live`: the id of a `.live` status it keeps right (stale after `staleAfter`, 3 × `ms`) |
@@ -277,7 +280,13 @@ Builders return HTML strings, with every value escaped. Put them in with `innerH
 | `Dash.key(combo, fn, { inInputs })` | a shortcut (`'/'`, `'g'`, `'mod+k'`, `'shift+?'`) that stays quiet while the reader types; returns a remover |
 | `Dash.hash.get(key)`, `.set({ key: value }, { push })`, `.on(fn)`, `.parse`, `.format` | the part of the address after `#` as settings (`#view=list&id=7`); `null` removes a key |
 | `Dash.dialog({ title, text, body, actions, cancel, drawer, focus })` | a dialog made on the spot; resolves `{ value, fields }` (`value` null when cancelled; `fields`: the named inputs in `body`) |
-| `Dash.confirm(text, { title, ok, cancel, tone })`, `Dash.ask(title, { value, placeholder, type, required })` | yes/no (Cancel has the focus; `tone: 'bad'` for a red button); one line of text or null |
+| `Dash.confirm(text, { title, ok, cancel, tone, anchor })`, `Dash.ask(title, { value, placeholder, type, required })` | yes/no (Cancel has the focus; `tone: 'bad'` for a red button; `anchor`: ask in a popup beside that button instead); one line of text or null |
+| `Dash.alert(text, { title, ok, tone })` | a message with one button; resolves once it is read |
+| `Dash.modal({ title, text, body, actions, cancel, size, drawer, dismissable, focus, onAction, onClose })` | a modal you keep a handle on (below) |
+| `Dash.popup(anchor, content, { placement, align, width, cls, label, focus, onClose })` | a box beside an element or at a point (below); calling it again for the same element closes it |
+| `Dash.menu(anchor, items, { placement, align, label })` | a menu beside a button, or at the pointer for a right-click; resolves to the chosen value or null (below) |
+| `Dash.busy(button, work)` | the button is disabled with a spinner until `work` (a function or a promise) is done; returns its result |
+| `Dash.place(rect, size, view, { placement, align, offset })` | where a box goes beside a rectangle, flipped and kept inside the window (what `Dash.popup` uses) |
 | `Dash.theme.get/set/current()`, `Dash.color(name)` | light/dark; a token's current value (for a canvas) |
 | `Dash.flash(el)` | highlight a change |
 
@@ -285,7 +294,8 @@ Builders return HTML strings, with every value escaped. Put them in with `innerH
 - `data-copy="text"`: copies the text, toasts "Copied" (not with `data-quiet`), and the button says "Copied ✓" for a moment.
 - `data-theme-set`: switches light, dark or system.
 - `data-toggle-side`: collapses or expands the sidebar, then fires `dash:side` on `document` (`e.detail.collapsed`) for a page that lays out by it.
-- `data-dismiss`: closes the dialog or drawer it's in, or removes the notice.
+- `data-dismiss`: closes the popup, dialog or drawer it's in (the innermost), or removes the notice.
+- `data-popup="id"`: opens the content of `<template id="id">` (or of any element with that id) in a popup beside the button; a second click closes it.
 - `data-tooltip="text"`: a tooltip on hover and keyboard focus.
 - `<details class="menu">`: closes on a click outside, on Escape and once an item is chosen.
 - `.ip`: click or Enter shows that IP address everywhere on the page.
@@ -297,6 +307,47 @@ Builders return HTML strings, with every value escaped. Put them in with `innerH
 - `value: (row) => …` when what it shows and sorts by isn't `row[key]`;
 - `format: (value, row) => text` for text (escaped), or `html: (row) => markup` for a builder's output (`Dash.pill`, `Dash.ago`, …);
 - `sort: false` for a column that doesn't sort; `firstDir: 'asc'` for one whose first click should sort up (names, latency).
+
+**`Dash.modal`.** For more than a question: a form that saves, details that keep updating, a long list.
+
+```js
+const m = Dash.modal({
+  title: 'Edit web-1', size: 'lg', cancel: 'Cancel',
+  body: '<label class="field"><span>Name</span><input class="input" name="name" required></label>',
+  actions: [{ label: 'Delete', value: 'delete', tone: 'bad' }, { label: 'Save', value: 'save', primary: true }],
+  onAction: async (value, m) => {
+    if (value === 'save') await Dash.api('/api/servers/1', { method: 'PUT', json: m.fields() }); // an error shows in the foot and keeps it open
+    if (value === 'delete' && !(await Dash.confirm('Delete web-1?', { tone: 'bad', ok: 'Delete' }))) return false; // false keeps it open
+  },
+});
+const { value, fields } = await m.closed; // value: the action's, or null after ×, Cancel, Escape or a click outside
+```
+
+- The action button is busy (disabled, with a spinner) while `onAction` runs.
+- Enter in a field presses the `primary` action, after the fields' own checks (`required`, `type="email"`). Give your own buttons in the body `type="button"`.
+- `m.update({ title, text, body, actions })` changes it while it is open; the body is redrawn like `Dash.render`, so what the reader is typing stays. `m.body` is the part that scrolls, `m.error(text)` shows a line in the foot, `m.close(value)` ends it.
+- `dismissable: false`: no ×, and Escape and clicks outside do nothing, for something that must finish. `drawer: true` slides it in from the right.
+
+**`Dash.popup` and `Dash.menu`.** A popup floats above everything, a sideways-scrolling table or an open dialog included. It closes on a click outside, on Escape (the focus goes back to its button) or with `.close()`, and it follows its button when the page scrolls or a refresh redraws it (the new copy with the same id, `data-key`, or tag and `data-` attributes; with none, it closes).
+
+```js
+Dash.popup(button, '<p class="popup-title">web-1</p><p class="popup-text">Checked 2 min ago</p>', { align: 'end' });
+
+const choice = await Dash.menu(button, [
+  { heading: 'Server' },
+  { label: 'Rename', value: 'rename', hint: 'F2' },
+  { label: 'Wrap lines', checked: true },
+  '-',
+  { label: 'Delete', value: 'delete', tone: 'bad', disabled: !canDelete },
+]);
+
+row.addEventListener('contextmenu', async (e) => { e.preventDefault(); const v = await Dash.menu(e, items); }); // at the pointer
+```
+
+- `content`: HTML, an element, or a function `(popup) => …`. `placement`: `bottom` (default), `top`, `right` or `left`; it flips when there's no room, and stays inside the window. `align`: `start`, `center` or `end`. `focus: true` puts the focus inside.
+- The handle: `.el`, `.close(value)`, `.update(content)`, `.closed` (a promise of the close value).
+- A menu moves with the arrow keys, Home, End and first letters; Enter picks, Tab and Escape leave. An item is a string or `{ label, value, hint, tone, disabled, checked, href }`; `'-'` is a line and `{ heading }` a small label.
+- It uses the browser's own popovers where there are some, and works the same without them.
 
 Options: `sort: { key, dir, store }`; `perPage` (0 = no pager) and `sizes`; `noun` for the pager's "of 23 servers"; `key` (a field or a function) so a refresh keeps the focused row; `rowClass: (row) => 'marked bad'`; `empty` text; `cls` (table classes, `'stack'` by default); `wrap: true` for a table that is its own card; `onRow(row, event)` for a click or Enter on a row (not on a button or link inside it); `filter` to start filtered. It draws with `Dash.render`.
 
@@ -337,7 +388,7 @@ node --test test/dash.test.mjs
 
 The tests cover the formatters, sorting, paging, escaping in every builder, and chart sizes. They also check that the two dark palettes in `dash.css` are equal, that every token has a dark value, and that every class used in the pages and in dash.js exists in `dash.css`. For layout, `test/screens.mjs` loads every page in headless Chromium at 390, 700, 860 and 1440 px, light and dark. It fails on a page wider than the window, a console error, or a stacked table whose rows aren't cards at the right widths (or whose `td.actions` left the card's corner). It needs Playwright, which the kit itself doesn't:
 
-`test/behaviour.mjs` checks in the same browser what a node test can't see: `Dash.render` keeping focus, typing, open details, scroll and a selection; the poll's live status; the chart readout; copy buttons across a redraw; the sidebar event; the search count; saved choices in `Dash.seg`; `.topbar.static-md` and phone tiles; and `Dash.table`, tabs, menus, tooltips, dialogs, `Dash.search`, `Dash.key`, live times and stacked columns. `KIT=<dir>` serves `dash.css` and `dash.js` from another folder, to try a change.
+`test/behaviour.mjs` checks in the same browser what a node test can't see: `Dash.render` keeping focus, typing, open details, scroll and a selection; the poll's live status; the chart readout; copy buttons across a redraw; the sidebar event; the search count; saved choices in `Dash.seg`; `.topbar.static-md` and phone tiles; `Dash.table`, tabs, menus, tooltips, dialogs, `Dash.search`, `Dash.key`, live times and stacked columns; and modals, popups and menus (each popup check runs with the browser's own popovers and without them), and what shows above an open dialog. `KIT=<dir>` serves `dash.css` and `dash.js` from another folder, to try a change.
 
 ```sh
 npm i --no-save playwright-core && npx playwright-core install --only-shell chromium

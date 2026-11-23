@@ -41,7 +41,7 @@
     <nav class="chips toc" aria-label="Sections">
       <a class="chip" href="#colours">Colours</a><a class="chip" href="#numbers">Numbers</a><a class="chip" href="#labels">Labels</a>
       <a class="chip" href="#controls">Controls</a><a class="chip" href="#surfaces">Panels and cards</a><a class="chip" href="#tables">Tables</a>
-      <a class="chip" href="#charts">Charts</a><a class="chip" href="#more">Tabs and menus</a><a class="chip" href="#feedback">Feedback</a>
+      <a class="chip" href="#charts">Charts</a><a class="chip" href="#more">Tabs and menus</a><a class="chip" href="#popups">Modals and popups</a><a class="chip" href="#feedback">Feedback</a>
     </nav>
   </div>
 
@@ -311,6 +311,37 @@
     </div>
   </section>
 
+  <!-- modals, popups, menus -->
+  <section class="section" id="popups">
+    <div class="section-head"><h2 class="section-title">Modals and popups</h2><span class="sub">Dash.modal · Dash.popup · Dash.menu · Dash.confirm beside a button · Dash.busy · a toast with Undo</span></div>
+    <div class="panel">
+      <div class="demo"><p class="demo-label">Modals: a form that saves (try the name “taken”), details that keep updating, one that must finish, a drawer</p>
+        <button type="button" class="btn" id="pm-edit">Edit server…</button>
+        <button type="button" class="btn" id="pm-live">Live details</button>
+        <button type="button" class="btn" id="pm-static">Run a migration</button>
+        <button type="button" class="btn" id="pm-drawer">Settings drawer</button>
+        <button type="button" class="btn ghost" id="pm-alert">Alert</button>
+      </div>
+      <div class="demo"><p class="demo-label">Popups and menus: they float above everything, follow their button, and close on a click outside or Escape</p>
+        <button type="button" class="btn" data-popup="pp-info">What is p95?</button>
+        <button type="button" class="btn" id="pp-menu">Actions ▾</button>
+        <button type="button" class="icon-btn" id="pp-more" aria-label="More for api-eu-west-1"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><circle cx="3" cy="8" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="13" cy="8" r="1.5"/></svg></button>
+        <button type="button" class="btn danger" id="pp-remove">Remove…</button>
+        <span class="tag plain" id="pp-picked">Nothing picked yet</span>
+      </div>
+      <div class="demo"><p class="demo-label">A right-click menu</p>
+        <div class="callout" id="pp-area" tabindex="0" style="max-width:420px;cursor:context-menu">Right-click here (or focus it and press the menu key)</div>
+      </div>
+      <div class="demo"><p class="demo-label">Working, and undo</p>
+        <button type="button" class="btn primary" id="pb-save">Save changes</button>
+        <button type="button" class="btn" id="pb-delete">Delete 3 rows</button>
+        <span class="spinner" role="status" aria-label="Loading"></span>
+        <span class="spinner blue lg" role="status" aria-label="Loading"></span>
+      </div>
+    </div>
+    <template id="pp-info"><p class="popup-title">p95 latency</p><p class="popup-text">95 of every 100 requests answered at least this fast. Here: <b>41 ms</b> over the last hour.</p></template>
+  </section>
+
   <!-- feedback -->
   <section class="section" id="feedback">
     <h2 class="section-title">Feedback</h2>
@@ -551,6 +582,76 @@
   $('b-drawer').addEventListener('click', () => $('drawer').showModal());
   $('b-flash').addEventListener('click', () => Dash.flash('flash-me'));
   $('ips').innerHTML = Dash.maskIps('api-eu-west on 203.0.113.10, its probe 198.51.100.7, and again 203.0.113.10');
+
+  // modals, popups, menus
+  const pickedTag = (v) => { $('pp-picked').textContent = v == null ? 'Closed without a choice' : `Picked: ${v}`; };
+  $('pm-edit').addEventListener('click', () => {
+    const m = Dash.modal({
+      title: 'Edit api-eu-west-1', text: 'Changes apply on the next check.', cancel: 'Cancel',
+      body: `<div class="field"><label for="pm-name">Name</label><input class="input" id="pm-name" name="name" value="api-eu-west-1" required></div>
+        <div class="field"><label for="pm-region">Region</label><select class="input" id="pm-region" name="region"><option>eu-west</option><option>us-east</option><option>ap-south</option></select></div>
+        <label class="checkline"><input type="checkbox" name="alerts" checked> Alert me when it goes down</label>`,
+      actions: [{ label: 'Delete', value: 'delete', tone: 'bad' }, { label: 'Save', value: 'save', primary: true }],
+      onAction: async (value, mm) => {
+        if (value === 'delete') return (await Dash.confirm('Delete api-eu-west-1?', { title: 'Delete server', ok: 'Delete', tone: 'bad' })) || false;
+        await new Promise((ok) => setTimeout(ok, 700));
+        if (mm.fields().name.trim() === 'taken') throw new Error('Another server already has that name.');
+      },
+    });
+    m.closed.then(({ value, fields }) => { if (value) Dash.toast(value === 'save' ? `Saved ${fields.name}` : 'Deleted'); });
+  });
+  $('pm-live').addEventListener('click', () => {
+    const rows = () => ['api-eu-west-1', 'api-us-east-1', 'db-eu-west-1', 'cache-ap-south-1', 'worker-us-east-2'].map((name, i) => {
+      const ms = Math.round(20 + Math.random() * 60 + i * 4);
+      return `<tr><td>${name}</td><td class="num">${ms} ms</td><td>${Dash.pill(ms > 70 ? 'slow' : 'ok', ms > 70 ? 'warn' : 'ok')}</td></tr>`;
+    }).join('');
+    const table = () => `<p class="muted">Updated ${fmt.clock(Date.now())}: the table redraws every second, and what you type below stays.</p>
+      <table class="table"><thead><tr><th>Server</th><th class="num">p95</th><th>State</th></tr></thead><tbody>${rows()}</tbody></table>
+      <div class="field" style="margin-top:14px"><label for="pm-note">A note (it survives the redraws)</label><input class="input" id="pm-note" name="note"></div>`;
+    const m = Dash.modal({ title: 'Live details', size: 'lg', body: table(), cancel: 'Close' });
+    const timer = setInterval(() => m.update({ body: table() }), 1000);
+    m.closed.then(() => clearInterval(timer));
+  });
+  $('pm-static').addEventListener('click', () => {
+    const steps = ['Copying rows', 'Rebuilding indexes', 'Checking', 'Done'];
+    const body = (i) => `<p>${Dash.bar(i / (steps.length - 1), i === steps.length - 1 ? 'ok' : 'blue')}</p><p class="muted">${steps[i]}…</p>`;
+    const m = Dash.modal({ title: 'Running the migration', text: 'This can’t be stopped halfway, so the window stays until it ends.', body: body(0), dismissable: false });
+    let i = 0;
+    const timer = setInterval(() => {
+      i += 1;
+      m.update({ body: body(i) });
+      if (i === steps.length - 1) { clearInterval(timer); m.update({ actions: [{ label: 'Close', value: 'ok', primary: true }] }); }
+    }, 900);
+  });
+  $('pm-drawer').addEventListener('click', () => {
+    Dash.modal({
+      title: 'Settings', drawer: true, cancel: 'Cancel', actions: [{ label: 'Apply', value: 'apply', primary: true }],
+      body: `<div class="field"><label for="pm-every">Check every</label><select class="input" id="pm-every" name="every"><option>30 s</option><option selected>1 min</option><option>5 min</option></select></div>
+        <label class="switch"><input type="checkbox" name="compact"><span class="track"></span> Compact tables</label>
+        ${'<p class="muted">More settings would go here; the body scrolls between the head and the buttons.</p>'.repeat(12)}`,
+    }).closed.then(({ value }) => { if (value) Dash.toast('Settings applied'); });
+  });
+  $('pm-alert').addEventListener('click', () => Dash.alert('The export finished: 1,204 rows.', { title: 'Export ready' }));
+  const actions = [
+    { heading: 'api-eu-west-1' },
+    { label: 'Open logs', value: 'logs', hint: 'L' },
+    { label: 'Restart', value: 'restart', hint: 'R' },
+    { label: 'Wrap long lines', value: 'wrap', checked: true },
+    { label: 'Move to another region', value: 'move', disabled: true },
+    '-',
+    { label: 'Remove', value: 'remove', tone: 'bad' },
+  ];
+  $('pp-menu').addEventListener('click', async (e) => pickedTag(await Dash.menu(e.currentTarget, actions)));
+  $('pp-more').addEventListener('click', async (e) => pickedTag(await Dash.menu(e.currentTarget, actions, { align: 'end' })));
+  $('pp-remove').addEventListener('click', async (e) => {
+    if (await Dash.confirm('Remove api-eu-west-1 from the list?', { anchor: e.currentTarget, ok: 'Remove', tone: 'bad' })) Dash.toast('Removed', { action: 'Undo', onAction: () => Dash.toast('Put back') });
+  });
+  $('pp-area').addEventListener('contextmenu', async (e) => {
+    e.preventDefault();
+    pickedTag(await Dash.menu(e, ['Copy', 'Copy as CSV', '-', { label: 'Select all', hint: 'Ctrl A' }]));
+  });
+  $('pb-save').addEventListener('click', (e) => Dash.busy(e.currentTarget, () => new Promise((ok) => setTimeout(ok, 1500))).then(() => Dash.toast('Saved')));
+  $('pb-delete').addEventListener('click', () => Dash.toast('Deleted 3 rows', { action: 'Undo', onAction: () => Dash.toast('Restored 3 rows', { tone: 'ok' }) }));
 
   // search count
   $('search-demo').addEventListener('input', (e) => {

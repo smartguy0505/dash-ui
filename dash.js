@@ -1,4 +1,4 @@
-/* dash-ui 1.3.1 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
+/* dash-ui 1.4.0 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
    A plain script with no dependencies: a script tag for dash.js in <head> gives window.Dash, and puts the
    saved light/dark choice on the page before it paints. In Node, require('./dash.js') returns the same object
    (the parts that need a page are skipped).
@@ -8,7 +8,7 @@
 (function (root) {
   'use strict';
   const hasDom = typeof document !== 'undefined';
-  const Dash = { version: '1.3.1', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side' } };
+  const Dash = { version: '1.4.0', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side' } };
 
   // ---- basics
 
@@ -620,6 +620,40 @@
     }
   };
 
+  // ---- layers: what shows above what
+  // An open modal dialog sits above the page and makes the rest of it unclickable, so toasts, notices, tooltips and
+  // popups go inside the topmost one, or inside the popup they belong to; with neither open, into <body>.
+  const modals = []; // modal dialogs in the order they opened (the ones dash.js saw open)
+  let ids = 0; // numbers element ids
+  const popups = []; // open popups, oldest first (Dash.popup, below)
+  const isModal = (d) => { try { return d.matches(':modal'); } catch { return d.open; } };
+  const topModal = () => {
+    const open = [...document.querySelectorAll('dialog[open]')].filter(isModal);
+    const seen = modals.filter((d) => open.includes(d));
+    const all = open.filter((d) => !seen.includes(d)).concat(seen); // ones opened behind dash.js's back first: their order is unknown
+    return all[all.length - 1] || null;
+  };
+  const layerFor = (near) => {
+    if (near && near.closest) {
+      for (let i = popups.length - 1; i >= 0; i--) if (popups[i].el.contains(near)) return popups[i].el;
+      const own = near.closest('dialog[open]');
+      if (own) return own;
+    }
+    return topModal() || document.body;
+  };
+  const lift = (node, near) => {
+    const to = layerFor(near);
+    if (node && node.parentNode !== to) to.appendChild(node);
+    return node;
+  };
+  // a modal dialog opening: popups left open beneath it close, and toasts and notices move up into it
+  const opened = (d) => {
+    if (!modals.includes(d)) modals.push(d);
+    for (const p of popups.slice()) if (!d.contains(p.el)) p.close();
+    for (const n of [toastEl, noticeBox]) if (n) lift(n);
+  };
+  const openModal = (d) => { d.showModal(); opened(d); };
+
   // ---- copy, toast, notices
 
   // navigator.clipboard needs a secure page (https or localhost); fall back to the old copy command elsewhere
@@ -639,19 +673,28 @@
   // a short message at the bottom of the page: Dash.toast('Saved'), Dash.toast('Could not save', { tone: 'bad' })
   let toastEl = null;
   let toastTimer = null;
-  Dash.toast = (msg, { tone = '', ms = 2400 } = {}) => {
+  // With an action it has a button and stays 6 s: Dash.toast('Deleted 3 rows', { action: 'Undo', onAction: restore })
+  Dash.toast = (msg, { tone = '', ms, action = '', onAction } = {}) => {
     if (!toastEl) {
       toastEl = Object.assign(document.createElement('div'), { className: 'toast' });
       toastEl.setAttribute('role', 'status');
       toastEl.setAttribute('aria-live', 'polite');
-      document.body.appendChild(toastEl);
     }
+    lift(toastEl); // inside an open modal dialog, so it shows above it
     clearTimeout(toastTimer);
     toastEl.textContent = msg;
-    toastEl.className = 'toast' + toneClass(tone);
+    toastEl.className = 'toast' + toneClass(tone) + (action ? ' act' : '');
+    if (action) {
+      toastEl.innerHTML = `<span class="toast-text">${esc(msg)}</span><button type="button" class="toast-act">${esc(action)}</button>`;
+      toastEl.lastChild.addEventListener('click', () => {
+        clearTimeout(toastTimer);
+        toastEl.classList.remove('show');
+        if (onAction) onAction();
+      });
+    }
     void toastEl.offsetWidth; // restart the transition when one toast replaces another
     toastEl.classList.add('show');
-    toastTimer = setTimeout(() => toastEl.classList.remove('show'), ms);
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), ms ?? (action ? 6000 : 2400));
   };
 
   // an alert in the corner that stays until dismissed (or ms runs out): something that started needing you.
@@ -662,8 +705,8 @@
     if (!noticeBox) {
       noticeBox = Object.assign(document.createElement('div'), { className: 'notices' });
       noticeBox.setAttribute('aria-live', 'polite');
-      document.body.appendChild(noticeBox);
     }
+    lift(noticeBox); // inside an open modal dialog, where it can still be clicked
     if (key != null) Dash.notify.dismiss(key);
     const n = document.createElement('div');
     n.className = 'notice' + toneClass(tone);
@@ -933,14 +976,16 @@
       resolve({ value: d.returnValue || null, fields });
       d.remove();
     });
-    d.showModal();
+    openModal(d);
     const first = focus ? d.querySelector(focus) : d.querySelector('input, select, textarea');
     if (first) first.focus();
   });
   // Yes or no: if (await Dash.confirm('Delete 3 rules?', { ok: 'Delete', tone: 'bad' })) …  (Cancel has the focus)
-  Dash.confirm = async (text, { title = '', ok = 'OK', cancel = 'Cancel', tone } = {}) => (await Dash.dialog({
-    title: title || text, text: title ? text : '', cancel, actions: [{ label: ok, value: 'ok', primary: true, tone }], focus: '[data-dismiss]',
-  })).value === 'ok';
+  // anchor: an element: the question shows in a small popup beside it instead of a dialog in the middle.
+  Dash.confirm = async (text, { title = '', ok = 'OK', cancel = 'Cancel', tone, anchor } = {}) => (anchor ? popConfirm(anchor, { title, text, ok, cancel, tone })
+    : (await Dash.dialog({
+      title: title || text, text: title ? text : '', cancel, actions: [{ label: ok, value: 'ok', primary: true, tone }], focus: '[data-dismiss]',
+    })).value === 'ok');
   // One line of text, or null: const name = await Dash.ask('New name', { value: old, placeholder: 'web-1' })
   Dash.ask = async (title, { text = '', value = '', placeholder = '', ok = 'OK', cancel = 'Cancel', required = true, type = 'text' } = {}) => {
     const r = await Dash.dialog({
@@ -949,6 +994,370 @@
     });
     return r.value === 'ok' ? r.fields.answer : null;
   };
+
+  // A message with one button; resolves once it is read: await Dash.alert('Saved 3 rules.', { title: 'Done' })
+  Dash.alert = async (text, { title = '', ok = 'OK', tone } = {}) => {
+    await Dash.dialog({ title: title || text, text: title ? text : '', cancel: false, actions: [{ label: ok, value: 'ok', primary: true, tone }], focus: '.dialog-actions .btn' });
+  };
+
+  // A button that works while something runs: disabled, with a spinner (aria-busy), until the work is done; returns
+  // what the work returns (and passes on its error).  await Dash.busy(saveButton, () => Dash.api('/save', { method: 'POST' }))
+  Dash.busy = async (target, work) => {
+    const b = el(target);
+    const was = b ? b.disabled : false;
+    if (b) { b.disabled = true; b.setAttribute('aria-busy', 'true'); }
+    try {
+      return await (typeof work === 'function' ? work() : work);
+    } finally {
+      if (b) { b.disabled = was; b.removeAttribute('aria-busy'); }
+    }
+  };
+
+  // ---- modals, popups and menus
+
+  // A modal: a dialog with a head (title and ×), a body that scrolls when it is long, and buttons at its foot.
+  // Unlike Dash.dialog it is a handle: it stays open while you change it, and an action can check or save first.
+  //   const m = Dash.modal({ title: 'web-1', body: html, size: 'lg', cancel: 'Close',
+  //     actions: [{ label: 'Save', value: 'save', primary: true }],
+  //     onAction: async (value, m) => { await save(m.fields()); } });   // returning false, or an error, keeps it open
+  //   m.update({ body: html }); m.close(); const { value, fields } = await m.closed;
+  // size: sm | md (default) | lg | xl | full. drawer: true slides it in from the right, full height.
+  // cancel: a ghost button first in the foot (its label; none by default). An action: { label, value, primary, tone };
+  // Enter in a field presses the primary one, after the fields' own checks (required, type="email", …). Buttons
+  // of your own in the body need type="button". An error thrown by onAction shows in the foot (so does m.error(text)).
+  // dismissable: false drops the × and ignores Escape and clicks outside: only its buttons or m.close() end it.
+  // text: a line under the title. focus: a selector (the first field by default). onClose({ value, fields }).
+  // update({ body }) redraws like Dash.render: what the reader is typing, the focus and the scroll stay.
+  // Handle: el, body (the part that scrolls), fields(), update({ title, text, body, actions }), error(text),
+  // close(value), closed (a promise of { value, fields }; value is null after ×, Cancel, Escape or a click outside).
+  Dash.modal = ({ title = '', text = '', body = '', actions = [], cancel = '', size = 'md', drawer = false, dismissable = true,
+    focus, onAction, onClose, cls = '' } = {}) => {
+    const d = document.createElement('dialog');
+    d.className = 'modal' + (cls ? ' ' + cls : '');
+    d.dataset.size = size;
+    if (drawer) d.dataset.drawer = '';
+    if (!dismissable) d.setAttribute('closedby', 'none');
+    const id = 'dash-modal-' + ++ids;
+    d.setAttribute('aria-labelledby', id);
+    d.innerHTML = `<form class="modal-form" method="dialog"><header class="modal-head"><div><h2 class="modal-title" id="${id}"></h2><p class="modal-text"></p></div>`
+      + `${dismissable ? '<button type="button" class="icon-btn modal-x" data-dismiss aria-label="Close" title="Close">×</button>' : ''}</header>`
+      + '<div class="modal-body"></div><footer class="modal-foot"></footer></form>';
+    const q = (s) => d.querySelector(s);
+    const form = q('form');
+    const bodyEl = q('.modal-body');
+    const foot = q('.modal-foot');
+    let acts = actions;
+    let result = null;
+    let running = false;
+    let closing = false;
+    let done = false;
+    let resolveClosed;
+    const closed = new Promise((ok) => { resolveClosed = ok; });
+    const fields = () => Object.fromEntries(new FormData(form));
+    const error = (msg) => { const e = q('.modal-error'); if (e) e.textContent = msg || ''; };
+    const drawFoot = () => {
+      foot.innerHTML = '<span class="modal-error" role="alert"></span>'
+        + (cancel ? `<button type="button" class="btn ghost" data-dismiss>${esc(cancel)}</button>` : '')
+        + acts.map((a) => `<button type="${a.primary ? 'submit' : 'button'}" class="btn${a.primary || a.tone ? ' primary' : ''}${a.tone ? ' ' + esc(a.tone) : ''}">${esc(a.label)}</button>`).join('');
+      [...foot.querySelectorAll('.btn:not([data-dismiss])')].forEach((b, i) => { b.__dashAct = acts[i]; });
+      foot.hidden = !cancel && !acts.length;
+    };
+    const update = ({ title: t, text: x, body: b, actions: a } = {}) => {
+      if (t != null) { title = String(t); q('.modal-title').textContent = title; }
+      if (x != null) { text = String(x); q('.modal-text').textContent = text; }
+      q('.modal-text').hidden = !text;
+      q('.modal-head').hidden = !title && !text && !dismissable;
+      if (a) { acts = a; drawFoot(); }
+      if (b != null) {
+        if (b.nodeType) { bodyEl.replaceChildren(b); bodyEl.__dashHtml = null; } else Dash.render(bodyEl, String(b), { force: bodyEl.__dashHtml == null });
+      }
+    };
+    const finish = () => {
+      if (done) return;
+      done = true;
+      const out = { value: result, fields: fields() };
+      d.remove();
+      if (onClose) onClose(out);
+      resolveClosed(out);
+    };
+    const close = (value = null) => {
+      if (closing || done) return;
+      closing = true;
+      result = value;
+      if (d.open) d.close(); else finish();
+    };
+    const run = async (a, btn) => {
+      if (running || closing) return;
+      running = true;
+      error('');
+      let keep = false;
+      try {
+        if (onAction) keep = (await Dash.busy(btn, () => onAction(a.value ?? a.label, handle))) === false;
+      } catch (err) {
+        keep = true;
+        error(err && err.message ? err.message : String(err));
+      }
+      running = false;
+      if (!keep) close(a.value ?? a.label);
+    };
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const b = e.submitter || foot.querySelector('button[type="submit"]'); // a submitter that isn't ours does nothing
+      if (b && b.__dashAct) run(b.__dashAct, b);
+    });
+    foot.addEventListener('click', (e) => {
+      const b = e.target.closest('button');
+      if (b && b.__dashAct && b.type === 'button') run(b.__dashAct, b);
+    });
+    d.addEventListener('cancel', (e) => { if (!dismissable) e.preventDefault(); });
+    d.addEventListener('close', finish);
+    const handle = { el: d, body: bodyEl, fields, update, error, close, closed };
+    drawFoot();
+    update({ title, text, body });
+    document.body.appendChild(d);
+    openModal(d);
+    const first = focus ? d.querySelector(focus) : bodyEl.querySelector('input:not([type="hidden"]), select, textarea');
+    if (first) first.focus();
+    return handle;
+  };
+
+  // Where a floating box goes beside a rectangle: on the placement side (bottom, top, right or left), on the other
+  // side when that has more room, and always inside the window; align: start | center | end along that side.
+  // a: { left, top, right, bottom } or a point { x, y }; size and view: { width, height }.
+  // Returns { left, top, side, maxHeight }: maxHeight is the room there (a taller box scrolls). Dash.popup uses it.
+  Dash.place = (a, size, view, { placement = 'bottom', align = 'start', offset = 6, margin = 8 } = {}) => {
+    if (a.left == null) a = { left: a.x, right: a.x, top: a.y, bottom: a.y };
+    const room = {
+      bottom: view.height - a.bottom - offset - margin, top: a.top - offset - margin,
+      right: view.width - a.right - offset - margin, left: a.left - offset - margin,
+    };
+    if (!(placement in room)) placement = 'bottom';
+    const across = placement === 'left' || placement === 'right';
+    const other = { bottom: 'top', top: 'bottom', right: 'left', left: 'right' }[placement];
+    let side = placement;
+    if (room[side] < (across ? size.width : size.height) && room[other] > room[side]) side = other;
+    const fit = (start, len, total) => clamp(start, margin, Math.max(margin, total - margin - len));
+    const along = (lo, hi, len) => (align === 'end' ? hi - len : align === 'center' ? (lo + hi - len) / 2 : lo);
+    if (!across) {
+      let maxHeight = Math.max(0, room[side]);
+      if (maxHeight < Math.min(size.height, 120)) maxHeight = view.height - 2 * margin; // no room either side: cover the anchor rather than shrink to nothing
+      const h = Math.min(size.height, maxHeight);
+      return { side, maxHeight, left: fit(along(a.left, a.right, size.width), size.width, view.width), top: fit(side === 'bottom' ? a.bottom + offset : a.top - offset - h, h, view.height) };
+    }
+    const maxHeight = Math.max(0, view.height - 2 * margin);
+    const h = Math.min(size.height, maxHeight);
+    return { side, maxHeight, left: fit(side === 'right' ? a.right + offset : a.left - offset - size.width, size.width, view.width), top: fit(along(a.top, a.bottom, h), h, view.height) };
+  };
+
+  // A popup: a box of content beside an element (or at a point: a right-click). It floats above everything, a table
+  // that scrolls sideways or an open dialog included, and closes on a click outside, on Escape (the focus goes back
+  // to the anchor) or with .close(). It follows its anchor when the page scrolls, and when a refresh redraws the
+  // anchor it moves to the new copy (same id, data-key, or tag and data- attributes); with none, it closes.
+  //   Dash.popup(button, '<p class="popup-text">Checked 2 min ago</p>', { align: 'end' })
+  // content: HTML, an element, or a function (popup) => either. placement: bottom (default) | top | right | left (it
+  // flips when there is no room); align: start | center | end. width: a CSS width. cls: classes for the box.
+  // label: its accessible name. focus: true puts the focus on its first control (or give a selector). onClose(value).
+  // Called again for the same anchor while it is open, it closes it instead (a toggle) and returns null.
+  // Returns { el, anchor, close(value), update(content), place(), closed } (closed: a promise of the close value).
+  // No code: <button type="button" data-popup="more"> opens the content of <template id="more"> (or of any element).
+  const nativePop = hasDom && typeof HTMLElement === 'function' && typeof HTMLElement.prototype.showPopover === 'function';
+  let lastPress = { target: null, x: 0, y: 0, seq: 0 }; // the last pointer press (wired below)
+  let clickOf = -1; // the press whose click is being handled now (-1: none, or a key's click)
+  const followAnchor = (old) => { // the copy of an element that a redraw put in its place, or null
+    const k = keyOf(old);
+    if (k) return k[0] === '#' ? document.getElementById(k.slice(1)) : document.querySelector(`[data-key="${CSS.escape(k.slice(2))}"]`);
+    const sig = sigOf(old);
+    if (sig === old.tagName) return null; // nothing to know it by
+    const same = [...document.querySelectorAll(old.tagName)].filter((e) => sigOf(e) === sig);
+    return same.length === 1 ? same[0] : null;
+  };
+  let following = false;
+  const follow = () => { // keeps open popups beside their anchors, a frame at a time, while any is open
+    if (following) return;
+    following = true;
+    const tick = () => {
+      for (const p of popups.slice()) p.place();
+      if (popups.length) requestAnimationFrame(tick); else following = false;
+    };
+    requestAnimationFrame(tick);
+  };
+  Dash.popup = (anchor, content, { placement = 'bottom', align = 'start', offset = 6, width, cls = '', label, role = 'dialog', focus = false, onClose } = {}) => {
+    let at = null;
+    let near = null;
+    if (anchor && typeof anchor === 'object' && !anchor.nodeType) { // a point, or the event of a right-click
+      const t = anchor.target && anchor.target.nodeType === 1 ? anchor.target : null;
+      if (anchor.type === 'contextmenu' && !anchor.clientX && !anchor.clientY && t) anchor = t; // the menu key: beside the focused element
+      else { at = { x: anchor.clientX ?? anchor.x, y: anchor.clientY ?? anchor.y }; near = t; anchor = null; }
+    }
+    if (!at) {
+      anchor = el(anchor);
+      if (!anchor) return null;
+      near = anchor;
+      const open = popups.find((p) => p.anchor === anchor);
+      if (open) { open.close(); return null; }
+      if (anchor.__dashShut === clickOf) return null; // this click's own press just closed its popup: that was the toggle
+    }
+    const box = document.createElement('div');
+    box.className = 'popup' + (cls ? ' ' + cls : '');
+    box.id = 'dash-popup-' + ++ids;
+    box.tabIndex = -1;
+    if (role) box.setAttribute('role', role);
+    if (label) box.setAttribute('aria-label', label);
+    if (width) box.style.width = width;
+    if (nativePop) box.setAttribute('popover', 'auto'); else box.hidden = true;
+    let done = false;
+    let own = false; // closed by .close(), not by a click outside or Escape
+    let shown = 0;
+    let last = '';
+    let resolveClosed;
+    const p = { el: box, anchor, closed: new Promise((ok) => { resolveClosed = ok; }) };
+    const setAnchor = (a) => {
+      anchor = p.anchor = a;
+      a.setAttribute('aria-haspopup', role === 'menu' ? 'menu' : 'dialog');
+      a.setAttribute('aria-expanded', 'true');
+      a.setAttribute('aria-controls', box.id);
+    };
+    const fill = (c) => {
+      if (typeof c === 'function') c = c(p);
+      if (c === undefined) return; // the function filled p.el itself
+      if (c && c.nodeType) box.replaceChildren(c); else box.innerHTML = c == null ? '' : String(c);
+    };
+    const finish = (value) => {
+      if (done) return;
+      done = true;
+      const had = box.contains(document.activeElement);
+      for (const q of popups.slice()) if (q !== p && box.contains(q.el)) q.close(); // the ones opened from inside it
+      popups.splice(popups.indexOf(p), 1);
+      if (anchor) { anchor.setAttribute('aria-expanded', 'false'); anchor.removeAttribute('aria-controls'); }
+      box.remove();
+      if (had && anchor && anchor.isConnected) anchor.focus({ preventScroll: true });
+      if (onClose) onClose(value);
+      resolveClosed(value);
+    };
+    const close = (value = null) => {
+      if (done) return;
+      own = true;
+      if (nativePop) try { box.hidePopover(); } catch { /* already hidden */ }
+      finish(value);
+    };
+    // a press on the anchor closed it: the click that follows must not open it again
+    const shutByPress = () => {
+      if (anchor && lastPress.seq > shown && anchor.contains(lastPress.target)) anchor.__dashShut = lastPress.seq;
+    };
+    const place = () => {
+      if (done) return;
+      if (anchor && !anchor.isConnected) {
+        const again = followAnchor(anchor);
+        if (!again) { close(); return; }
+        setAnchor(again);
+      }
+      if (anchor && !anchor.getClientRects().length) { close(); return; } // hidden
+      const r = anchor ? anchor.getBoundingClientRect() : at;
+      const size = { width: box.offsetWidth, height: box.scrollHeight + box.offsetHeight - box.clientHeight };
+      const view = { width: document.documentElement.clientWidth, height: document.documentElement.clientHeight };
+      const pos = Dash.place(r, size, view, { placement, align, offset: at ? 2 : offset });
+      const key = [pos.left, pos.top, pos.maxHeight].map(Math.round).join();
+      if (key === last) return;
+      last = key;
+      box.style.left = Math.round(pos.left) + 'px';
+      box.style.top = Math.round(pos.top) + 'px';
+      box.style.maxHeight = Math.round(pos.maxHeight) + 'px';
+    };
+    Object.assign(p, {
+      close, place,
+      update: (c) => {
+        if (done) return;
+        for (const q of popups.slice()) if (q !== p && box.contains(q.el)) q.close(); // opened from the old content
+        fill(c);
+        last = '';
+        place();
+      },
+      dismiss: () => { shutByPress(); close(); }, // a press outside it (when the browser has no popovers of its own)
+    });
+    fill(content);
+    lift(box, near);
+    if (anchor) setAnchor(anchor);
+    shown = lastPress.seq; // presses after this one can close it
+    if (nativePop) {
+      box.addEventListener('beforetoggle', (e) => { if (e.newState === 'closed' && !own) shutByPress(); });
+      box.addEventListener('toggle', (e) => { if (e.newState === 'closed') finish(null); });
+      try { box.showPopover(); } catch { /* not in the page */ }
+    } else box.hidden = false;
+    popups.push(p);
+    place();
+    follow();
+    if (focus) {
+      const f = typeof focus === 'string' ? box.querySelector(focus)
+        : box.querySelector('button:not(:disabled), [href], input:not([type="hidden"]), select, textarea, [tabindex]:not([tabindex="-1"])');
+      (f || box).focus({ preventScroll: true });
+    }
+    return p;
+  };
+
+  // A menu of choices beside a button, or at the pointer for a right-click; resolves to the chosen item's value, or
+  // null when it closes without one. Arrow keys, Home, End and first letters move; Enter picks; Tab or Escape leave.
+  //   const v = await Dash.menu(button, [{ label: 'Rename', value: 'rename', hint: 'F2' }, '-', { label: 'Delete', value: 'delete', tone: 'bad' }])
+  //   row.addEventListener('contextmenu', async (e) => { e.preventDefault(); const v = await Dash.menu(e, items); })
+  // An item: a string, or { label, value (the label by default), hint (a key, on the right), tone ('bad'), disabled,
+  // checked (true or false: a tick column), href (a link) }; '-' is a line, { heading: 'Text' } a small label.
+  // Options as for Dash.popup (placement, align, label, cls). Unlike a .menu, it is never cut off by a box that scrolls.
+  Dash.menu = (anchor, items, opts = {}) => new Promise((resolve) => {
+    const list = items.map((it) => (typeof it === 'string' && it !== '-' ? { label: it } : it));
+    let chosen = null;
+    const pop = Dash.popup(anchor, Dash.menu.html(list), {
+      ...opts, cls: ('menu-list ' + (opts.cls || '')).trim(), role: 'menu', focus: '[role^="menuitem"]:not(:disabled)', onClose: () => resolve(chosen),
+    });
+    if (!pop) { resolve(null); return; }
+    const box = pop.el;
+    box.addEventListener('click', (e) => {
+      const b = e.target.closest('[role^="menuitem"]');
+      if (!b || b.disabled) return;
+      const it = list[b.dataset.item];
+      chosen = it.value ?? it.label;
+      pop.close(chosen);
+    });
+    box.addEventListener('keydown', (e) => {
+      if (e.key === 'Tab') { pop.close(); return; }
+      const all = [...box.querySelectorAll('[role^="menuitem"]:not(:disabled)')];
+      const i = all.indexOf(document.activeElement);
+      let j = { ArrowDown: i + 1, ArrowUp: i < 0 ? -1 : i - 1, Home: 0, End: all.length - 1 }[e.key];
+      if (j == null && e.key.length === 1 && e.key !== ' ' && !e.ctrlKey && !e.metaKey && !e.altKey) { // a first letter
+        const k = e.key.toLowerCase();
+        const next = all.slice(i + 1).concat(all.slice(0, i + 1)).find((b) => b.textContent.trim().toLowerCase().startsWith(k));
+        if (next) j = all.indexOf(next);
+      }
+      if (j == null || !all.length) return;
+      e.preventDefault();
+      all[(j + all.length) % all.length].focus();
+    });
+  });
+  // the items' HTML (Dash.menu uses it; escaped like every builder). With a ticked item, every item gets the
+  // tick column, so the labels line up.
+  Dash.menu.html = (items) => {
+    const ticks = items.some((it) => it && typeof it === 'object' && it.checked != null);
+    return items.map((it, i) => menuItem(it, i, ticks)).join('');
+  };
+  const menuItem = (it, i, ticks) => {
+    if (it === '-' || it == null) return '<hr>';
+    if (typeof it === 'string') it = { label: it };
+    if (it.heading != null) return `<div class="menu-label" role="presentation">${esc(it.heading)}</div>`;
+    const tick = it.checked != null;
+    const attrs = `role="${tick ? 'menuitemcheckbox' : 'menuitem'}" data-item="${i}" tabindex="-1"${tick ? ` aria-checked="${Boolean(it.checked)}"` : ''}${it.tone ? ` class="${esc(it.tone)}"` : ''}`;
+    const inner = `${ticks ? `<span class="menu-tick" aria-hidden="true">${it.checked ? '✓' : ''}</span>` : ''}<span class="menu-text">${esc(it.label)}</span>`
+      + `${it.hint ? `<kbd class="menu-hint">${esc(it.hint)}</kbd>` : ''}`;
+    return it.href ? `<a ${attrs} href="${esc(it.href)}">${inner}</a>` : `<button type="button" ${attrs}${it.disabled ? ' disabled' : ''}>${inner}</button>`;
+  };
+
+  // Dash.confirm(text, { anchor }): the question in a small popup beside the button instead of a dialog in the middle
+  const popConfirm = (anchor, { title, text, ok, cancel, tone }) => new Promise((resolve) => {
+    let yes = false;
+    const p = Dash.popup(anchor, `${title ? `<p class="popup-title">${esc(title)}</p>` : ''}<p class="popup-text">${esc(text)}</p>`
+      + `<div class="popup-actions"><button type="button" class="btn ghost sm" data-dismiss>${esc(cancel)}</button>`
+      + `<button type="button" class="btn primary sm${tone ? ' ' + esc(tone) : ''}">${esc(ok)}</button></div>`,
+    { role: 'alertdialog', label: title || text, focus: '[data-dismiss]', onClose: () => resolve(yes) });
+    if (!p) { resolve(false); return; }
+    p.el.querySelector('.btn.primary').addEventListener('click', () => { yes = true; p.close(true); });
+  });
 
   // ---- the address, shortcuts and search
 
@@ -1092,6 +1501,7 @@
   // A menu: <details class="menu"><summary class="btn">Actions</summary><div class="menu-list">
   //   <button type="button">Rename</button><hr><button type="button" class="bad">Delete</button></div></details>
   // It closes on a click outside, on Escape (back to its button) and once an item is chosen; .menu.end opens leftwards.
+  // Inside a box that scrolls (a .table-wrap) it can be cut off: Dash.menu draws the same list above everything.
   // A tooltip: data-tooltip="Text" on anything; it shows on hover and keyboard focus, kept inside the window.
 
   let tipEl = null;
@@ -1111,11 +1521,8 @@
       tipEl.className = 'tooltip';
       tipEl.setAttribute('role', 'tooltip');
       tipEl.id = 'dash-tooltip';
-      document.body.appendChild(tipEl);
     }
-    // an open modal dialog sits above everything else on the page, so the tooltip goes inside it
-    const host = target.closest('dialog[open]') || document.body;
-    if (tipEl.parentNode !== host) host.appendChild(tipEl);
+    lift(tipEl, target); // inside the popup or dialog the target is in: those sit above the rest of the page
     if (tipFor && tipFor !== target) tipFor.removeAttribute('aria-describedby');
     tipFor = target;
     tipEl.textContent = text;
@@ -1192,15 +1599,45 @@
         hit.setAttribute('aria-expanded', String(!rail));
         Dash.store.set(Dash.config.sideKey, rail ? 'rail' : 'open');
         document.dispatchEvent(new CustomEvent('dash:side', { detail: { collapsed: rail } })); // for pages that lay out by it
+      } else if ((hit = t.closest('[data-popup]'))) {
+        const src = document.getElementById(hit.dataset.popup);
+        if (src) Dash.popup(hit, src.tagName === 'TEMPLATE' ? src.content.cloneNode(true) : src.innerHTML);
       } else if ((hit = t.closest('[data-dismiss]'))) {
+        const pop = popups.slice().reverse().find((p) => p.el.contains(hit));
         const box = hit.closest('dialog, .notice, [data-dismissable]');
-        if (box && box.tagName === 'DIALOG') box.close(); else if (box) box.remove();
-      } else if (t.tagName === 'DIALOG' && (t.classList.contains('drawer') || t.classList.contains('dialog'))) {
-        // a click on the backdrop (outside the box) closes it
+        if (pop) pop.close(); else if (box && box.tagName === 'DIALOG') box.close(); else if (box) box.remove();
+      } else if (t.tagName === 'DIALOG' && t.matches('.dialog, .drawer, .modal') && lastPress.target === t
+        && !/^(none|closerequest)$/i.test(t.getAttribute('closedby') || '')) {
+        // a click on the backdrop (outside the box) closes it, when the press started there too: not a drag out of a field
         const r = t.getBoundingClientRect();
-        if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) t.close();
+        const out = (x, y) => x < r.left || x > r.right || y < r.top || y > r.bottom;
+        if (out(e.clientX, e.clientY) && out(lastPress.x, lastPress.y)) t.close();
       }
     });
+    // the last press: where a click started, and (with no popovers in the browser) a press outside a popup closes it
+    document.addEventListener('pointerdown', (e) => {
+      lastPress = { target: e.target, x: e.clientX, y: e.clientY, seq: lastPress.seq + 1 };
+      if (!nativePop) for (const p of popups.slice().reverse()) if (!p.el.contains(e.target)) p.dismiss();
+    }, true);
+    document.addEventListener('click', (e) => {
+      clickOf = e.detail ? lastPress.seq : -1; // a click from a key (detail 0) has no press
+      setTimeout(() => { clickOf = -1; });
+    }, true);
+    // a dialog closing: what floats inside it moves down to the next layer
+    document.addEventListener('close', (e) => {
+      const d = e.target;
+      if (!d || d.tagName !== 'DIALOG') return;
+      const i = modals.indexOf(d);
+      if (i >= 0) modals.splice(i, 1);
+      for (const p of popups.slice()) if (d.contains(p.el)) p.close();
+      if (tipEl && d.contains(tipEl)) { hideTip(); document.body.appendChild(tipEl); }
+      for (const n of [toastEl, noticeBox]) if (n && d.contains(n)) lift(n);
+    }, true);
+    // a modal dialog the page opened itself (in browsers that say so): the same as one of dash.js's own
+    document.addEventListener('toggle', (e) => {
+      const d = e.target;
+      if (d && d.tagName === 'DIALOG' && e.newState === 'open' && isModal(d)) opened(d);
+    }, true);
     // charts drawn with Dash.bars(points, { read }) (they carry data-read): the hovered column's title goes in
     // their readout line, and the line's own text comes back when the pointer leaves. Other charts are left alone.
     let reading = null;
@@ -1216,8 +1653,9 @@
       if (ip && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); toggleIp(ip); }
       if (e.key === 'Escape') {
         hideTip();
+        if (!nativePop && popups.length) { e.preventDefault(); popups[popups.length - 1].close(); return; } // browsers with popovers do this
         const open = document.querySelector('details.menu[open]');
-        if (open) { closeMenus(); open.querySelector('summary')?.focus(); }
+        if (open) { e.preventDefault(); closeMenus(); open.querySelector('summary')?.focus(); } // only the menu: a dialog around it stays
       }
     });
     // tooltips: data-tooltip on hover or keyboard focus

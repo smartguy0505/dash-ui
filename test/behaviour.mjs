@@ -1,7 +1,8 @@
 // What a node test can't see, checked in a real browser: Dash.render keeping focus, typing, open details,
 // scroll and a selection; the poll's live status; the chart readout; copy buttons across a re-render; the
 // sidebar event; the search count; saved choices in Dash.seg; the static-md top bar and phone stat tiles;
-// and from 1.3 Dash.table, tabs, menus, tooltips, dialogs, Dash.search and Dash.key, live times and stacked columns.
+// and from 1.3 Dash.table, tabs, menus, tooltips, dialogs, Dash.search and Dash.key, live times and stacked columns;
+// from 1.4 modals, popups (with and without the browser's popovers), menus, and what shows above an open dialog.
 //
 //   npm i --no-save playwright-core && npx playwright-core install --only-shell chromium
 //   node test/behaviour.mjs          (KIT=<dir> serves dash.css and dash.js from <dir> instead: to check a change)
@@ -38,6 +39,7 @@ const url = `http://127.0.0.1:${server.address().port}/test/behaviour.html`;
 const results = [];
 // a check that throws (a click that times out, say) still ends in a FAIL line and exit code 1
 process.on('uncaughtException', (e) => {
+  for (const r of results) if (!r.ok) console.log(`FAIL ${r.name}${r.detail ? ' — ' + r.detail : ''}`); // what failed before it
   console.log(`FAIL crashed: ${String(e && e.message).split("\n")[0]}`);
   if (process.env.VERBOSE) console.log(e && e.stack);
   process.exit(1);
@@ -47,11 +49,13 @@ const browser = await chromium.launch();
 const errors = [];
 const open = async ({ width = 1200, init, clock = false } = {}) => {
   const ctx = await browser.newContext({ viewport: { width, height: 800 } });
+  // soon(promise): the promise, or 'timed out' after 1.5 s, so a close that never comes fails a check instead of hanging
+  await ctx.addInitScript(() => { window.soon = (pr, ms = 1500) => Promise.race([pr, new Promise((ok) => setTimeout(() => ok('timed out'), ms))]); });
   await ctx.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: new URL(url).origin });
   if (init) await ctx.addInitScript(init);
   const tab = await ctx.newPage();
   tab.setDefaultTimeout(5000);
-  tab.on('pageerror', (e) => errors.push(e.message));
+  tab.on('pageerror', (e) => errors.push(process.env.VERBOSE ? e.stack : e.message));
   if (clock) await tab.clock.install();
   await tab.goto(url, { waitUntil: 'load' });
   return tab;
@@ -444,6 +448,403 @@ const open = async ({ width = 1200, init, clock = false } = {}) => {
     return { left: after.scrollLeft, wide: after.scrollWidth > after.clientWidth, redrawn: host.querySelector('tbody td').textContent };
   });
   check("table: wrap keeps its sideways scroll across a refresh", scroll.wide && scroll.left === 60 && scroll.redrawn === 'a2', JSON.stringify(scroll));
+  await tab.context().close();
+}
+
+// ---- 1.4: what floats above an open dialog; modals; popups (with the browser's popovers and without); menus
+{
+  const tab = await open();
+  // toasts and notices show (and can be clicked) above an open modal dialog
+  await tab.evaluate(() => { window.nc = 0; window.m = Dash.modal({ title: 'Layers', body: '<input class="input" name="f" id="m-f">' }); });
+  await tab.waitForTimeout(50);
+  // checked in the same task as the call: the toast and the notice go up into the dialog themselves
+  const now = await tab.evaluate(() => {
+    Dash.toast('Saved');
+    Dash.notify({ key: 'n1', title: 'Notice', text: 'over the dialog', onClick: () => nc++ });
+    return { toast: document.querySelector('.toast').parentNode === m.el, notice: m.el.contains(document.querySelector('.notices')) };
+  });
+  await tab.waitForTimeout(250);
+  const lay = await tab.evaluate(() => ({ toast: document.querySelector('.toast').parentNode === m.el, op: getComputedStyle(document.querySelector('.toast')).opacity }));
+  check('layers: a toast shows inside an open modal', now.toast && lay.toast && lay.op === '1', JSON.stringify({ now, lay }));
+  await tab.click('.notice-body', { timeout: 1000 }).catch(() => {}); // under the dialog it can't be clicked: the check fails
+  check('layers: a notice can be clicked while a modal is open', now.notice && (await tab.evaluate(() => nc)) === 1, JSON.stringify(now));
+  await tab.evaluate(() => Dash.notify({ key: 'n2', title: 'Stays' }));
+  await tab.evaluate(() => m.close());
+  await tab.waitForTimeout(50);
+  const back = await tab.evaluate(() => ({ parent: document.querySelector('.notices')?.parentNode === document.body, n: document.querySelectorAll('.notice').length }));
+  check('layers: notices move back to the page when the modal closes', back.parent && back.n === 1, JSON.stringify(back));
+
+  // a modal dialog the page opens by itself: the notices already showing move up into it
+  await tab.evaluate(() => {
+    window.nc2 = 0;
+    Dash.notify({ key: 'n3', title: 'Before', onClick: () => nc2++ });
+    const d = document.createElement('dialog');
+    d.id = 'own-dlg';
+    d.innerHTML = '<p>the page’s own</p>';
+    document.body.appendChild(d);
+    d.showModal();
+  });
+  await tab.waitForTimeout(50);
+  await tab.click('[data-notice="n3"] .notice-body', { timeout: 1000 }).catch(() => {});
+  const own = await tab.evaluate(() => ({ nc2, inside: document.getElementById('own-dlg').contains(document.querySelector('.notices')) }));
+  check('layers: notices move into a dialog the page opens itself', own.nc2 === 1 && own.inside, JSON.stringify(own));
+  await tab.evaluate(() => { const d = document.getElementById('own-dlg'); d.close(); d.remove(); Dash.notify.dismiss('n2'); });
+
+  // Escape on a menu inside a dialog closes the menu, not the dialog
+  await tab.evaluate(() => {
+    window.r1 = 'open';
+    Dash.dialog({ title: 'Menu inside', body: '<details class="menu" id="dm"><summary class="btn">More</summary><div class="menu-list"><button type="button">One</button></div></details><input class="input" name="x" id="dx">' })
+      .then((v) => { r1 = v; });
+  });
+  await tab.click('#dm summary');
+  await tab.keyboard.press('Escape');
+  const esc1 = await tab.evaluate(() => ({ menu: document.getElementById('dm')?.open ?? 'gone', dialog: !!document.querySelector('dialog[open]') }));
+  check('menu: Escape inside a dialog closes only the menu', esc1.menu === false && esc1.dialog, JSON.stringify(esc1));
+  if (!esc1.dialog) await tab.evaluate(() => { window.r1 = { value: null, fields: { x: 'typed' } }; Dash.dialog({ title: 'again', body: '<input class="input" name="x" id="dx">' }).then((v) => { r1 = v; }); });
+  // pressing in a field and letting go over the backdrop (selecting text) keeps the dialog; a click outside closes it
+  await tab.fill('#dx', 'typed');
+  const fb = await tab.locator('#dx').boundingBox();
+  await tab.mouse.move(fb.x + 10, fb.y + fb.height / 2);
+  await tab.mouse.down();
+  await tab.mouse.move(6, 6, { steps: 5 });
+  await tab.mouse.up();
+  const keptField = await tab.evaluate(() => !!document.querySelector('dialog[open]'));
+  await tab.evaluate(() => Dash.notify({ key: 'drag', title: 'Press me, let go outside' }));
+  const nb = await tab.locator('[data-notice="drag"] .notice-title').boundingBox();
+  await tab.mouse.move(nb.x + 5, nb.y + nb.height / 2);
+  await tab.mouse.down();
+  await tab.mouse.move(6, 6, { steps: 5 });
+  await tab.mouse.up();
+  const keptNotice = await tab.evaluate(() => { const open = !!document.querySelector('dialog[open]'); Dash.notify.dismiss('drag'); return open; });
+  const kept = keptField && keptNotice;
+  await tab.mouse.click(6, 6);
+  await tab.waitForTimeout(50);
+  const shut = await tab.evaluate(() => r1);
+  check('dialog: a drag out of a field onto the backdrop keeps it; a click there closes it', kept && shut && shut.value === null && shut.fields.x === 'typed', JSON.stringify({ keptField, keptNotice, shut }));
+
+  // modal: Enter presses the primary action after the fields' own checks; onAction sees the value and fields
+  await tab.evaluate(() => {
+    window.acts = [];
+    window.m = Dash.modal({ title: 'Rename', text: 'A new name', cancel: 'Cancel', body: '<input class="input" name="name" id="m-name" required>',
+      actions: [{ label: 'Delete', value: 'delete', tone: 'bad' }, { label: 'Save', value: 'save', primary: true }],
+      onAction: (v, mm) => { acts.push([v, mm.fields().name]); } });
+  });
+  const shape = await tab.evaluate(() => ({ title: m.el.querySelector('.modal-title').textContent, x: !!m.el.querySelector('.modal-x'), focus: document.activeElement.id, btns: [...m.el.querySelectorAll('.modal-foot .btn')].map((b) => b.textContent + ':' + b.type).join() }));
+  check('modal: a head with title and ×, the first field focused, Cancel then the actions', shape.title === 'Rename' && shape.x && shape.focus === 'm-name' && shape.btns === 'Cancel:button,Delete:button,Save:submit', JSON.stringify(shape));
+  await tab.keyboard.press('Enter');
+  const blocked = await tab.evaluate(() => ({ acts: acts.length, open: m.el.open }));
+  await tab.fill('#m-name', 'web-2');
+  await tab.keyboard.press('Enter');
+  await tab.waitForTimeout(50);
+  const res = await tab.evaluate(async () => ({ acts, closed: await soon(m.closed) }));
+  check('modal: Enter waits for required fields, then runs the primary action and closes', blocked.acts === 0 && blocked.open && JSON.stringify(res.acts) === '[["save","web-2"]]' && res.closed.value === 'save' && res.closed.fields.name === 'web-2', JSON.stringify({ blocked, res }));
+
+  // onAction: false keeps it open; an error shows in the foot; while it runs the button is busy
+  await tab.evaluate(() => {
+    window.step = 'false';
+    window.m = Dash.modal({ title: 'Save', actions: [{ label: 'Save', value: 'save', primary: true }], onAction: async () => {
+      if (step === 'false') return false;
+      if (step === 'throw') throw new Error('Name is taken');
+      await new Promise((ok) => { window.finishSave = ok; });
+    } });
+  });
+  await tab.click('.modal-foot .btn.primary', { timeout: 1500 }).catch(() => {}); // a button left disabled fails the check below, not the run
+  const k1 = await tab.evaluate(() => m.el.open);
+  await tab.evaluate(() => { step = 'throw'; });
+  await tab.click('.modal-foot .btn.primary', { timeout: 1500 }).catch(() => {}); // a button left disabled fails the check below, not the run
+  await tab.waitForTimeout(30);
+  const k2 = await tab.evaluate(() => ({ open: m.el.open, err: m.el.querySelector('.modal-error').textContent }));
+  await tab.evaluate(() => { step = 'wait'; });
+  await tab.click('.modal-foot .btn.primary', { timeout: 1500 }).catch(() => {}); // a button left disabled fails the check below, not the run
+  const busy = await tab.evaluate(() => { const b = m.el.querySelector('.modal-foot .btn.primary'); return { busy: b.getAttribute('aria-busy'), dis: b.disabled, err: m.el.querySelector('.modal-error').textContent }; });
+  await tab.evaluate(() => window.finishSave && finishSave());
+  const r2 = await tab.evaluate(async () => (await soon(m.closed)).value);
+  check('modal: onAction false keeps it open, an error shows, a slow one is busy, then it closes',
+    k1 && k2.open && k2.err === 'Name is taken' && busy.busy === 'true' && busy.dis && busy.err === '' && r2 === 'save', JSON.stringify({ k1, k2, busy, r2 }));
+
+  // update() redraws the body like Dash.render: typed text and focus stay
+  await tab.evaluate(() => { window.m = Dash.modal({ title: 'Live', body: '<p id="lv">1</p><input class="input" id="lv-in" name="q">' }); });
+  await tab.fill('#lv-in', 'half typed');
+  await tab.evaluate(() => m.update({ title: 'Live 2', body: '<p id="lv">2</p><input class="input" id="lv-in" name="q">' }));
+  const upd = await tab.evaluate(() => ({ p: document.getElementById('lv').textContent, v: document.getElementById('lv-in').value, f: document.activeElement.id, t: m.el.querySelector('.modal-title').textContent }));
+  check('modal: update() keeps what is being typed and the focus', upd.p === '2' && upd.v === 'half typed' && upd.f === 'lv-in' && upd.t === 'Live 2', JSON.stringify(upd));
+  await tab.evaluate(() => m.close());
+
+  // sizes and the drawer
+  const sizes = await tab.evaluate(async () => {
+    const out = {};
+    for (const size of ['sm', 'md', 'lg', 'xl', 'full']) { const x = Dash.modal({ title: size, size }); out[size] = Math.round(x.el.getBoundingClientRect().width); x.close(); await soon(x.closed); }
+    const dr = Dash.modal({ title: 'drawer', drawer: true }); const r = dr.el.getBoundingClientRect(); out.drawer = [Math.round(r.right), Math.round(r.top), Math.round(r.height)].join(); dr.close();
+    return out;
+  });
+  check('modal: sizes sm 400, md 560, lg 760, xl 1040, full the window less 32; the drawer on the right, full height',
+    sizes.sm === 400 && sizes.md === 560 && sizes.lg === 760 && sizes.xl === 1040 && sizes.full === 1168 && sizes.drawer === '1200,0,800', JSON.stringify(sizes));
+
+  // not dismissable: no ×, Escape and a click outside leave it open; close(value) ends it
+  await tab.evaluate(() => { window.m = Dash.modal({ title: 'Working', body: '<p>please wait</p>', dismissable: false }); });
+  await tab.keyboard.press('Escape');
+  await tab.keyboard.press('Escape');
+  await tab.mouse.click(6, 6);
+  const stay = await tab.evaluate(() => ({ open: m.el.open, x: !!m.el.querySelector('.modal-x') }));
+  await tab.evaluate(() => m.close('done'));
+  const r3 = await tab.evaluate(async () => (await soon(m.closed)).value);
+  check('modal: dismissable false ignores Escape and clicks outside, close(value) ends it', stay.open && !stay.x && r3 === 'done', JSON.stringify({ stay, r3 }));
+
+  // a confirm on top of a modal: Escape closes the confirm only
+  await tab.evaluate(() => { window.m = Dash.modal({ title: 'Below' }); window.cf = 'open'; Dash.confirm('Sure?').then((v) => { cf = v; }); });
+  await tab.keyboard.press('Escape');
+  await tab.waitForTimeout(30);
+  const st = await tab.evaluate(() => ({ cf, below: m.el.open }));
+  check('modal: Escape on a confirm above it closes the confirm only', st.cf === false && st.below, JSON.stringify(st));
+  await tab.evaluate(() => m.close());
+
+  // Dash.alert, Dash.busy, a toast with an action
+  await tab.evaluate(() => { window.al = 'open'; Dash.alert('Copied 3 rows', { title: 'Done' }).then(() => { al = 'read'; }); });
+  const alertFocus = await tab.evaluate(() => document.activeElement.textContent);
+  await tab.keyboard.press('Enter');
+  await tab.waitForTimeout(30);
+  check('alert: one button, focused; Enter reads it', alertFocus === 'OK' && (await tab.evaluate(() => al)) === 'read', alertFocus);
+  const bz = await tab.evaluate(async () => {
+    const b = document.getElementById('tip-left');
+    let during;
+    const v = await Dash.busy(b, async () => { during = [b.disabled, b.getAttribute('aria-busy'), getComputedStyle(b, '::before').animationName]; return 7; });
+    const after = [b.disabled, b.getAttribute('aria-busy')];
+    let caught = '';
+    try { await Dash.busy(b, () => Promise.reject(new Error('nope'))); } catch (e) { caught = e.message; }
+    return { during, v, after, caught, again: [b.disabled, b.getAttribute('aria-busy')] };
+  });
+  check('busy: disabled with a spinner while it runs, back after, errors passed on',
+    JSON.stringify(bz) === '{"during":[true,"true","spin"],"v":7,"after":[false,null],"caught":"nope","again":[false,null]}', JSON.stringify(bz));
+  await tab.evaluate(() => { window.undone = 0; Dash.toast('Deleted 3 rows', { action: 'Undo', onAction: () => undone++ }); });
+  await tab.waitForTimeout(250);
+  await tab.click('.toast-act', { timeout: 1000 }).catch(() => {});
+  await tab.waitForTimeout(250);
+  const ta = await tab.evaluate(() => ({ undone, shown: document.querySelector('.toast').classList.contains('show') }));
+  check('toast: an action button runs and hides it', ta.undone === 1 && !ta.shown, JSON.stringify(ta));
+  await tab.context().close();
+}
+
+// a long modal on a phone: head and foot stay in view, the body scrolls
+{
+  const tab = await open({ width: 390 });
+  const ph = await tab.evaluate(() => {
+    const m = Dash.modal({ title: 'A long one', cancel: 'Close', actions: [{ label: 'Save', primary: true }], body: '<p>line</p>'.repeat(80) });
+    const r = m.el.getBoundingClientRect();
+    const head = m.el.querySelector('.modal-head').getBoundingClientRect();
+    const foot = m.el.querySelector('.modal-foot').getBoundingClientRect();
+    return { w: Math.round(r.width), inside: r.top >= 0 && r.bottom <= innerHeight, head: head.top >= r.top, foot: foot.bottom <= r.bottom + 1,
+      scrolls: m.body.scrollHeight > m.body.clientHeight, side: document.documentElement.scrollWidth - document.documentElement.clientWidth };
+  });
+  check('modal on a phone: fits the window, head and foot show, the body scrolls', ph.w === 374 && ph.inside && ph.head && ph.foot && ph.scrolls && ph.side === 0, JSON.stringify(ph));
+  await tab.context().close();
+}
+
+// popups, with the browser's own popovers and without (older browsers)
+for (const mode of ['native', 'fallback']) {
+  const tab = await open({ init: mode === 'fallback' ? () => { delete HTMLElement.prototype.showPopover; } : undefined });
+  const tag = `popup (${mode})`;
+  await tab.evaluate(() => {
+    const mk = (id, css) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn'; b.id = id; b.textContent = id; b.style.cssText = 'position:fixed;' + css; document.body.appendChild(b); return b; };
+    mk('pa', 'left:100px;top:100px');
+    mk('pb', 'left:100px;bottom:20px');
+    mk('pc', 'right:4px;top:200px');
+    window.opens = 0;
+    document.getElementById('pa').addEventListener('click', () => { opens++; window.pp = Dash.popup('pa', '<p class="popup-text">Hello <button type="button" class="btn sm" id="tip-in-pop" data-tooltip="In the popup">?</button></p>'); });
+  });
+  const mode1 = await tab.evaluate(() => typeof HTMLElement.prototype.showPopover);
+  await tab.click('#pa');
+  const at = await tab.evaluate(() => {
+    const a = document.getElementById('pa').getBoundingClientRect();
+    const r = pp.el.getBoundingClientRect();
+    return { dx: Math.round(r.left - a.left), dy: Math.round(r.top - a.bottom), shown: getComputedStyle(pp.el).display !== 'none' && r.width > 100,
+      exp: document.getElementById('pa').getAttribute('aria-expanded'), native: pp.el.hasAttribute('popover') };
+  });
+  check(`${tag}: opens 6 px below its button, left edges lined up`, at.dx === 0 && at.dy === 6 && at.shown && at.exp === 'true' && at.native === (mode1 === 'function'), JSON.stringify(at));
+  await tab.hover('#tip-in-pop');
+  const tip = await tab.evaluate(() => { const t = document.querySelector('.tooltip'); return { shown: !!t && !t.hidden, inPop: !!t && pp.el.contains(t) }; });
+  check(`${tag}: a tooltip inside it shows (drawn inside it)`, tip.shown && tip.inPop, JSON.stringify(tip));
+  await tab.click('#pa'); // the press closes it; the click it makes must not open it again
+  await tab.waitForTimeout(30);
+  const tog = await tab.evaluate(() => ({ open: document.querySelectorAll('.popup').length, opens, exp: document.getElementById('pa').getAttribute('aria-expanded') }));
+  await tab.click('#pa');
+  const again = await tab.evaluate(() => document.querySelectorAll('.popup').length);
+  check(`${tag}: its button toggles it (closed, then open again)`, tog.open === 0 && tog.opens === 2 && tog.exp === 'false' && again === 1, JSON.stringify({ tog, again }));
+  await tab.mouse.click(600, 400);
+  await tab.waitForTimeout(30);
+  check(`${tag}: a click outside closes it`, (await tab.evaluate(() => document.querySelectorAll('.popup').length)) === 0);
+
+  const under = await tab.evaluate(async () => {
+    const p = Dash.popup('pa', 'left open');
+    const m = Dash.modal({ title: 'Over it' });
+    const gone = !p.el.isConnected && document.querySelectorAll('.popup').length === 0;
+    m.close();
+    await soon(m.closed);
+    return gone;
+  });
+  check(`${tag}: a modal opening closes a popup left open beneath it`, under);
+  await tab.evaluate(() => { window.pp = Dash.popup('pa', '<button type="button" class="btn" id="in1">in</button>', { focus: true }); });
+  const f1 = await tab.evaluate(() => document.activeElement.id);
+  await tab.keyboard.press('Escape');
+  await tab.waitForTimeout(30);
+  const f2 = await tab.evaluate(() => ({ open: document.querySelectorAll('.popup').length, focus: document.activeElement.id }));
+  check(`${tag}: focus goes in; Escape closes it and gives the focus back to its button`, f1 === 'in1' && f2.open === 0 && f2.focus === 'pa', JSON.stringify({ f1, f2 }));
+
+  const flip = await tab.evaluate(() => {
+    const p = Dash.popup('pb', '<p>'.repeat(3) + 'tall enough to need room</p>');
+    const a = document.getElementById('pb').getBoundingClientRect();
+    const r = p.el.getBoundingClientRect();
+    p.close();
+    const q = Dash.popup('pc', 'near the right edge of the window, and long enough to be wide');
+    const s = q.el.getBoundingClientRect();
+    q.close();
+    return { above: Math.round(a.top - r.bottom), right: Math.round(innerWidth - s.right) };
+  });
+  check(`${tag}: flips above a button near the bottom; kept inside the window`, flip.above === 6 && flip.right >= 8, JSON.stringify(flip));
+
+  // inside a modal: Escape and data-dismiss close the popup only
+  await tab.evaluate(() => {
+    window.m = Dash.modal({ title: 'With a popup', body: '<button type="button" class="btn" id="mp">open</button>' });
+    window.pq = Dash.popup('mp', '<button type="button" class="btn" data-dismiss id="pq-x">close</button>', { focus: true });
+  });
+  const inModal = await tab.evaluate(() => ({ inside: m.el.contains(pq.el), top: document.elementFromPoint(pq.el.getBoundingClientRect().left + 5, pq.el.getBoundingClientRect().top + 5) === pq.el || pq.el.contains(document.elementFromPoint(pq.el.getBoundingClientRect().left + 5, pq.el.getBoundingClientRect().top + 5)) }));
+  await tab.keyboard.press('Escape');
+  await tab.waitForTimeout(30);
+  const e1 = await tab.evaluate(() => ({ pop: document.querySelectorAll('.popup').length, modal: m.el.open }));
+  await tab.evaluate(() => { window.pq = Dash.popup('mp', '<button type="button" class="btn" data-dismiss id="pq-x">close</button>'); });
+  await tab.click('#pq-x');
+  const e2 = await tab.evaluate(() => ({ pop: document.querySelectorAll('.popup').length, modal: m.el.open }));
+  check(`${tag}: inside a modal it shows on top; Escape and data-dismiss close only it`,
+    inModal.inside && inModal.top && e1.pop === 0 && e1.modal && e2.pop === 0 && e2.modal, JSON.stringify({ inModal, e1, e2 }));
+  await tab.evaluate(() => m.close());
+
+  // new content in a popup closes the popups opened from its old content
+  const nested = await tab.evaluate(() => {
+    const outer = Dash.popup('pa', '<button type="button" class="btn sm" id="nest-b">more</button>');
+    let innerClosed = false;
+    const inner = Dash.popup('nest-b', 'inner', { onClose: () => { innerClosed = true; } });
+    const before = outer.el.contains(inner.el) && inner.el.isConnected;
+    outer.update('<p>new content</p>');
+    const after = { inner: inner.el.isConnected, closedNow: innerClosed, open: document.querySelectorAll('.popup').length }; // closed at once, not a frame later
+    outer.close();
+    return { before, after };
+  });
+  check(`${tag}: new content in a popup closes the ones opened from the old`, nested.before && !nested.after.inner && nested.after.closedNow && nested.after.open === 1, JSON.stringify(nested));
+
+  // a refreshing table: the popup follows the redrawn button, and closes when its row is gone
+  const follow = await tab.evaluate(async () => {
+    const host = document.createElement('div');
+    host.id = 'ftbl';
+    document.querySelector('main').prepend(host);
+    const rows = [{ id: 1, name: 'one' }, { id: 2, name: 'two' }];
+    const cols = [{ key: 'name', label: 'Name' }, { key: 'id', label: '', html: (r) => `<button type="button" class="btn sm" data-more="${r.id}">⋯</button>` }];
+    const t = Dash.table('ftbl', { columns: cols, rows, key: 'id' });
+    const p = Dash.popup(host.querySelector('[data-more="2"]'), 'row two');
+    t.update([{ id: 1, name: 'one!' }, { id: 2, name: 'two!' }]);
+    await new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(ok)));
+    const kept = p.el.isConnected && p.anchor.isConnected && p.anchor.getAttribute('aria-expanded') === 'true';
+    t.update([{ id: 1, name: 'one' }]);
+    await new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(ok)));
+    const gone = !p.el.isConnected && (await soon(p.closed)) === null;
+    host.remove();
+    return { kept, gone };
+  });
+  check(`${tag}: follows its button through a table refresh, closes when the row is gone`, follow.kept && follow.gone, JSON.stringify(follow));
+
+  // menus: keys, a pick, Escape, a right-click, and a scrolling box that doesn't cut them off
+  await tab.evaluate(() => {
+    window.mv = 'pending';
+    Dash.menu('pa', [{ heading: 'Row' }, { label: 'Rename', value: 'rename', hint: 'F2' }, { label: 'Move', disabled: true }, { label: 'Copy id' }, '-', { label: 'Delete', value: 'delete', tone: 'bad' }]).then((v) => { mv = v; });
+  });
+  const keys = [];
+  keys.push(await tab.evaluate(() => document.activeElement.textContent));
+  for (const k of ['ArrowDown', 'ArrowDown', 'Home', 'End', 'ArrowDown', 'c']) { await tab.keyboard.press(k); keys.push(await tab.evaluate(() => document.activeElement.textContent)); }
+  await tab.keyboard.press('Enter');
+  await tab.waitForTimeout(30);
+  const mvKeys = await tab.evaluate(() => mv);
+  check(`${tag}: menu keys (disabled skipped, wrap, Home, End, a first letter), Enter picks`,
+    keys.join('|') === 'RenameF2|Copy id|Delete|RenameF2|Delete|RenameF2|Copy id' && mvKeys === 'Copy id', keys.join('|') + ' → ' + mvKeys);
+  await tab.evaluate(() => { window.mv = 'pending'; Dash.menu('pa', ['One', 'Two']).then((v) => { mv = v; }); });
+  await tab.keyboard.press('Escape');
+  await tab.waitForTimeout(30);
+  const mvEsc = await tab.evaluate(() => ({ mv, focus: document.activeElement.id, menus: document.querySelectorAll('.popup').length }));
+  check(`${tag}: Escape leaves a menu with null and the focus on its button`, mvEsc.mv === null && mvEsc.focus === 'pa' && mvEsc.menus === 0, JSON.stringify(mvEsc));
+  const ctx = await tab.evaluate(() => {
+    window.mv = 'pending';
+    const ev = new MouseEvent('contextmenu', { clientX: 300, clientY: 250, bubbles: true });
+    Dash.menu(ev, [{ label: 'Open' }, { label: 'Skip', disabled: true }]).then((v) => { mv = v; });
+    const r = document.querySelector('.popup.menu-list').getBoundingClientRect();
+    return { x: Math.round(r.left), y: Math.round(r.top) };
+  });
+  await tab.click('.popup.menu-list [disabled]', { force: true });
+  const still = await tab.evaluate(() => ({ mv, open: document.querySelectorAll('.popup').length }));
+  await tab.click('.popup.menu-list >> text=Open');
+  await tab.waitForTimeout(30);
+  check(`${tag}: a right-click menu opens at the pointer; a disabled item does nothing; a click picks`,
+    ctx.x === 300 && ctx.y === 252 && still.mv === 'pending' && still.open === 1 && (await tab.evaluate(() => mv)) === 'Open', JSON.stringify({ ctx, still }));
+  const clip = await tab.evaluate(() => {
+    const wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    wrap.style.cssText = 'position:fixed;left:20px;top:300px;width:300px;height:60px;overflow:auto';
+    wrap.innerHTML = '<button type="button" class="btn sm" id="in-wrap">⋯</button>';
+    document.body.appendChild(wrap);
+    Dash.menu('in-wrap', ['One', 'Two', 'Three', 'Four', 'Five']);
+    const items = document.querySelectorAll('.popup.menu-list [role="menuitem"]');
+    const last = items[items.length - 1].getBoundingClientRect();
+    const w = wrap.getBoundingClientRect();
+    const hit = document.elementFromPoint(last.left + 10, last.top + last.height / 2);
+    return { below: last.top > w.bottom, hit: !!hit && items[items.length - 1].contains(hit) };
+  });
+  check(`${tag}: a menu inside a box that scrolls is not cut off`, clip.below && clip.hit, JSON.stringify(clip));
+  await tab.keyboard.press('Escape');
+  await tab.waitForTimeout(30);
+
+  // confirm beside a button, and a data-popup with a template
+  await tab.evaluate(() => { window.cv = 'pending'; Dash.confirm('Delete web-1?', { anchor: 'pa', ok: 'Delete', tone: 'bad' }).then((v) => { cv = v; }); });
+  const cf1 = await tab.evaluate(() => ({ focus: document.activeElement.textContent, role: document.querySelector('.popup')?.getAttribute('role') ?? 'no popup' }));
+  if (cf1.role !== 'alertdialog') {
+    check(`${tag}: confirm beside its button: Cancel focused, OK true, a click away false`, false, JSON.stringify(cf1));
+    await tab.keyboard.press('Escape');
+  } else {
+    await tab.click('.popup .btn.primary');
+    await tab.waitForTimeout(30);
+    const cv1 = await tab.evaluate(() => cv);
+    await tab.evaluate(() => { window.cv = 'pending'; Dash.confirm('Delete web-2?', { anchor: 'pa' }).then((v) => { cv = v; }); });
+    await tab.mouse.click(600, 420);
+    await tab.waitForTimeout(30);
+    check(`${tag}: confirm beside its button: Cancel focused, OK true, a click away false`,
+      cf1.focus === 'Cancel' && cv1 === true && (await tab.evaluate(() => cv)) === false, JSON.stringify({ cf1, cv1 }));
+  }
+  await tab.evaluate(() => {
+    const t = document.createElement('template');
+    t.id = 'tpl-info';
+    t.innerHTML = '<p class="popup-title">From a template</p><p class="popup-text">no code</p>';
+    document.body.appendChild(t);
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'btn'; b.id = 'dp'; b.dataset.popup = 'tpl-info'; b.textContent = 'info'; b.style.cssText = 'position:fixed;left:400px;top:100px';
+    document.body.appendChild(b);
+  });
+  await tab.click('#dp');
+  const dp = await tab.evaluate(() => document.querySelector('.popup .popup-title')?.textContent);
+  await tab.click('#dp');
+  await tab.waitForTimeout(30);
+  check(`${tag}: data-popup opens a template's content, and its button closes it`, dp === 'From a template' && (await tab.evaluate(() => document.querySelectorAll('.popup').length)) === 0, String(dp));
+  await tab.context().close();
+}
+
+// a popup in the dark: the card colour, not the browser's own popover colours
+{
+  const tab = await open();
+  const dark = await tab.evaluate(() => {
+    Dash.theme.set('dark');
+    const p = Dash.popup('tip-left', 'dark');
+    const cs = getComputedStyle(p.el);
+    const panel = getComputedStyle(document.querySelector('.panel'));
+    const out = { theme: document.documentElement.dataset.theme, bg: cs.backgroundColor, panel: panel.backgroundColor, color: cs.color, text: getComputedStyle(document.body).color, border: cs.borderTopStyle + ' ' + cs.borderTopWidth };
+    p.close();
+    return out;
+  });
+  const lum = (c) => c.match(/\d+/g).slice(0, 3).reduce((a, b) => a + Number(b), 0);
+  check('popup in the dark: card background and text colour', dark.theme === 'dark' && lum(dark.bg) < 200 && dark.bg === dark.panel && dark.color === dark.text && dark.border === 'solid 1px', JSON.stringify(dark));
   await tab.context().close();
 }
 
