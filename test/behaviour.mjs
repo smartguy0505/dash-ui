@@ -1243,6 +1243,23 @@ let reference;
   check('1.9 combobox: a click picks (focus stays), Escape closes only the list, strict puts the last pick back on leaving',
     sub.options[0] === 'BerlinGermany' && clicked.value === 'Berlin' && clicked.focus === 'combo' && escaped.expanded === 'false' && escaped.value === 'Berlinx'
     && left.value === 'Berlin' && JSON.stringify(await tab.evaluate(() => picks)) === '["Budapest","ber"]', JSON.stringify({ sub, clicked, escaped, left }));
+  // 1.9.1: an emptied strict box stays empty; typing over a pick forgets it (strict or not)
+  await tab.fill('#combo', '');
+  await tab.focus('#behind');
+  await tab.waitForTimeout(30);
+  const emptied = { text: await tab.inputValue('#combo'), value: await tab.evaluate(() => cb.value) };
+  const typedOver = await tab.evaluate(() => {
+    const i = document.createElement('input'); i.className = 'input'; i.id = 'loose'; i.setAttribute('aria-label', 'loose'); document.querySelector('main').append(i);
+    const c = Dash.combobox(i, { options: ['Oslo', 'Ostrava'] });
+    c.set('Oslo');
+    const before = c.value && c.value.label;
+    i.value = 'Paris'; i.dispatchEvent(new Event('input'));
+    const after = c.value;
+    c.close();
+    return { before, after };
+  });
+  check('1.9.1 combobox: an emptied strict box stays empty with no pick; typing over a pick forgets it',
+    emptied.text === '' && emptied.value === null && typedOver.before === 'Oslo' && typedOver.after === null, JSON.stringify({ emptied, typedOver }));
   // a server search: answers that come back late, for a query typed over, are dropped
   const late = await tab.evaluate(async () => {
     const i = document.createElement('input'); i.className = 'input'; i.id = 'remote'; i.setAttribute('aria-label', 'remote'); document.querySelector('main').append(i);

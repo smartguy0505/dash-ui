@@ -135,9 +135,9 @@
       <p><code>Dash.combobox(input, { options, onPick })</code> gives a text box a list of suggestions that narrows as the reader types. Arrow keys move through it, Enter or a click picks, Escape closes the list (only the list, inside a dialog too), and the box keeps the focus throughout. The typed words are bold in each suggestion.</p>
       <ul>
         <li><code>options</code>: strings, or <code>{ value, label, sub }</code> (<code>sub</code> is a second, quieter part), or a function <code>(query) =&gt; list</code> or a promise of one, for a server search. Answers that arrive after the reader typed on are dropped. <code>debounce</code> (150 ms) is how long typing has to pause first.</li>
-        <li><code>strict: true</code>: on leaving, text that is no suggestion is put back to the last pick (or emptied).</li>
+        <li><code>strict: true</code>: on leaving, text that is no suggestion is put back to the last pick (or emptied); a box the reader empties stays empty.</li>
         <li><code>max</code> (50) suggestions, <code>minChars</code> before any show, <code>empty</code> for the line when none match.</li>
-        <li>It returns <code>{ value, set(value), close(), destroy() }</code>. It's an ARIA combobox: the box has <code>role="combobox"</code>, the list <code>listbox</code>, the active suggestion <code>aria-activedescendant</code>.</li>
+        <li>It returns <code>{ value, set(value), close(), destroy() }</code>; <code>value</code> is the picked option while the box still shows it, else null. It's an ARIA combobox: the box has <code>role="combobox"</code>, the list <code>listbox</code>, the active suggestion <code>aria-activedescendant</code>.</li>
       </ul>
       <example>
         <div class="field" style="max-width: 320px"><label for="city">City</label><input class="input" id="city" placeholder="Start typing: ber, bu, am…"></div>

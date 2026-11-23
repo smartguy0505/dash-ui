@@ -1,4 +1,4 @@
-/* dash-ui 1.9.0 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
+/* dash-ui 1.9.1 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
    A plain script with no dependencies: a script tag for dash.js in <head> gives window.Dash, and puts the
    saved light/dark choice on the page before it paints. In Node, require('./dash.js') returns the same object
    (the parts that need a page are skipped).
@@ -8,7 +8,7 @@
 (function (root) {
   'use strict';
   const hasDom = typeof document !== 'undefined';
-  const Dash = { version: '1.9.0', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side', csp: false } };
+  const Dash = { version: '1.9.1', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side', csp: false } };
 
   // ---- basics
 
@@ -1737,8 +1737,8 @@
   // Dash.combobox(input, { options, onPick }): options is a list (strings, or { value, label, sub }), or a function
   // (query) => a list or a promise of one, asked as the reader types (for a server search). The suggestions open as the
   // reader types, or on ArrowDown or a click; arrows move, Enter or a click picks, Escape or Tab closes. What's typed
-  // stays unless strict: true, which puts the last pick back (or empties the box) when it matches no suggestion.
-  // Returns { value (the picked option), set(value), close(), destroy() }.
+  // stays unless strict: true, which puts the last pick back (or empties the box) when it matches no suggestion; an
+  // emptied box stays empty. Returns { value (the picked option while the box shows it, else null), set(value), close(), destroy() }.
   Dash.combobox = (target, { options = [], onPick, max = 50, empty = 'No matches', strict = false, minChars = 0, debounce = 150, label } = {}) => {
     const input = el(target);
     if (!input || !hasDom) return null;
@@ -1871,7 +1871,8 @@
       close();
       if (strict && (!picked || input.value !== picked.label)) {
         const exact = all().find((o) => o.label.toLowerCase() === input.value.trim().toLowerCase());
-        if (exact) { picked = exact; input.value = exact.label; if (onPick) onPick(exact); } else input.value = picked ? picked.label : '';
+        if (!input.value.trim()) { picked = null; input.value = ''; } // emptied on purpose: no choice
+        else if (exact) { picked = exact; input.value = exact.label; if (onPick) onPick(exact); } else input.value = picked ? picked.label : '';
       }
     });
     input.addEventListener('input', onInput);
@@ -1882,7 +1883,7 @@
     box.addEventListener('click', (e) => { const o = e.target.closest('[data-i]'); if (o) pick(Number(o.dataset.i)); });
     box.addEventListener('mousemove', (e) => { const o = e.target.closest('[data-i]'); if (o && Number(o.dataset.i) !== active) move(Number(o.dataset.i)); });
     return {
-      get value() { return picked; },
+      get value() { return picked && input.value === picked.label ? picked : null; }, // typed over: no longer the pick
       set: (v) => { const o = v == null ? null : all().find((x) => x.value === v) || norm(v); picked = o; input.value = o ? o.label : ''; },
       close,
       destroy: () => {

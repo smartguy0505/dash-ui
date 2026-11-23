@@ -2,6 +2,11 @@
 
 Dashboards keep a copy of `dash.css` and `dash.js`; the first line of each file says which version it is. Versions only add things: a page that worked with an older copy works the same with a newer one.
 
+## 1.9.1 (2026-11-23)
+
+- `Dash.combobox` with `strict: true`: a box the reader empties now stays empty (it used to get the last pick back), and its pick is cleared.
+- `Dash.combobox(...).value` is the picked option only while the box still shows it; after the reader types something else it is null (it used to keep the old pick).
+
 ## 1.9.0 (2026-11-23)
 
 The last two pieces of the component set, and a docs site. All additive.
