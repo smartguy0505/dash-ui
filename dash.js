@@ -1,4 +1,4 @@
-/* dash-ui 1.12.0 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
+/* dash-ui 1.12.1 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
    A plain script with no dependencies: a script tag for dash.js in <head> gives window.Dash, and puts the
    saved light/dark choice on the page before it paints. In Node, require('./dash.js') returns the same object
    (the parts that need a page are skipped).
@@ -8,7 +8,7 @@
 (function (root) {
   'use strict';
   const hasDom = typeof document !== 'undefined';
-  const Dash = { version: '1.12.0', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side', privacyKey: 'dash.private', csp: false } };
+  const Dash = { version: '1.12.1', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side', privacyKey: 'dash.private', csp: false } };
 
   // ---- basics
 
@@ -494,14 +494,51 @@
       if (held && !held.getClientRects().length) { if (n) bar.none.focus({ preventScroll: true }); else fallback(); }
     };
     const error = (e) => (e && e.message) || String(e);
-    const put = (box, out, force) => {
-      if (out instanceof Node) { if (box.firstChild !== out || box.lastChild !== out) box.replaceChildren(out); } else if (out != null) Dash.render(box, out, { force });
+    // what the reader changed in details that are markup, to put back once they are drawn anew: fields with an id, a
+    // data-key or a name of their own, while the page still gives them the same starting value
+    const fields = (box) => {
+      const found = new Map();
+      for (const e of box.querySelectorAll('input:not([type="file"]), textarea, select')) {
+        const on = /^(checkbox|radio)$/.test(e.type);
+        const k = keyOf(e) || (e.name ? `n:${e.name}${on ? '=' + e.value : ''}` : null);
+        if (k) found.set(k, found.has(k) ? null : { e, on }); // (two of one name: whose is it?)
+      }
+      return found;
+    };
+    const stateOf = ({ e, on }) => { // [as the page made it, as it is now]
+      if (on) return [e.defaultChecked, e.checked];
+      if (e.tagName !== 'SELECT') return [e.defaultValue, e.value];
+      const all = [...e.options], set = all.filter((o) => o.defaultSelected), first = all.filter((o) => !o.disabled).slice(0, 1);
+      return [set.length || e.multiple ? set : first, [...e.selectedOptions]].map((l) => JSON.stringify(l.map((o) => o.value)));
+    };
+    const edits = (box) => {
+      const kept = new Map();
+      for (const [k, f] of fields(box)) { const s = f && stateOf(f); if (s && s[0] !== s[1]) kept.set(k, s); }
+      return (to) => {
+        if (kept.size) for (const [k, f] of fields(to)) {
+          const s = f && kept.get(k);
+          if (!s || stateOf(f)[0] !== s[0]) continue;
+          if (f.on) f.e.checked = s[1];
+          else if (f.e.tagName !== 'SELECT') f.e.value = s[1];
+          else { const l = JSON.parse(s[1]); if (l.every((v) => [...f.e.options].some((o) => o.value === v))) for (const o of f.e.options) o.selected = l.includes(o.value); }
+        }
+      };
+    };
+    const put = (box, out, kept, force) => {
+      if (out instanceof Node) { if (box.firstChild !== out || box.lastChild !== out) box.replaceChildren(out); } else if (out != null && Dash.render(box, out, { force })) kept(box);
     };
     // a row's details: markup goes in with Dash.render, so it keeps the reader's place there too
     const fill = (d, r, again) => {
       if (again && d.async) return;
       const run = ++d.run;
-      if (d.async) { const box = d.box.cloneNode(false); d.box.replaceWith(box); d.box = box; } // what an older run still draws goes nowhere
+      const kept = d.box.hasAttribute('aria-busy') ? d.kept : edits(d.box);
+      d.kept = kept;
+      if (d.async) { // what an older run still draws goes nowhere
+        const box = d.box.cloneNode(false), held = d.box.contains(document.activeElement);
+        d.box.replaceWith(box);
+        d.box = box;
+        if (held) turnOf(r)?.focus({ preventScroll: true });
+      }
       const box = d.box;
       const failed = (e) => {
         Dash.render(box, `<p class="row-note">Couldn’t load this: ${esc(error(e))} <button type="button" class="btn sm" data-retry>Try again</button></p>`, { force: true });
@@ -510,14 +547,14 @@
       let out;
       try { out = opening.draw(r, box); } catch (e) { failed(e); setTimeout(() => { throw e; }); return; }
       d.async = Boolean(out && typeof out.then === 'function');
-      if (!d.async) { put(box, out); return; }
+      if (!d.async) { put(box, out, kept); return; }
       box.setAttribute('aria-busy', 'true');
       Dash.render(box, '<p class="row-note" data-loading>Loading…</p>', { force: true });
       const mine = () => { if (d.run !== run) return false; box.removeAttribute('aria-busy'); return true; };
       out.then((x) => {
         if (!mine()) return;
         if (x == null && box.querySelector(':scope > [data-loading]')) x = '';
-        put(box, x, true);
+        put(box, x, kept, true);
       }, (e) => { if (mine()) failed(e); });
     };
     const turnOf = (r) => { const i = shown.findIndex((x) => idOf(x) === idOf(r)); const tr = i < 0 ? null : trs()[i]; return tr && tr.querySelector(':scope > .row-turn > button'); };
@@ -645,12 +682,13 @@
     const on = (type, fn) => node.addEventListener(type, (e) => { if (!inside(e.target)) fn(e); }, { signal });
     let shift = false; // was Shift down at the click that changes a box?
     let passed = false;
+    on('mousedown', (e) => { if (picking && e.shiftKey && e.target.closest('td.row-pick')) e.preventDefault(); }); // a range selects no text (Chromium needs only the cell's user-select)
     on('click', (e) => {
       const spot = picking && e.target.closest('.row-pick');
       if (spot && node.contains(spot)) { // the whole cell is the box
         const input = spot.querySelector('input');
         if (!passed) shift = e.shiftKey;
-        if (e.target !== input && !input.disabled) { passed = true; input.focus({ preventScroll: true }); input.click(); passed = false; }
+        if (e.target !== input && !input.disabled) { passed = true; input.focus({ preventScroll: true }); input.click(); passed = false; } else if (e.shiftKey) input.focus({ preventScroll: true });
         return;
       }
       const t = opening && e.target.closest('td.row-turn > button');

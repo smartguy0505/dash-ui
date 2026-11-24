@@ -1832,6 +1832,12 @@ let reference;
   await tab.mouse.click(edge.x + 3, edge.y + 3);
   await tab.keyboard.up('Shift');
   check('1.12 rows: Shift-clicking a box\'s cell selects no text', (await at(() => String(getSelection()))) === '' && (await ids()) === '4', await at(() => String(getSelection())));
+  await at(() => document.activeElement.blur());
+  await tab.click(row('fjord') + ' .row-pick input', { modifiers: ['Shift'] });
+  check('1.12 rows: a Shift-clicked box has the focus', (await at(() => document.activeElement.getAttribute('aria-label'))) === 'Select fjord', await at(() => document.activeElement.outerHTML.slice(0, 80)));
+  const tall = await at(() => ['[data-all]', '[data-none]'].map((q) => Math.round(document.querySelector('#both > .table-bar ' + q).getBoundingClientRect().height)));
+  check('1.12 rows: the bar\'s links are tall enough to press', Math.min(...tall) >= 24, tall.join());
+  await at(() => both.select([4]));
   const offCell = await tab.locator(row('ember') + ' .row-pick').boundingBox();
   await tab.mouse.click(offCell.x + 3, offCell.y + 3);
   check('1.12 rows: nor does its cell pick a row that can\'t be', (await ids()) === '4' && await at((s) => document.querySelector(s).disabled, row('ember') + ' .row-pick input'), await ids());
@@ -1923,6 +1929,41 @@ let reference;
   await reset();
   await at(() => { both.expand(2); document.querySelector('#both tr.row-detail input').focus(); both.expand(2, false); });
   check('1.12 rows: closing details with the focus in them puts it on their button', (await at(() => document.activeElement.getAttribute('aria-label'))) === 'Details of birch', '');
+  // what the reader changed there, while they are elsewhere on the page
+  const form = await at(async () => {
+    const n = document.createElement('div');
+    document.querySelector('main').append(n);
+    const t = Dash.table(n, { columns, rows: make().slice(0, 2), key: 'id', expand: (r) => `<p>${r.cpu}%</p><input data-key="note"><textarea name="why"></textarea><input type="checkbox" name="days" value="mon" checked><input type="checkbox" name="days" value="tue">
+      <input type="radio" name="size" value="s" checked><input type="radio" name="size" value="l"><select name="kind"><option disabled value="">Pick</option><option value="a">A</option><option value="b">B</option></select>
+      <select name="many" multiple><option value="x" selected>X</option><option value="y">Y</option></select><select name="lost"><option value="p">P</option><option value="r" selected>R</option>${r.cpu === 0 ? '<option value="q">Q</option>' : ''}</select>
+      <input name="saved" value="${r.cpu}"><input name="twin"><input name="twin"><input type="file" data-key="file"><input name="same" value="as it was"><input type="hidden" name="at" value="${r.cpu}"><select name="top">${r.cpu === 0 ? '<option>a<option>b' : '<option>b<option>a'}</select><button type="button" data-key="save">Save</button>` });
+    t.expand(1);
+    const f = (q) => n.querySelector(q), all = (q) => [...n.querySelectorAll(q)];
+    const read = () => [f('[data-key="note"]').value, f('textarea').value, all('[name="days"]').map((e) => e.checked).join(), all('[name="size"]').find((e) => e.checked).value, f('[name="kind"]').value, [...f('[name="many"]').selectedOptions].map((o) => o.value).join(), f('[name="lost"]').value, f('[name="saved"]').value, all('[name="twin"]').map((e) => e.value).join('/'), f('[name="same"]').value, f('[name="at"]').value, f('[name="top"]').value].join('|');
+    const start = read(), was = f('.row-box').firstElementChild;
+    t.update(make(3).slice(0, 2));
+    const untouched = read();
+    t.update(make().slice(0, 2));
+    f('[data-key="note"]').value = 'a note'; f('textarea').value = 'because'; all('[name="days"]').forEach((e) => { e.checked = !e.checked; }); all('[name="size"]')[1].checked = true; f('[name="kind"]').value = 'b';
+    for (const o of f('[name="many"]').options) o.selected = !o.selected;
+    f('[name="lost"]').value = 'q'; f('[name="saved"]').value = 'mine'; all('[name="twin"]')[1].value = 'two'; f('[name="at"]').value = 'set by the page';
+    const files = new DataTransfer(); files.items.add(new File(['x'], 'x.txt')); f('[type="file"]').files = files.files;
+    f('[data-key="save"]').focus();
+    t.update(make(5).slice(0, 2));
+    const now = read(), focus = document.activeElement === f('[data-key="save"]'), drawn = f('.row-box').firstElementChild !== was && f('.row-box').firstElementChild.textContent;
+    t.update(make(6).slice(0, 2));
+    f('[data-key="note"]').value = '';
+    t.update(make(7).slice(0, 2));
+    const twice = read();
+    f('[name="kind"]').value = 'a'; f('[name="kind"]').focus();
+    t.update(make(8).slice(0, 2));
+    const onIt = [f('[name="kind"]').value, document.activeElement === f('[name="kind"]')].join();
+    n.remove();
+    return { start, untouched, now, focus, drawn, twice, onIt };
+  });
+  check('1.12 rows: a refresh draws the details of a row nobody changed as the page gives them', form.start === '||true,false|s|a|x|r|0|/|as it was|0|a' && form.untouched === '||true,false|s|a|x|r|3|/|as it was|3|b', JSON.stringify(form));
+  check('1.12 rows: and keeps what the reader typed, ticked and chose there while they are elsewhere; a value the page changed is the page\'s', form.drawn === '5%' && form.focus && form.now === 'a note|because|false,true|l|b|y|r|5|/|as it was|5|b', JSON.stringify(form));
+  check('1.12 rows: through one refresh after another; a box emptied again stays empty; a choice they are still on, too', form.twice === '|because|false,true|l|b|y|r|7|/|as it was|7|b' && form.onIt === 'a,true', JSON.stringify(form));
   const point = await at(() => { const n = document.createElement('div'), T = Date.UTC(2026, 10, 24); document.querySelector('main').append(n); const t = Dash.table(n, { columns, rows: make().slice(0, 1), key: 'id', expand: (r, box) => { Dash.lines(box, [{ points: Array.from({ length: 9 }, (_, i) => [T + i * 6e4, i + r.cpu]) }], { label: 'x' }); } }); t.expand(1); const plot = () => n.querySelector('.line-plot'), key = (k) => plot().dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true })); plot().focus(); key('Home'); key('ArrowRight'); const was = plot().getAttribute('aria-valuenow'); t.update(make(2).slice(0, 1)); t.update(make(4).slice(0, 1)); const out = [was, plot().getAttribute('aria-valuenow'), document.activeElement === plot(), n.querySelector('.line-tip').hidden, n.querySelector('.line-tip').textContent.includes('5')]; plot().blur(); out.push(n.querySelector('.line-tip').hidden); n.remove(); return out; });
   check('1.12 rows: a chart in the details keeps the reader at their point through a refresh, and lets go when they leave', JSON.stringify(point) === '["2","2",true,false,true,true]', JSON.stringify(point));
   const scrolled = await at(() => { const n = document.createElement('div'); document.querySelector('main').append(n); const t = Dash.table(n, { columns, rows: make().slice(0, 2), key: 'id', expand: () => '<div data-x style="height:40px;overflow:auto"><div style="height:200px">long</div></div>' }); t.expand(1); n.querySelector('[data-x]').scrollTop = 60; t.update(make(9).slice(0, 2)); const out = n.querySelector('[data-x]').scrollTop; n.remove(); return out; });
@@ -1957,6 +1998,23 @@ let reference;
   await tab.click('#opens [data-retry]');
   const retry = await at(() => [document.querySelectorAll('#opens .row-box')[1].textContent, document.activeElement.getAttribute('aria-label'), asked.at(-1)]);
   check('1.12 rows: one that fails says why and can be tried again', fail === 'Couldn’t load this: <i>HTTP 503</i> Try again' && JSON.stringify(retry) === '["Loading…","Details of cedar",3]', JSON.stringify([fail, retry]));
+  // asked for again: what was changed there comes back with the answer, and the focus isn't lost meanwhile
+  const asks = await at(async () => {
+    const n = document.createElement('div'), go = [];
+    document.querySelector('main').append(n);
+    const t = Dash.table(n, { columns, rows: make().slice(0, 2), key: 'id', expand: () => new Promise((ok) => go.push(ok)) });
+    const soon = () => new Promise((ok) => setTimeout(ok, 10)), html = (k) => `<p>${k}</p><input data-key="note">`;
+    t.expand(2); go[0](html(1)); await soon();
+    n.querySelector('.row-box input').value = 'typed'; n.querySelector('.row-box input').focus();
+    t.redraw();
+    const focus = document.activeElement.getAttribute('aria-label'), text = n.querySelector('.row-box').textContent;
+    t.redraw(); // (asked twice, before the first answer)
+    go[1](html(2)); go[2](html(3)); await soon();
+    const out = [focus, text, n.querySelector('.row-box p').textContent, n.querySelector('.row-box input').value];
+    n.remove();
+    return out;
+  });
+  check('1.12 rows: details asked for again keep what was typed, and the focus goes to their button', JSON.stringify(asks) === '["Details of birch","Loading…","3","typed"]', JSON.stringify(asks));
   const own = await at(async () => { const n = document.createElement('div'); document.querySelector('main').append(n); const t = Dash.table(n, { columns, rows: make().slice(0, 4), key: 'id', expand: (r, box) => { if (r.id === 1) throw new Error('made to fail'); if (r.id === 2) { const e = document.createElement('p'); e.textContent = 'an element'; return e; } if (r.id === 3) return (async () => { await null; box.textContent = 'drawn'; })(); return (async () => { await null; })(); } }); for (const k of [1, 2, 3, 4]) try { t.expand(k); } catch { /* (it should not reach the page) */ } await new Promise((ok) => setTimeout(ok, 20)); const out = [...n.querySelectorAll('.row-box')].map((b) => b.textContent.trim()); n.remove(); return out; });
   check('1.12 rows: details may be an element, be drawn into the box, or be nothing; an error in one leaves the others', JSON.stringify(own) === JSON.stringify(['Couldn’t load this: made to fail Try again', 'an element', 'drawn', '']), JSON.stringify(own));
 

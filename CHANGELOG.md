@@ -2,6 +2,12 @@
 
 Dashboards keep a copy of `dash.css` and `dash.js`; the first line of each file says which version it is. Versions only add things: a page that worked with an older copy works the same with a newer one.
 
+## 1.12.1 (2026-11-24)
+
+- What the reader typed, ticked or chose in a row's details stays when a refresh draws them anew, also after they moved on to another box. (1.12.0 kept only the box they were in, so a note was lost on the way to its Save button.) Give the field an `id`, a `data-key` or a `name` of its own. A field the page gives a new starting value gets that value.
+- Details asked for again (`table.redraw()`, the eye) keep it too, and don't drop the focus.
+- The bar's links are taller, and a Shift-clicked box gets the focus.
+
 ## 1.12.0 (2026-11-24)
 
 Table rows to pick, and rows that open.

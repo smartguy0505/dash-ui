@@ -11,10 +11,10 @@
 <script src="../dash.js"></script>
 </head>
 <body>
-<!-- dash-ui 1.12.0 docs, written by tools/docs.mjs from docs-src/tables.html: edit that, not this -->
+<!-- dash-ui 1.12.1 docs, written by tools/docs.mjs from docs-src/tables.html: edit that, not this -->
 <header class="topbar">
   <button type="button" class="icon-btn docs-menu" data-toggle-side aria-label="Pages"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3 5h12M3 9h12M3 13h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
-  <a class="brand" href="./"><span class="mark">d</span><h1>dash-ui</h1></a><span class="tag plain docs-version">1.12.0</span>
+  <a class="brand" href="./"><span class="mark">d</span><h1>dash-ui</h1></a><span class="tag plain docs-version">1.12.1</span>
   <div class="top-right">
     <label class="search docs-search"><span class="sr-only">Search the docs</span><svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.6"/><path d="m11 11 3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><input class="input" type="search" id="docs-search" placeholder="Search" aria-keyshortcuts="/"><kbd class="docs-key">/</kbd></label>
     <div class="seg" role="group" aria-label="Theme"><button type="button" data-theme-set="system">Auto</button><button type="button" data-theme-set="light">Light</button><button type="button" data-theme-set="dark">Dark</button></div>
@@ -116,7 +116,7 @@
       </table></div>
       <h3>Options and the handle</h3>
       <ul>
-        <li><code>sort: { key, dir, store }</code>, remembered under <code>store</code>; <code>perPage</code> (0: no pager) and <code>sizes</code>; <code>noun</code> for "of 23 servers".</li>
+        <li><code>sort: { key, dir, store }</code>, remembered under <code>store</code>; <code>perPage</code> (0: no pager; give one from about a thousand rows, as every refresh writes all that show) and <code>sizes</code>; <code>noun</code> for "of 23 servers".</li>
         <li><code>key</code> (a field or a function) gives each row a <code>data-key</code>, so a refresh keeps the focused row. <code>rowClass: (row) =&gt; 'marked bad'</code>, <code>empty</code> text, <code>filter: (row) =&gt; keep?</code>.</li>
         <li><code>cls</code> sets the table's classes (<code>'stack'</code> by default), <code>wrap: true</code> makes it its own card, <code>onRow(row, event)</code> runs on a click or Enter on a row (not on a button or link in it).</li>
         <li><code>select</code> and <code>expand</code>: rows the reader can <a href="#select">pick</a> and <a href="#expand">open</a>.</li>
@@ -249,7 +249,7 @@
   }).expand(<span class="c-str">&#39;web-2&#39;</span>);
 &lt;/<span class="c-tag">script</span>&gt;</code></pre></figure>
       <ul>
-        <li>Give markup, an element, or nothing when you draw in <code>box</code> yourself. <code>box</code> stays the same element while the row is open, so a chart or a table in it keeps its place when the data is refreshed. Markup that comes out different is drawn anew (the box the reader is typing in keeps its text). Draw on every update as above, or keep what you made: <code>(box.jobs ||= Dash.table(box, { … })).update(row.jobs)</code>.</li>
+        <li>Give markup, an element, or nothing when you draw in <code>box</code> yourself. <code>box</code> stays the same element while the row is open, so a chart or a table in it keeps its place when the data is refreshed. Markup that comes out different is drawn anew, and what the reader typed, ticked or chose in it stays, as long as each field has an <code>id</code>, a <code>data-key</code> or a <code>name</code> of its own (once it is saved, empty the field yourself). Draw on every update as above, or keep what you made: <code>(box.jobs ||= Dash.table(box, { … })).update(row.jobs)</code>.</li>
         <li>Give a promise for details that have to be fetched: <code>expand: async (row) =&gt; render(await Dash.api('/jobs/' + row.id))</code>. The row says “Loading…”, then shows the answer, or the error with a button to try again. It is asked for when the row is opened, and again on <code>table.redraw()</code>, not on every update. An answer that comes after the row was closed is dropped.</li>
         <li><code>expand: { draw, can, one }</code>: <code>can: (row) =&gt; …</code> says which rows have details, <code>one: true</code> keeps one open at a time.</li>
         <li><code>table.expanded</code> is the open rows; <code>table.expand(key)</code> opens one, <code>table.expand(key, false)</code> closes it. A row stays open through a refresh, sorting and paging, until it leaves the data.</li>

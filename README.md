@@ -413,7 +413,7 @@ Builders return HTML strings, with every value escaped. Put them in with `innerH
 **Rows to pick and rows that open.** Both need `key`, and keep by it through a refresh, sorting, paging and a search.
 
 - `select: true`, or `{ can, actions: [{ label, tone, primary, run: (rows, table) => … }], onChange }`: a box on every row (Shift-click for a range), one in the header for this page, and a bar with the count and the actions. The count says how many aren't on this page; an action gets those too.
-- `expand: (row, box) => markup` (or an element, a promise of either, or nothing when it draws in `box`), or `{ draw, can, one }`: a button that opens a row's details. `box` is the same element until the row closes, so a chart or a table in it keeps its place. A promise is asked for when the row opens, not on every update.
+- `expand: (row, box) => markup` (or an element, a promise of either, or nothing when it draws in `box`), or `{ draw, can, one }`: a button that opens a row's details. `box` is the same element until the row closes, so a chart or a table in it keeps its place; what the reader changed in markup stays when it is drawn anew (fields with an `id`, a `data-key` or a `name` of their own). A promise is asked for when the row opens, not on every update.
 - `rowLabel: (row) => text` names a row for a screen reader (the `main` column's text by default).
 
 **`Dash.modal`.** For more than a question: a form that saves, details that keep updating, a long list.
