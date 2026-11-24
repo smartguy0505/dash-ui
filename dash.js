@@ -1,4 +1,4 @@
-/* dash-ui 1.10.0 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
+/* dash-ui 1.11.0 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
    A plain script with no dependencies: a script tag for dash.js in <head> gives window.Dash, and puts the
    saved light/dark choice on the page before it paints. In Node, require('./dash.js') returns the same object
    (the parts that need a page are skipped).
@@ -8,7 +8,7 @@
 (function (root) {
   'use strict';
   const hasDom = typeof document !== 'undefined';
-  const Dash = { version: '1.10.0', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side', privacyKey: 'dash.private', csp: false } };
+  const Dash = { version: '1.11.0', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side', privacyKey: 'dash.private', csp: false } };
 
   // ---- basics
 
@@ -488,7 +488,7 @@
 
   // ---- pages with a strict style policy (Content-Security-Policy: style-src 'self', no 'unsafe-inline')
   // Such a page drops every style="" in markup. With Dash.config.csp = true, the builders that size things (bar,
-  // meter, split, bars, spark, progress; Dash.lanes always does) write their numbers as data-css-* attributes instead, and
+  // meter, split, bars, lines, spark, progress; Dash.lanes always does) write their numbers as data-css-* attributes instead, and
   // the kit sets them through the CSSOM, which the policy allows: at once wherever the kit puts markup in
   // (Dash.render, popups, modals, dialogs), and before the next paint for markup the page puts in itself (a
   // MutationObserver). Only numbers, only these properties, only on the kit's own pieces: other markup can't
@@ -499,7 +499,10 @@
     ['.chart-col > i', 'data-css-h', 'height', (v) => v + '%'],
     ['.chart-grid', 'data-css-top', 'top', (v) => v + '%'],
     ['.chart-col u', 'data-css-grow', 'flex-grow', (v) => String(v)],
-    ['.chart-plot', 'data-css-chart-h', '--chart-h', (v) => v + 'px'],
+    ['.chart-plot, .line-chart', 'data-css-chart-h', '--chart-h', (v) => v + 'px'],
+    ['.line-chart', 'data-css-gut', '--gut', (v) => v + 'px'],
+    ['.line-ref, .line-dot, .line-ends > span', 'data-css-top', 'top', (v) => v + '%'],
+    ['.line-dot, .line-x > span', 'data-css-left', 'left', (v) => v + '%'],
     ['.spark-box > .dot', 'data-css-x', 'left', (v) => `calc(${v}% - 3.5px)`],
     ['.spark-box > .dot', 'data-css-y', 'top', (v) => `calc(${v}% - 3.5px)`],
   ].map(([where, attr, prop, value]) => [where.split(',').map((s) => `${s.trim()}[${attr}]`).join(', '), attr, prop, value]);
@@ -683,6 +686,281 @@
     const head = read == null ? '' : `<div class="chart-read" data-default="${esc(read)}">${esc(read)}</div>`;
     return `<div class="chart"${read == null ? '' : ' data-read'}>${head}<div class="chart-plot"${sized('data-css-chart-h', Number(height), `--chart-h:${height}px`)}>${grid}<div class="chart-cols">${cols}</div></div><div class="chart-x">${xs}</div></div>`;
   };
+  // ---- lines: values over time, with a crosshair that reads them
+
+  //   const chart = Dash.lines('latency', [
+  //     { label: 'Web', points: [[time, 120], [time, null], …] },      // or { t, v }; null leaves a gap
+  //     { label: 'API', points },
+  //   ], { label: 'Response time', format: (v) => v + ' ms' });
+  //   chart.update(series);                                            // or Dash.lines on the same box again
+  // A series: label, points, and if wanted tone (a class, for a colour that means something: 'bad'), dashed (a forecast,
+  // last week), area (filled to the axis; a chart of one series fills it with area: true) and its own gap. Points are in any order and
+  // needn't be evenly spaced: x is time (anything Dash.time reads). Up to four series get the series colours, which can be
+  // told apart by most colour-blind readers; more are grey, so use two charts. All share one axis.
+  // Options: label (the chart's name for a screen reader), from, to (else the data's ends), min (else 0, or 'auto' to fit the
+  // data) and max, height (220), ticks (about how many on the y axis: 4), format (a value → text), yFormat (the same for the
+  // axis), when (a time → the readout's text), gap (ms: a longer silence breaks the line), refs ([{ value, label, tone }]:
+  // limits drawn across), private (its numbers hide with Dash.privacy; the shape stays), empty (text when there is nothing).
+  // The crosshair follows the mouse or a finger; the arrow keys, Page Up/Down, Home and End move it once the chart has the
+  // focus, and a screen reader hears each point (it is a slider). The handle: update(series, options), redraw(), csv() and
+  // download(name). Dash.lines.html(series, options) is the markup alone.
+  const SERIES = ['series-1', 'series-2', 'series-3', 'series-4'];
+  const MINUTE = 60e3, HOUR = 36e5, DAY = 864e5;
+  const TIME_STEPS = [1e3, 2e3, 5e3, 10e3, 15e3, 30e3, ...[1, 2, 5, 10, 15, 30].map((m) => m * MINUTE), ...[1, 2, 3, 6, 12].map((h) => h * HOUR), DAY, 2 * DAY, 3 * DAY, 7 * DAY, 14 * DAY];
+  // round local times across a range, at most about n: [{ t, text }]
+  const timeTicks = (from, to, n) => {
+    const want = (to - from) / n, at = [];
+    const d = new Date(from), y = d.getFullYear(), m = d.getMonth(), day = d.getDate();
+    const run = (k, next, get) => { for (let i = k, t = get(i), guard = 0; t <= to && guard < 4000; i += next, t = get(i), guard++) if (t >= from && !(t <= at[at.length - 1])) at.push(t); };
+    const step = TIME_STEPS.find((s) => s >= want);
+    let text;
+    if (!step) { // months, or years
+      const months = [1, 2, 3, 6, 12, 24, 60, 120].find((k) => k * 30.4 * DAY >= want) || 240;
+      run(Math.floor((y * 12 + m) / months) * months, months, (k) => new Date(Math.floor(k / 12), k % 12, 1).getTime());
+      text = (t) => (months >= 12 ? String(new Date(t).getFullYear()) : new Date(t).toLocaleDateString([], { month: 'short', year: 'numeric' }));
+    } else if (step >= DAY) { // whole days, weeks from Mondays: by the calendar, so a day with a clock change counts as one
+      const days = step / DAY;
+      run(-((Math.round(Date.UTC(y, m, day) / DAY) + 3) % days), days, (k) => new Date(y, m, day + k).getTime());
+      text = (t) => fmt.date(t);
+    } else if (step >= MINUTE) { // from local midnight, by the clock
+      run(0, step / MINUTE, (k) => new Date(y, m, day, 0, k).getTime());
+      text = (t) => { const x = new Date(t); return x.getHours() || x.getMinutes() ? fmt.time(t, { seconds: false }) : fmt.date(t); };
+    } else {
+      run(Math.ceil(from / step), 1, (k) => k * step);
+      text = (t) => fmt.time(t);
+    }
+    return at.map((t) => ({ t, text: text(t) }));
+  };
+  // round values from lo to hi, about n steps
+  const valueTicks = (lo, hi, n) => {
+    const raw = (hi - lo) / Math.max(1, n), p = 10 ** Math.floor(Math.log10(raw));
+    const step = [1, 2, 2.5, 5, 10].map((k) => k * p).find((s) => raw <= s * (1 + 1e-9));
+    return { step, list: (a, b) => { const out = []; for (let k = Math.ceil(a / step - 1e-9); k * step <= b + step * 1e-6; k++) out.push(+(k * step).toPrecision(12) || 0); return out; } };
+  };
+  const linePoint = (p) => {
+    const [t, v] = Array.isArray(p) ? p : [p.t ?? p.time, p.v ?? p.value];
+    return { t: Dash.time(t), v: isNum(v) ? Number(v) : null };
+  };
+  // the parts of a line that can be drawn inside from…to: broken at gaps, cut where it crosses the edges
+  const lineParts = (points, from, to, gap) => {
+    const out = [];
+    let part = [], prev = null;
+    const cut = () => { if (part.length) out.push(part); part = []; };
+    const between = (a, b, t) => ({ t, v: a.v + ((b.v - a.v) * (t - a.t)) / (b.t - a.t) });
+    for (const p of points) {
+      if (p.v == null || (prev && gap > 0 && p.t - prev.t > gap)) { cut(); prev = null; if (p.v == null) continue; }
+      if (p.t >= from) {
+        if (prev && prev.t < from) part.push(between(prev, p, from));
+        if (p.t > to) { if (prev) part.push(between(prev, p, to)); break; }
+        part.push(p);
+      }
+      prev = p;
+    }
+    cut();
+    return out;
+  };
+  // the index in a sorted list of times that is closest to t
+  const nearestTime = (list, t) => {
+    let a = 0, b = list.length - 1;
+    while (b - a > 1) { const mid = (a + b) >> 1; if (list[mid] <= t) a = mid; else b = mid; }
+    return b > a && list[b] - t < t - list[a] ? b : Math.max(0, a);
+  };
+  // everything the chart shows: its HTML, and what the crosshair needs
+  const buildLines = (series, o) => {
+    const height = Number(o.height) > 0 ? Number(o.height) : 220;
+    const data = (series || []).map((s, i) => ({ ...s, label: s.label ?? '', tone: s.tone || SERIES[i] || 'idle', points: (s.points || []).map(linePoint).filter((p) => Number.isFinite(p.t)).sort((a, b) => a.t - b.t) }));
+    let first = Infinity, last = -Infinity;
+    for (const s of data) for (const p of s.points) if (p.v != null) { first = Math.min(first, p.t); last = Math.max(last, p.t); }
+    let from = Number.isFinite(Dash.time(o.from)) ? Dash.time(o.from) : first, to = Number.isFinite(Dash.time(o.to)) ? Dash.time(o.to) : last;
+    if (from === to) { from -= 30 * MINUTE; to += 30 * MINUTE; } // a single moment, in the middle of an hour
+    let lo = o.min === 'auto' ? Infinity : 0, hi = o.min === 'auto' ? -Infinity : 0;
+    const times = new Set();
+    for (const s of data) {
+      s.parts = lineParts(s.points, from, to, Number(s.gap ?? o.gap) || 0);
+      s.seen = s.points.filter((p) => p.v != null && p.t >= from && p.t <= to);
+      s.times = s.seen.map((p) => p.t);
+      for (const p of s.seen) times.add(p.t);
+      for (const part of s.parts) for (const p of part) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); }
+      const steps = s.times.slice(1).map((t, i) => t - s.times[i]).sort((a, b) => a - b);
+      s.step = steps.length ? steps[steps.length >> 1] : 0;
+    }
+    const all = [...times].sort((a, b) => a - b);
+    if (!(to > from) || !data.some((s) => s.parts.length)) return { html: `<p class="empty">${esc(o.empty ?? 'Nothing to show')}</p>`, view: null };
+    const refs = (o.refs || []).filter((r) => isNum(r.value));
+    for (const r of refs) { lo = Math.min(lo, Number(r.value)); hi = Math.max(hi, Number(r.value)); }
+    const fixedLo = isNum(o.min), fixedHi = isNum(o.max);
+    if (fixedLo) lo = Number(o.min);
+    if (fixedHi) hi = Number(o.max);
+    if (!(hi > lo)) { if (fixedHi && !fixedLo) lo = hi - 1; else hi = lo + (Math.abs(lo) || 1); } // a flat line, or limits the wrong way round
+    const ticks = valueTicks(lo, hi, Number(o.ticks) || 4);
+    if (!fixedLo) lo = Math.floor(lo / ticks.step + 1e-9) * ticks.step;
+    if (!fixedHi) hi = Math.ceil(hi / ticks.step - 1e-9) * ticks.step;
+    const X = (t) => ((t - from) / (to - from)) * 100, Y = (v) => ((hi - v) / (hi - lo)) * 100;
+    const pc = (n) => +n.toFixed(3);
+    const at = (p) => `${pc(X(p.t) * 10)} ${pc(Y(p.v) * 10)}`;
+    const format = o.format || fmt.compact;
+    const text = (v, f = format) => (v == null ? NONE : String(f(v)));
+    const show = (s) => (o.private ? Dash.mask(s) : esc(s));
+    const say = (s) => (o.private ? Dash.mask.text(s) : s);
+    const cls = (s) => `${esc(s.tone)}${s.dashed ? ' dashed' : ''}`;
+    const end = (s) => s.seen[s.seen.length - 1];
+    const drawn = data.filter((s) => s.seen.length || s.parts.length);
+    const many = data.length > 1;
+    // a value at a time: the series' own point there, or the one closest if it isn't more than half its usual step away
+    // (the readout then names that point's time)
+    const valueAt = (s, t) => { const p = s.seen.length ? s.seen[nearestTime(s.times, t)] : null; return p && Math.abs(p.t - t) <= s.step / 2 ? p : null; };
+    const fine = data.some((s) => s.step > 0 && s.step < MINUTE);
+    const daily = all.every((t) => { const d = new Date(t); return !(d.getHours() || d.getMinutes() || d.getSeconds() || d.getMilliseconds()); });
+    const when = o.when || ((t) => (daily ? fmt.date(t) : fine ? fmt.time(t) : to - from <= DAY * 1.02 ? fmt.time(t, { seconds: false }) : fmt.when(t))); // (a day that is a little over still reads as one)
+    const own = (p, t) => (p && when(p.t) !== when(t) ? when(p.t) : '');
+    const read = (t) => `${when(t)}: ` + data.map((s) => {
+      const p = valueAt(s, t), other = own(p, t);
+      return `${s.label ? s.label + ' ' : ''}${say(text(p ? p.v : null))}${other ? ` (at ${other})` : ''}`;
+    }).join(', ');
+
+    const top = (n) => sized('data-css-top', n, `top:${n}%`);
+    const left = (n) => sized('data-css-left', n, `left:${n}%`);
+    const spot = (n, m) => (strict() ? left(n) + top(m) : ` style="left:${n}%;top:${m}%"`);
+    const labels = ticks.list(lo, hi).map((v) => ({ v, text: text(v, o.yFormat || format) }));
+    const grid = labels.map((l) => `<div class="chart-grid${l.v === 0 && lo < 0 ? ' zero' : ''}"${top(pc(Y(l.v)))}><span>${show(l.text)}</span></div>`).join('');
+    const gut = Math.round(Math.max(40, ...labels.map((l) => 12 + 8.4 * l.text.length))); // room for the longest
+    const limits = refs.filter((r) => r.value >= lo && r.value <= hi).map((r) => `<div class="line-ref${toneClass(r.tone)}"${top(pc(Y(r.value)))}>${r.label ? `<span>${esc(r.label)}</span>` : ''}</div>`).join('');
+    const areas = drawn.filter((s) => s.area ?? (o.area && !many)).map((s) => s.parts.filter((p) => p.length > 1).map((p) => {
+      const base = pc(Y(clamp(0, lo, hi)) * 10);
+      return `<path class="area ${esc(s.tone)}" d="M${p.map(at).join('L')}L${pc(X(p[p.length - 1].t) * 10)} ${base}L${pc(X(p[0].t) * 10)} ${base}Z"></path>`;
+    }).join('')).join('');
+    const lines = drawn.map((s) => {
+      const d = s.parts.filter((p) => p.length > 1).map((p) => 'M' + p.map(at).join('L')).join('');
+      const lone = s.parts.filter((p) => p.length === 1).map((p) => `M${at(p[0])}h0`).join(''); // a point with gaps beside it
+      return (d ? `<path class="${cls(s)}" d="${d}"></path>` : '') + (lone ? `<path class="lone ${esc(s.tone)}" d="${lone}"></path>` : '');
+    }).join('');
+    const ends = drawn.filter((s) => s.seen.length);
+    const dots = ends.map((s) => `<i class="line-dot ${esc(s.tone)}"${spot(pc(X(end(s).t)), pc(Y(end(s).v)))}></i>`).join('');
+    const legend = !many ? '' : `<div class="legend">${data.map((s) => `<span class="legend-item ${cls(s)}"><i></i><span class="ellipsis">${esc(s.label)}</span> <b>${show(text(end(s)?.v ?? null))}</b></span>`).join('')}</div>`;
+    // the names at the ends of the lines, when every line ends at the right and none would touch another
+    const tops = ends.map((s) => (Y(end(s).v) / 100) * height).sort((a, b) => a - b);
+    const named = many && data.length <= SERIES.length && ends.length === data.length && ends.every((s) => X(end(s).t) > 97) && tops.every((y, i) => !i || y - tops[i - 1] >= 16);
+    const names = named ? `<div class="line-ends" aria-hidden="true">${ends.map((s) => `<span${top(pc(Y(end(s).v)))}>${esc(s.label)}</span>`).join('')}</div>` : '';
+    const xs = timeTicks(from, to, 6);
+    const axis = xs.map(({ t, text: label }, i) => {
+      const x = pc(X(t));
+      const c = [x < 4 ? 'start' : x > 96 ? 'end' : '', i % 2 ? 'minor' : ''].filter(Boolean).join(' ');
+      return `<span${c ? ` class="${c}"` : ''}${left(x)}>${esc(label)}</span>`;
+    }).join('');
+    const name = o.label || data.map((s) => s.label).filter(Boolean).join(', ') || 'Line chart';
+    const summary = data.map((s) => {
+      const vs = s.seen.map((p) => p.v);
+      const low = vs.reduce((a, b) => Math.min(a, b), Infinity), high = vs.reduce((a, b) => Math.max(a, b), -Infinity);
+      return `${s.label ? s.label + ': ' : ''}${vs.length ? `${say(text(end(s).v))} at the end, from ${say(text(low))} to ${say(text(high))}` : 'nothing'}`;
+    }).join('; ');
+    const span = daily ? fmt.date : fmt.when;
+    const box = strict() ? sized('data-css-chart-h', height) + sized('data-css-gut', gut) : ` style="--chart-h:${height}px;--gut:${gut}px"`;
+    // a slider over the points; a range that a line only passes through has none to read
+    const role = !all.length ? ` role="img" aria-label="${esc(name)}"` : ` role="slider" tabindex="0" aria-orientation="horizontal" aria-label="${esc(name)}" aria-valuemin="1" aria-valuemax="${all.length}" aria-valuenow="${all.length}" aria-valuetext="${esc(read(all[all.length - 1]))}"`;
+    const html = `<div class="chart line-chart"${box}>${legend}<p class="sr-only">${esc(`${name}, ${span(from)} to ${span(to)}. ${summary}.`)}</p>`
+      + `<div class="line-row"><div class="chart-plot line-plot" data-key="dash-lines"${role}>`
+      + `${grid}${limits}<svg class="line-svg${fixedLo || fixedHi ? ' clip' : ''}" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true">${areas}${lines}</svg>${dots}`
+      + `<div class="line-cross" hidden></div>${data.map((s) => `<i class="line-dot on ${esc(s.tone)}" hidden></i>`).join('')}<div class="line-tip" hidden></div></div>`
+      + `${names}<div class="line-x" aria-hidden="true">${axis}</div></div></div>`;
+    return { html, view: { data, all, from, to, X, Y, valueAt, when, own, read, show, text } };
+  };
+  Dash.lines = (target, series, options = {}) => {
+    const node = el(target);
+    if (!node) return null;
+    const st = node.__dashLines || { view: null, at: null };
+    st.series = series;
+    st.options = options;
+    const $1 = (sel) => node.querySelector(sel);
+    const hide = () => {
+      st.at = null;
+      if (!st.view || !st.view.all.length) return;
+      for (const e of node.querySelectorAll('.line-cross, .line-tip, .line-dot.on')) e.hidden = true;
+      const plot = $1('.line-plot');
+      if (plot) { plot.setAttribute('aria-valuenow', st.view.all.length); plot.setAttribute('aria-valuetext', st.view.read(st.view.all[st.view.all.length - 1])); }
+    };
+    const show = (i) => {
+      const v = st.view, plot = $1('.line-plot');
+      if (!v || !plot || !v.all.length) return;
+      i = clamp(i, 0, v.all.length - 1);
+      const t = v.all[i], x = v.X(t);
+      st.at = t;
+      const cross = $1('.line-cross'), tip = $1('.line-tip');
+      cross.hidden = false;
+      cross.style.left = x + '%';
+      const head = document.createElement('div');
+      head.className = 'line-when';
+      head.textContent = v.when(t);
+      const on = node.querySelectorAll('.line-dot.on');
+      const rows = v.data.map((s, k) => {
+        const p = v.valueAt(s, t);
+        on[k].hidden = !p;
+        if (p) { on[k].style.left = v.X(p.t) + '%'; on[k].style.top = v.Y(p.v) + '%'; }
+        const row = document.createElement('div'), key = document.createElement('i'), value = document.createElement('b'), name = document.createElement('span');
+        row.className = 'line-val ' + s.tone + (s.dashed ? ' dashed' : '');
+        value.innerHTML = v.show(v.text(p ? p.v : null)); // escaped there, or a stand-in
+        const other = v.own(p, t);
+        name.textContent = s.label + (other ? ` · ${other}` : '');
+        row.append(...(v.data.length > 1 ? [key, value, name] : [value]));
+        return row;
+      });
+      tip.replaceChildren(head, ...rows);
+      tip.hidden = false;
+      const right = x > 50; // on the side with more room
+      tip.style.left = right ? 'auto' : `calc(${x}% + 12px)`;
+      tip.style.right = right ? `calc(${100 - x}% + 12px)` : 'auto';
+      plot.setAttribute('aria-valuenow', i + 1);
+      plot.setAttribute('aria-valuetext', v.read(t));
+    };
+    const draw = (force = false) => {
+      const built = buildLines(st.series, st.options), { at, view } = st;
+      st.view = null; // the focus comes back to the new chart while it is put in: nothing to read yet
+      const wrote = Dash.render(node, built.html, { force });
+      // (a refresh that waits for a selection leaves the old chart, and the crosshair must read that one)
+      st.view = wrote || node.__dashHtml === built.html ? built.view : view;
+      st.at = at;
+      if (wrote && at != null && st.view) show(nearestTime(st.view.all, at));
+      return wrote;
+    };
+    st.draw = draw;
+    if (!node.__dashLines) {
+      node.__dashLines = st;
+      const inPlot = (e) => { const p = e.target.closest?.('.line-plot'); return p && node.contains(p) ? p : null; };
+      const follow = (e) => {
+        const plot = inPlot(e);
+        if (!plot || !st.view) return;
+        const r = plot.getBoundingClientRect();
+        show(nearestTime(st.view.all, st.view.from + clamp((e.clientX - r.left) / r.width, 0, 1) * (st.view.to - st.view.from)));
+      };
+      node.addEventListener('pointermove', (e) => { if (inPlot(e)) follow(e); else if (st.at != null && e.pointerType !== 'touch') hide(); });
+      node.addEventListener('pointerdown', follow);
+      node.addEventListener('pointerleave', (e) => { if (e.pointerType !== 'touch') hide(); }); // a finger's reading stays until it presses elsewhere
+      node.addEventListener('focusin', (e) => { const p = inPlot(e); if (p && st.at == null && p.matches(':focus-visible') && st.view) show(st.view.all.length - 1); });
+      node.addEventListener('focusout', (e) => { if (inPlot(e)) hide(); });
+      node.addEventListener('keydown', (e) => {
+        if (!inPlot(e) || !st.view || e.ctrlKey || e.metaKey || e.altKey) return;
+        const n = st.view.all.length, i = st.at == null ? n - 1 : nearestTime(st.view.all, st.at), page = Math.max(1, Math.round(n / 10));
+        const to = { ArrowLeft: i - 1, ArrowDown: i - 1, ArrowRight: i + 1, ArrowUp: i + 1, PageUp: i + page, PageDown: i - page, Home: 0, End: n - 1 }[e.key];
+        if (to != null) { e.preventDefault(); show(to); } else if (e.key === 'Escape' && st.at != null) { e.preventDefault(); e.stopPropagation(); hide(); }
+      });
+    }
+    node.__dashPrivate?.();
+    node.__dashPrivate = options.private ? Dash.privacy.onChange(() => st.draw(true)) : null;
+    draw();
+    const csvColumns = () => [{ key: 't', label: 'Time', value: (r) => new Date(r.t).toISOString() }, ...st.view.data.map((s, k) => ({ key: 's' + k, label: s.label || 'Value', value: (r) => r.at[k].get(r.t) ?? '' }))];
+    return {
+      // new data; the options stay unless given again
+      update(next, more) { return Dash.lines(node, next, { ...st.options, ...more }); },
+      redraw() { draw(true); },
+      // every time shown, with each series' value at it
+      csv() {
+        if (!st.view) return '';
+        const at = st.view.data.map((s) => new Map(s.seen.map((p) => [p.t, p.v])));
+        return Dash.csv(st.view.all.map((t) => ({ t, at })), csvColumns());
+      },
+      download(name = 'chart.csv') { Dash.download(name, this.csv()); },
+    };
+  };
+  Dash.lines.html = (series, options = {}) => buildLines(series, options).html; // the markup alone: no crosshair
   // donut: [{ value, tone, label }] with a number in the middle
   Dash.donut = (segments, { center = '', sub = '', title = '' } = {}) => {
     const r = 42;

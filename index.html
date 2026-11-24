@@ -239,6 +239,10 @@
         <div class="panel-head"><h3>Tokens per hour</h3><div class="seg" id="seg-hours"><button type="button" data-value="12">12 h</button><button type="button" data-value="24">24 h</button></div></div>
         <div id="bars"></div>
       </div>
+      <div class="panel" style="grid-column: 1 / -1">
+        <div class="panel-head"><h3>Response time</h3><span class="read">move over it, or use the arrow keys</span></div>
+        <div id="lines"></div>
+      </div>
       <div class="panel">
         <div class="panel-head"><h3>Agents by status</h3><span class="read">click a name to filter</span></div>
         <div class="donut-wrap" id="donut"></div>
@@ -542,6 +546,11 @@
 
   $('gauges').innerHTML = Dash.gauge(0.42, { name: 'Session', sub: 'resets 19:00' }) + Dash.gauge(0.78, { name: 'Week', sub: 'resets Thu 08:00' })
     + Dash.gauge(0.94, { name: 'Opus week', sub: '6% left' });
+
+  const LINE_START = Date.now() - 24 * 3600e3;
+  const line = (base, swing, pace) => Array.from({ length: 145 }, (_, i) => [LINE_START + i * 600e3, Math.round(base + swing * Math.sin(i / pace) + ((i * 37) % 11))]);
+  Dash.lines('lines', [{ label: 'Search', points: line(128, 40, 16) }, { label: 'Checkout', points: line(84, 14, 23) }, { label: 'Mail', points: line(38, 9, 11) }],
+    { label: 'Response time', format: (v) => v + ' ms', refs: [{ value: 200, label: 'Limit 200 ms', tone: 'bad' }] });
 
   const SCORES = Array.from({ length: 30 }, (_, i) => 0.62 + 0.25 * Math.sin(i / 5) + (i % 4) * 0.02);
   $('spark').innerHTML = Dash.spark(SCORES, { labels: ['30 days ago', 'now'], height: 70 });

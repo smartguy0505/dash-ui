@@ -33,6 +33,12 @@
   </section>
 
   <section class="panel section">
+    <div class="panel-head"><h3>Response time by region</h3><span class="sub">95th percentile</span>
+      <div class="seg" id="rt-range"><button type="button" data-value="6">6 h</button><button type="button" data-value="24">24 h</button></div></div>
+    <div id="rt"></div>
+  </section>
+
+  <section class="panel section">
     <div class="panel-head"><h3>Incidents and load tests</h3><span class="sub">last 72 h, newest test first</span>
       <div class="seg" id="tl-range"><button type="button" data-value="24">24 h</button><button type="button" data-value="72">3 d</button></div></div>
     <div class="lanes" id="lanes"></div>
@@ -104,6 +110,14 @@
         <div class="card-foot">last incident ${fmt.ago(n.incidentAt)}${active ? ' · <b class="tone bad">incident now</b>' : ''}</div>
       </article>`;
     }).join('');
+  }
+
+  // one point every ten minutes; us-east had an outage (no values) last night
+  const RT = [['eu-west', 92, 18, 15], ['us-east', 141, 26, 21], ['ap-south', 208, 22, 12]].map(([label, base, swing, pace], k) => ({
+    label, points: Array.from({ length: 145 }, (_, i) => [now - (144 - i) * 600e3, k === 1 && i > 78 && i < 86 ? null : Math.round(base + swing * Math.sin(i / pace) + ((i * 41 + k * 17) % 9))]) }));
+  const rtRange = Dash.seg('rt-range', { value: '24', onChange: () => renderRt() });
+  function renderRt() {
+    Dash.lines('rt', RT, { from: now - Number(rtRange.value) * 3600e3, to: now, label: 'Response time by region', format: (v) => `${v} ms`, refs: [{ value: 250, label: 'Limit 250 ms', tone: 'bad' }] });
   }
 
   const tlRange = Dash.seg('tl-range', { value: '72', onChange: () => renderLanes() });
@@ -184,6 +198,7 @@
   renderBanner();
   renderStats();
   renderCards();
+  renderRt();
   renderLanes();
   renderBoard();
 </script>

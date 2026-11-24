@@ -1,4 +1,4 @@
-/* dash-ui 1.10.0: the look shared by my dashboards (agents, fleet, leaderboard, payouts, balances).
+/* dash-ui 1.11.0: the look shared by my dashboards (agents, fleet, leaderboard, payouts, balances).
    Warm neutral backgrounds, white panels, tinted status colours, light and dark from the system setting
    (or data-theme="light|dark" on <html>). No build step, no dependencies: link this file, or paste it into a page.
 
@@ -10,6 +10,8 @@
 :root {
   --bg: #f5f4ef; --card: #ffffff; --text: #1f1e1b; --muted: #5c5a54; --faint: #8b887f; --line: #e4e1d9; --soft: #f3f1eb;
   --accent: #c96442; --blue: #2158d4; --ok: #157838; --warn: #a84e08; --bad: #c81e1e; --teal: #0f766e; --purple: #6d3fd1;
+  /* the line charts' own colours: told apart in both themes by every pair, colour-blind readers included; not for states */
+  --series-1: #2158d4; --series-2: #d9650c; --series-3: #2a9a88; --series-4: #a13283;
   --orange: #b83e0b; --pink: #b5179e; --gold: #965b07; --silver: #636976; --bronze: #97592d; --idle: #6b6862;
   --shadow: 0 1px 2px rgb(30 25 15 / .05), 0 4px 12px rgb(30 25 15 / .04);
   --shadow-pop: 0 10px 30px rgb(30 25 15 / .16);
@@ -26,6 +28,7 @@
   :root:not([data-theme="light"]) {
     --bg: #151514; --card: #1f1f1d; --text: #efeee9; --muted: #b0aea6; --faint: #85837c; --line: #363531; --soft: #2a2a28;
     --accent: #e08a68; --blue: #7ba7ff; --ok: #4ade80; --warn: #f0b04a; --bad: #ff7d7d; --teal: #42d3bf; --purple: #b79dff;
+    --series-1: #1967ee; --series-2: #d96623; --series-3: #26aa96; --series-4: #a4469e;
     --orange: #ff9b55; --pink: #f28fd8; --gold: #f0c04a; --silver: #c4c7cc; --bronze: #e0a36a; --idle: #a7a59e;
     --shadow: none; --shadow-pop: 0 10px 30px rgb(0 0 0 / .5); --backdrop: rgb(0 0 0 / .55);
     color-scheme: dark;
@@ -34,6 +37,7 @@
 :root[data-theme="dark"] {
     --bg: #151514; --card: #1f1f1d; --text: #efeee9; --muted: #b0aea6; --faint: #85837c; --line: #363531; --soft: #2a2a28;
     --accent: #e08a68; --blue: #7ba7ff; --ok: #4ade80; --warn: #f0b04a; --bad: #ff7d7d; --teal: #42d3bf; --purple: #b79dff;
+    --series-1: #1967ee; --series-2: #d96623; --series-3: #26aa96; --series-4: #a4469e;
     --orange: #ff9b55; --pink: #f28fd8; --gold: #f0c04a; --silver: #c4c7cc; --bronze: #e0a36a; --idle: #a7a59e;
     --shadow: none; --shadow-pop: 0 10px 30px rgb(0 0 0 / .5); --backdrop: rgb(0 0 0 / .55);
     color-scheme: dark;
@@ -483,6 +487,40 @@ button.hbar:hover { background: var(--soft); }
 .chart-x .start b { left: 0; transform: none; }
 .chart-x .end b { left: auto; right: 0; transform: none; }
 @container panel (max-width: 480px) { .chart-x .minor { visibility: hidden; } }
+/* lines over time (Dash.lines): an SVG stretched to the plot, its strokes not; dots, axis and readout are HTML */
+.line-chart { container: line-chart / inline-size; }
+.line-chart > .legend { margin-bottom: 12px; }
+.line-chart .legend-item > i, .line-val > i { width: 14px; height: 3px; border-radius: 2px; background: var(--c); }
+.line-chart .legend-item.dashed > i, .line-val.dashed > i { background: linear-gradient(90deg, var(--c) 40%, transparent 40% 60%, var(--c) 60%); border-radius: 0; }
+.line-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+.line-plot { cursor: crosshair; touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+.line-plot .chart-grid.zero { border-top: 1px solid var(--faint); }
+.line-plot:focus-visible { outline: 2px solid var(--blue); outline-offset: 4px; border-radius: 2px; }
+.line-svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.line-svg.clip { overflow: hidden; }
+.line-svg path { fill: none; stroke: var(--c); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.line-svg .area { fill: color-mix(in srgb, var(--c) 10%, transparent); stroke: none; }
+.line-svg .dashed { stroke-dasharray: 5 5; stroke-linecap: butt; }
+.line-svg .lone { stroke-width: 6; }
+.line-dot { position: absolute; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 2px var(--card); pointer-events: none; }
+.line-dot.on { z-index: 2; }
+.line-cross { position: absolute; top: 0; bottom: 0; z-index: 1; border-left: 1px solid var(--muted); pointer-events: none; }
+:where(.line-ref) { --c: var(--muted); }
+.line-ref { position: absolute; left: 0; right: 0; border-top: 1px solid var(--c); pointer-events: none; }
+.line-ref span { position: absolute; right: 0; bottom: 1px; max-width: 70%; overflow: hidden; color: var(--muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.line-tip { position: absolute; top: 4px; z-index: 3; max-width: min(240px, 70%); padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); box-shadow: var(--shadow-pop);
+  color: var(--text); font-size: 13px; pointer-events: none; }
+.line-when { margin-bottom: 3px; color: var(--muted); font-size: 12px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.line-val { display: flex; align-items: baseline; gap: 7px; }
+.line-val > i { flex: none; align-self: center; }
+.line-val b { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.line-val > span { min-width: 0; overflow: hidden; color: var(--muted); text-overflow: ellipsis; white-space: nowrap; }
+.line-ends { display: grid; grid-template-rows: 100%; align-items: start; width: max-content; max-width: 130px; height: var(--chart-h); margin-left: 10px; }
+.line-ends span { position: relative; grid-area: 1 / 1; overflow: hidden; color: var(--muted); font-size: 12px; line-height: 16px; text-overflow: ellipsis; transform: translateY(-50%); white-space: nowrap; }
+.line-x { position: relative; grid-column: 1; height: 16px; margin: 6px 0 0 var(--gut); color: var(--muted); font-size: 12px; }
+.line-x span { position: absolute; line-height: 16px; transform: translateX(-50%); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.line-x .start { transform: none; } .line-x .end { transform: translateX(-100%); }
+@container line-chart (max-width: 520px) { .line-ends { display: none; } .line-x .minor { visibility: hidden; } }
 
 /* donut with a legend beside it */
 .donut-wrap { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px 28px; }
@@ -965,6 +1003,7 @@ textarea.input.autosize { min-height: 62px; max-height: var(--max-h, 320px); fie
 
 /* ---- tones: set --c; after the components so they win over their defaults ---- */
 .ok { --c: var(--ok); } .warn { --c: var(--warn); } .bad { --c: var(--bad); } .blue { --c: var(--blue); } .accent { --c: var(--accent); }
+.series-1 { --c: var(--series-1); } .series-2 { --c: var(--series-2); } .series-3 { --c: var(--series-3); } .series-4 { --c: var(--series-4); }
 .teal { --c: var(--teal); } .purple { --c: var(--purple); } .orange { --c: var(--orange); } .pink { --c: var(--pink); } .idle { --c: var(--idle); }
 .neutral { --c: var(--muted); }
 
@@ -1055,6 +1094,8 @@ textarea.input.autosize { min-height: 62px; max-height: var(--max-h, 320px); fie
 @media (forced-colors: active) {
   .bar, .meter, .split, .progress, .chart-col i, .legend-item > i, .dot, .banner .badge, .skel { forced-color-adjust: none; outline: 1px solid CanvasText; outline-offset: -1px; }
   .chart-col.zero i, .skel { outline-color: GrayText; }
+  .line-svg path, .line-dot, .line-val > i, .line-ref { forced-color-adjust: none; }
+  .line-chart .legend-item > i { outline: 0; }
   .dot, .legend-item > i { outline-offset: 0; }
   .pill, .tag, .rank, .count-badge, .avatar, .callout, .toast, .tooltip { outline: 1px solid CanvasText; outline-offset: -1px; }
   .ring, .banner.active, .nav-item.attn { outline: 2px solid CanvasText; outline-offset: -2px; }

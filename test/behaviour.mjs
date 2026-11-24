@@ -8,7 +8,8 @@
 // Dash.config.csp, drawn as without the policy, in markup the page or the kit puts in; from 1.7 dash-utils.css next to
 // the kit (test/utils.html); from 1.8 the new pieces that need a page (test/components.html): sliders, drops, the
 // drawer, the bottom nav, input groups, the stepper on a phone, badges and choices; from 1.9.2 what shows in high contrast
-// (test/contrast.html), narrow pages, targets and times to come; from 1.10 values the reader hides (test/private.html).
+// (test/contrast.html), narrow pages, targets and times to come; from 1.10 values the reader hides (test/private.html);
+// from 1.11 line charts (test/lines.html).
 //
 //   npm i --no-save playwright-core && npx playwright-core install --only-shell chromium
 //   node test/behaviour.mjs          (KIT=<dir> serves dash.css, dash.js and dash-utils.css from <dir> instead: to check a change)
@@ -37,7 +38,8 @@ const server = createServer(async (req, res) => {
   try {
     // test/csp.html: under a strict style policy, as some dashboards are
     const csp = path === '/test/csp.html' ? { 'Content-Security-Policy': "style-src 'self'" } : {};
-    res.writeHead(200, { 'Content-Type': TYPES[extname(path)] || 'application/octet-stream', ...csp }).end(await readFile(join(base, path)));
+    const body = await readFile(join(base, path)); // first: a missing file is a 404
+    res.writeHead(200, { 'Content-Type': TYPES[extname(path)] || 'application/octet-stream', ...csp }).end(body);
   } catch {
     res.writeHead(404).end('not found');
   }
@@ -1422,8 +1424,9 @@ let reference;
           const e = document.querySelector('#pairs ' + sel), s = e && getComputedStyle(e, pseudo);
           if (!s || s.outlineStyle !== 'solid' || parseFloat(s.outlineWidth) < 1 || s.outlineColor !== sys(colour)) bad.push(sel);
         };
-        for (const sel of ['.bar', '.meter', '.split', '.progress', '.chart-col:not(.zero) i', '.legend-item > i', '.dot', '.banner .badge', '.pill', '.callout', '.toast', '.ring', '.switch input:not(:checked, :disabled) + .track']) line(sel);
+        for (const sel of ['.bar', '.meter', '.split', '.progress', '.chart-col:not(.zero) i', '.legend-item:not(.line-chart .legend-item) > i', '.dot', '.banner .badge', '.pill', '.callout', '.toast', '.ring', '.switch input:not(:checked, :disabled) + .track']) line(sel);
         line('.skel', null, 'GrayText');
+        for (const sel of ['.line-svg path', '.line-dot', '.line-ref', '.line-val > i']) if (getComputedStyle(document.querySelector('#pairs ' + sel)).forcedColorAdjust !== 'none') bad.push(sel + ' (its colour)');
         line('.stepper > li[aria-current="step"]', '::before');
         const on = document.querySelector('#pairs .switch input:checked:not(:disabled) + .track');
         if (!on || getComputedStyle(on).backgroundColor !== sys('Highlight')) bad.push('a switch that is on');
@@ -1564,8 +1567,7 @@ let reference;
   check('1.10 hidden values: a dialog that closes hides its boxes again', !inDlg && await dots('in-dlg'), '');
   await at(() => document.getElementById('in-dlg').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'mouse' })));
   const inDlg2 = await dots('in-dlg');
-  await at(() => { document.getElementById('dlg').close(); document.getElementById('dlg').showModal(); });
-  await tab.waitForTimeout(50);
+  await at(() => new Promise((ok) => { const d = document.getElementById('dlg'); d.addEventListener('close', () => setTimeout(ok), { once: true }); d.close(); d.showModal(); }));
   check('1.10 hidden values: one that closes without its box losing the focus too', !inDlg2 && await dots('in-dlg'), '');
   await at(() => document.getElementById('dlg').close());
 
@@ -1623,6 +1625,148 @@ let reference;
   check('1.10 hidden values: a stat\'s blur isn\'t cut off at its edge', clip.value === 'visible', clip.value);
   check('1.10 hidden values: a table made again in its place isn\'t drawn over by the old one', clip.table === '5', clip.table);
   await ctx.close();
+}
+
+// ---- 1.11 Dash.lines (test/lines.html): in one time zone, at one moment
+{
+  const openLines = async ({ width = 1100, height = 2000, zone = 'Europe/Riga', page = 'lines.html' } = {}) => {
+    const ctx = await browser.newContext({ viewport: { width, height }, timezoneId: zone, locale: 'en-US' });
+    const tab = await ctx.newPage();
+    tab.on('pageerror', (e) => errors.push(e.message));
+    await tab.clock.install({ time: new Date('2026-11-24T12:00:00Z') });
+    await tab.goto(url.replace('behaviour.html', page), { waitUntil: 'load' });
+    return tab;
+  };
+  const tab = await openLines();
+  const at = (f, a) => tab.evaluate(f, a);
+  const texts = (sel) => at((s) => [...document.querySelectorAll(s)].map((e) => e.textContent), sel);
+  const box = (sel) => tab.locator(sel).first().boundingBox();
+  check('1.11 lines: round numbers on one axis, from zero', JSON.stringify(await texts('#two .chart-grid span')) === JSON.stringify(['0 ms', '50 ms', '100 ms', '150 ms', '200 ms']), JSON.stringify(await texts('#two .chart-grid span')));
+  check('1.11 lines: round local times, midnight as its date', JSON.stringify(await texts('#two .line-x span')) === JSON.stringify(['18:00', 'Nov 24', '06:00', '12:00']), JSON.stringify(await texts('#two .line-x span')));
+  check('1.11 lines: the legend has the latest values, in the order given', JSON.stringify(await texts('#four .legend-item')) === JSON.stringify(['North 56', 'South 93', 'East 136', 'West 164']), JSON.stringify(await texts('#four .legend-item')));
+  const names = await at(() => [...document.querySelectorAll('#four .line-ends span')].map((s) => { const q = s.getBoundingClientRect(), d = [...document.querySelectorAll('#four .line-dot:not(.on)')].map((x) => x.getBoundingClientRect()); return [s.textContent, Math.min(...d.map((x) => Math.abs(x.top + 4 - (q.top + q.height / 2))))]; }));
+  check('1.11 lines: names at the line ends, each level with its dot', names.length === 4 && names.every(([, d]) => d <= 1), JSON.stringify(names));
+  check('1.11 lines: one series has no legend and no names', (await texts('#one .legend, #one .line-ends')).length === 0, '');
+  const tones = await at(() => ['1', '2', '3', '4'].map((n) => getComputedStyle(document.querySelector(`#four .line-svg path.series-${n}`)).stroke));
+  check('1.11 lines: four colours, one per series', new Set(tones).size === 4, tones.join(' '));
+  const room = await at(() => [...document.querySelectorAll('.line-chart .chart-grid span')].every((e) => e.getBoundingClientRect().left >= e.closest('.line-chart').getBoundingClientRect().left - 0.5));
+  check('1.11 lines: the axis has room for its longest label', room);
+
+  // the crosshair: where the data is, not where the pointer is
+  const plot = await box('#two .line-plot');
+  const hover = async (fx) => { await tab.mouse.move(plot.x + plot.width * fx, plot.y + 70); return at(() => { const r = document.querySelector('#two .line-plot').getBoundingClientRect(); const q = (e) => { const b = e.getBoundingClientRect(); return { x: (b.left + b.width / 2 - r.left) / r.width, y: (b.top + b.height / 2 - r.top) / r.height, l: b.left, r: b.right }; };
+    return { hidden: document.querySelector('#two .line-cross').hidden, cross: q(document.querySelector('#two .line-cross')), dots: [...document.querySelectorAll('#two .line-dot.on')].map(q), tip: q(document.querySelector('#two .line-tip')), text: document.querySelector('#two .line-tip').innerText.split('\n').filter(Boolean), plotL: r.left, plotR: r.right, now: document.querySelector('#two .line-plot').getAttribute('aria-valuetext') }; }); };
+  const h1 = await hover(0.3005);
+  const want = await at(() => { const i = Math.round(0.3005 * 288); return { x: i / 288, web: two[0].points[i][1], api: two[1].points[i][1], t: new Date(two[0].points[i][0]).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }) }; });
+  check('1.11 lines: the crosshair snaps to the nearest point', !h1.hidden && Math.abs(h1.cross.x - want.x) < 0.001, JSON.stringify([h1.cross.x, want.x]));
+  check('1.11 lines: a dot on every line, at its value', h1.dots.length === 2 && Math.abs(h1.dots[0].y - (1 - want.web / 200)) < 0.004 && Math.abs(h1.dots[1].y - (1 - want.api / 200)) < 0.004, JSON.stringify([h1.dots, want]));
+  check('1.11 lines: one readout with the time and every series', JSON.stringify(h1.text) === JSON.stringify([want.t, `${want.web} ms`, 'Web', `${want.api} ms`, 'API']) && h1.now === `${want.t}: Web ${want.web} ms, API ${want.api} ms`, JSON.stringify([h1.text, h1.now]));
+  const h2 = await hover(0.93);
+  check('1.11 lines: the readout stays inside the plot, on the roomier side', h1.tip.l > plot.x + plot.width * 0.3 && h1.tip.r < h1.plotR && h2.tip.r < plot.x + plot.width * 0.93 && h2.tip.l > h2.plotL, JSON.stringify([h1.tip, h2.tip]));
+  await tab.mouse.move(plot.x + 200, plot.y - 14); // the legend, still inside the chart's box
+  check('1.11 lines: it goes when the pointer is on the legend', await at(() => document.querySelector('#two .line-tip').hidden));
+  await hover(0.4);
+  await tab.mouse.move(plot.x + 200, plot.y - 60);
+  check('1.11 lines: it goes when the pointer leaves the plot', await at(() => document.querySelector('#two .line-tip').hidden && document.querySelector('#two .line-cross').hidden));
+
+  // the keyboard, and what a screen reader hears
+  const slider = () => at(() => { const p = document.querySelector('#two .line-plot'); return { now: Number(p.getAttribute('aria-valuenow')), max: Number(p.getAttribute('aria-valuemax')), text: p.getAttribute('aria-valuetext'), name: p.getAttribute('aria-label'), role: p.getAttribute('role'), open: !document.querySelector('#two .line-tip').hidden, focus: document.activeElement === p }; });
+  await at(() => document.querySelector('#two .line-plot').focus());
+  await tab.keyboard.press('Shift+Tab');
+  await tab.keyboard.press('Tab');
+  const k0 = await slider();
+  check('1.11 lines: Tab shows the latest point; it is a named slider', k0.focus && k0.open && k0.role === 'slider' && k0.name === 'Response time' && k0.now === 289 && k0.max === 289 && k0.text === '14:00: Web 117 ms, API 51 ms', JSON.stringify(k0));
+  await tab.keyboard.press('ArrowLeft');
+  const k1 = await slider();
+  await tab.keyboard.press('PageDown');
+  const k2 = await slider();
+  await tab.keyboard.press('Home');
+  await tab.keyboard.press('ArrowLeft');
+  const k3 = await slider();
+  check('1.11 lines: arrow keys, Page Down and Home move it, and it stops at the ends', k1.now === 288 && k1.text.startsWith('13:55') && k2.now === 259 && k3.now === 1 && k3.text.startsWith('14:00'), JSON.stringify([k1, k2, k3]));
+  await tab.keyboard.press('Escape');
+  const k4 = await slider();
+  check('1.11 lines: Escape puts it away, and the focus stays', !k4.open && k4.focus && k4.now === 289, JSON.stringify(k4));
+
+  // a refresh under the reader
+  await tab.keyboard.press('Home');
+  await tab.keyboard.press('ArrowRight');
+  const kept = await at(() => { two[0].points.push([T0 + 290 * 300e3, 150]); two[1].points.push([T0 + 290 * 300e3, 60]); chart.update(two); return { focus: document.activeElement === document.querySelector('#two .line-plot'), text: document.querySelector('#two .line-plot').getAttribute('aria-valuetext'), open: !document.querySelector('#two .line-tip').hidden, max: document.querySelector('#two .line-plot').getAttribute('aria-valuemax') }; });
+  check('1.11 lines: a refresh keeps the reader at their point, with the focus', kept.focus && kept.open && kept.text.startsWith('14:05') && kept.max === '290', JSON.stringify(kept));
+  await tab.focus('#after');
+  check('1.11 lines: it goes when the focus leaves', !(await slider()).open);
+  const sel = await at(() => { const r = document.createRange(); r.selectNodeContents(document.querySelector('#two .legend')); getSelection().removeAllRanges(); getSelection().addRange(r); two[0].points.push([T0 + 600 * 300e3, 10]); chart.update(two); const p = document.querySelector('#two .line-plot'); p.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: p.getBoundingClientRect().right, clientY: p.getBoundingClientRect().top + 5 })); const t = p.getAttribute('aria-valuetext'); getSelection().removeAllRanges(); two[0].points.pop(); chart.update(two); return t; });
+  check('1.11 lines: while a refresh waits for a selection, the crosshair reads the chart on screen', sel.startsWith('14:10: Web 150 ms'), sel);
+
+  // a finger: what it reads stays after it lifts, until a press elsewhere
+  const touch = await at(() => { const p = document.querySelector('#two .line-plot'), r = p.getBoundingClientRect(); const ev = (k, x) => p.dispatchEvent(new PointerEvent(k, { bubbles: k !== 'pointerleave', pointerType: 'touch', clientX: r.left + r.width * x, clientY: r.top + 20 })); p.focus(); ev('pointerdown', 0.5); document.querySelector('#two').dispatchEvent(new PointerEvent('pointerleave', { pointerType: 'touch' })); return { open: !document.querySelector('#two .line-tip').hidden, action: getComputedStyle(p).touchAction }; });
+  await tab.focus('#after');
+  check('1.11 lines: a finger\'s reading stays, until a press elsewhere; the page still scrolls', touch.open && touch.action === 'pan-y' && !(await slider()).open, JSON.stringify(touch));
+
+  // gaps, lone points, other cadences
+  const gaps = await at(() => { const p = (s) => document.querySelector('#gaps path' + s), n = (e) => (e ? e.getAttribute('d').split('M').length - 1 : 0); return { sensor: n(p('.series-1:not(.lone)')), lone: document.querySelectorAll('#gaps path.lone.series-1').length, dashed: p('.dashed') ? getComputedStyle(p('.dashed')).strokeDasharray : '', forecast: n(p('.dashed')) }; });
+  check('1.11 lines: a null and a long silence break the line, and a point alone is a dot', gaps.sensor === 3 && gaps.lone === 1 && gaps.forecast === 1 && gaps.dashed.startsWith('5'), JSON.stringify(gaps));
+  await at(() => document.querySelector('#gaps .line-plot').focus());
+  await tab.keyboard.press('Home');
+  await tab.keyboard.press('ArrowRight');
+  const other = await at(() => [document.querySelector('#gaps .line-plot').getAttribute('aria-valuetext'), document.querySelector('#gaps .line-tip').innerText.split('\n').filter(Boolean)]);
+  check('1.11 lines: a value from another moment says which', other[0] === '15:00: Sensor 4, Forecast 2 (at 14:00)' && other[1][4] === 'Forecast · 14:00', JSON.stringify(other));
+  check('1.11 lines: below zero, the zero line is solid', await at(() => getComputedStyle(document.querySelector('#days .chart-grid.zero') || document.body).borderTopStyle === 'solid' && document.querySelectorAll('#days .chart-grid.zero').length === 1 && !document.querySelector('#two .chart-grid.zero')));
+  check('1.11 lines: weeks are marked on Mondays', JSON.stringify(await texts('#days .line-x span')) === JSON.stringify(['Oct 5', 'Oct 12', 'Oct 19', 'Oct 26', 'Nov 2', 'Nov 9']), JSON.stringify(await texts('#days .line-x span')));
+  check('1.11 lines: daily points read as dates', (await at(() => document.querySelector('#days .line-plot').getAttribute('aria-valuetext'))) === 'Nov 9: Change +6%', await at(() => document.querySelector('#days .line-plot').getAttribute('aria-valuetext')));
+  check('1.11 lines: nothing to show says so', (await texts('#none .empty'))[0] === 'No readings yet');
+
+  // the range, limits, scale
+  const cut = await at(() => { const b = document.getElementById('one'); Dash.lines(b, [{ label: 'x', points: [[T0, 0], [T0 + 10 * H, 100]] }], { from: T0 + 2 * H, to: T0 + 4 * H, label: 'Cut' }); const p = b.querySelector('.line-plot'), r = p.getBoundingClientRect(); p.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: r.left + 50, clientY: r.top + 5 })); return { d: b.querySelector('path').getAttribute('d'), role: p.getAttribute('role'), tab: p.hasAttribute('tabindex'), tip: b.querySelector('.line-tip').hidden }; });
+  check('1.11 lines: a line that crosses the edges of the range is cut there, at the value it has; with no point to read it is a picture', cut.d === 'M0 500L1000 0' && cut.role === 'img' && !cut.tab && cut.tip, JSON.stringify(cut));
+  const scale = await at(() => { const b = document.getElementById('one'); const y = () => [...b.querySelectorAll('.chart-grid span')].map((e) => e.textContent); const P = [[T0, 1043], [T0 + H, 1090]]; const out = {};
+    Dash.lines(b, [{ points: P }], { min: 'auto', format: String }); out.auto = y();
+    Dash.lines(b, [{ points: P }], { min: 1050, max: 1080, format: String }); out.fixed = [y(), b.querySelector('.line-svg').classList.contains('clip'), getComputedStyle(b.querySelector('.line-svg')).overflow];
+    Dash.lines(b, [{ points: [[T0, 0], [T0 + H, 0]] }], { format: String }); out.flat = y();
+    Dash.lines(b, [{ points: [[T0, 7]] }], { format: String }); out.single = [b.querySelector('path.lone') != null, b.querySelector('.line-dot')?.style.left];
+    Dash.lines(b, [{ points: [[T0, 3], [T0 + H, 4]] }], { refs: [{ value: 9, label: 'Limit' }], format: String }); out.ref = [y().at(-1), b.querySelector('.line-ref')?.style.top];
+    Dash.lines(b, [{ points: [[T0, -3], [T0 + H, -4]] }], { format: String }); out.neg = y();
+    Dash.lines(b, [{ label: 'A', points: [0, 1, 2, 3, 4, 5].map((i) => [T0 + i * H, i]) }, { label: 'B', points: [[T0, 8], [T0 + H, 9]] }], { format: String }); out.gone = b.querySelector('.line-plot').getAttribute('aria-valuetext');
+    return out; });
+  check('1.11 lines: the y axis fits the data when asked, takes limits, and copes with one value or none', JSON.stringify(scale.auto) === '["1040","1060","1080","1100"]' && JSON.stringify(scale.fixed) === '[["1050","1060","1070","1080"],true,"hidden"]' && scale.flat[0] === '0' && scale.flat.length > 1 && JSON.stringify(scale.single) === '[true,"50%"]' && JSON.stringify(scale.ref) === '["10","10%"]' && scale.neg.at(-1) === '0', JSON.stringify(scale));
+  check('1.11 lines: a series with nothing near that moment reads —', scale.gone === '19:00: A 5, B —', scale.gone);
+  const meet = await at(() => { const b = document.getElementById('one'); Dash.lines(b, [{ label: 'A', points: [[T0, 1], [T0 + H, 5]] }, { label: 'B', points: [[T0, 9], [T0 + H, 5.1]] }]); const close = b.querySelector('.line-ends'); Dash.lines(b, [{ label: 'A', points: [[T0, 1], [T0 + H, 5]] }, { label: 'B', points: [[T0, 9], [T0 + H / 2, 9]] }]); return [close, b.querySelector('.line-ends')]; });
+  check('1.11 lines: no names at the ends where they would touch, or where a line stops early', meet[0] === null && meet[1] === null);
+  const evil = await at(() => { const b = document.getElementById('one'); Dash.lines(b, [{ label: '<img src=x onerror="window.pwned=1">', points: [[T0, 1], [T0 + H, 5]], tone: '"><b>' }, { label: 'B', points: [[T0, 2], [T0 + H, 1]] }], { label: '"><i id=evil>', format: (v) => `<u>${v}</u>`, refs: [{ value: 3, label: '<s>limit</s>' }] }); b.querySelector('.line-plot').focus(); return { img: b.querySelectorAll('img, u, s, #evil').length, tip: b.querySelector('.line-tip').textContent.includes('<u>5</u>') }; });
+  await tab.keyboard.press('ArrowLeft');
+  check('1.11 lines: names and values are text', evil.img === 0 && (await at(() => document.querySelectorAll('#one img, #one u, #one s, #evil').length)) === 0 && (await at(() => document.querySelector('#one .line-tip').textContent.includes('<u>1</u>'))), JSON.stringify(evil));
+  const csv = await at(() => Dash.lines('one', [{ label: 'A', points: [[T0, 1], [T0 + H, null]] }, { label: 'B', points: [[T0, 2], [T0 + H, 3]] }]).csv().trim().split(/\r?\n/));
+  check('1.11 lines: the numbers as CSV', JSON.stringify(csv) === JSON.stringify(['Time,A,B', '2026-11-23T12:00:00.000Z,1,2', '2026-11-23T13:00:00.000Z,,3']), JSON.stringify(csv));
+  check('1.11 lines: called again on its box, it listens once', await at(() => { const b = document.getElementById('one'); let n = 0; const p = b.querySelector('.line-plot'); const add = b.addEventListener; b.addEventListener = (...a) => { n += 1; add.apply(b, a); }; Dash.lines(b, [{ points: [[T0, 1], [T0 + H, 2]] }]); Dash.lines(b, [{ points: [[T0, 1], [T0 + H, 3]] }]); delete b.addEventListener; return n === 0 && p != null; }));
+
+  // hidden values: the numbers go, the shape stays
+  const priv = await at(() => { const b = document.getElementById('one'); Dash.privacy.set(false); Dash.lines(b, [{ label: 'A', points: [[T0, 7391], [T0 + H, 7392]] }, { label: 'B', points: [[T0, 7393], [T0 + H, 7394]] }], { private: true, format: (v) => v + ' kr' }); const shown = b.innerHTML.includes('7392 kr'); b.querySelector('.line-plot').focus(); Dash.privacy.set(true); const p = b.querySelector('.line-plot'); p.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true })); const out = { shown, left: /739\d|\d kr/.test(b.innerHTML), masks: b.querySelectorAll('.private').length, path: !!b.querySelector('path.series-1'), tip: b.querySelector('.line-tip').textContent }; Dash.privacy.set(false); out.back = b.innerHTML.includes('7392 kr'); return out; });
+  check('1.11 lines: private ones lose every number while values are hidden, in the readout too', priv.shown && !priv.left && priv.masks >= 6 && priv.path && priv.back, JSON.stringify(priv));
+
+  // clocks that change: labels stay round, and never repeat
+  const dst = await at(() => [['2026-10-24T12:00:00Z', '2026-10-25T12:00:00Z'], ['2026-03-28T12:00:00Z', '2026-03-29T12:00:00Z'], ['2026-10-20T00:00:00Z', '2026-10-30T00:00:00Z'], ['2026-03-20T00:00:00Z', '2026-04-03T00:00:00Z'], ['2026-03-28T22:30:00Z', '2026-03-29T04:00:00Z']].map(([a, z]) => { const b = document.getElementById('one'); Dash.lines(b, [{ points: [[a, 1], [z, 2]] }]); return [...b.querySelectorAll('.line-x span')].map((e) => [e.textContent, parseFloat(e.style.left)]); }));
+  const rising = (l) => l.length >= 3 && l.every(([, x], i) => !i || x > l[i - 1][1]) && new Set(l.map(([t]) => t)).size === l.length;
+  check('1.11 lines: round labels through a clock change, by the hour and by the day', dst.every(rising) && JSON.stringify(dst[0].map((x) => x[0])) === '["18:00","Oct 25","06:00","12:00"]' && JSON.stringify(dst[1].map((x) => x[0])) === '["18:00","Mar 29","06:00","12:00"]' && JSON.stringify(dst[2].map((x) => x[0])) === '["Oct 21","Oct 23","Oct 25","Oct 27","Oct 29"]' && dst[3].every(([t]) => /^(Mar|Apr) \d+$/.test(t)) && JSON.stringify(dst[4].map((x) => x[0])) === '["01:00","02:00","04:00","05:00","06:00","07:00"]', JSON.stringify(dst));
+  const ranges = await at(() => [10e3, 90e3, 20 * 60e3, 5 * H, 3 * 24 * H, 45 * 24 * H, 200 * 24 * H, 900 * 24 * H, 12 * 366 * 24 * H].map((r) => { const b = document.getElementById('one'); Dash.lines(b, [{ points: [[T0 - r, 1], [T0, 2]] }]); return [...b.querySelectorAll('.line-x span')].map((e) => [e.textContent, parseFloat(e.style.left)]); }));
+  check('1.11 lines: two to eight round labels for ten seconds up to twelve years', ranges.every((l) => l.length >= 2 && l.length <= 8 && l.every(([, x], i) => x >= 0 && x <= 100 && (!i || x > l[i - 1][1]))) && /^\d\d:\d\d:\d\d$/.test(ranges[0][0][0]) && /^[A-Z][a-z]{2} 2026$/.test(ranges[6][0][0]) && /^\d{4}$/.test(ranges[8][0][0]), JSON.stringify(ranges.map((l) => l.map((x) => x[0]))));
+  await tab.context().close();
+
+  // a phone
+  const phone = await openLines({ width: 390 });
+  const ph = await phone.evaluate(() => ({ over: document.documentElement.scrollWidth - innerWidth, ends: getComputedStyle(document.querySelector('#four .line-ends')).display, minor: [...document.querySelectorAll('#two .line-x span')].map((e) => getComputedStyle(e).visibility).join(), apart: [...document.querySelectorAll('.line-x')].every((x) => { const l = [...x.children].filter((e) => getComputedStyle(e).visibility === 'visible').map((e) => e.getBoundingClientRect()); return l.every((r, i) => r.right <= innerWidth && (!i || r.left >= l[i - 1].right + 2)); }) }));
+  check('1.11 lines: on a phone the names at the ends and every other label go, and nothing overlaps', ph.over <= 0 && ph.ends === 'none' && ph.minor === 'visible,hidden,visible,hidden' && ph.apart, JSON.stringify(ph));
+  await phone.context().close();
+
+  // a strict style policy
+  const plain = await openLines({ page: 'lines.html' });
+  const strictTab = await openLines({ page: 'csp.html' });
+  const draw = () => { const H = 3600e3, T = Date.UTC(2026, 10, 23, 12); const b = document.createElement('div'); b.id = 'csp-lines'; document.querySelector('main').append(b); Dash.config.csp = location.pathname.endsWith('csp.html'); Dash.lines(b, [{ label: 'A', points: [[T, 10], [T + 6 * H, 30], [T + 12 * H, 20]] }, { label: 'B', points: [[T, 60], [T + 6 * H, 80], [T + 12 * H, 90]] }], { height: 180, refs: [{ value: 50, label: 'Limit' }] }); b.querySelector('.line-plot').dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true })); const r = b.querySelector('.line-plot').getBoundingClientRect(); return [...b.querySelectorAll('.chart-grid, .line-ref, .line-dot, .line-x span, .line-ends span, .line-cross, .line-tip')].map((e) => { const q = e.getBoundingClientRect(); return [e.className, +((q.left - r.left) / r.width).toFixed(2), Math.round(q.top - r.top)].join(' '); }).concat([Math.round(r.height)]); };
+  const a = await plain.evaluate(draw), b = await strictTab.evaluate(draw);
+  await strictTab.waitForTimeout(300);
+  const bad = await strictTab.evaluate(() => violations.slice());
+  check('1.11 lines: under a strict style policy it draws the same, and breaks nothing', a.length > 12 && JSON.stringify(a) === JSON.stringify(b) && bad.length === 0, JSON.stringify([a.filter((x, i) => x !== b[i]), b.filter((x, i) => x !== a[i]), bad]));
+  await plain.context().close();
+  await strictTab.context().close();
 }
 
 await browser.close();

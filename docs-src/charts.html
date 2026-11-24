@@ -51,6 +51,39 @@
       </example>
     </section>
 
+    <section id="lines" data-terms=".line-chart .line-row .line-plot .line-svg .line-dot .line-cross .line-tip .line-when .line-val .line-ref .line-ends .line-x .dashed .lone .clip .on .series-1 .series-2 .series-3 .series-4 --series-1 --series-2 --series-3 --series-4 Dash.lines Dash.lines.html time series area threshold crosshair">
+      <h2>Line charts</h2>
+      <p><code>Dash.lines(el, series, options)</code> draws values over time, one line per series, on one axis. A series is <code>{ label, points }</code>; a point is <code>[time, value]</code> or <code>{ t, v }</code>, with a time as <code>Dash.time</code> reads them. Points needn't be evenly spaced, and a value that isn't a number leaves a gap. Move over the chart, drag a finger, or focus it and use the arrow keys.</p>
+      <example>
+        <div class="panel"><div class="panel-head"><h3>Response time</h3><span class="sub">last 24 h</span></div><div id="latency"></div></div>
+        <script>
+          const start = Date.now() - 24 * 3600e3;
+          const series = (base, swing, pace) => Array.from({ length: 145 }, (_, i) => [start + i * 600e3, Math.round(base + swing * Math.sin(i / pace) + ((i * 37) % 11))]);
+          Dash.lines('latency', [
+            { label: 'Web', points: series(120, 45, 16) },
+            { label: 'API', points: series(62, 18, 23).map(([t, v], i) => [t, i > 60 && i < 70 ? null : v]) },
+          ], { label: 'Response time', format: (v) => v + ' ms', refs: [{ value: 200, label: 'Limit 200 ms', tone: 'bad' }] });
+        </script>
+      </example>
+      <example>
+        <div class="panel"><div class="panel-head"><h3>Visitors a day</h3></div><div id="visitors"></div></div>
+        <script>
+          const day = (i) => new Date(2026, 8, 1 + i);
+          Dash.lines('visitors', [{ label: 'Visitors', points: Array.from({ length: 84 }, (_, i) => [day(i), Math.round(3200 + i * 24 + 900 * Math.sin(i / 1.114))]) }],
+            { label: 'Visitors a day', area: true, height: 160 });
+        </script>
+      </example>
+      <ul>
+        <li>Up to four series get the series colours in order (<code>.series-1</code> to <code>.series-4</code>; the tokens are <code>--series-1</code>…). They were picked by measure, so that every pair can be told apart in light and dark, by colour-blind readers too. <code>tone: 'bad'</code> is for a colour that means something. Past four a line is grey: use two charts.</li>
+        <li>A series can also be <code>dashed: true</code> (a forecast, last week), filled with <code>area: true</code>, and have its own <code>gap</code>.</li>
+        <li><code>min</code> is 0 unless the data goes below it; <code>min: 'auto'</code> fits the data, a number fixes it, and <code>max</code> too. <code>ticks</code> is about how many steps the axis has, <code>format</code> writes the values, <code>yFormat</code> the axis when it needs shorter ones.</li>
+        <li><code>from</code> and <code>to</code> set the range (the data's ends otherwise); a line that crosses them is cut there. <code>gap</code> (in ms) breaks a line at a longer silence. <code>refs: [{ value, label, tone }]</code> draws limits across. <code>when: (t) =&gt; text</code> writes the readout's time.</li>
+        <li><code>private: true</code> hides the numbers with <a href="feedback.html#private">the reader's eye</a>; the shape stays.</li>
+        <li>For a screen reader the chart is a slider: it hears each point as the arrow keys move, and a summary before it. <code>label</code> names it.</li>
+        <li>The handle: <code>.update(series, options)</code> (or call <code>Dash.lines</code> again on the same box: the reader stays at their point), <code>.redraw()</code>, <code>.csv()</code>, <code>.download(name)</code>. <code>Dash.lines.html(series, options)</code> is the markup alone, with no crosshair. A few thousand points per series is fine; send averages for more.</li>
+      </ul>
+    </section>
+
     <section id="donuts" data-terms=".donut .donut-wrap .seg-arc .ring-track .big-text .small-text Dash.donut">
       <h2>Donuts</h2>
       <p><code>Dash.donut(segments, { center, sub })</code> is a ring of <code>{ value, tone, label }</code> segments with a number in the middle. Put it in <code>.donut-wrap</code> beside a <code>Dash.legend(…, { list: true })</code>.</p>
@@ -118,5 +151,5 @@
 
     <section id="strict" data-terms="Dash.config.csp Dash.applyStyles data-css-w Content-Security-Policy">
       <h2>Under a strict style policy</h2>
-      <p>A page served with <code>Content-Security-Policy: style-src 'self'</code> drops every <code>style=""</code> in its markup, and the builders that size things (<code>Dash.bar</code>, <code>meter</code>, <code>split</code>, <code>hbars</code>, <code>bars</code>, <code>spark</code>, <code>progress</code>) write sizes that way. On such a page, set <code>Dash.config.csp = true</code> before drawing anything: they then write their numbers as <code>data-css-*</code> attributes, and the kit sets them through the CSSOM, which the policy allows. It does so at once wherever the kit puts markup in (<code>Dash.render</code>, popups, modals) and before the next paint for markup the page puts in itself; <code>Dash.applyStyles(el)</code> does it at once. Only numbers are set, and only on the kit's own pieces.</p>
+      <p>A page served with <code>Content-Security-Policy: style-src 'self'</code> drops every <code>style=""</code> in its markup, and the builders that size things (<code>Dash.bar</code>, <code>meter</code>, <code>split</code>, <code>hbars</code>, <code>bars</code>, <code>lines</code>, <code>spark</code>, <code>progress</code>) write sizes that way. On such a page, set <code>Dash.config.csp = true</code> before drawing anything: they then write their numbers as <code>data-css-*</code> attributes, and the kit sets them through the CSSOM, which the policy allows. It does so at once wherever the kit puts markup in (<code>Dash.render</code>, popups, modals) and before the next paint for markup the page puts in itself; <code>Dash.applyStyles(el)</code> does it at once. Only numbers are set, and only on the kit's own pieces.</p>
     </section>

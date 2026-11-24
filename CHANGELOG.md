@@ -2,6 +2,13 @@
 
 Dashboards keep a copy of `dash.css` and `dash.js`; the first line of each file says which version it is. Versions only add things: a page that worked with an older copy works the same with a newer one.
 
+## 1.11.0 (2026-11-24)
+
+A line chart over time.
+
+- `Dash.lines(el, series, options)`: one line per series on one axis, with round values and round local times, limits drawn across, gaps where there is no value, areas and dashed lines. A crosshair reads every series at once for the mouse, a finger and the arrow keys, and a screen reader hears each point. It works under a strict style policy, in high contrast and on phones, and `private: true` hides its numbers with `Dash.privacy`. `.update()`, `.csv()`, `.download()`.
+- Four series colours (`--series-1` to `--series-4`, `.series-1`…), picked by measure so that every pair can be told apart in light and dark, by colour-blind readers too. The other tones are as they were.
+
 ## 1.10.0 (2026-11-24)
 
 Values the reader can hide, for meetings and screenshots.

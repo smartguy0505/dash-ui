@@ -11,10 +11,10 @@
 <script src="../dash.js"></script>
 </head>
 <body>
-<!-- dash-ui 1.10.0 docs, written by tools/docs.mjs from docs-src/charts.html: edit that, not this -->
+<!-- dash-ui 1.11.0 docs, written by tools/docs.mjs from docs-src/charts.html: edit that, not this -->
 <header class="topbar">
   <button type="button" class="icon-btn docs-menu" data-toggle-side aria-label="Pages"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3 5h12M3 9h12M3 13h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
-  <a class="brand" href="./"><span class="mark">d</span><h1>dash-ui</h1></a><span class="tag plain docs-version">1.10.0</span>
+  <a class="brand" href="./"><span class="mark">d</span><h1>dash-ui</h1></a><span class="tag plain docs-version">1.11.0</span>
   <div class="top-right">
     <label class="search docs-search"><span class="sr-only">Search the docs</span><svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.6"/><path d="m11 11 3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><input class="input" type="search" id="docs-search" placeholder="Search" aria-keyshortcuts="/"><kbd class="docs-key">/</kbd></label>
     <div class="seg" role="group" aria-label="Theme"><button type="button" data-theme-set="system">Auto</button><button type="button" data-theme-set="light">Light</button><button type="button" data-theme-set="dark">Dark</button></div>
@@ -23,7 +23,7 @@
 <div class="shell offcanvas">
   <nav class="sidebar" aria-label="Pages"><div class="side-head">Start</div><a class="nav-item" href="./"><span class="nav-main"><span class="nav-name">Getting started</span></span></a><div class="side-head">Foundations</div><a class="nav-item" href="colours.html"><span class="nav-main"><span class="nav-name">Colours and themes</span></span></a><a class="nav-item" href="layout.html"><span class="nav-main"><span class="nav-name">Page layout</span></span></a><a class="nav-item" href="text.html"><span class="nav-main"><span class="nav-name">Text and labels</span></span></a><div class="side-head">Components</div><a class="nav-item" href="buttons.html"><span class="nav-main"><span class="nav-name">Buttons</span></span></a><a class="nav-item" href="forms.html"><span class="nav-main"><span class="nav-name">Forms</span></span></a><a class="nav-item" href="surfaces.html"><span class="nav-main"><span class="nav-name">Panels and cards</span></span></a><a class="nav-item" href="navigation.html"><span class="nav-main"><span class="nav-name">Navigation</span></span></a><a class="nav-item" href="tables.html"><span class="nav-main"><span class="nav-name">Tables</span></span></a><a class="nav-item" href="charts.html" aria-current="page"><span class="nav-main"><span class="nav-name">Charts and progress</span></span></a><a class="nav-item" href="overlays.html"><span class="nav-main"><span class="nav-name">Modals and popups</span></span></a><a class="nav-item" href="feedback.html"><span class="nav-main"><span class="nav-name">Feedback</span></span></a><div class="side-head">JavaScript</div><a class="nav-item" href="helpers.html"><span class="nav-main"><span class="nav-name">dash.js helpers</span></span></a><div class="side-head">Utilities</div><a class="nav-item" href="utilities.html"><span class="nav-main"><span class="nav-name">Utility classes</span></span></a><a class="nav-item" href="utilities-layout.html"><span class="nav-main"><span class="nav-name">Layout utilities</span></span></a><a class="nav-item" href="utilities-spacing.html"><span class="nav-main"><span class="nav-name">Spacing utilities</span></span></a><a class="nav-item" href="utilities-sizing.html"><span class="nav-main"><span class="nav-name">Sizing utilities</span></span></a><a class="nav-item" href="utilities-type.html"><span class="nav-main"><span class="nav-name">Type utilities</span></span></a><a class="nav-item" href="utilities-colour.html"><span class="nav-main"><span class="nav-name">Colour utilities</span></span></a><a class="nav-item" href="utilities-effects.html"><span class="nav-main"><span class="nav-name">Borders and effects</span></span></a></nav>
   <main class="content docs" id="top">
-    <header class="docs-head"><p class="docs-group">Components</p><h1>Charts and progress</h1><p class="docs-blurb">Bars, meters, legends, column charts, donuts, gauges, sparklines, lanes and progress.</p><nav class="chips docs-toc" aria-label="On this page"><a class="chip" href="#bars">Bars</a><a class="chip" href="#legend">Legends</a><a class="chip" href="#hbars">Horizontal bars</a><a class="chip" href="#columns">Column charts</a><a class="chip" href="#donuts">Donuts</a><a class="chip" href="#gauges">Gauges</a><a class="chip" href="#spark">Sparklines</a><a class="chip" href="#lanes">Lanes</a><a class="chip" href="#progress">Progress</a><a class="chip" href="#strict">Under a strict style policy</a></nav></header>
+    <header class="docs-head"><p class="docs-group">Components</p><h1>Charts and progress</h1><p class="docs-blurb">Bars, meters, legends, column charts, donuts, gauges, sparklines, lanes and progress.</p><nav class="chips docs-toc" aria-label="On this page"><a class="chip" href="#bars">Bars</a><a class="chip" href="#legend">Legends</a><a class="chip" href="#hbars">Horizontal bars</a><a class="chip" href="#columns">Column charts</a><a class="chip" href="#lines">Line charts</a><a class="chip" href="#donuts">Donuts</a><a class="chip" href="#gauges">Gauges</a><a class="chip" href="#spark">Sparklines</a><a class="chip" href="#lanes">Lanes</a><a class="chip" href="#progress">Progress</a><a class="chip" href="#strict">Under a strict style policy</a></nav></header>
 <section id="bars" data-terms=".bar .thin .tinted .meter .split .share Dash.bar Dash.meter Dash.split">
       <h2>Bars</h2>
       <p><code>Dash.bar(frac, tone)</code> is a bar filled to <code>frac</code> (0 to 1); <code>.bar.thin</code> is thinner and <code>.bar.tinted</code> has a tinted track. <code>Dash.meter(frac, tone)</code> is the small one for a top bar. <code>Dash.split(parts)</code> shows the parts of a whole, each <code>{ value, tone, label }</code>. <code>.share</code> puts a bar and its percentage side by side.</p>
@@ -119,10 +119,69 @@
 &lt;/<span class="c-tag">script</span>&gt;</code></pre></figure>
     </section>
 
+    <section id="lines" data-terms=".line-chart .line-row .line-plot .line-svg .line-dot .line-cross .line-tip .line-when .line-val .line-ref .line-ends .line-x .dashed .lone .clip .on .series-1 .series-2 .series-3 .series-4 --series-1 --series-2 --series-3 --series-4 Dash.lines Dash.lines.html time series area threshold crosshair">
+      <h2>Line charts</h2>
+      <p><code>Dash.lines(el, series, options)</code> draws values over time, one line per series, on one axis. A series is <code>{ label, points }</code>; a point is <code>[time, value]</code> or <code>{ t, v }</code>, with a time as <code>Dash.time</code> reads them. Points needn't be evenly spaced, and a value that isn't a number leaves a gap. Move over the chart, drag a finger, or focus it and use the arrow keys.</p>
+      <figure class="example" id="ex-5"><div class="example-view">
+<div class="panel"><div class="panel-head"><h3>Response time</h3><span class="sub">last 24 h</span></div><div id="latency"></div></div>
+<script>
+  const start = Date.now() - 24 * 3600e3;
+  const series = (base, swing, pace) => Array.from({ length: 145 }, (_, i) => [start + i * 600e3, Math.round(base + swing * Math.sin(i / pace) + ((i * 37) % 11))]);
+  Dash.lines('latency', [
+    { label: 'Web', points: series(120, 45, 16) },
+    { label: 'API', points: series(62, 18, 23).map(([t, v], i) => [t, i > 60 && i < 70 ? null : v]) },
+  ], { label: 'Response time', format: (v) => v + ' ms', refs: [{ value: 200, label: 'Limit 200 ms', tone: 'bad' }] });
+</script>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;div class=&quot;panel&quot;&gt;&lt;div class=&quot;panel-head&quot;&gt;&lt;h3&gt;Response time&lt;/h3&gt;&lt;span class=&quot;sub&quot;&gt;last 24 h&lt;/span&gt;&lt;/div&gt;&lt;div id=&quot;latency&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;script&gt;
+  const start = Date.now() - 24 * 3600e3;
+  const series = (base, swing, pace) =&gt; Array.from({ length: 145 }, (_, i) =&gt; [start + i * 600e3, Math.round(base + swing * Math.sin(i / pace) + ((i * 37) % 11))]);
+  Dash.lines(&#39;latency&#39;, [
+    { label: &#39;Web&#39;, points: series(120, 45, 16) },
+    { label: &#39;API&#39;, points: series(62, 18, 23).map(([t, v], i) =&gt; [t, i &gt; 60 &amp;&amp; i &lt; 70 ? null : v]) },
+  ], { label: &#39;Response time&#39;, format: (v) =&gt; v + &#39; ms&#39;, refs: [{ value: 200, label: &#39;Limit 200 ms&#39;, tone: &#39;bad&#39; }] });
+&lt;/script&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;panel&quot;</span>&gt;&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;panel-head&quot;</span>&gt;&lt;<span class="c-tag">h3</span>&gt;Response time&lt;/<span class="c-tag">h3</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;sub&quot;</span>&gt;last 24 h&lt;/<span class="c-tag">span</span>&gt;&lt;/<span class="c-tag">div</span>&gt;&lt;<span class="c-tag">div</span> <span class="c-attr">id</span>=<span class="c-str">&quot;latency&quot;</span>&gt;&lt;/<span class="c-tag">div</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+&lt;<span class="c-tag">script</span>&gt;
+  <span class="c-key">const</span> start = Date.now() - <span class="c-num">24</span> * <span class="c-num">3600e3</span>;
+  <span class="c-key">const</span> series = (base, swing, pace) =&gt; Array.from({ length: <span class="c-num">145</span> }, (_, i) =&gt; [start + i * <span class="c-num">600e3</span>, Math.round(base + swing * Math.sin(i / pace) + ((i * <span class="c-num">37</span>) % <span class="c-num">11</span>))]);
+  <span class="c-fn">Dash</span>.lines(<span class="c-str">&#39;latency&#39;</span>, [
+    { label: <span class="c-str">&#39;Web&#39;</span>, points: series(<span class="c-num">120</span>, <span class="c-num">45</span>, <span class="c-num">16</span>) },
+    { label: <span class="c-str">&#39;API&#39;</span>, points: series(<span class="c-num">62</span>, <span class="c-num">18</span>, <span class="c-num">23</span>).map(([t, v], i) =&gt; [t, i &gt; <span class="c-num">60</span> &amp;&amp; i &lt; <span class="c-num">70</span> ? <span class="c-key">null</span> : v]) },
+  ], { label: <span class="c-str">&#39;Response time&#39;</span>, format: (v) =&gt; v + <span class="c-str">&#39; ms&#39;</span>, refs: [{ value: <span class="c-num">200</span>, label: <span class="c-str">&#39;Limit 200 ms&#39;</span>, tone: <span class="c-str">&#39;bad&#39;</span> }] });
+&lt;/<span class="c-tag">script</span>&gt;</code></pre></figure>
+      <figure class="example" id="ex-6"><div class="example-view">
+<div class="panel"><div class="panel-head"><h3>Visitors a day</h3></div><div id="visitors"></div></div>
+<script>
+  const day = (i) => new Date(2026, 8, 1 + i);
+  Dash.lines('visitors', [{ label: 'Visitors', points: Array.from({ length: 84 }, (_, i) => [day(i), Math.round(3200 + i * 24 + 900 * Math.sin(i / 1.114))]) }],
+    { label: 'Visitors a day', area: true, height: 160 });
+</script>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;div class=&quot;panel&quot;&gt;&lt;div class=&quot;panel-head&quot;&gt;&lt;h3&gt;Visitors a day&lt;/h3&gt;&lt;/div&gt;&lt;div id=&quot;visitors&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;script&gt;
+  const day = (i) =&gt; new Date(2026, 8, 1 + i);
+  Dash.lines(&#39;visitors&#39;, [{ label: &#39;Visitors&#39;, points: Array.from({ length: 84 }, (_, i) =&gt; [day(i), Math.round(3200 + i * 24 + 900 * Math.sin(i / 1.114))]) }],
+    { label: &#39;Visitors a day&#39;, area: true, height: 160 });
+&lt;/script&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;panel&quot;</span>&gt;&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;panel-head&quot;</span>&gt;&lt;<span class="c-tag">h3</span>&gt;Visitors a day&lt;/<span class="c-tag">h3</span>&gt;&lt;/<span class="c-tag">div</span>&gt;&lt;<span class="c-tag">div</span> <span class="c-attr">id</span>=<span class="c-str">&quot;visitors&quot;</span>&gt;&lt;/<span class="c-tag">div</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+&lt;<span class="c-tag">script</span>&gt;
+  <span class="c-key">const</span> day = (i) =&gt; <span class="c-key">new</span> Date(<span class="c-num">2026</span>, <span class="c-num">8</span>, <span class="c-num">1</span> + i);
+  <span class="c-fn">Dash</span>.lines(<span class="c-str">&#39;visitors&#39;</span>, [{ label: <span class="c-str">&#39;Visitors&#39;</span>, points: Array.from({ length: <span class="c-num">84</span> }, (_, i) =&gt; [day(i), Math.round(<span class="c-num">3200</span> + i * <span class="c-num">24</span> + <span class="c-num">900</span> * Math.sin(i / <span class="c-num">1.114</span>))]) }],
+    { label: <span class="c-str">&#39;Visitors a day&#39;</span>, area: <span class="c-key">true</span>, height: <span class="c-num">160</span> });
+&lt;/<span class="c-tag">script</span>&gt;</code></pre></figure>
+      <ul>
+        <li>Up to four series get the series colours in order (<code>.series-1</code> to <code>.series-4</code>; the tokens are <code>--series-1</code>…). They were picked by measure, so that every pair can be told apart in light and dark, by colour-blind readers too. <code>tone: 'bad'</code> is for a colour that means something. Past four a line is grey: use two charts.</li>
+        <li>A series can also be <code>dashed: true</code> (a forecast, last week), filled with <code>area: true</code>, and have its own <code>gap</code>.</li>
+        <li><code>min</code> is 0 unless the data goes below it; <code>min: 'auto'</code> fits the data, a number fixes it, and <code>max</code> too. <code>ticks</code> is about how many steps the axis has, <code>format</code> writes the values, <code>yFormat</code> the axis when it needs shorter ones.</li>
+        <li><code>from</code> and <code>to</code> set the range (the data's ends otherwise); a line that crosses them is cut there. <code>gap</code> (in ms) breaks a line at a longer silence. <code>refs: [{ value, label, tone }]</code> draws limits across. <code>when: (t) =&gt; text</code> writes the readout's time.</li>
+        <li><code>private: true</code> hides the numbers with <a href="feedback.html#private">the reader's eye</a>; the shape stays.</li>
+        <li>For a screen reader the chart is a slider: it hears each point as the arrow keys move, and a summary before it. <code>label</code> names it.</li>
+        <li>The handle: <code>.update(series, options)</code> (or call <code>Dash.lines</code> again on the same box: the reader stays at their point), <code>.redraw()</code>, <code>.csv()</code>, <code>.download(name)</code>. <code>Dash.lines.html(series, options)</code> is the markup alone, with no crosshair. A few thousand points per series is fine; send averages for more.</li>
+      </ul>
+    </section>
+
     <section id="donuts" data-terms=".donut .donut-wrap .seg-arc .ring-track .big-text .small-text Dash.donut">
       <h2>Donuts</h2>
       <p><code>Dash.donut(segments, { center, sub })</code> is a ring of <code>{ value, tone, label }</code> segments with a number in the middle. Put it in <code>.donut-wrap</code> beside a <code>Dash.legend(…, { list: true })</code>.</p>
-      <figure class="example" id="ex-5"><div class="example-view">
+      <figure class="example" id="ex-7"><div class="example-view">
 <div class="donut-wrap" id="donut-box"></div>
 <script>
   const plan = [{ label: 'Business', value: 412, tone: 'purple' }, { label: 'Team', value: 1290, tone: 'blue' }, { label: 'Free', value: 3840, tone: 'idle' }];
@@ -142,7 +201,7 @@
     <section id="gauges" data-terms=".gauge .gauges .gauge-name .gauge-sub .val .track .pct Dash.gauge">
       <h2>Gauges</h2>
       <p><code>Dash.gauge(frac, { name, sub, tone })</code> is a half-circle gauge. With no tone it goes from ok to warn at 0.7 and bad at 0.9. <code>.gauges</code> lays a few side by side.</p>
-      <figure class="example" id="ex-6"><div class="example-view">
+      <figure class="example" id="ex-8"><div class="example-view">
 <div class="gauges" id="gauge-box"></div>
 <script>
   Dash.render('gauge-box', Dash.gauge(0.42, { name: 'CPU', sub: '8 cores' }) + Dash.gauge(0.78, { name: 'Memory', sub: '25 of 32 GB' }) + Dash.gauge(0.94, { name: 'Disk', sub: '470 of 500 GB' }));
@@ -159,7 +218,7 @@
     <section id="spark" data-terms=".spark .spark-box .spark-labels .area .line Dash.spark">
       <h2>Sparklines</h2>
       <p><code>Dash.spark(values, { tone, height, area, labels })</code> is a small line of a trend, with an area under it unless <code>area: false</code>, a dot on the last value, and <code>labels</code> under it (<code>['24 h ago', 'now']</code>).</p>
-      <figure class="example" id="ex-7"><div class="example-view">
+      <figure class="example" id="ex-9"><div class="example-view">
 <div class="grid" id="spark-box"></div>
 <script>
   const trend = [12, 14, 13, 17, 21, 19, 24, 28, 26, 31, 35, 33];
@@ -182,7 +241,7 @@
     <section id="lanes" data-terms=".lanes .lane .lane-label .lane-axis .span .mark .major --lane-label Dash.lanes">
       <h2>Lanes</h2>
       <p><code>Dash.lanes(el, rows, { from, to, ticks, axis, nouns, labelWidth, empty })</code> draws what happened when, one lane per thing, over the last 24 hours unless <code>from</code> and <code>to</code> say otherwise. A row is <code>{ label, sub, spans: [{ from, to, tone, title }], marks: [{ at, tone, title }] }</code>; a span with no <code>to</code> is still going. Spans are cut at the edges, titles (or the times) are tooltips, and each lane gets a sentence for screen readers. It needs no inline styles, so it works under a strict style policy too.</p>
-      <figure class="example" id="ex-8"><div class="example-view">
+      <figure class="example" id="ex-10"><div class="example-view">
 <div class="panel" id="lane-box"></div>
 <script>
   const h = 3600e3, now = Date.now();
@@ -214,7 +273,7 @@
     <section id="progress" data-terms=".progress .indeterminate .progress-head .progress-circle .fill Dash.progress Dash.progressCircle progressbar">
       <h2>Progress</h2>
       <p><code>Dash.progress(frac, { tone, label, value, lg, title })</code> is a progress bar with <code>role="progressbar"</code> and its value. <code>label</code> puts a line above it (<code>.progress-head</code>) with the share on the right, or <code>value</code> in its place ("6.2 of 10 GB"); <code>lg: true</code> is thicker. <code>Dash.progress(null)</code> is one that runs until the amount is known (<code>.indeterminate</code>; a steady bar for readers who turn motion off). <code>Dash.progressCircle(frac, { tone, size, text, label })</code> is the round one, an SVG.</p>
-      <figure class="example" id="ex-9"><div class="example-view">
+      <figure class="example" id="ex-11"><div class="example-view">
 <div class="vstack" style="max-width: 420px" id="progress-box"></div>
 <script>
   Dash.render('progress-box', Dash.progress(0.62, { label: 'Backup', value: '6.2 of 10 GB' }) + Dash.progress(null, { label: 'Checking the archive' })
@@ -236,7 +295,7 @@
 
     <section id="strict" data-terms="Dash.config.csp Dash.applyStyles data-css-w Content-Security-Policy">
       <h2>Under a strict style policy</h2>
-      <p>A page served with <code>Content-Security-Policy: style-src 'self'</code> drops every <code>style=""</code> in its markup, and the builders that size things (<code>Dash.bar</code>, <code>meter</code>, <code>split</code>, <code>hbars</code>, <code>bars</code>, <code>spark</code>, <code>progress</code>) write sizes that way. On such a page, set <code>Dash.config.csp = true</code> before drawing anything: they then write their numbers as <code>data-css-*</code> attributes, and the kit sets them through the CSSOM, which the policy allows. It does so at once wherever the kit puts markup in (<code>Dash.render</code>, popups, modals) and before the next paint for markup the page puts in itself; <code>Dash.applyStyles(el)</code> does it at once. Only numbers are set, and only on the kit's own pieces.</p>
+      <p>A page served with <code>Content-Security-Policy: style-src 'self'</code> drops every <code>style=""</code> in its markup, and the builders that size things (<code>Dash.bar</code>, <code>meter</code>, <code>split</code>, <code>hbars</code>, <code>bars</code>, <code>lines</code>, <code>spark</code>, <code>progress</code>) write sizes that way. On such a page, set <code>Dash.config.csp = true</code> before drawing anything: they then write their numbers as <code>data-css-*</code> attributes, and the kit sets them through the CSSOM, which the policy allows. It does so at once wherever the kit puts markup in (<code>Dash.render</code>, popups, modals) and before the next paint for markup the page puts in itself; <code>Dash.applyStyles(el)</code> does it at once. Only numbers are set, and only on the kit's own pieces.</p>
     </section>
     <nav class="docs-steps" aria-label="More pages"><a class="docs-step prev" href="tables.html"><span class="faint">Previous</span><b>Tables</b></a><a class="docs-step next" href="overlays.html"><span class="faint">Next</span><b>Modals and popups</b></a></nav>
   </main>

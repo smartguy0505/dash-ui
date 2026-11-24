@@ -250,6 +250,20 @@ test('1.3: the address as settings', () => {
   assert.deepEqual(Dash.hash.parse(Dash.hash.format(o)), o);
 });
 
+test('1.11: a line chart is escaped, broken at gaps, and says what it shows', () => {
+  const T = Date.UTC(2026, 10, 23, 12), H = 3600e3;
+  const html = Dash.lines.html([{ label: '<i>A', points: [[T + 2 * H, 30], [T, 10], [T + H, '20'], [T + 3 * H, null], [T + 4 * H, NaN], ['soon', 5], [T + 5 * H, 40], [T + 6 * H, 50]] }, { label: 'B', tone: 'bad', dashed: true, points: [{ t: T, v: 5 }, { time: T + 6 * H, value: 15 }] }], { label: '"L"', format: (v) => `${v}<` });
+  assert.doesNotMatch(html, /<i>A|"L"|\d<(?!\/)/);
+  assert.match(html, /<path class="series-1" d="M0 833\.333L166\.667 666\.667L333\.333 500M833\.333 333\.333L1000 166\.667"/, 'sorted by time, broken where a value is missing');
+  assert.match(html, /<path class="bad dashed"/);
+  assert.match(html, /aria-label="&quot;L&quot;" aria-valuemin="1" aria-valuemax="5" aria-valuenow="5"/);
+  assert.match(html, /&lt;i&gt;A: 50&lt; at the end, from 10&lt; to 50&lt;; B: 15&lt; at the end, from 5&lt; to 15&lt;\./);
+  assert.match(Dash.lines.html([], {}), /^<p class="empty">Nothing to show<\/p>$/);
+  assert.match(Dash.lines.html([{ points: [[T, null]] }], { empty: '<none>' }), /^<p class="empty">&lt;none&gt;<\/p>$/);
+  assert.doesNotMatch(Dash.lines.html([{ points: [[T, 1], [T + H, 2]] }]), /NaN|Infinity|undefined/);
+  for (const o of [{ min: 5, max: 5 }, { max: 0 }, { min: 'auto', max: -5 }, { height: 'x', ticks: 0 }, { from: T + 2 * H, to: T }]) assert.doesNotMatch(Dash.lines.html([{ points: [[T, 1], [T + H, 2]] }], o), /NaN|Infinity/, JSON.stringify(o));
+});
+
 test('1.10: a private value is written only while values are shown', () => {
   const { mask, privacy } = Dash; // both can be taken out of it (a reserved word couldn't)
   assert.equal(mask, Dash.mask); assert.equal(privacy, Dash.privacy);

@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Line chart checks</title>
+<link rel="stylesheet" href="../dash.css">
+<script src="../dash.js"></script>
+</head>
+<body>
+<main class="page">
+  <section class="panel"><div class="panel-head"><h2>Response time</h2></div><div id="two"></div></section>
+  <section class="panel"><div class="panel-head"><h2>Four series</h2></div><div id="four"></div></section>
+  <section class="panel"><div class="panel-head"><h2>One series</h2></div><div id="one"></div></section>
+  <section class="panel"><div class="panel-head"><h2>Gaps and a lone point</h2></div><div id="gaps"></div></section>
+  <section class="panel"><div class="panel-head"><h2>Below zero, by day</h2></div><div id="days"></div></section>
+  <section class="panel"><div class="panel-head"><h2>Nothing</h2></div><div id="none"></div></section>
+  <p><button type="button" class="btn" id="after">After</button></p>
+</main>
+<script>
+  // invented, and always the same: a day of points every five minutes
+  const H = 3600e3, T0 = Date.UTC(2026, 10, 23, 12), DAY0 = T0;
+  const wave = (base, amp, k, phase = 0) => Array.from({ length: 289 }, (_, i) => [T0 + i * 300e3, Math.round(base + amp * Math.sin(i / k + phase) + ((i * 7919) % 13) - 6)]);
+  const two = [{ label: 'Web', points: wave(140, 40, 24) }, { label: 'API', points: wave(70, 18, 30, 1) }];
+  const opts = { label: 'Response time', format: (v) => v + ' ms', refs: [{ value: 200, label: 'Limit 200 ms', tone: 'bad' }] };
+  window.chart = Dash.lines('two', two, opts);
+  Dash.lines('four', [{ label: 'North', points: wave(50, 8, 20) }, { label: 'South', points: wave(90, 10, 26, 2) }, { label: 'East', points: wave(130, 12, 31, 4) }, { label: 'West', points: wave(175, 9, 18, 1) }], { label: 'Orders' });
+  Dash.lines('one', [{ label: 'Visitors', points: wave(5200, 2600, 40) }], { area: true, label: 'Visitors', height: 160 });
+  Dash.lines('gaps', [{ label: 'Sensor', points: [[T0, 3], [T0 + H, 4], [T0 + 2 * H, null], [T0 + 3 * H, 5], [T0 + 4 * H, null], [T0 + 5 * H, 2], [T0 + 6 * H, 3], [T0 + 12 * H, 6], [T0 + 13 * H, 5]] }, { label: 'Forecast', dashed: true, gap: 0, points: [[T0, 2], [T0 + 13 * H, 4]] }], { gap: 2 * H });
+  Dash.lines('days', [{ label: 'Change', points: Array.from({ length: 40 }, (_, i) => [new Date(2026, 9, 1 + i), Math.round(60 * Math.sin(i / 5)) / 10]) }], { label: 'Change', format: (v) => (v > 0 ? '+' : '') + v + '%', area: true });
+  Dash.lines('none', [{ label: 'x', points: [[T0, null]] }], { empty: 'No readings yet' });
+</script>
+</body>
+</html>
