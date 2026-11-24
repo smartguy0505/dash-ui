@@ -2,6 +2,15 @@
 
 Dashboards keep a copy of `dash.css` and `dash.js`; the first line of each file says which version it is. Versions only add things: a page that worked with an older copy works the same with a newer one.
 
+## 1.9.2 (2026-11-24)
+
+Fixes found by an audit of every page. Nothing looks different outside high contrast, except where a page was too narrow.
+
+- **High contrast (forced colours)** hid whatever was only a background or a shadow: bars, meters, splits, columns, progress, legend keys, dots, switches, skeletons, and which segment, chip, tab, sidebar item or page was chosen. Now data keeps its tones inside a line in the system's ink, what is chosen takes the system's highlight, and pills, tags, callouts, toasts and tooltips get an edge. A text box shows its focus (the ring was a shadow) and a wrong one a dashed border. Lanes and the timeline keep their tones too.
+- `Dash.timeline`: a time still to come counts down ("in 3h 5m") instead of reading "just now", and turns into "2 min ago" by itself. Up to a minute ahead still reads as now, since clocks differ. Past times are written as before.
+- Sort headings and `.top-link` can be pressed a little outside their text (they were 18 to 20 px tall).
+- Narrow pages: a `.chip` longer than its row wraps inside itself, one wide child no longer widens everything else in a `.vstack`, and `.topstat` wraps on phones.
+
 ## 1.9.1 (2026-11-23)
 
 - `Dash.combobox` with `strict: true`: a box the reader empties now stays empty (it used to get the last pick back), and its pick is cleared.

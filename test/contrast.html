@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>High contrast checks</title>
+<link rel="stylesheet" href="../dash.css">
+<style>
+  .pair { display: flex; gap: 12px; margin: 0 0 8px; }
+  .pair > div { width: 320px; height: 84px; padding: 16px; overflow: hidden; background: var(--bg); }
+  .pair .pages, .pair nav, .pair .menu-list { position: static; display: flex; width: auto; height: auto; }
+  .pair .toast { position: static; opacity: 1; transform: none; display: inline-block; }
+</style>
+</head>
+<body>
+<main id="pairs"></main>
+<script src="../dash.js"></script>
+<script>
+  // Two looks that must differ, with forced colours and without: a state on and off, two amounts, two tones, or a piece
+  // and the same piece hidden ("there"). behaviour.mjs compares their pixels.
+  const there = (html) => [html, `<div style="visibility:hidden">${html}</div>`];
+  const PAIRS = {
+    'seg: chosen': ['<div class="seg"><button type="button" aria-pressed="true">Week</button></div>', '<div class="seg"><button type="button" aria-pressed="false">Week</button></div>'],
+    'seg.solid: chosen': ['<div class="seg solid"><button type="button" aria-pressed="true">Week</button></div>', '<div class="seg solid"><button type="button" aria-pressed="false">Week</button></div>'],
+    'seg links: current': ['<div class="seg lg"><a href="#" aria-current="page">Week</a></div>', '<div class="seg lg"><a href="#">Week</a></div>'],
+    'chip: chosen': ['<div class="chips"><button type="button" class="chip" aria-pressed="true">Week</button></div>', '<div class="chips"><button type="button" class="chip" aria-pressed="false">Week</button></div>'],
+    'tab: chosen': ['<div class="tabs"><button type="button" aria-pressed="true">Week</button></div>', '<div class="tabs"><button type="button" aria-pressed="false">Week</button></div>'],
+    'nav item: current': ['<nav><a class="nav-item" href="#" aria-current="page">Week</a></nav>', '<nav><a class="nav-item" href="#">Week</a></nav>'],
+    'nav item: needs you': ['<nav><a class="nav-item attn orange" href="#">Week</a></nav>', '<nav><a class="nav-item orange" href="#">Week</a></nav>'],
+    'page: current': ['<div class="pages"><button type="button" class="pg" aria-current="page">2</button></div>', '<div class="pages"><button type="button" class="pg">2</button></div>'],
+    'bottom nav: current': ['<nav class="bottom-nav"><a href="#" aria-current="page">Week</a></nav>', '<nav class="bottom-nav"><a href="#">Week</a></nav>'],
+    'primary button': ['<button type="button" class="btn primary">Save</button>', '<button type="button" class="btn">Save</button>'],
+    'switch: on': ['<label class="switch"><input type="checkbox" checked><span class="track"></span> Alerts</label>', '<label class="switch"><input type="checkbox"><span class="track"></span> Alerts</label>'],
+    'switch: disabled': ['<label class="switch"><input type="checkbox" disabled><span class="track"></span></label>', '<label class="switch"><input type="checkbox"><span class="track"></span></label>'],
+    'switch: off is there': there('<label class="switch"><input type="checkbox"><span class="track"></span></label>'),
+    'step: current': ['<ol class="stepper"><li aria-current="step"><span>Plan</span></li><li><span>Pay</span></li></ol>', '<ol class="stepper"><li><span>Plan</span></li><li><span>Pay</span></li></ol>'],
+    'text box: wrong': ['<div class="field invalid"><input class="input" value="acct_bad"></div>', '<div class="field"><input class="input" value="acct_bad"></div>'],
+    'row: marked': ['<table class="table"><tbody><tr class="marked"><td>web-1</td></tr></tbody></table>', '<table class="table"><tbody><tr><td>web-1</td></tr></tbody></table>'],
+    'ring': ['<div class="card ring orange">web-1</div>', '<div class="card">web-1</div>'],
+    'banner: active': ['<div class="panel banner active bad"><div class="banner-title">Down</div></div>', '<div class="panel banner bad"><div class="banner-title">Down</div></div>'],
+    'bar: 20 and 80 %': [Dash.bar(0.2), Dash.bar(0.8)],
+    'bar: two tones': [Dash.bar(0.5, 'ok'), Dash.bar(0.5, 'bad')],
+    'bar: an empty one is there': there(Dash.bar(0)),
+    'meter: 20 and 80 %': [Dash.meter(0.2), Dash.meter(0.8)],
+    'split: 20 and 80 %': [Dash.split([{ value: 20, tone: 'blue' }, { value: 80, tone: 'teal' }]), Dash.split([{ value: 80, tone: 'blue' }, { value: 20, tone: 'teal' }])],
+    'progress: 20 and 80 %': [Dash.progress(0.2), Dash.progress(0.8)],
+    'progress: running is there': there(Dash.progress(null)),
+    'columns: two heights': [Dash.bars([{ label: 'a', value: 2 }, { label: 'b', value: 9 }], { height: 30, max: 10, ticks: 0 }), Dash.bars([{ label: 'a', value: 9 }, { label: 'b', value: 2 }], { height: 30, max: 10, ticks: 0 })],
+    'columns: two parts': [Dash.bars([{ label: 'a', parts: [{ value: 2, tone: 'ok' }, { value: 8, tone: 'bad' }] }], { height: 30, max: 10, ticks: 0 }), Dash.bars([{ label: 'a', parts: [{ value: 8, tone: 'ok' }, { value: 2, tone: 'bad' }] }], { height: 30, max: 10, ticks: 0 })],
+    'legend: two tones': [Dash.legend([{ label: 'Paid', tone: 'ok' }]), Dash.legend([{ label: 'Paid', tone: 'bad' }])],
+    'dot: two tones': ['<span class="dot ok"></span>', '<span class="dot bad"></span>'],
+    'dot: full and hollow': ['<span class="dot ok"></span>', '<span class="dot hollow ok"></span>'],
+    'live: on and off': ['<span class="live" data-state="on"><span class="dot"></span></span>', '<span class="live" data-state="off"><span class="dot"></span></span>'],
+    'banner badge: two tones': ['<div class="banner ok"><span class="badge"><i></i></span></div>', '<div class="banner bad"><span class="badge"><i></i></span></div>'],
+    'badge dot': ['<button type="button" class="icon-btn" data-badge="" aria-label="Alerts"></button>', '<button type="button" class="icon-btn" aria-label="Alerts"></button>'],
+    'skeleton is there': there('<span class="skel wide"></span>'),
+    'callout has an edge': ['<div class="callout">Note</div>', '<div style="padding:10px 13px;font-size:14px">Note</div>'],
+    'pill has an edge': ['<span class="pill">Open</span>', '<span class="pill" style="background:none;outline:0">Open</span>'],
+    'toast has an edge': ['<div class="toast">Saved</div>', '<div class="toast" style="background:none;outline:0;box-shadow:none;color:inherit">Saved</div>'],
+    'lane run: two tones': ['<div class="lane" style="height:20px"><span class="span ok" style="left:10%;width:40%"></span></div>', '<div class="lane" style="height:20px"><span class="span bad" style="left:10%;width:40%"></span></div>'],
+    'timeline: two tones': [Dash.timeline([{ title: 'Up', tone: 'ok' }]), Dash.timeline([{ title: 'Up', tone: 'bad' }])],
+  };
+  document.getElementById('pairs').innerHTML = Object.entries(PAIRS).map(([name, [a, b]]) => `<div class="pair" data-name="${Dash.esc(name)}"><div class="a">${a}</div><div class="b">${b}</div></div>`).join('');
+</script>
+</body>
+</html>

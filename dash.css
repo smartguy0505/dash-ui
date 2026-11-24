@@ -1,4 +1,4 @@
-/* dash-ui 1.9.1: the look shared by my dashboards (agents, fleet, leaderboard, payouts, balances).
+/* dash-ui 1.9.2: the look shared by my dashboards (agents, fleet, leaderboard, payouts, balances).
    Warm neutral backgrounds, white panels, tinted status colours, light and dark from the system setting
    (or data-theme="light|dark" on <html>). No build step, no dependencies: link this file, or paste it into a page.
 
@@ -68,7 +68,7 @@ a { color: var(--blue); text-underline-offset: 3px; }
 .push { margin-left: auto; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
-.vstack { display: grid; gap: 14px; }
+.vstack { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; } /* minmax: one wide child can't widen the rest */
 .grid { display: grid; gap: 14px; grid-template-columns: repeat(var(--cols, 2), minmax(0, 1fr)); }
 .grid > .span-2 { grid-column: span 2; }
 .tint { background: color-mix(in srgb, var(--c) 12%, var(--card)); color: var(--c); }
@@ -254,6 +254,7 @@ button.pill:hover { background: color-mix(in srgb, var(--c) 20%, var(--card)); }
 .chips.scroll { flex-wrap: nowrap; overflow-x: auto; padding: 2px 2px 6px; mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent); scrollbar-width: thin; }
 .chip { flex: none; display: inline-flex; align-items: baseline; gap: 6px; padding: 4px 12px; border: 1px solid var(--line); border-radius: 999px;
   background: var(--card); color: var(--text); font-size: 13px; white-space: nowrap; }
+.chips:not(.scroll) > .chip { max-width: 100%; white-space: normal; } /* only one longer than the whole row ever wraps */
 .chip span { color: var(--muted); font-variant-numeric: tabular-nums; }
 button.chip { color: var(--muted); font-weight: 600; }
 button.chip:hover { background: var(--soft); color: var(--text); }
@@ -376,6 +377,8 @@ details > summary:hover { color: var(--text); }
 .table td .sub { font-size: 12.5px; }
 .table th button { padding: 0; border: 0; background: none; color: inherit; font: inherit; letter-spacing: inherit; text-align: inherit; text-transform: inherit; }
 .table th button:hover { color: var(--text); }
+.table th button, .top-link { position: relative; }
+.table th button::before, .top-link::after { content: ""; position: absolute; inset: -7px -4px; } /* a target as tall as the header cell; the text stays where it is */
 .table th[aria-sort] { color: var(--text); }
 .table thead .unit { text-transform: none; letter-spacing: 0; } /* ms stays ms, not MS */
 /* .table.compact: tighter columns (8px each side) for a table with many of them */
@@ -533,9 +536,9 @@ button.hbar:hover { background: var(--soft); }
 .lane-axis span.end { transform: translateX(-100%); }    /* the last one ends at the right edge */
 .lanes > .empty { grid-column: 1 / -1; }
 /* .minor axis labels hide on phones, where they would run into each other */
-@media (forced-colors: active) { /* high contrast drops background colours: the lane and its runs get lines, events get ink */
+@media (forced-colors: active) { /* high contrast drops background colours: the lane gets a line, its runs keep their tones inside one, events get ink */
   .lane { border: 1px solid GrayText; }
-  .lane .span { border: 1px solid CanvasText; }
+  .lane .span { border: 1px solid CanvasText; forced-color-adjust: none; }
   .lane .mark { forced-color-adjust: none; background: CanvasText; }
 }
 
@@ -686,7 +689,7 @@ button.hbar:hover { background: var(--soft); }
 .timeline-time { color: var(--muted); font-size: 12.5px; white-space: nowrap; }
 .timeline-text { margin-top: 2px; color: var(--muted); font-size: 13.5px; overflow-wrap: anywhere; }
 @media (forced-colors: active) { /* high contrast drops background colours: keep the dots and the line */
-  .timeline > li::before { forced-color-adjust: none; background: CanvasText; }
+  .timeline > li::before { forced-color-adjust: none; outline: 1px solid CanvasText; }
   .timeline > li:not(:last-child)::after { forced-color-adjust: none; background: GrayText; }
 }
 
@@ -997,6 +1000,7 @@ textarea.input.autosize { min-height: 62px; max-height: var(--max-h, 320px); fie
 @media (max-width: 640px) {
   .topbar { position: static; padding: 10px 16px; gap: 6px 14px; } /* it wraps to two or three lines here: too tall to pin */
   .topbar .sub { display: none; }
+  .topstat { flex-wrap: wrap; max-width: 100%; }
   .top-right { margin-left: 0; }
   .page { padding: 16px 16px 40px; }
   .stats { gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(var(--stat-min-sm, 140px), 100%), 1fr)); } /* two across on a phone; --stat-min-sm: 100% for one */
@@ -1035,4 +1039,42 @@ textarea.input.autosize { min-height: 62px; max-height: var(--max-h, 320px); fie
 @media (min-width: 641px) { .show-sm { display: none !important; } }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+
+/* ---- high contrast (forced colours) ----
+   The browser replaces text and border colours with the system's, and drops background colours and shadows. So what
+   shows data keeps its tones (they follow the light or dark scheme the system reports) inside a line in the system's ink;
+   what is chosen takes the system's highlight; and an edge that was a shadow or a background gets a line. */
+@media (forced-colors: active) {
+  .bar, .meter, .split, .progress, .chart-col i, .legend-item > i, .dot, .banner .badge, .skel { forced-color-adjust: none; outline: 1px solid CanvasText; outline-offset: -1px; }
+  .chart-col.zero i, .skel { outline-color: GrayText; }
+  .dot, .legend-item > i { outline-offset: 0; }
+  .pill, .tag, .rank, .count-badge, .avatar, .callout, .toast, .tooltip { outline: 1px solid CanvasText; outline-offset: -1px; }
+  .ring, .banner.active, .nav-item.attn { outline: 2px solid CanvasText; outline-offset: -2px; }
+  .dropzone.over { outline: 2px solid Highlight; outline-offset: -2px; }
+  .table tr.marked { outline: 2px solid Highlight; outline-offset: -2px; } /* a row, or a card on a phone */
+  .stepper > li[aria-current="step"]::before { outline: 2px solid CanvasText; outline-offset: 2px; }
+  [data-badge]::after { forced-color-adjust: none; border-color: Canvas; background: Highlight; color: HighlightText; }
+
+  /* chosen, current, the main action */
+  .seg [aria-pressed="true"], .seg [aria-current="page"], .seg [aria-selected="true"],
+  .seg.solid [aria-pressed="true"], .seg.solid [aria-current="page"], .seg.solid [aria-selected="true"],
+  button.chip[aria-pressed="true"], .nav-item[aria-current="page"], .nav-item[aria-current="true"], .pg[aria-current="page"],
+  .tabs > button[aria-pressed="true"], .bottom-nav > [aria-current="page"], .bottom-nav > [aria-current="true"], .btn.primary:not(:disabled) {
+    forced-color-adjust: none; border-color: Highlight; background: Highlight; color: HighlightText; box-shadow: none; }
+  :is(.seg, .tabs, .chips, .bottom-nav) :is([aria-pressed="true"], [aria-current="page"], [aria-current="true"], [aria-selected="true"]) :not(.dot),
+  .nav-item:is([aria-current="page"], [aria-current="true"]) :not(.dot) { color: HighlightText; background: none; outline: 0; }
+
+  /* a switch: an empty track, or one filled with the highlight */
+  .switch .track { forced-color-adjust: none; outline: 1px solid CanvasText; outline-offset: -1px; background: Canvas; }
+  .switch .track::after { background: CanvasText; }
+  .switch input:checked + .track { outline-color: Highlight; background: Highlight; }
+  .switch input:checked + .track::after { background: HighlightText; }
+  .switch input:disabled + .track { opacity: 1; outline-color: GrayText; background: Canvas; }
+  .switch input:disabled + .track::after { background: GrayText; }
+  .switch input:focus-visible + .track { outline: 2px solid Highlight; outline-offset: 2px; }
+
+  /* text boxes: the focus ring was a shadow, and wrong was a colour */
+  .input:focus { outline: 2px solid Highlight; outline-offset: -1px; }
+  .field.invalid .input, .input[aria-invalid="true"] { border: 2px dashed CanvasText; }
 }

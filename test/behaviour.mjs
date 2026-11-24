@@ -7,7 +7,8 @@
 // timeline in high contrast (forced colours); from 1.5 Dash.lanes under a strict style-src policy (test/csp.html); from 1.6 every sizing builder there with
 // Dash.config.csp, drawn as without the policy, in markup the page or the kit puts in; from 1.7 dash-utils.css next to
 // the kit (test/utils.html); from 1.8 the new pieces that need a page (test/components.html): sliders, drops, the
-// drawer, the bottom nav, input groups, the stepper on a phone, badges and choices.
+// drawer, the bottom nav, input groups, the stepper on a phone, badges and choices; from 1.9.2 what shows in high contrast
+// (test/contrast.html), narrow pages, targets and times to come.
 //
 //   npm i --no-save playwright-core && npx playwright-core install --only-shell chromium
 //   node test/behaviour.mjs          (KIT=<dir> serves dash.css, dash.js and dash-utils.css from <dir> instead: to check a change)
@@ -17,6 +18,7 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { inflateSync } from 'node:zlib';
 
 let chromium;
 try {
@@ -1364,6 +1366,120 @@ let reference;
   check('docs: an example\'s Phone preview runs the kit at phone width, Other theme in the other theme; Escape closes them',
     phone.opened && phone.kit === (await tab.evaluate(() => Dash.version)) && phone.width <= 400 && phone.buttons > 0 && phone.closed
     && other.opened && other.buttons > 0 && other.dark !== other.outer && other.closed, JSON.stringify({ phone, other }));
+  await tab.context().close();
+}
+
+// ---- 1.9.2 high contrast (test/contrast.html): states, amounts and tones that were only a background still show.
+// Pixels, not computed styles: those don't say what forced colours do. One picture per mode, its pairs compared in it.
+{
+  // a PNG from the browser (8-bit RGB or RGBA) as { width, row(y, x0, x1) }
+  const decode = (png) => {
+    let at = 8, width = 0, height = 0, bytes = 4;
+    const parts = [];
+    while (at < png.length) {
+      const n = png.readUInt32BE(at), type = png.toString('latin1', at + 4, at + 8), data = png.subarray(at + 8, at + 8 + n);
+      if (type === 'IHDR') { width = data.readUInt32BE(0); height = data.readUInt32BE(4); bytes = data[9] === 6 ? 4 : 3; }
+      if (type === 'IDAT') parts.push(data);
+      at += 12 + n;
+    }
+    const raw = inflateSync(Buffer.concat(parts)), line = width * bytes, px = Buffer.alloc(height * line);
+    for (let y = 0, r = 0; y < height; y++) {
+      const filter = raw[r++];
+      for (let x = 0; x < line; x++) {
+        const a = x >= bytes ? px[y * line + x - bytes] : 0, b = y ? px[(y - 1) * line + x] : 0, c = x >= bytes && y ? px[(y - 1) * line + x - bytes] : 0;
+        const pa = Math.abs(b - c), pb = Math.abs(a - c), pc = Math.abs(a + b - 2 * c);
+        px[y * line + x] = raw[r++] + [0, a, b, (a + b) >> 1, pa <= pb && pa <= pc ? a : pb <= pc ? b : c][filter];
+      }
+    }
+    return { width, height, row: (y, x0, x1) => px.subarray(y * line + x0 * bytes, y * line + x1 * bytes) };
+  };
+  const page = url.replace('behaviour.html', 'contrast.html');
+  const looks = {};
+  for (const forcedColors of ['none', 'active']) for (const colorScheme of ['light', 'dark']) {
+    const ctx = await browser.newContext({ viewport: { width: 760, height: 900 }, colorScheme, forcedColors, reducedMotion: 'reduce' });
+    const tab = await ctx.newPage(); // a fresh one each: only the first page a tab loads gets the real forced colours
+    tab.on('pageerror', (e) => errors.push(e.message));
+    await tab.goto(page, { waitUntil: 'load' });
+    await tab.waitForTimeout(150);
+    const real = await tab.evaluate(() => { const probe = document.createElement('i'); probe.style.backgroundColor = 'Canvas'; document.body.append(probe); const c = getComputedStyle(probe).backgroundColor; probe.remove(); return getComputedStyle(document.body).backgroundColor === c; });
+    const pairs = await tab.$$eval('.pair', (l) => l.map((e) => ({ name: e.dataset.name, sides: ['.a', '.b'].map((s) => { const q = e.querySelector(s).getBoundingClientRect(); return [q.left + scrollX, q.top + scrollY, q.width, q.height].map(Math.round); }) })));
+    const img = decode(await tab.screenshot({ fullPage: true, animations: 'disabled' }));
+    for (const { name, sides: [a, b] } of pairs) {
+      let differ = false;
+      for (let y = 0; y < a[3] && !differ; y++) differ = !img.row(a[1] + y, a[0], a[0] + a[2]).equals(img.row(b[1] + y, b[0], b[0] + b[2]));
+      (looks[name] ||= {})[`${forcedColors} ${colorScheme}`] = differ;
+    }
+    if (forcedColors === 'active') {
+      check(`forced colours are on (${colorScheme})`, real);
+      await tab.focus('[data-name="text box: wrong"] .b input');
+      const ring = await tab.evaluate(() => { const s = getComputedStyle(document.activeElement); return s.outlineStyle === 'solid' && parseFloat(s.outlineWidth) >= 2; });
+      check(`forced colours: a focused text box has a ring (${colorScheme})`, ring);
+      // the pairs only say that two looks differ, if by a shade: what must be plain has a line in the system's own colours
+      const plain = await tab.evaluate(() => {
+        const sys = (name) => { const i = document.createElement('i'); i.style.color = name; document.body.append(i); const c = getComputedStyle(i).color; i.remove(); return c; };
+        const bad = [];
+        const line = (sel, pseudo, colour = 'CanvasText') => {
+          const e = document.querySelector('#pairs ' + sel), s = e && getComputedStyle(e, pseudo);
+          if (!s || s.outlineStyle !== 'solid' || parseFloat(s.outlineWidth) < 1 || s.outlineColor !== sys(colour)) bad.push(sel);
+        };
+        for (const sel of ['.bar', '.meter', '.split', '.progress', '.chart-col:not(.zero) i', '.legend-item > i', '.dot', '.banner .badge', '.pill', '.callout', '.toast', '.ring', '.switch input:not(:checked, :disabled) + .track']) line(sel);
+        line('.skel', null, 'GrayText');
+        line('.stepper > li[aria-current="step"]', '::before');
+        const on = document.querySelector('#pairs .switch input:checked:not(:disabled) + .track');
+        if (!on || getComputedStyle(on).backgroundColor !== sys('Highlight')) bad.push('a switch that is on');
+        return bad;
+      });
+      check(`forced colours: a line around what shows data, and the highlight on a switch (${colorScheme})`, !plain.length, plain.join(', '));
+    }
+    await ctx.close();
+  }
+  check('high contrast: every pair was looked at', Object.keys(looks).length >= 37, Object.keys(looks).length);
+  for (const [name, seen] of Object.entries(looks)) {
+    check(`high contrast: ${name}`, Object.values(seen).every(Boolean), Object.entries(seen).filter(([, v]) => !v).map(([k]) => k).join(', '));
+  }
+}
+
+// ---- 1.9.2 targets and narrow pages
+{
+  const tab = await open({ width: 320 });
+  await tab.evaluate(() => {
+    document.body.innerHTML = `<div class="topbar"><div class="top-right"><button class="top-link" id="tl" type="button">Sign out</button></div></div>
+      <main class="page"><nav class="chips" id="chips"><a class="chip" href="#">A chip whose label is far longer than the whole row it stands in</a><a class="chip" href="#">Short one</a></nav>
+      <div class="panel"><div class="vstack" id="vs"><div class="row"><span class="topstat"><b>Session storage</b> <span class="meter"><i></i></span> <span class="v">42%</span> <span class="muted">resets at 19:00 today</span></span></div><div id="sib">${Dash.bar(0.5)}</div></div></div>
+      <div class="table-wrap"><table class="table"><thead><tr><th><button type="button" id="th" data-sort="a">Name</button></th><th aria-sort="descending"><button type="button" data-sort="b">Value</button></th></tr></thead><tbody><tr><td>a</td><td>1</td></tr></tbody></table></div></main>`;
+  });
+  const narrow = await tab.evaluate(() => {
+    const at = (x, y) => document.elementFromPoint(x, y);
+    const th = document.getElementById('th').getBoundingClientRect(), tl = document.getElementById('tl').getBoundingClientRect();
+    const reach = (r, id) => ['top', 'bottom'].map((side) => at(r.left + r.width / 2, side === 'top' ? r.top - 5 : r.bottom + 5)?.id === id).every(Boolean);
+    const one = document.querySelectorAll('#chips .chip');
+    return { over: document.documentElement.scrollWidth - innerWidth, th: reach(th, 'th'), tl: reach(tl, 'tl'), tall: one[0].offsetHeight > one[1].offsetHeight * 1.5,
+      sib: document.getElementById('sib').getBoundingClientRect().right <= document.getElementById('vs').getBoundingClientRect().right + 0.5, arrow: getComputedStyle(document.querySelector('[aria-sort] button'), '::after').content };
+  });
+  const wide = await tab.evaluate(() => {
+    document.body.innerHTML = '<main class="page"><div class="vstack" id="vs"><div style="white-space:nowrap">A line that may not wrap, and is far wider than the narrow page it is on</div><div id="sib">Its neighbour</div></div></main>';
+    return document.getElementById('sib').getBoundingClientRect().right - document.getElementById('vs').getBoundingClientRect().right;
+  });
+  check('320 px: one wide child doesn\'t widen the rest of a stack', wide <= 0.5, wide);
+  check('320 px: a long chip wraps inside itself and a wide row doesn\'t widen its neighbours or the page', narrow.over <= 0 && narrow.tall && narrow.sib, JSON.stringify(narrow));
+  check('a column heading and a top link can be pressed a little outside their text, and the sort arrow stays', narrow.th && narrow.tl && narrow.arrow.includes('▼'), JSON.stringify(narrow));
+  const near = await tab.evaluate(() => {
+    const now = Date.now();
+    document.body.innerHTML = Dash.timeline([{ title: 'Later', time: now + 3 * 3600e3 + 5 * 60e3 + 500 }, { title: 'A clock ahead', time: now + 30e3 }, { title: 'Before', time: now - 12 * 60e3 }, { title: 'Words', time: 'Tomorrow' }]);
+    return [...document.querySelectorAll('.timeline-time')].map((e) => e.textContent);
+  });
+  check('timeline: a time to come reads "in 3h 5m"; half a minute ahead is now, not the future', near[0].startsWith('in 3h') && near[1] === 'just now' && near[2] === '12 min ago' && near[3] === 'Tomorrow', JSON.stringify(near));
+  await tab.context().close();
+}
+{
+  // a time to come passes while the page is open
+  const tab = await open({ clock: true });
+  const at = (f) => tab.evaluate(f);
+  await at(() => { document.body.innerHTML = Dash.timeline([{ title: 'Soon', time: Date.now() + 5 * 60e3 }]); });
+  const before = await at(() => document.querySelector('.timeline-time').textContent);
+  await tab.clock.runFor(7 * 60e3);
+  const after = await at(() => document.querySelector('.timeline-time').textContent);
+  check('timeline: "in 5m" becomes "2 min ago" by itself', before.startsWith('in ') && after === '2 min ago', `${before} → ${after}`);
   await tab.context().close();
 }
 

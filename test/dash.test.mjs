@@ -250,6 +250,15 @@ test('1.3: the address as settings', () => {
   assert.deepEqual(Dash.hash.parse(Dash.hash.format(o)), o);
 });
 
+test('1.9.2: a timeline time to come counts down; one within a minute of now, or past, is written as before', () => {
+  const kind = (t) => /<time [^>]*data-(ago|near|until)=/.exec(Dash.timeline([{ title: 'x', time: t }]))[1];
+  assert.equal(kind(Date.now() + 2 * 3600e3), 'near');
+  assert.equal(kind(Date.now() + 61e3 + 500), 'near');
+  assert.equal(kind(Date.now() + 30e3), 'ago');
+  assert.equal(kind(Date.now() - 3600e3), 'ago');
+  assert.match(Dash.timeline([{ title: 'x', time: Date.now() + 3 * 3600e3 + 5 * 60e3 + 900 }]), />in 3h 5m<\/time>/);
+});
+
 test('1.3: stacked columns, timeline, live times escape and size right', () => {
   const html = Dash.bars([{ label: 'a', parts: [{ value: 3, tone: 'blue' }, { value: 1, tone: 'x" onclick="y' }, { value: 0, tone: 'teal' }] }, { label: 'b', value: 2 }], { max: 8 });
   assert.match(html, /class="chart-col stacked" title="a: 4"><i style="height:50%"><u class="blue" style="flex-grow:3"><\/u><u class="x&quot; onclick=&quot;y" style="flex-grow:1"><\/u><\/i>/);

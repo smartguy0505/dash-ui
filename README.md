@@ -217,7 +217,7 @@ Surfaces and text: `--bg`, `--card`, `--soft` (a block inside a card, table head
 - `.entries` › `.entry` (`Dash.entries`): a list of things a line or two each: `.entry-lead` (an avatar or icon), `.entry-text` with `.entry-title` and `.entry-sub`, then `.entry-end`. An entry can be an `a` or a `button`. `.entries.wrap` lets long text wrap instead of ending in `…`.
 - `.divider`: a line between things, with a word in it if it has one (`<div class="divider">or</div>`; `<hr class="divider">`).
 - `.card-media`: a picture across the top of a `.card`.
-- `.timeline`: events on a line (`Dash.timeline` builds it), with a dot in each event's tone. The dots and the line stay in high contrast, in the text colour.
+- `.timeline`: events on a line (`Dash.timeline` builds it), with a dot in each event's tone. The dots stay in high contrast, in their tones. A time still to come counts down ("in 3h 5m").
 
 **Labels**
 - `.pill`: a status, usually with a `.dot` (`.dot.pulse`, `.dot.hollow`). `.pill.lg` is the size of the 24 h change.

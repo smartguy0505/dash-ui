@@ -1,4 +1,4 @@
-/* dash-ui 1.9.1 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
+/* dash-ui 1.9.2 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
    A plain script with no dependencies: a script tag for dash.js in <head> gives window.Dash, and puts the
    saved light/dark choice on the page before it paints. In Node, require('./dash.js') returns the same object
    (the parts that need a page are skipped).
@@ -8,7 +8,7 @@
 (function (root) {
   'use strict';
   const hasDom = typeof document !== 'undefined';
-  const Dash = { version: '1.9.1', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side', csp: false } };
+  const Dash = { version: '1.9.2', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side', csp: false } };
 
   // ---- basics
 
@@ -281,12 +281,16 @@
   const tick = () => {
     for (const e of document.querySelectorAll('time[data-ago]')) e.textContent = fmt.ago(Number(e.dataset.ago));
     for (const e of document.querySelectorAll('time[data-until]')) e.textContent = fmt.until(Number(e.dataset.until));
+    for (const e of document.querySelectorAll('time[data-near]')) e.textContent = near(Number(e.dataset.near));
   };
+  // a time still to come, until it has passed: "in 3h 5m", then "12 min ago". A minute ahead counts as now: clocks differ.
+  const SKEW = 60e3;
+  const near = (ms) => (ms - Date.now() > SKEW ? fmt.until(ms) : fmt.ago(ms));
   const liveTime = (kind, t) => {
     const ms = Dash.time(t);
     if (!Number.isFinite(ms)) return NONE;
     if (hasDom && !ticker) ticker = setInterval(tick, 15000);
-    return `<time datetime="${new Date(ms).toISOString()}" data-${kind}="${ms}" title="${esc(fmt.when(ms))}">${esc(kind === 'ago' ? fmt.ago(ms) : fmt.until(ms))}</time>`;
+    return `<time datetime="${new Date(ms).toISOString()}" data-${kind}="${ms}" title="${esc(fmt.when(ms))}">${esc(kind === 'ago' ? fmt.ago(ms) : kind === 'near' ? near(ms) : fmt.until(ms))}</time>`;
   };
   Dash.ago = (t) => liveTime('ago', t);
   Dash.until = (t) => liveTime('until', t);
@@ -542,10 +546,11 @@
       + `<i></i><span class="ellipsis">${esc(it.label)}</span>${it.value != null ? ` <b>${esc(it.value)}</b>` : ''}</${tag}>`;
   }).join('')}</div>`;
   // A timeline, in the order given: [{ title, time, text, tone }]. time is anything Dash.time reads (shown as
-  // "12 min ago", the full time as its tooltip) or other text shown as it is; html instead of text for markup.
+  // "12 min ago", or "in 3h 5m" for one still to come; the full time as its tooltip) or other text shown as it is; html
+  // instead of text for markup.
   Dash.timeline = (items, { empty = 'Nothing yet' } = {}) => (!items.length ? `<p class="empty">${esc(empty)}</p>`
     : `<ol class="timeline">${items.map((it) => {
-      const t = it.time == null || it.time === '' ? '' : Number.isFinite(Dash.time(it.time)) ? Dash.ago(it.time) : esc(it.time);
+      const t = it.time == null || it.time === '' ? '' : Number.isFinite(Dash.time(it.time)) ? liveTime(Dash.time(it.time) - Date.now() > SKEW ? 'near' : 'ago', it.time) : esc(it.time);
       return `<li${it.tone ? ` class="${esc(it.tone)}"` : ''}><div class="timeline-head"><span class="timeline-title">${esc(it.title ?? '')}</span>${t ? `<span class="timeline-time">${t}</span>` : ''}</div>`
         + `${it.html ? `<div class="timeline-text">${it.html}</div>` : it.text ? `<div class="timeline-text">${esc(it.text)}</div>` : ''}</li>`;
     }).join('')}</ol>`);
