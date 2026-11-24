@@ -596,7 +596,11 @@
       { key: 'tested', label: 'Tested', num: true, html: (x) => Dash.ago(x.tested) },
     ],
     rows: SERVERS, sort: { key: 'score', dir: 'desc', store: 'gallery.sort2' }, perPage: 8, sizes: [8, 16, 32], noun: 'server', key: 'name',
-    onRow: (x) => Dash.toast(`Open ${x.name}`),
+    select: { actions: [
+      { label: 'Download CSV', run: (rows, table) => table.download('servers.csv', rows) },
+      { label: 'Restart', run: async (rows, table) => { await new Promise((ok) => setTimeout(ok, 700)); Dash.toast(`Restarted ${fmt.plural(rows.length, 'server')}`); table.select([]); } },
+    ] },
+    expand: (x, box) => { Dash.lines(box, [{ label: 'p95', points: Array.from({ length: 49 }, (_, i) => [LINE_START + i * 1800e3, Math.max(1, Math.round(x.p95 + (x.p95 / 6) * Math.sin(i / 5)))]) }], { label: `p95 of ${x.name}`, height: 120, format: (v) => v + ' ms' }); },
   });
   const q = Dash.search('more-q', {
     onChange: (text) => {

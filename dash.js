@@ -1,4 +1,4 @@
-/* dash-ui 1.11.1 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
+/* dash-ui 1.12.0 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
    A plain script with no dependencies: a script tag for dash.js in <head> gives window.Dash, and puts the
    saved light/dark choice on the page before it paints. In Node, require('./dash.js') returns the same object
    (the parts that need a page are skipped).
@@ -8,7 +8,7 @@
 (function (root) {
   'use strict';
   const hasDom = typeof document !== 'undefined';
-  const Dash = { version: '1.11.1', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side', privacyKey: 'dash.private', csp: false } };
+  const Dash = { version: '1.12.0', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side', privacyKey: 'dash.private', csp: false } };
 
   // ---- basics
 
@@ -386,11 +386,30 @@
   // Options: cls (table classes, 'stack' by default: cards on phones), wrap (the table as its own card), perPage
   // (0: no pager), sizes, noun, key (row → data-key, so Dash.render keeps its focus), rowClass (row → class),
   // empty (text when there are no rows), onRow (row, event): a click or Enter on a row, not on a control in it,
-  // filter (row → keep it?).
+  // filter (row → keep it?), and, with a key:
+  // select: true, or { can (row → may it be picked?), actions: [{ label, tone, primary, run: (rows, table) => … }],
+  // onChange (rows) }: a box on every row (Shift-click for a range), one in the header for this page, and a bar with the
+  // count and the actions while any are picked. A run that returns a promise keeps its button busy; an error it throws
+  // shows as a toast. Picked rows stay picked through a refresh, sorting, paging and a filter, until they leave the data.
+  // expand: (row, box) → the row's details, as markup or an element, as a promise of one, or drawn into box; or { draw, can (row →
+  // has it any?), one: true (one open at a time) }. A button opens them, and without onRow a click on the row does too.
+  // The box stays the same element while it is open, so a chart or a table in it keeps its place; draw runs again
+  // with the new row on each update (one that gave a promise: only when the row is opened again, or on redraw()).
+  // rowLabel (row → text): the row's name for a screen reader; the main column's text by default.
   // It draws with Dash.render, so a refresh keeps the reader's place.
   Dash.table = (target, { columns, rows = [], sort = {}, perPage = 0, sizes, noun = 'row', key, rowClass, empty = 'Nothing to show',
-    cls = 'stack', wrap = false, onRow, filter } = {}) => {
+    cls = 'stack', wrap = false, onRow, filter, select, expand, rowLabel } = {}) => {
     const node = el(target);
+    if ((select || expand) && key == null) throw new Error('Dash.table: select and expand need key, to know a row again after a refresh');
+    const picking = select ? { can: () => true, actions: [], ...(select === true ? {} : select) } : null;
+    const opening = expand ? { can: () => true, ...(typeof expand === 'function' ? { draw: expand } : expand) } : null;
+    const picked = new Set(); // ids of the picked rows, of the open ones
+    const open = new Set();
+    const details = new Map(); // id → { tr, box, async, run }, for the open rows on this page
+    let host = node; // what Dash.render draws in; with select the bar comes after it
+    let bar = null;
+    let moving = false; // the open rows' details are out of the page for a moment
+    let listed = []; // every row that passes the filter, sorted, as of the last draw
     const firstDir = Object.fromEntries(columns.filter((c) => c.firstDir).map((c) => [c.key, c.firstDir]));
     const sorter = Dash.sorter({ key: sort.key ?? null, dir: sort.dir || 'desc', store: sort.store, firstDir });
     const getters = Object.fromEntries(columns.filter((c) => c.value).map((c) => [c.key, c.value]));
@@ -412,32 +431,234 @@
       const kept = test ? data.filter(test) : data;
       return sorter.key != null ? sorter.apply(kept, getters) : kept;
     };
+    const keyOfRow = (r) => (typeof key === 'function' ? key(r) : r[key]);
+    const idOf = (r) => { const k = keyOfRow(r); return k == null ? r : String(k); };
+    // the row's name in its box's and button's labels: never a value the reader has hidden
+    const nameOf = (r, i) => {
+      const c = columns.find((x) => x.main) || columns[0];
+      let t = rowLabel ? rowLabel(r) : valueOf(c, r);
+      if (!rowLabel) t = c.private && Dash.privacy.on ? '' : c.format ? c.format(t, r) : t;
+      return typeof t === 'string' && t.trim() ? t : typeof t === 'number' ? String(t) : `row ${i + 1}`;
+    };
+    const leads = (picking ? 1 : 0) + (opening ? 1 : 0); // cells before the columns'
+    const allLabel = perPage ? 'Select all on this page' : 'Select all';
+    const leadHead = (picking ? `<th class="row-pick"><input type="checkbox" data-pick="page" data-key="dash-pick-page" autocomplete="off" aria-label="${allLabel}"></th>` : '')
+      + (opening ? '<th class="row-turn"><span class="sr-only">Details</span></th>' : '');
+    const leadCells = (r, i) => {
+      const id = leads ? idOf(r) : '', k = typeof id === 'string' ? esc(id) : 'row ' + i, name = leads ? esc(nameOf(r, i)) : '';
+      return (picking ? `<td class="row-pick"><input type="checkbox" data-pick="row" data-key="dash-pick ${k}" autocomplete="off" aria-label="Select ${name}"${picking.can(r) ? '' : ' disabled'}></td>` : '')
+        + (opening ? `<td class="row-turn">${opening.can(r) ? `<button type="button" class="icon-btn" data-key="dash-expand ${k}" aria-expanded="false" aria-label="Details of ${name}"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M4 2.5 7.5 6 4 9.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>` : ''}</td>` : '');
+    };
     const html = () => {
       const sorted = visible();
       const p = size ? Dash.paginate(sorted, page, size) : { rows: sorted };
       if (size) page = p.page;
       next = p.rows;
-      const head = columns.map((c) => Dash.th(c.label, c.sort === false ? null : c.key, sorter, { num: c.num, title: c.title, cls: c.cls, unit: c.unit })).join('');
+      listed = sorted;
+      const head = leadHead + columns.map((c) => Dash.th(c.label, c.sort === false ? null : c.key, sorter, { num: c.num, title: c.title, cls: c.cls, unit: c.unit })).join('');
       const body = next.length ? next.map((r, i) => {
-        const k = key == null ? null : typeof key === 'function' ? key(r) : r[key];
-        const classes = [onRow ? 'click' : '', rowClass ? rowClass(r) : ''].filter(Boolean).join(' ');
-        return `<tr data-i="${i}"${k != null ? ` data-key="${esc(k)}"` : ''}${classes ? ` class="${esc(classes)}"` : ''}${onRow ? ' tabindex="0"' : ''}>${columns.map((c) => cell(c, r)).join('')}</tr>`;
-      }).join('') : `<tr class="empty-row"><td colspan="${columns.length}">${esc(empty)}</td></tr>`;
+        const k = key == null ? null : keyOfRow(r);
+        const classes = [onRow || (opening && opening.can(r)) ? 'click' : '', rowClass ? rowClass(r) : ''].filter(Boolean).join(' ');
+        return `<tr data-i="${i}"${k != null ? ` data-key="${esc(k)}"` : ''}${classes ? ` class="${esc(classes)}"` : ''}${onRow ? ' tabindex="0"' : ''}>${leads ? leadCells(r, i) : ''}${columns.map((c) => cell(c, r)).join('')}</tr>`;
+      }).join('') : `<tr class="empty-row"><td colspan="${leads + columns.length}">${esc(empty)}</td></tr>`;
       const table = `<table class="table${cls ? ' ' + esc(cls) : ''}"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
-      return (wrap ? `<div class="table-wrap" data-key="dash-table-wrap">${table}</div>` : table) + (size ? Dash.pager(p, { noun, sizes }) : '');
+      // (the cards on a phone have no header: a box above them)
+      const pickAll = picking && next.length && /(^|\s)stack(-md)?(\s|$)/.test(cls) ? `<label class="table-pick-all ${/(^|\s)stack-md(\s|$)/.test(cls) ? 'stack-md' : 'stack'}"><input type="checkbox" data-pick="page" data-key="dash-pick-page-top" autocomplete="off"> ${allLabel}</label>` : '';
+      return pickAll + (wrap ? `<div class="table-wrap" data-key="dash-table-wrap">${table}</div>` : table) + (size ? Dash.pager(p, { noun, sizes }) : '');
+    };
+
+    // ---- picked rows and open rows. They aren't in the markup: settleRows() puts them on the rows that are on the page, so
+    // picking or opening one leaves the rest of the table alone, and a refresh that changes nothing writes nothing.
+    const tableEl = () => host.querySelector('table');
+    const trs = () => { const t = tableEl(); return t ? [...t.tBodies[0].rows].filter((tr) => tr.dataset.i != null) : []; };
+    const has = (r) => picked.has(idOf(r));
+    const differs = (was) => picked.size !== was.size || [...picked].some((id) => !was.has(id));
+    const selected = () => data.filter(has);
+    const pickable = (list) => list.filter((r) => picking.can(r));
+    let said = 0;
+    const fallback = () => { // the bar went away with the focus in it
+      const t = [...host.querySelectorAll('[data-pick]:not(:disabled)')].find((x) => x.getClientRects().length);
+      if (t) t.focus({ preventScroll: true });
+    };
+    const settleBar = () => {
+      const n = picked.size, here = shown.filter(has).length, all = pickable(listed);
+      const away = n - here, rest = all.length > pickable(shown).length && !all.every(has);
+      const held = bar.el.contains(document.activeElement) ? document.activeElement : null;
+      const words = n ? `${fmt.int(n)} selected` : '';
+      if (bar.count.textContent !== words) bar.count.textContent = words;
+      bar.away.textContent = away ? `${fmt.int(away)} not on this page` : '';
+      bar.all.hidden = !rest;
+      bar.all.textContent = `Select all ${fmt.plural(all.length, noun)}`;
+      bar.el.hidden = !n;
+      if (n !== said) { said = n; bar.say.textContent = n ? words : 'None selected'; }
+      if (held && !held.getClientRects().length) { if (n) bar.none.focus({ preventScroll: true }); else fallback(); }
+    };
+    const error = (e) => (e && e.message) || String(e);
+    const put = (box, out, force) => {
+      if (out instanceof Node) { if (box.firstChild !== out || box.lastChild !== out) box.replaceChildren(out); } else if (out != null) Dash.render(box, out, { force });
+    };
+    // a row's details: markup goes in with Dash.render, so it keeps the reader's place there too
+    const fill = (d, r, again) => {
+      if (again && d.async) return;
+      const run = ++d.run;
+      if (d.async) { const box = d.box.cloneNode(false); d.box.replaceWith(box); d.box = box; } // what an older run still draws goes nowhere
+      const box = d.box;
+      const failed = (e) => {
+        Dash.render(box, `<p class="row-note">Couldn’t load this: ${esc(error(e))} <button type="button" class="btn sm" data-retry>Try again</button></p>`, { force: true });
+        box.querySelector('[data-retry]').addEventListener('click', () => { const now = details.get(idOf(r)); if (now === d) { fill(d, data.find((x) => idOf(x) === idOf(r)) || r); const b = turnOf(r); if (b) b.focus({ preventScroll: true }); } });
+      };
+      let out;
+      try { out = opening.draw(r, box); } catch (e) { failed(e); setTimeout(() => { throw e; }); return; }
+      d.async = Boolean(out && typeof out.then === 'function');
+      if (!d.async) { put(box, out); return; }
+      box.setAttribute('aria-busy', 'true');
+      Dash.render(box, '<p class="row-note" data-loading>Loading…</p>', { force: true });
+      const mine = () => { if (d.run !== run) return false; box.removeAttribute('aria-busy'); return true; };
+      out.then((x) => {
+        if (!mine()) return;
+        if (x == null && box.querySelector(':scope > [data-loading]')) x = '';
+        put(box, x, true);
+      }, (e) => { if (mine()) failed(e); });
+    };
+    const turnOf = (r) => { const i = shown.findIndex((x) => idOf(x) === idOf(r)); const tr = i < 0 ? null : trs()[i]; return tr && tr.querySelector(':scope > .row-turn > button'); };
+    // again: each open row's details are drawn anew with the row as it is now ('anew': those a promise gave, too).
+    // between runs once the kept details are back in the page and before any are drawn.
+    const settleRows = (again, between) => {
+      const gone = new Set(details.keys()), due = [];
+      const here = document.activeElement;
+      for (const tr of trs()) {
+        const r = shown[Number(tr.dataset.i)], id = idOf(r);
+        if (picking) {
+          tr.classList.toggle('row-picked', picked.has(id));
+          tr.querySelector(':scope > .row-pick > input').checked = picked.has(id);
+        }
+        if (!opening) continue;
+        const b = tr.querySelector(':scope > .row-turn > button');
+        if (!b) continue;
+        const on = open.has(id);
+        tr.classList.toggle('row-open', on);
+        b.setAttribute('aria-expanded', String(on));
+        if (!on) {
+          b.removeAttribute('aria-controls');
+          if (details.get(id)?.tr.contains(here)) b.focus({ preventScroll: true });
+          continue;
+        }
+        gone.delete(id);
+        let d = details.get(id);
+        const fresh = !d;
+        if (fresh) {
+          d = { tr: document.createElement('tr'), box: document.createElement('div'), async: false, run: 0 };
+          d.tr.className = 'row-detail';
+          // moving them is no leaving and coming back: a chart there keeps the reader's point
+          for (const type of ['focusin', 'focusout', 'focus', 'blur']) d.tr.addEventListener(type, (e) => { if (moving) e.stopImmediatePropagation(); }, true);
+          d.box.className = 'row-box';
+          const td = d.tr.insertCell();
+          td.append(d.box);
+          d.tr.id = 'dash-detail-' + ++ids;
+          details.set(id, d);
+        }
+        d.tr.cells[0].colSpan = leads + columns.length;
+        if (tr.nextElementSibling !== d.tr) tr.after(d.tr);
+        b.setAttribute('aria-controls', d.tr.id);
+        if (fresh || again) due.push([d, r, !fresh && again !== 'anew']);
+      }
+      for (const id of gone) { const d = details.get(id); d.run++; d.tr.remove(); details.delete(id); }
+      if (between) between();
+      for (const x of due) fill(...x);
+      if (picking) {
+        const can = pickable(shown), n = can.filter(has).length;
+        for (const b of host.querySelectorAll('[data-pick="page"]')) {
+          if (inside(b)) continue;
+          b.checked = n > 0 && n === can.length;
+          b.indeterminate = n > 0 && n < can.length;
+          b.disabled = !can.length;
+        }
+      }
+    };
+    // the open rows' details come out before the markup is replaced, and go back in after, with the focus and scrolling they had
+    const takeOut = () => {
+      const a = document.activeElement;
+      const own = [...details.values()].some((d) => d.tr.contains(a)) ? a : null;
+      let caret = null;
+      try { if (own && typeof own.selectionStart === 'number') caret = [own.selectionStart, own.selectionEnd]; } catch { /* not a text box */ }
+      const scrolled = [...details.values()].flatMap((d) => [...d.tr.querySelectorAll('*')]).filter((e) => e.scrollTop || e.scrollLeft).map((e) => [e, e.scrollTop, e.scrollLeft]);
+      moving = true;
+      for (const d of details.values()) d.tr.remove();
+      return () => {
+        for (const [e, top, left] of scrolled) { e.scrollTop = top; e.scrollLeft = left; }
+        if (!own || !own.isConnected) return;
+        own.focus({ preventScroll: true });
+        if (caret) try { own.setSelectionRange(...caret); } catch { /* not a text box */ } // (Chromium keeps it by itself)
+      };
+    };
+    // rows that left the data (or may not be picked any more) are no longer picked or open
+    const prune = () => {
+      if (!leads) return;
+      const now = new Map(data.map((r) => [idOf(r), r]));
+      let lost = false;
+      for (const id of [...picked]) if (!now.has(id) || !picking.can(now.get(id))) { picked.delete(id); lost = true; }
+      for (const id of [...open]) if (!now.has(id)) open.delete(id);
+      if (lost && picking.onChange) queueMicrotask(() => picking.onChange(selected()));
     };
     // (a refresh that waits for a selection leaves the old rows on screen, so clicks must still map to those)
-    const draw = (force = false) => {
+    const draw = (force = false, again = true) => {
       const markup = html();
-      const wrote = Dash.render(node, markup, { force });
-      if (wrote || node.__dashHtml === markup) shown = next;
+      let putBack = null;
+      const wrote = Dash.render(host, markup, { force, before: details.size ? () => { putBack = takeOut(); } : undefined });
+      try {
+        if (wrote || host.__dashHtml === markup) {
+          shown = next;
+          if (leads) settleRows(again, putBack && (() => { putBack(); moving = false; }));
+        }
+      } finally { moving = false; }
+      if (bar) settleBar();
       return wrote;
     };
+    const pick = (list, on) => {
+      const was = new Set(picked);
+      const now = new Set(data.map(idOf));
+      for (const r of list) { const id = idOf(r); if (on && now.has(id) && picking.can(r)) picked.add(id); else picked.delete(id); }
+      settleRows();
+      settleBar();
+      if (picking.onChange && differs(was)) picking.onChange(selected());
+    };
+    const turn = (id, on) => {
+      if (on && opening.one) open.clear();
+      if (on) open.add(id); else open.delete(id);
+      settleRows();
+    };
+    let anchor = null; // the last box clicked: Shift-click picks from there
+    const clickBox = (input, shift) => {
+      const i = Number(input.closest('tr').dataset.i);
+      const from = shift && anchor != null ? shown.findIndex((r) => idOf(r) === anchor) : -1;
+      pick(from < 0 ? [shown[i]] : shown.slice(Math.min(i, from), Math.max(i, from) + 1), input.checked);
+      anchor = idOf(shown[i]);
+    };
+    // in a row's details: another table's headers, pager and rows there are its own
+    const inside = (t) => { const b = t.closest('.row-box'); return Boolean(b) && b !== node && node.contains(b); };
     const rowOf = (e) => {
       const tr = e.target.closest('tbody tr[data-i]');
       return tr && node.contains(tr) && !e.target.closest('a, button, input, select, textarea, label, summary') ? shown[Number(tr.dataset.i)] : null;
     };
-    node.addEventListener('click', (e) => {
+    node.__dashTable?.abort(); // a table made again here: the old one stops listening
+    const { signal } = (node.__dashTable = new AbortController());
+    const on = (type, fn) => node.addEventListener(type, (e) => { if (!inside(e.target)) fn(e); }, { signal });
+    let shift = false; // was Shift down at the click that changes a box?
+    let passed = false;
+    on('click', (e) => {
+      const spot = picking && e.target.closest('.row-pick');
+      if (spot && node.contains(spot)) { // the whole cell is the box
+        const input = spot.querySelector('input');
+        if (!passed) shift = e.shiftKey;
+        if (e.target !== input && !input.disabled) { passed = true; input.focus({ preventScroll: true }); input.click(); passed = false; }
+        return;
+      }
+      const t = opening && e.target.closest('td.row-turn > button');
+      if (t && node.contains(t)) {
+        const id = idOf(shown[Number(t.closest('tr').dataset.i)]);
+        turn(id, !open.has(id));
+        return;
+      }
       const b = e.target.closest('[data-sort], [data-page]');
       if (b && node.contains(b)) {
         if (b.dataset.sort != null) { sorter.toggle(b.dataset.sort); page = 1; } else page = Number(b.dataset.page);
@@ -446,39 +667,88 @@
       }
       const sel = window.getSelection ? getSelection() : null;
       if (sel && !sel.isCollapsed && node.contains(sel.anchorNode)) return; // the reader selected text, not a row
-      const r = onRow && rowOf(e);
-      if (r) onRow(r, e);
+      const r = (onRow || opening) && rowOf(e);
+      if (r && onRow) onRow(r, e);
+      else if (r && opening.can(r)) turn(idOf(r), !open.has(idOf(r)));
     });
-    node.addEventListener('keydown', (e) => {
+    on('keydown', (e) => {
       if (e.key !== 'Enter' || !onRow || e.target.tagName !== 'TR') return;
       const r = rowOf(e);
       if (r) onRow(r, e);
     });
-    node.addEventListener('change', (e) => {
+    on('change', (e) => {
+      if (picking && e.target.matches('.row-pick > [data-pick="row"]')) { const s = shift; shift = false; clickBox(e.target, s); return; }
+      if (picking && e.target.matches('[data-pick="page"]')) { pick(shown, e.target.checked); return; }
       if (!e.target.matches('[data-per-page]')) return;
       size = Number(e.target.value) || size;
       page = 1;
       draw(true);
     });
-    draw();
-    node.__dashPrivate?.(); // a table made again here: the old one stops listening
-    node.__dashPrivate = columns.some((c) => c.private) ? Dash.privacy.onChange(() => draw(true)) : null;
-    return {
-      update(next) { data = next || []; draw(); },
+    if (picking) {
+      node.textContent = '';
+      node.__dashHtml = undefined; // (not what Dash.render wrote here before)
+      host = document.createElement('div');
+      host.className = 'table-host';
+      const box = document.createElement('div');
+      box.className = 'table-bar';
+      box.hidden = true;
+      box.setAttribute('role', 'group');
+      box.setAttribute('aria-label', 'Selected rows');
+      box.innerHTML = '<b></b><span class="tone warn"></span><button type="button" class="link" data-all></button><button type="button" class="link quiet" data-none>Clear</button>'
+        + (picking.actions.length ? '<span class="row push">' + picking.actions.map((a, i) => `<button type="button" class="btn sm${a.primary ? ' primary' : a.tone ? ' tone' : ''}${a.tone ? ' ' + esc(a.tone) : ''}" data-action="${i}">${esc(a.label)}</button>`).join('') + '</span>' : '');
+      const say = document.createElement('span');
+      say.className = 'sr-only';
+      say.setAttribute('role', 'status');
+      node.append(host, box, say);
+      bar = { el: box, say, count: box.querySelector('b'), away: box.querySelector('.tone'), all: box.querySelector('[data-all]'), none: box.querySelector('[data-none]') };
+      bar.all.addEventListener('click', () => pick(listed, true));
+      bar.none.addEventListener('click', () => pick(selected(), false));
+      box.addEventListener('click', async (e) => {
+        const b = e.target.closest('[data-action]');
+        if (!b) return;
+        try { await Dash.busy(b, () => picking.actions[Number(b.dataset.action)].run(selected(), handle)); } catch (x) { Dash.toast(error(x), { tone: 'bad' }); }
+        if (document.activeElement && document.activeElement !== document.body) return; // (a busy button lets go of the focus)
+        if (box.hidden) fallback(); else b.focus({ preventScroll: true });
+      });
+    }
+    const handle = {
+      update(next) { data = next || []; prune(); draw(); },
       get rows() { return data; },
       get shown() { return shown; },
       get page() { return page; },
       goto(n) { page = n; draw(true); },
       sort: sorter,
-      redraw() { draw(true); },
+      redraw() { draw(true, 'anew'); },
+      // the picked rows; select(['a', 'b']) picks those keys and no others, select((r) => …) those rows, select([]) none
+      get selected() { return picking ? selected() : []; },
+      select(which) {
+        if (!picking) return;
+        const want = typeof which === 'function' ? which : ((keys) => (r) => keys.has(idOf(r)))(new Set([].concat(which ?? []).map(String)));
+        const was = new Set(picked);
+        picked.clear();
+        for (const r of data) if (want(r) && picking.can(r)) picked.add(idOf(r));
+        settleRows();
+        settleBar();
+        if (picking.onChange && differs(was)) picking.onChange(selected());
+      },
+      // the open rows; expand(key) opens one's details, expand(key, false) closes them
+      get expanded() { return opening ? data.filter((r) => open.has(idOf(r)) && opening.can(r)) : []; },
+      expand(k, on = true) {
+        const r = opening && data.find((x) => idOf(x) === String(k));
+        if (r && opening.can(r)) turn(idOf(r), on);
+      },
       // keep only rows that pass fn (null: all): table.filter((r) => Dash.match(r, query, ['name', 'region']))
       filter(fn) { test = fn || null; page = 1; draw(); },
       // how many rows pass the filter, of how many
       get count() { return { shown: visible().length, total: data.length }; },
-      // every row that passes the filter, sorted, as CSV; download saves it as a file
-      csv() { return Dash.csv(visible(), columns.map((c) => ({ key: c.key, label: c.label, value: c.value }))); },
-      download(name = 'table.csv') { Dash.download(name, this.csv()); },
+      // every row that passes the filter, sorted, as CSV (or the rows given: table.csv(table.selected)); download saves it as a file
+      csv(list = visible()) { return Dash.csv(list, columns.map((c) => ({ key: c.key, label: c.label, value: c.value }))); },
+      download(name = 'table.csv', list = undefined) { Dash.download(name, handle.csv(list)); },
     };
+    draw();
+    node.__dashPrivate?.();
+    node.__dashPrivate = opening || rowLabel || columns.some((c) => c.private) ? Dash.privacy.onChange(() => draw(true, 'anew')) : null;
+    return handle;
   };
 
   // ---- bars and charts. Colours come from tone class names ('ok', 'blue', 'teal', …); sizes from dash.css.
@@ -1327,13 +1597,15 @@
   // force: true writes anyway (after the reader clicked something, say). Returns true when it wrote.
   const keyOf = (e) => (e.id ? '#' + e.id : e.dataset && e.dataset.key != null ? 'k:' + e.dataset.key : null);
   const sigOf = (e) => e.tagName + [...e.attributes].filter((a) => a.name.startsWith('data-')).map((a) => `[${a.name}=${a.value}]`).sort().join('');
-  Dash.render = (target, html, { force = false } = {}) => {
+  // before (for the kit): runs just before the old markup goes, to take out elements that are put back afterwards.
+  Dash.render = (target, html, { force = false, before } = {}) => {
     const node = el(target);
     if (!node) return false;
     html = String(html);
     if (!force && node.__dashHtml === html) return false;
     const sel = getSelection();
     if (!force && sel && !sel.isCollapsed && sel.rangeCount && (node.contains(sel.getRangeAt(0).commonAncestorContainer) || sel.containsNode(node, true))) return false;
+    if (before) before();
     const find = (k) => (k[0] === '#' ? node.querySelector('#' + CSS.escape(k.slice(1))) : node.querySelector(`[data-key="${CSS.escape(k.slice(2))}"]`));
     const active = document.activeElement;
     let focus = null;

@@ -9,7 +9,7 @@
 // the kit (test/utils.html); from 1.8 the new pieces that need a page (test/components.html): sliders, drops, the
 // drawer, the bottom nav, input groups, the stepper on a phone, badges and choices; from 1.9.2 what shows in high contrast
 // (test/contrast.html), narrow pages, targets and times to come; from 1.10 values the reader hides (test/private.html);
-// from 1.11 line charts (test/lines.html).
+// from 1.11 line charts (test/lines.html); from 1.12 table rows to pick and to open (test/rows.html).
 //
 //   npm i --no-save playwright-core && npx playwright-core install --only-shell chromium
 //   node test/behaviour.mjs          (KIT=<dir> serves dash.css, dash.js and dash-utils.css from <dir> instead: to check a change)
@@ -1561,7 +1561,7 @@ let reference;
   await at(() => document.getElementById('dlg').showModal());
   await tab.click('#in-dlg');
   const inDlg = await dots('in-dlg');
-  await at(() => document.getElementById('dlg').close());
+  await at(() => new Promise((ok) => { const d = document.getElementById('dlg'); d.addEventListener('close', () => setTimeout(ok), { once: true }); d.close(); })); // (its event comes with the next frame)
   await at(() => document.getElementById('dlg').showModal());
   await at(() => document.activeElement.blur());
   check('1.10 hidden values: a dialog that closes hides its boxes again', !inDlg && await dots('in-dlg'), '');
@@ -1766,6 +1766,243 @@ let reference;
   const bad = await strictTab.evaluate(() => violations.slice());
   check('1.11 lines: under a strict style policy it draws the same, and breaks nothing', a.length > 12 && JSON.stringify(a) === JSON.stringify(b) && bad.length === 0, JSON.stringify([a.filter((x, i) => x !== b[i]), b.filter((x, i) => x !== a[i]), bad]));
   await plain.context().close();
+  await strictTab.context().close();
+}
+
+// ---- 1.12 Dash.table's rows to pick and to open (test/rows.html)
+{
+  const openRows = async ({ width = 1100, height = 900, page = 'rows.html', ...more } = {}) => {
+    const ctx = await browser.newContext({ viewport: { width, height }, locale: 'en-US', ...more });
+    const tab = await ctx.newPage();
+    tab.on('pageerror', (e) => { if (e.message !== 'made to fail') errors.push(e.message); });
+    await tab.goto(url.replace('behaviour.html', page), { waitUntil: 'load' });
+    return tab;
+  };
+  const tab = await openRows();
+  const at = (f, a) => tab.evaluate(f, a);
+  const row = (name, t = 'both') => `#${t} tbody tr[data-key="${['amber', 'birch', 'cedar', 'delta', 'ember', 'fjord', 'grove'].indexOf(name) + 1}"]`;
+  const ids = (t = 'both') => at((n) => window[n].selected.map((r) => r.id).join(','), t);
+  const bar = (t = 'both') => at((n) => { const b = document.querySelector(`#${n} > .table-bar`); return b.hidden ? null : [b.querySelector('b'), b.querySelector('.tone'), b.querySelector('[data-all]')].map((e) => (e.hidden ? '' : e.textContent)).join('|'); }, t);
+  const head = (t = 'both') => at((n) => { const b = document.querySelector(`#${n} th.row-pick input`); return b.indeterminate ? 'some' : b.checked ? 'all' : 'none'; }, t);
+  const reset = () => at(() => { while (both.sort.key !== 'name' || both.sort.dir !== 'asc') both.sort.toggle('name'); both.update(make()); both.filter(null); both.goto(1); both.select([]); for (const r of both.expanded) both.expand(r.id, false); log.length = 0; });
+
+  // picking
+  check('1.12 rows: no bar before anything is picked', (await bar()) === null && (await head()) === 'none', '');
+  await tab.click(row('amber') + ' .row-pick input');
+  const one = { ids: await ids(), bar: await bar(), head: await head(), cls: await at((s) => document.querySelector(s).className, row('amber')), say: await at(() => document.querySelector('#both > [role="status"]').textContent), label: await at((s) => document.querySelector(s).getAttribute('aria-label'), row('amber') + ' .row-pick input') };
+  check('1.12 rows: a box picks its row; the header box is partly on, and the bar and the status say how many', one.ids === '1' && one.bar === '1 selected||Select all 22 servers' && one.head === 'some' && one.cls.includes('row-picked') && one.say === '1 selected' && one.label === 'Select amber', JSON.stringify(one));
+  await at(() => { window.kept = document.querySelector('#both tbody tr'); });
+  const cell = await tab.locator(row('birch') + ' .row-pick').boundingBox();
+  await tab.mouse.click(cell.x + 3, cell.y + 3);
+  check('1.12 rows: the whole cell is the box', (await ids()) === '1,2' && (await at(() => document.activeElement.getAttribute('aria-label'))) === 'Select birch', await ids());
+  check('1.12 rows: picking a row leaves the others\' elements alone', await at(() => window.kept === document.querySelector('#both tbody tr')), '');
+  await tab.keyboard.press('Space');
+  check('1.12 rows: Space unpicks it', (await ids()) === '1', await ids());
+  await tab.click(row('amber') + ' .row-pick input');
+  check('1.12 rows: with none picked the bar is gone', (await bar()) === null && (await at(() => document.querySelector('#both > [role="status"]').textContent)) === 'None selected', String(await bar()));
+  // a range
+  await tab.click(row('birch') + ' .row-pick input');
+  const far = await tab.locator(row('grove') + ' .row-pick').boundingBox();
+  await tab.keyboard.down('Shift');
+  await tab.mouse.click(far.x + 3, far.y + 3);
+  await tab.keyboard.up('Shift');
+  const range = { ids: await ids(), text: await at(() => String(getSelection())) };
+  check('1.12 rows: Shift-click picks the rows between, but not one that can\'t be picked, and selects no text', range.ids === '2,3,4,6,7' && range.text === '', JSON.stringify(range));
+  await tab.click(row('delta') + ' .row-pick input', { modifiers: ['Shift'] });
+  check('1.12 rows: Shift-click on a picked one unpicks the rows between', (await ids()) === '2,3', await ids());
+  await tab.click(row('ember') + ' .row-pick', { force: true });
+  check('1.12 rows: a row that can\'t be picked has a box that is off', (await ids()) === '2,3' && await at((s) => document.querySelector(s).disabled, row('ember') + ' .row-pick input'), await ids());
+  // the header box, other pages, all
+  await tab.click('#both th.row-pick', { position: { x: 4, y: 4 } });
+  check('1.12 rows: the header box picks this page', (await ids()) === '1,2,3,4,6,7,8' && (await head()) === 'all', await ids());
+  await tab.click('#both [data-page="2"]');
+  const page2 = { bar: await bar(), head: await head() };
+  check('1.12 rows: on another page they stay picked, and the bar says they are not there', page2.bar === '7 selected|7 not on this page|Select all 22 servers' && page2.head === 'none', JSON.stringify(page2));
+  await tab.click('#both [data-all]');
+  const all = { n: (await ids()).split(',').length, bar: await bar(), focus: await at(() => document.activeElement.textContent) };
+  check('1.12 rows: all of them can be picked; then the focus is on Clear', all.n === 22 && all.bar === '22 selected|14 not on this page|' && all.focus === 'Clear', JSON.stringify(all));
+  await tab.keyboard.press('Enter');
+  const cleared = { ids: await ids(), focus: await at(() => document.activeElement.getAttribute('aria-label')), bar: await bar() };
+  check('1.12 rows: Clear unpicks them, and the focus goes back to the table', cleared.ids === '' && cleared.bar === null && cleared.focus === 'Select all on this page', JSON.stringify(cleared));
+  // Shift-clicking a cell's edge, after a click in the text: no text is selected
+  await reset();
+  await tab.click(row('amber') + ' td.main');
+  const edge = await tab.locator(row('delta') + ' .row-pick').boundingBox();
+  await tab.keyboard.down('Shift');
+  await tab.mouse.click(edge.x + 3, edge.y + 3);
+  await tab.keyboard.up('Shift');
+  check('1.12 rows: Shift-clicking a box\'s cell selects no text', (await at(() => String(getSelection()))) === '' && (await ids()) === '4', await at(() => String(getSelection())));
+  const offCell = await tab.locator(row('ember') + ' .row-pick').boundingBox();
+  await tab.mouse.click(offCell.x + 3, offCell.y + 3);
+  check('1.12 rows: nor does its cell pick a row that can\'t be', (await ids()) === '4' && await at((s) => document.querySelector(s).disabled, row('ember') + ' .row-pick input'), await ids());
+  // through a refresh
+  await reset();
+  await at(() => both.select([2, 12]));
+  await tab.focus(row('birch') + ' .row-pick input');
+  const kept = await at(() => { const was = document.querySelector('#both tbody tr'); both.update(make()); const same = was === document.querySelector('#both tbody tr'); both.update(make(5)); return { same, focus: document.activeElement.getAttribute('aria-label'), checked: document.activeElement.checked, ids: both.selected.map((r) => r.id + ':' + r.cpu).join(), log: log.join(' ') }; });
+  check('1.12 rows: a refresh that changes nothing writes nothing; one that does keeps what is picked, with the new rows, and the focus', kept.same && kept.focus === 'Select birch' && kept.checked && kept.ids === '2:42,12:12' && kept.log === '2,12', JSON.stringify(kept));
+  await tab.click('#both [data-sort="cpu"]');
+  const sorted = await at(() => both.selected.map((r) => r.id).join() + '|' + [...document.querySelectorAll('#both tr.row-picked')].map((t) => t.querySelector('.main').textContent).join());
+  check('1.12 rows: sorting keeps what is picked on the right rows', /^2,12\|/.test(sorted) && await at(() => [...document.querySelectorAll('#both tbody tr[data-i]')].every((t) => t.classList.contains('row-picked') === ['birch', 'larch'].includes(t.querySelector('.main').textContent) && t.querySelector('input').checked === t.classList.contains('row-picked'))), sorted);
+  const filtered = await at(() => { both.filter((r) => r.region === 'eu'); const b = document.querySelector('#both > .table-bar'); const out = [b.textContent.slice(0, 40), both.selected.length]; both.filter(null); return out; });
+  check('1.12 rows: a row the filter hides stays picked, and the bar says it is not there', filtered[0].startsWith('2 selected2 not on this page') && filtered[1] === 2, JSON.stringify(filtered));
+  const lost = await at(async () => { log.length = 0; both.update(make().filter((r) => r.id !== 2)); await null; const a = both.selected.map((r) => r.id).join(); both.update(make()); const b = both.selected.map((r) => r.id).join(); both.update(make().map((r) => ({ ...r, state: r.id === 12 ? 'locked' : 'ok' }))); await null; return { a, b, c: both.selected.length, log: log.join('|') }; });
+  check('1.12 rows: a row that leaves the data, or may not be picked any more, is no longer picked, and onChange hears it', lost.a === '12' && lost.b === '12' && lost.c === 0 && lost.log === '12|', JSON.stringify(lost));
+  // a refresh waiting for selected text: a click is for the row on screen
+  await reset();
+  const held = await at(() => { const r = document.createRange(); r.selectNodeContents(document.querySelector('#both tbody td.main')); getSelection().removeAllRanges(); getSelection().addRange(r); both.update(make().reverse().slice(0, 4).concat(make().slice(0, 3))); const tr = [...document.querySelectorAll('#both tbody tr')].find((t) => t.querySelector('.main').textContent === 'birch'); tr.querySelector('.row-pick input').click(); const gone = [...document.querySelectorAll('#both tbody tr')].find((t) => t.querySelector('.main').textContent === 'fjord').querySelector('.row-pick input'); gone.click(); const out = [both.selected.map((x) => x.name).join(), document.querySelector('#both > .table-bar b').textContent, gone.checked]; getSelection().removeAllRanges(); return out; });
+  check('1.12 rows: a box clicked while a refresh waits is for the row on screen; a row that is gone by then isn\'t picked', JSON.stringify(held) === '["birch","1 selected",false]', JSON.stringify(held));
+  // from the page, and the CSV
+  await reset();
+  const api = await at(() => { const out = []; both.select((r) => r.cpu > 80); out.push(both.selected.map((r) => r.id).join()); both.select(['3', 5, 99]); out.push(both.selected.map((r) => r.id).join()); out.push(both.csv(both.selected).trim().split('\r\n').length, both.csv().trim().split('\r\n').length); both.select(4); both.select(4); out.push(both.selected.map((r) => r.id).join(), log.join('|')); both.select(); out.push(both.selected.length); return out; });
+  check('1.12 rows: select() takes keys or a test, and only what may be picked; onChange only when it changed', JSON.stringify(api) === JSON.stringify(['6,9,14,17', '3', 2, 24, '4', '6,9,14,17|3|4', 0]), JSON.stringify(api));
+  const noKey = await at(() => { const n = document.createElement('div'); const out = []; for (const o of [{ select: true }, { expand: () => '' }]) try { Dash.table(n, { columns, ...o }); out.push('made'); } catch (e) { out.push(e.message.includes('key')); } return out; });
+  check('1.12 rows: without a key it says so', noKey[0] === true && noKey[1] === true, JSON.stringify(noKey));
+  // actions
+  await reset();
+  await at(() => both.select([1, 2]));
+  await tab.click('#both [data-action="0"]');
+  const busy = await at(() => document.querySelector('#both [data-action="0"]').getAttribute('aria-busy'));
+  await tab.waitForTimeout(250);
+  const done = await at(() => [log.at(-1), document.querySelector('#both [data-action="0"]').getAttribute('aria-busy'), document.activeElement.textContent]);
+  const toned = await at(() => ['0', '1'].map((k) => getComputedStyle(document.querySelector(`#both [data-action="${k}"]`)).color));
+  check('1.12 rows: an action with a tone has its colour', toned[1] === await at(() => { const i = document.createElement('i'); i.style.color = 'var(--bad)'; document.body.append(i); const c = getComputedStyle(i).color; i.remove(); return c; }) && toned[0] !== toned[1], toned.join(' '));
+  check('1.12 rows: an action gets the picked rows, its button is busy until it ends, and keeps the focus', busy === 'true' && done[0] === 'restart 2' && done[1] === null && done[2] === 'Restart', JSON.stringify([busy, done]));
+  await tab.click('#both [data-action="2"]');
+  await tab.waitForTimeout(60);
+  check('1.12 rows: an action\'s error shows', (await at(() => document.querySelector('.toast')?.textContent || '')).includes('No room left'), '');
+  await tab.focus('#both [data-action="1"]');
+  await tab.keyboard.press('Enter');
+  await tab.waitForTimeout(60);
+  const removed = await at(() => ({ rows: both.rows.length, bar: document.querySelector('#both > .table-bar').hidden, focus: document.activeElement.getAttribute('aria-label') }));
+  check('1.12 rows: an action that removes the rows: the bar goes and the focus goes back to the table', removed.rows === 21 && removed.bar && removed.focus === 'Select all on this page', JSON.stringify(removed));
+  // onRow, and a table made again
+  await at(() => { log.length = 0; });
+  const wc = await tab.locator(row('cedar', 'wrap') + ' .row-pick').boundingBox();
+  await tab.mouse.click(wc.x + 3, wc.y + 3);
+  await tab.click(row('cedar', 'wrap') + ' td.main');
+  check('1.12 rows: a click on the box\'s cell is no row click; one on the row is', (await at(() => log.join())) === 'row 3' && (await ids('wrapped')) === '3' && (await at(() => wrapped.expanded.length)) === 0, await at(() => log.join()));
+  const again = await at(() => { const n = document.createElement('div'); document.querySelector('main').append(n); const hits = []; const o = { columns, rows: make().slice(0, 3), key: 'id', onRow: (r) => hits.push(r.id) }; Dash.table(n, o); Dash.table(n, { ...o, select: true }); n.querySelector('tbody td.main').click(); Dash.table(n, { ...o, select: true }); const bars = n.querySelectorAll('.table-bar').length + '/' + n.querySelectorAll('table').length; Dash.table(n, o); n.querySelector('tbody td.main').click(); const out = [hits.join(), bars, n.querySelectorAll('.table-bar, .row-pick').length]; n.remove(); return out; });
+  check('1.12 rows: a table made again in its place: the old one is gone, bar and clicks', JSON.stringify(again) === '["1,1","1/1",0]', JSON.stringify(again));
+  const esc = await at(() => { const n = document.createElement('div'); Dash.table(n, { columns: [{ key: 'n', label: 'N', html: () => 'x' }], rows: [{ id: '"><i>', n: '"><b id="bad">' }, { id: 2, n: {} }], key: 'id', noun: '<i>', select: { actions: [{ label: '<i id="bad2">', run() {} }] }, expand: () => '' }); return { bad: n.querySelectorAll('#bad, #bad2, td i').length, labels: [...n.querySelectorAll('td [aria-label]')].map((e) => e.getAttribute('aria-label')).join('|') }; });
+  check('1.12 rows: names, keys and labels are escaped; a row without a name has its number', esc.bad === 0 && esc.labels === 'Select "><b id="bad">|Details of "><b id="bad">|Select row 2|Details of row 2', JSON.stringify(esc));
+  const plain = await at(() => ({ html: document.getElementById('plain').innerHTML.replace(/ class="table stack"/, ''), extra: document.querySelectorAll('#plain .row-pick, #plain .row-turn, #plain .table-bar, #plain .table-host').length }));
+  check('1.12 rows: a table with neither has none of it', plain.extra === 0 && plain.html.startsWith('<table><thead><tr><th><button type="button" data-sort="name">Server</button></th>') && plain.html.includes('<tr data-i="0" data-key="1" class="click" tabindex="0"><td class="main">amber</td>'), plain.html.slice(0, 200));
+
+  // the bar stays in view, and the focus doesn't go under it
+  await reset();
+  await tab.setViewportSize({ width: 1100, height: 420 });
+  await at(() => { both.select([1]); scrollTo(0, 0); });
+  const stuck = await at(() => { const q = document.querySelector('#both > .table-bar').getBoundingClientRect(); return { bottom: Math.round(innerHeight - q.bottom), below: document.querySelector('#both').getBoundingClientRect().bottom > innerHeight }; });
+  check('1.12 rows: the bar stays at the bottom of the window while the table goes on below', stuck.below && stuck.bottom === 12, JSON.stringify(stuck));
+  await tab.focus(row('amber') + ' .row-pick input');
+  let under = 0;
+  for (let i = 0; i < 14; i++) { await tab.keyboard.press('Tab'); under = Math.max(under, await at(() => { const a = document.activeElement, q = a.getBoundingClientRect(), b = document.querySelector('#both > .table-bar').getBoundingClientRect(); return a.closest('#both tbody') ? q.bottom - b.top : -1; })); }
+  check('1.12 rows: tabbing down the rows never puts the focus under the bar', under <= 0, String(under));
+  await tab.setViewportSize({ width: 1100, height: 900 });
+
+  // opening
+  await reset();
+  await tab.click(row('birch') + ' .row-turn button');
+  const opened = await at((s) => { const b = document.querySelector(s + ' .row-turn button'), d = document.querySelector(s).nextElementSibling; return { exp: b.getAttribute('aria-expanded'), label: b.getAttribute('aria-label'), next: d.className === 'row-detail' && d.id !== '' && b.getAttribute('aria-controls') === d.id, text: d.textContent, span: d.cells[0].colSpan, cols: document.querySelector('#both thead tr').cells.length, w: Math.round(d.cells[0].getBoundingClientRect().width - document.querySelector('#both table').getBoundingClientRect().width), api: both.expanded.map((r) => r.id).join() }; }, row('birch'));
+  check('1.12 rows: a button opens its row\'s details, right under it and across the table', opened.exp === 'true' && opened.label === 'Details of birch' && opened.next && opened.text.startsWith('birch at 37%, 1 job') && opened.span === opened.cols && opened.w === 0 && opened.api === '2', JSON.stringify(opened));
+  await tab.click(row('cedar') + ' td.main');
+  await tab.click('#both tr.row-detail b >> nth=0');
+  check('1.12 rows: without onRow a click on the row opens it; a click in the details closes nothing', (await at(() => both.expanded.map((r) => r.id).join())) === '2,3', await at(() => both.expanded.map((r) => r.id).join()));
+  check('1.12 rows: a row with no details has no button, and can\'t be opened', await at((s) => { both.expand(1); return !document.querySelector(s + ' .row-turn button') && both.expanded.length === 2 && !document.querySelector(s).classList.contains('click'); }, row('amber')), '');
+  await tab.click(row('birch') + ' .row-turn button');
+  const shut = await at((s) => { const b = document.querySelector(s + ' .row-turn button'); return [b.getAttribute('aria-expanded'), b.hasAttribute('aria-controls'), document.querySelectorAll('#both tr.row-detail').length, document.querySelector(s).className.trim()]; }, row('birch'));
+  check('1.12 rows: and closes them', JSON.stringify(shut) === '["false",false,1,"click"]', JSON.stringify(shut));
+  // what is in the details stays through a refresh
+  await tab.fill('#both tr.row-detail input', 'half a no');
+  await at(() => { const i = document.querySelector('#both tr.row-detail input'); i.setSelectionRange(4, 4); window.kept = document.querySelector('#both tr.row-detail .row-box'); both.update(make(3)); });
+  const typing = await at(() => ({ same: window.kept === document.querySelector('#both tr.row-detail .row-box'), value: document.activeElement.value, caret: document.activeElement.selectionStart, text: document.querySelector('#both tr.row-detail').textContent.slice(0, 12) }));
+  check('1.12 rows: a refresh draws the details with the new row, and keeps what is being typed there', typing.same && typing.value === 'half a no' && typing.caret === 4 && typing.text === 'cedar at 77%', JSON.stringify(typing));
+  const moved = await at(() => { both.sort.toggle('cpu'); both.redraw(); const tr = document.querySelector('#both tr.row-detail'); const a = tr ? tr.previousElementSibling.querySelector('.main').textContent : ''; both.filter((r) => r.name !== 'cedar'); const b = document.querySelectorAll('#both tr.row-detail').length; both.filter(null); const c = document.querySelectorAll('#both tr.row-detail').length; both.update(make().filter((r) => r.id !== 3)); both.update(make()); const d = both.expanded.length; both.sort.toggle('name'); both.sort.toggle('name'); return { a, b, c, d }; });
+  check('1.12 rows: open details follow their row, come back with it, and close when it leaves the data', moved.a === 'cedar' && moved.b === 0 && moved.c === 1 && moved.d === 0, JSON.stringify(moved));
+  await reset();
+  await at(() => { both.expand(2); document.querySelector('#both tr.row-detail input').focus(); both.expand(2, false); });
+  check('1.12 rows: closing details with the focus in them puts it on their button', (await at(() => document.activeElement.getAttribute('aria-label'))) === 'Details of birch', '');
+  const point = await at(() => { const n = document.createElement('div'), T = Date.UTC(2026, 10, 24); document.querySelector('main').append(n); const t = Dash.table(n, { columns, rows: make().slice(0, 1), key: 'id', expand: (r, box) => { Dash.lines(box, [{ points: Array.from({ length: 9 }, (_, i) => [T + i * 6e4, i + r.cpu]) }], { label: 'x' }); } }); t.expand(1); const plot = () => n.querySelector('.line-plot'), key = (k) => plot().dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true })); plot().focus(); key('Home'); key('ArrowRight'); const was = plot().getAttribute('aria-valuenow'); t.update(make(2).slice(0, 1)); t.update(make(4).slice(0, 1)); const out = [was, plot().getAttribute('aria-valuenow'), document.activeElement === plot(), n.querySelector('.line-tip').hidden, n.querySelector('.line-tip').textContent.includes('5')]; plot().blur(); out.push(n.querySelector('.line-tip').hidden); n.remove(); return out; });
+  check('1.12 rows: a chart in the details keeps the reader at their point through a refresh, and lets go when they leave', JSON.stringify(point) === '["2","2",true,false,true,true]', JSON.stringify(point));
+  const scrolled = await at(() => { const n = document.createElement('div'); document.querySelector('main').append(n); const t = Dash.table(n, { columns, rows: make().slice(0, 2), key: 'id', expand: () => '<div data-x style="height:40px;overflow:auto"><div style="height:200px">long</div></div>' }); t.expand(1); n.querySelector('[data-x]').scrollTop = 60; t.update(make(9).slice(0, 2)); const out = n.querySelector('[data-x]').scrollTop; n.remove(); return out; });
+  check('1.12 rows: a refresh keeps the scrolling in the details', scrolled === 60, String(scrolled));
+  // a table in the details is its own
+  await tab.click(row('birch', 'wrap') + ' .row-turn button');
+  await tab.click('#wrap .row-box [data-page="2"]');
+  await tab.click('#wrap .row-box [data-sort="job"]');
+  await tab.click('#wrap .row-box tbody .row-pick input >> nth=0');
+  await at(() => { log.length = 0; });
+  await tab.click('#wrap .row-box tbody td.main >> nth=0');
+  const inner = await at(() => { const before = document.querySelector('#wrap .row-box'); wrapped.update(make(4).slice(0, 4)); const n = document.querySelector('#wrap .row-box'); return { same: n === before, sort: n.querySelector('th[aria-sort]')?.textContent, outer: document.querySelector('#wrap > .table-host > .table-wrap > table > thead th[aria-sort]') === null, bar: n.querySelector(':scope > .table-bar b').textContent, picked: wrapped.selected.map((r) => r.id).join(), rows: document.querySelectorAll('#wrap > .table-host > .table-wrap > table > tbody > tr[data-i]').length, log: log.join(), head: document.querySelector('#wrap > .table-host > .table-wrap > table > thead input').indeterminate }; });
+  check('1.12 rows: a table in the details sorts, pages and picks by itself, and a refresh keeps it', inner.same && inner.sort === 'Job' && inner.outer && inner.bar === '1 selected' && inner.picked === '3' && inner.rows === 4 && inner.log === '' && inner.head, JSON.stringify(inner));
+  await tab.hover('#wrap .row-box tbody tr >> nth=0'); // (the picked one)
+  const look = await at(() => { const bg = (e) => getComputedStyle(e).backgroundColor; const t = [...document.querySelectorAll('#wrap .row-box tbody tr')]; return { a: bg(t[1].cells[1]), hover: bg(t[0].cells[1]), detail: bg(document.querySelector('#wrap tr.row-detail > td')), border: getComputedStyle(t[0].cells[1]).borderBottomWidth }; });
+  check('1.12 rows: pointing at one of its rows lights that one only', look.a === 'rgba(0, 0, 0, 0)' && look.hover !== look.a && look.border === '1px', JSON.stringify(look));
+  await at(() => wrapped.expand(4));
+  check('1.12 rows: one: true keeps one row open', (await at(() => wrapped.expanded.map((r) => r.id).join())) === '4' && (await at(() => document.querySelectorAll('#wrap .row-detail').length)) === 1, '');
+
+  // details that take a moment
+  await tab.click(row('amber', 'opens') + ' .row-turn button');
+  const wait = await at(() => { const b = document.querySelector('#opens .row-box'); return [b.textContent, b.getAttribute('aria-busy')]; });
+  await at(() => { opens.update(make(2).slice(0, 5)); answer[1].ok('<p>First <b>answer</b></p>'); });
+  await tab.waitForTimeout(30);
+  const got = await at(() => { const b = document.querySelector('#opens .row-box'); return [b.innerHTML, b.getAttribute('aria-busy'), asked.join()]; });
+  check('1.12 rows: details from a promise: a note, then the answer; a refresh doesn\'t ask again', wait[0] === 'Loading…' && wait[1] === 'true' && got[0] === '<p>First <b>answer</b></p>' && got[1] === null && got[2] === '1', JSON.stringify([wait, got]));
+  const late = await at(async () => { opens.expand(1, false); opens.expand(1); const old = answer[1]; opens.expand(1, false); opens.expand(1); old.ok('too late'); await new Promise((ok) => setTimeout(ok, 20)); const a = document.querySelector('#opens .row-box').textContent; answer[1].ok('in time'); await new Promise((ok) => setTimeout(ok, 20)); const b = document.querySelector('#opens .row-box').textContent; opens.redraw(); const c = document.querySelector('#opens .row-box').textContent; answer[1].ok('anew'); await new Promise((ok) => setTimeout(ok, 20)); return [a, b, c, document.querySelector('#opens .row-box').textContent, asked.join()]; });
+  check('1.12 rows: an answer for details closed since is dropped; opening them again, or redraw(), asks again', JSON.stringify(late) === '["Loading…","in time","Loading…","anew","1,1,1,1"]', JSON.stringify(late));
+  await at(() => { opens.expand(3); answer[3].no(new Error('<i>HTTP 503</i>')); });
+  await tab.waitForTimeout(30);
+  const fail = await at(() => document.querySelectorAll('#opens .row-box')[1].textContent.trim());
+  await tab.click('#opens [data-retry]');
+  const retry = await at(() => [document.querySelectorAll('#opens .row-box')[1].textContent, document.activeElement.getAttribute('aria-label'), asked.at(-1)]);
+  check('1.12 rows: one that fails says why and can be tried again', fail === 'Couldn’t load this: <i>HTTP 503</i> Try again' && JSON.stringify(retry) === '["Loading…","Details of cedar",3]', JSON.stringify([fail, retry]));
+  const own = await at(async () => { const n = document.createElement('div'); document.querySelector('main').append(n); const t = Dash.table(n, { columns, rows: make().slice(0, 4), key: 'id', expand: (r, box) => { if (r.id === 1) throw new Error('made to fail'); if (r.id === 2) { const e = document.createElement('p'); e.textContent = 'an element'; return e; } if (r.id === 3) return (async () => { await null; box.textContent = 'drawn'; })(); return (async () => { await null; })(); } }); for (const k of [1, 2, 3, 4]) try { t.expand(k); } catch { /* (it should not reach the page) */ } await new Promise((ok) => setTimeout(ok, 20)); const out = [...n.querySelectorAll('.row-box')].map((b) => b.textContent.trim()); n.remove(); return out; });
+  check('1.12 rows: details may be an element, be drawn into the box, or be nothing; an error in one leaves the others', JSON.stringify(own) === JSON.stringify(['Couldn’t load this: made to fail Try again', 'an element', 'drawn', '']), JSON.stringify(own));
+
+  // hidden values
+  await at(() => { both.expand(2); picks.select([1]); opens.expand(1, false); opens.expand(1); answer[1].ok('<p>costs $53.50</p>'); });
+  await tab.waitForTimeout(30);
+  const seen = await at(() => [document.querySelector('#both .cost').textContent, document.querySelector('#opens .row-box').textContent, document.querySelector('#picks td input').getAttribute('aria-label')]);
+  await tab.click('#eye');
+  const hid = await at(() => ({ both: document.querySelector('#both .cost').textContent, opens: document.querySelector('#opens .row-box').textContent, label: document.querySelector('#picks td input').getAttribute('aria-label'), left: ['53.50'].filter((v) => document.querySelector('main').innerHTML.includes(v)), name: document.querySelector('#picks').innerHTML.includes('amber'), checked: document.querySelector('#picks td input').checked }));
+  check('1.12 rows: hidden values: not in open details, not in those from a promise, not in a box\'s name', seen[0] === '$53.50' && seen[1] === 'costs $53.50' && seen[2] === 'Select amber' && hid.both === '000.00hidden' && hid.opens === 'Loading…' && hid.label === 'Select row 1' && hid.left.length === 0 && !hid.name && hid.checked, JSON.stringify([seen, hid]));
+  await tab.click('#eye');
+  await tab.context().close();
+
+  // a phone
+  const phone = await openRows({ width: 390, height: 780, hasTouch: true, isMobile: true });
+  const pa = (f, a) => phone.evaluate(f, a);
+  await pa(() => { wrapped.select([2]); wrapped.expand(1); });
+  const card = await pa(() => {
+    const q = (e) => e.getBoundingClientRect(), tr = document.querySelector('#wrap > .table-host > .table-wrap > table > tbody > tr'), title = document.createRange();
+    title.selectNodeContents(tr.querySelector('.main'));
+    const t = title.getBoundingClientRect(), pick = q(tr.querySelector('.row-pick input')), turn = q(tr.querySelector('.row-turn button')), act = q(tr.querySelector('.actions button')), hit = q(tr.querySelector('.row-pick')), mid = (r) => r.top + r.height / 2;
+    const region = document.createRange(); region.selectNodeContents(tr.cells[3]);
+    const box = document.querySelector('#wrap .row-box'), note = document.querySelector('#wrap .row-detail > td');
+    return { apart: pick.right <= turn.left && turn.right <= t.left && t.right <= act.left, level: Math.max(Math.abs(mid(pick) - mid(t)), Math.abs(mid(turn) - mid(t))), hit: Math.min(hit.width, hit.height), left: getComputedStyle(note).textAlign, gap: Math.round(q(document.querySelector('#wrap .row-detail')).top - q(tr).bottom), over: document.documentElement.scrollWidth - innerWidth,
+      all: [...document.querySelectorAll('.table-pick-all')].map((e) => getComputedStyle(e).display).join(), head: getComputedStyle(document.querySelector('#both thead')).display, tint: getComputedStyle(document.querySelectorAll('#wrap > .table-host > .table-wrap > table > tbody > tr[data-i]')[1]).backgroundColor !== getComputedStyle(document.querySelectorAll('#wrap > .table-host > .table-wrap > table > tbody > tr[data-i]')[2]).backgroundColor };
+  });
+  check('1.12 rows: on a phone a card has its box, its button, its title and its own buttons apart, on one line', card.apart && card.level <= 3 && card.hit >= 44 && card.over <= 0, JSON.stringify(card));
+  check('1.12 rows: its details are right under it and read from the left; a picked card is tinted', card.left === 'left' && card.gap === 0 && card.tint, JSON.stringify(card));
+  await phone.tap('#both .table-pick-all', { timeout: 3000 }).catch(() => {});
+  check('1.12 rows: a box above the cards picks them all, as the header is gone', card.head === 'none' && card.all === 'flex,flex,flex,flex' && (await pa(() => both.selected.length)) === 7 && (await pa(() => document.querySelector('#both .table-pick-all input').checked)), JSON.stringify([card.all, await pa(() => both.selected.length)]));
+  const inPanel = await pa(() => { const tr = document.querySelector('#both tbody tr'), q = (e) => e.getBoundingClientRect(); const region = tr.querySelector('[data-label]'); return { box: Math.round(q(tr.querySelector('.row-pick input')).left - q(tr).left), top: Math.round(q(document.querySelector('#both .table-pick-all input')).left - q(tr).left), pad: getComputedStyle(region).paddingLeft }; });
+  check('1.12 rows: in a panel the boxes line up with its edge', inPanel.box === inPanel.top && Math.abs(inPanel.box) <= 1 && inPanel.pad === '0px', JSON.stringify(inPanel));
+  const plainIn = await pa(() => { const n = document.createElement('div'); document.querySelector('main').append(n); const t = Dash.table(n, { columns, rows: make().slice(0, 2), key: 'id', expand: () => '<table class="table"><thead><tr><th>A</th><th>B</th></tr></thead><tbody><tr><td>1</td><td>2</td></tr></tbody></table>' }); t.expand(1); const i = n.querySelector('.row-box table'); const out = [getComputedStyle(i).display, getComputedStyle(i.querySelector('thead')).display, getComputedStyle(i.querySelector('td')).display]; n.remove(); return out; });
+  check('1.12 rows: a plain table in a card\'s details stays a table', JSON.stringify(plainIn) === '["table","table-header-group","table-cell"]', JSON.stringify(plainIn));
+  const nav = await pa(() => { const n = document.createElement('nav'); n.className = 'bottom-nav'; n.innerHTML = '<a href="#">Home</a>'; document.body.append(n); both.select([1]); scrollTo(0, 0); return document.querySelector('.bottom-nav').getBoundingClientRect().top - document.querySelector('#both > .table-bar').getBoundingClientRect().bottom; });
+  check('1.12 rows: the bar is above the navigation at the bottom', nav >= 4, String(nav));
+  await phone.context().close();
+  const tablet = await openRows({ width: 800 });
+  const md = await tablet.evaluate(() => { const n = document.createElement('div'); n.className = 'panel'; document.querySelector('main').append(n); const t = Dash.table(n.appendChild(document.createElement('div')), { columns, rows: make().slice(0, 2), key: 'id', cls: 'stack stack-md', select: true, expand: () => 'x' }); t.expand(2); const q = (e) => e.getBoundingClientRect(), tr = n.querySelector('tbody tr'); return { all: getComputedStyle(n.querySelector('.table-pick-all')).display, other: getComputedStyle(document.querySelector('#both .table-pick-all')).display, box: Math.round(q(tr.querySelector('.row-pick input')).left - q(tr).left), pad: getComputedStyle(tr.querySelector('.main')).paddingLeft, text: getComputedStyle(n.querySelector('.row-detail > td')).textAlign }; });
+  check('1.12 rows: .stack-md cards are the same from 900 px down', md.all === 'flex' && md.other === 'none' && Math.abs(md.box) <= 1 && md.pad === '66px' && md.text === 'left', JSON.stringify(md));
+  await tablet.context().close();
+
+  // a strict style policy
+  const strictTab = await openRows({ page: 'csp.html' });
+  const strict = await strictTab.evaluate(async () => { const n = document.createElement('div'); document.querySelector('main').append(n); const t = Dash.table(n, { columns: [{ key: 'a', label: 'A', main: true }], rows: [{ a: 1 }, { a: 2 }], key: 'a', select: { actions: [{ label: 'Go', run() {} }] }, expand: async () => '<p>x</p>' }); t.select([1]); t.expand(2); await new Promise((ok) => setTimeout(ok, 200)); return [violations.length, n.querySelector('.row-box').textContent, n.querySelector('.table-bar b').textContent, n.innerHTML.includes('style=')]; });
+  check('1.12 rows: under a strict style policy it breaks nothing', JSON.stringify(strict) === '[0,"x","1 selected",false]', JSON.stringify(strict));
   await strictTab.context().close();
 }
 

@@ -2,6 +2,15 @@
 
 Dashboards keep a copy of `dash.css` and `dash.js`; the first line of each file says which version it is. Versions only add things: a page that worked with an older copy works the same with a newer one.
 
+## 1.12.0 (2026-11-24)
+
+Table rows to pick, and rows that open.
+
+- `Dash.table(…, { select })`: a box on every row, one in the header, Shift-click for a range, and a bar with the count and your actions that stays at the bottom of the window. What is picked is kept by `key` through a refresh, sorting, paging and a search. `.selected`, `.select(keys)`; `.csv(rows)` and `.download(name, rows)` take rows now.
+- `Dash.table(…, { expand })`: a button (or a click on the row) opens a row's details: markup, an element, a promise of either, or something you draw. The details stay the same element through a refresh, so a chart, a table or a half-typed note in them keeps its place. `.expanded`, `.expand(key)`.
+- A table inside a table's details is its own: the outer one's hover, sticky header and phone cards no longer reach it.
+- A table made again on the same element: the old one stops listening.
+
 ## 1.11.1 (2026-11-24)
 
 - The colours page and the README show the four series colours, and the README's list of builders for a strict style policy names `Dash.lines` and `Dash.progress`.

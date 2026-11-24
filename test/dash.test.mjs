@@ -250,6 +250,14 @@ test('1.3: the address as settings', () => {
   assert.deepEqual(Dash.hash.parse(Dash.hash.format(o)), o);
 });
 
+test('1.12: a table’s rules reach only its own rows', () => {
+  // a table inside a row's details (.row-box) is another table: every rule that turns rows into cards, pins the header or lights a row goes by >
+  const bare = css.replace(/\/\*[\s\S]*?\*\//g, '');
+  const loose = [...bare.matchAll(/[^{}]*\{/g)].flatMap((m) => m[0].slice(0, -1).split(',')).map((x) => x.trim())
+    .filter((x) => /\.table\.(stack|stack-md|sticky)\s+[^>\s]/.test(x) || /^\.table tbody tr:(hover|last-child) td/.test(x));
+  assert.deepEqual(loose, []);
+});
+
 test('1.11: a line chart is escaped, broken at gaps, and says what it shows', () => {
   const T = Date.UTC(2026, 10, 23, 12), H = 3600e3;
   const html = Dash.lines.html([{ label: '<i>A', points: [[T + 2 * H, 30], [T, 10], [T + H, '20'], [T + 3 * H, null], [T + 4 * H, NaN], ['soon', 5], [T + 5 * H, 40], [T + 6 * H, 50]] }, { label: 'B', tone: 'bad', dashed: true, points: [{ t: T, v: 5 }, { time: T + 6 * H, value: 15 }] }], { label: '"L"', format: (v) => `${v}<` });

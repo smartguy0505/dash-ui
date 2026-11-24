@@ -47,7 +47,73 @@
         <li><code>sort: { key, dir, store }</code>, remembered under <code>store</code>; <code>perPage</code> (0: no pager) and <code>sizes</code>; <code>noun</code> for "of 23 servers".</li>
         <li><code>key</code> (a field or a function) gives each row a <code>data-key</code>, so a refresh keeps the focused row. <code>rowClass: (row) =&gt; 'marked bad'</code>, <code>empty</code> text, <code>filter: (row) =&gt; keep?</code>.</li>
         <li><code>cls</code> sets the table's classes (<code>'stack'</code> by default), <code>wrap: true</code> makes it its own card, <code>onRow(row, event)</code> runs on a click or Enter on a row (not on a button or link in it).</li>
-        <li>The handle: <code>.update(rows)</code>, <code>.filter(fn)</code>, <code>.count</code> (rows shown), <code>.csv()</code>, <code>.download(name)</code>, <code>.goto(page)</code>, <code>.sort</code>.</li>
+        <li><code>select</code> and <code>expand</code>: rows the reader can <a href="#select">pick</a> and <a href="#expand">open</a>.</li>
+        <li>The handle: <code>.update(rows)</code>, <code>.filter(fn)</code>, <code>.count</code> (rows shown), <code>.csv(rows)</code> and <code>.download(name, rows)</code> (every row that passes the filter, unless you give them some), <code>.goto(page)</code>, <code>.sort</code>.</li>
+      </ul>
+    </section>
+
+    <section id="select" data-terms=".row-pick .row-picked .table-bar .table-pick-all .table-host select checkbox selection bulk actions">
+      <h2>Rows to pick</h2>
+      <p><code>select: true</code> puts a box on every row, one in the header, and a bar under the table while any are picked. Give it <code>{ actions }</code> for something to do with them. It needs <code>key</code>.</p>
+      <example>
+        <div class="panel"><div id="pick-table"></div></div>
+        <script>
+          const queue = Dash.table('pick-table', {
+            columns: [
+              { key: 'name', label: 'Job', main: true, firstDir: 'asc' },
+              { key: 'queue', label: 'Queue' },
+              { key: 'age', label: 'Waiting', num: true, format: (v) => Dash.fmt.dur(v * 60e3) },
+            ],
+            rows: ['Nightly report', 'Resize images', 'Send invoices', 'Rebuild search', 'Sync contacts', 'Clean up'].map((name, i) => ({ id: i + 1, name, queue: i % 2 ? 'slow' : 'fast', age: 3 + i * 7, locked: i === 3 })),
+            key: 'id', noun: 'job', sort: { key: 'age', dir: 'desc' }, perPage: 4, sizes: [4, 8],
+            select: {
+              can: (r) => !r.locked,
+              actions: [
+                { label: 'Download', run: (rows, table) => table.download('jobs.csv', rows) },
+                { label: 'Cancel', tone: 'bad', run: async (rows, table) => {
+                  if (!await Dash.confirm(rows.map((r) => r.name).join(', '), { title: `Cancel ${Dash.fmt.plural(rows.length, 'job')}?`, ok: 'Cancel them', tone: 'bad', cancel: 'Keep' })) return;
+                  table.update(table.rows.filter((r) => !rows.includes(r)));
+                } },
+              ],
+            },
+          });
+        </script>
+      </example>
+      <ul>
+        <li>What is picked is kept by <code>key</code>: through a refresh, sorting, paging and a search, until the row leaves the data. The bar counts the ones that aren't in sight (“2 not on this page”), and an action gets them all, so name them before doing something that can't be undone.</li>
+        <li>The header's box picks this page; when there is more, the bar offers every row that passes the filter. Shift-click picks a range. The whole cell is the box.</li>
+        <li><code>can: (row) =&gt; …</code> says which rows may be picked. <code>actions: [{ label, tone, primary, run: (rows, table) =&gt; … }]</code>: while a promise <code>run</code> gave is pending its button is busy, and an error it throws shows as a toast. <code>onChange(rows)</code> runs when the picked rows change.</li>
+        <li><code>table.selected</code> is the rows. <code>table.select(keys)</code> picks those and no others, <code>table.select((row) =&gt; …)</code> the rows that pass, <code>table.select([])</code> none.</li>
+        <li>On a phone, where the cards have no header, a box above them picks them all.</li>
+        <li>A screen reader hears each box as “Select” and the row's name: the <code>main</code> column's text, or <code>rowLabel: (row) =&gt; text</code>. While that column is hidden by <a href="feedback.html#private">the reader's eye</a> it is the row's number.</li>
+      </ul>
+    </section>
+
+    <section id="expand" data-terms=".row-turn .row-open .row-detail .row-box .row-note expand details master detail accordion">
+      <h2>Rows that open</h2>
+      <p><code>expand: (row, box) =&gt; markup</code> gives each row a button that opens its details under it. Without <code>onRow</code> a click anywhere on the row does it too. It needs <code>key</code>.</p>
+      <example>
+        <div class="panel"><div id="open-table"></div></div>
+        <script>
+          const hours = (base) => Array.from({ length: 25 }, (_, i) => [Date.now() - (24 - i) * 3600e3, Math.round(base + 14 * Math.sin(i / 3))]);
+          Dash.table('open-table', {
+            columns: [
+              { key: 'name', label: 'Server', main: true, firstDir: 'asc' },
+              { key: 'region', label: 'Region' },
+              { key: 'cpu', label: 'CPU', num: true, format: (v) => v + '%' },
+            ],
+            rows: [{ name: 'web-1', region: 'Frankfurt', cpu: 42 }, { name: 'web-2', region: 'Dublin', cpu: 71 }, { name: 'db-1', region: 'Dublin', cpu: 23 }],
+            key: 'name',
+            expand: (row, box) => { Dash.lines(box, [{ label: 'CPU', points: hours(row.cpu) }], { label: `CPU of ${row.name}`, height: 130, area: true, max: 100, format: (v) => v + '%' }); },
+          }).expand('web-2');
+        </script>
+      </example>
+      <ul>
+        <li>Give markup, an element, or nothing when you draw in <code>box</code> yourself. <code>box</code> stays the same element while the row is open, so a chart or a table in it keeps its place when the data is refreshed. Markup that comes out different is drawn anew (the box the reader is typing in keeps its text). Draw on every update as above, or keep what you made: <code>(box.jobs ||= Dash.table(box, { … })).update(row.jobs)</code>.</li>
+        <li>Give a promise for details that have to be fetched: <code>expand: async (row) =&gt; render(await Dash.api('/jobs/' + row.id))</code>. The row says “Loading…”, then shows the answer, or the error with a button to try again. It is asked for when the row is opened, and again on <code>table.redraw()</code>, not on every update. An answer that comes after the row was closed is dropped.</li>
+        <li><code>expand: { draw, can, one }</code>: <code>can: (row) =&gt; …</code> says which rows have details, <code>one: true</code> keeps one open at a time.</li>
+        <li><code>table.expanded</code> is the open rows; <code>table.expand(key)</code> opens one, <code>table.expand(key, false)</code> closes it. A row stays open through a refresh, sorting and paging, until it leaves the data.</li>
+        <li>A table in the details is its own: its headers, pager and boxes don't reach the one around it.</li>
       </ul>
     </section>
 

@@ -11,10 +11,10 @@
 <script src="../dash.js"></script>
 </head>
 <body>
-<!-- dash-ui 1.11.1 docs, written by tools/docs.mjs from docs-src/tables.html: edit that, not this -->
+<!-- dash-ui 1.12.0 docs, written by tools/docs.mjs from docs-src/tables.html: edit that, not this -->
 <header class="topbar">
   <button type="button" class="icon-btn docs-menu" data-toggle-side aria-label="Pages"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3 5h12M3 9h12M3 13h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
-  <a class="brand" href="./"><span class="mark">d</span><h1>dash-ui</h1></a><span class="tag plain docs-version">1.11.1</span>
+  <a class="brand" href="./"><span class="mark">d</span><h1>dash-ui</h1></a><span class="tag plain docs-version">1.12.0</span>
   <div class="top-right">
     <label class="search docs-search"><span class="sr-only">Search the docs</span><svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.6"/><path d="m11 11 3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><input class="input" type="search" id="docs-search" placeholder="Search" aria-keyshortcuts="/"><kbd class="docs-key">/</kbd></label>
     <div class="seg" role="group" aria-label="Theme"><button type="button" data-theme-set="system">Auto</button><button type="button" data-theme-set="light">Light</button><button type="button" data-theme-set="dark">Dark</button></div>
@@ -23,7 +23,7 @@
 <div class="shell offcanvas">
   <nav class="sidebar" aria-label="Pages"><div class="side-head">Start</div><a class="nav-item" href="./"><span class="nav-main"><span class="nav-name">Getting started</span></span></a><div class="side-head">Foundations</div><a class="nav-item" href="colours.html"><span class="nav-main"><span class="nav-name">Colours and themes</span></span></a><a class="nav-item" href="layout.html"><span class="nav-main"><span class="nav-name">Page layout</span></span></a><a class="nav-item" href="text.html"><span class="nav-main"><span class="nav-name">Text and labels</span></span></a><div class="side-head">Components</div><a class="nav-item" href="buttons.html"><span class="nav-main"><span class="nav-name">Buttons</span></span></a><a class="nav-item" href="forms.html"><span class="nav-main"><span class="nav-name">Forms</span></span></a><a class="nav-item" href="surfaces.html"><span class="nav-main"><span class="nav-name">Panels and cards</span></span></a><a class="nav-item" href="navigation.html"><span class="nav-main"><span class="nav-name">Navigation</span></span></a><a class="nav-item" href="tables.html" aria-current="page"><span class="nav-main"><span class="nav-name">Tables</span></span></a><a class="nav-item" href="charts.html"><span class="nav-main"><span class="nav-name">Charts and progress</span></span></a><a class="nav-item" href="overlays.html"><span class="nav-main"><span class="nav-name">Modals and popups</span></span></a><a class="nav-item" href="feedback.html"><span class="nav-main"><span class="nav-name">Feedback</span></span></a><div class="side-head">JavaScript</div><a class="nav-item" href="helpers.html"><span class="nav-main"><span class="nav-name">dash.js helpers</span></span></a><div class="side-head">Utilities</div><a class="nav-item" href="utilities.html"><span class="nav-main"><span class="nav-name">Utility classes</span></span></a><a class="nav-item" href="utilities-layout.html"><span class="nav-main"><span class="nav-name">Layout utilities</span></span></a><a class="nav-item" href="utilities-spacing.html"><span class="nav-main"><span class="nav-name">Spacing utilities</span></span></a><a class="nav-item" href="utilities-sizing.html"><span class="nav-main"><span class="nav-name">Sizing utilities</span></span></a><a class="nav-item" href="utilities-type.html"><span class="nav-main"><span class="nav-name">Type utilities</span></span></a><a class="nav-item" href="utilities-colour.html"><span class="nav-main"><span class="nav-name">Colour utilities</span></span></a><a class="nav-item" href="utilities-effects.html"><span class="nav-main"><span class="nav-name">Borders and effects</span></span></a></nav>
   <main class="content docs" id="top">
-    <header class="docs-head"><p class="docs-group">Components</p><h1>Tables</h1><p class="docs-blurb">Tables with sorting, row states, sticky headers, and rows that become cards on a phone.</p><nav class="chips docs-toc" aria-label="On this page"><a class="chip" href="#table">A table from its columns</a><a class="chip" href="#markup">Tables by hand</a><a class="chip" href="#rows">Row states</a><a class="chip" href="#phones">On a phone, and long tables</a><a class="chip" href="#data">Working with rows</a></nav></header>
+    <header class="docs-head"><p class="docs-group">Components</p><h1>Tables</h1><p class="docs-blurb">Tables with sorting, row states, sticky headers, and rows that become cards on a phone.</p><nav class="chips docs-toc" aria-label="On this page"><a class="chip" href="#table">A table from its columns</a><a class="chip" href="#select">Rows to pick</a><a class="chip" href="#expand">Rows that open</a><a class="chip" href="#markup">Tables by hand</a><a class="chip" href="#rows">Row states</a><a class="chip" href="#phones">On a phone, and long tables</a><a class="chip" href="#data">Working with rows</a></nav></header>
 <section id="table" data-terms="Dash.table .table .main columns">
       <h2>A table from its columns</h2>
       <p><code>Dash.table(el, { columns, rows, sort, perPage, key, onRow, … })</code> draws a whole table: sortable headers, cells, a pager if asked, and cards on a phone. Give it columns once, then <code>.update(rows)</code> whenever the data changes; it redraws with <code>Dash.render</code>, so a refresh keeps the reader's place.</p>
@@ -119,14 +119,148 @@
         <li><code>sort: { key, dir, store }</code>, remembered under <code>store</code>; <code>perPage</code> (0: no pager) and <code>sizes</code>; <code>noun</code> for "of 23 servers".</li>
         <li><code>key</code> (a field or a function) gives each row a <code>data-key</code>, so a refresh keeps the focused row. <code>rowClass: (row) =&gt; 'marked bad'</code>, <code>empty</code> text, <code>filter: (row) =&gt; keep?</code>.</li>
         <li><code>cls</code> sets the table's classes (<code>'stack'</code> by default), <code>wrap: true</code> makes it its own card, <code>onRow(row, event)</code> runs on a click or Enter on a row (not on a button or link in it).</li>
-        <li>The handle: <code>.update(rows)</code>, <code>.filter(fn)</code>, <code>.count</code> (rows shown), <code>.csv()</code>, <code>.download(name)</code>, <code>.goto(page)</code>, <code>.sort</code>.</li>
+        <li><code>select</code> and <code>expand</code>: rows the reader can <a href="#select">pick</a> and <a href="#expand">open</a>.</li>
+        <li>The handle: <code>.update(rows)</code>, <code>.filter(fn)</code>, <code>.count</code> (rows shown), <code>.csv(rows)</code> and <code>.download(name, rows)</code> (every row that passes the filter, unless you give them some), <code>.goto(page)</code>, <code>.sort</code>.</li>
+      </ul>
+    </section>
+
+    <section id="select" data-terms=".row-pick .row-picked .table-bar .table-pick-all .table-host select checkbox selection bulk actions">
+      <h2>Rows to pick</h2>
+      <p><code>select: true</code> puts a box on every row, one in the header, and a bar under the table while any are picked. Give it <code>{ actions }</code> for something to do with them. It needs <code>key</code>.</p>
+      <figure class="example" id="ex-2"><div class="example-view">
+<div class="panel"><div id="pick-table"></div></div>
+<script>
+  const queue = Dash.table('pick-table', {
+    columns: [
+      { key: 'name', label: 'Job', main: true, firstDir: 'asc' },
+      { key: 'queue', label: 'Queue' },
+      { key: 'age', label: 'Waiting', num: true, format: (v) => Dash.fmt.dur(v * 60e3) },
+    ],
+    rows: ['Nightly report', 'Resize images', 'Send invoices', 'Rebuild search', 'Sync contacts', 'Clean up'].map((name, i) => ({ id: i + 1, name, queue: i % 2 ? 'slow' : 'fast', age: 3 + i * 7, locked: i === 3 })),
+    key: 'id', noun: 'job', sort: { key: 'age', dir: 'desc' }, perPage: 4, sizes: [4, 8],
+    select: {
+      can: (r) => !r.locked,
+      actions: [
+        { label: 'Download', run: (rows, table) => table.download('jobs.csv', rows) },
+        { label: 'Cancel', tone: 'bad', run: async (rows, table) => {
+          if (!await Dash.confirm(rows.map((r) => r.name).join(', '), { title: `Cancel ${Dash.fmt.plural(rows.length, 'job')}?`, ok: 'Cancel them', tone: 'bad', cancel: 'Keep' })) return;
+          table.update(table.rows.filter((r) => !rows.includes(r)));
+        } },
+      ],
+    },
+  });
+</script>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;div class=&quot;panel&quot;&gt;&lt;div id=&quot;pick-table&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;script&gt;
+  const queue = Dash.table(&#39;pick-table&#39;, {
+    columns: [
+      { key: &#39;name&#39;, label: &#39;Job&#39;, main: true, firstDir: &#39;asc&#39; },
+      { key: &#39;queue&#39;, label: &#39;Queue&#39; },
+      { key: &#39;age&#39;, label: &#39;Waiting&#39;, num: true, format: (v) =&gt; Dash.fmt.dur(v * 60e3) },
+    ],
+    rows: [&#39;Nightly report&#39;, &#39;Resize images&#39;, &#39;Send invoices&#39;, &#39;Rebuild search&#39;, &#39;Sync contacts&#39;, &#39;Clean up&#39;].map((name, i) =&gt; ({ id: i + 1, name, queue: i % 2 ? &#39;slow&#39; : &#39;fast&#39;, age: 3 + i * 7, locked: i === 3 })),
+    key: &#39;id&#39;, noun: &#39;job&#39;, sort: { key: &#39;age&#39;, dir: &#39;desc&#39; }, perPage: 4, sizes: [4, 8],
+    select: {
+      can: (r) =&gt; !r.locked,
+      actions: [
+        { label: &#39;Download&#39;, run: (rows, table) =&gt; table.download(&#39;jobs.csv&#39;, rows) },
+        { label: &#39;Cancel&#39;, tone: &#39;bad&#39;, run: async (rows, table) =&gt; {
+          if (!await Dash.confirm(rows.map((r) =&gt; r.name).join(&#39;, &#39;), { title: `Cancel ${Dash.fmt.plural(rows.length, &#39;job&#39;)}?`, ok: &#39;Cancel them&#39;, tone: &#39;bad&#39;, cancel: &#39;Keep&#39; })) return;
+          table.update(table.rows.filter((r) =&gt; !rows.includes(r)));
+        } },
+      ],
+    },
+  });
+&lt;/script&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;panel&quot;</span>&gt;&lt;<span class="c-tag">div</span> <span class="c-attr">id</span>=<span class="c-str">&quot;pick-table&quot;</span>&gt;&lt;/<span class="c-tag">div</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+&lt;<span class="c-tag">script</span>&gt;
+  <span class="c-key">const</span> queue = <span class="c-fn">Dash</span>.table(<span class="c-str">&#39;pick-table&#39;</span>, {
+    columns: [
+      { key: <span class="c-str">&#39;name&#39;</span>, label: <span class="c-str">&#39;Job&#39;</span>, main: <span class="c-key">true</span>, firstDir: <span class="c-str">&#39;asc&#39;</span> },
+      { key: <span class="c-str">&#39;queue&#39;</span>, label: <span class="c-str">&#39;Queue&#39;</span> },
+      { key: <span class="c-str">&#39;age&#39;</span>, label: <span class="c-str">&#39;Waiting&#39;</span>, num: <span class="c-key">true</span>, format: (v) =&gt; <span class="c-fn">Dash</span>.fmt.dur(v * <span class="c-num">60e3</span>) },
+    ],
+    rows: [<span class="c-str">&#39;Nightly report&#39;</span>, <span class="c-str">&#39;Resize images&#39;</span>, <span class="c-str">&#39;Send invoices&#39;</span>, <span class="c-str">&#39;Rebuild search&#39;</span>, <span class="c-str">&#39;Sync contacts&#39;</span>, <span class="c-str">&#39;Clean up&#39;</span>].map((name, i) =&gt; ({ id: i + <span class="c-num">1</span>, name, queue: i % <span class="c-num">2</span> ? <span class="c-str">&#39;slow&#39;</span> : <span class="c-str">&#39;fast&#39;</span>, age: <span class="c-num">3</span> + i * <span class="c-num">7</span>, locked: i === <span class="c-num">3</span> })),
+    key: <span class="c-str">&#39;id&#39;</span>, noun: <span class="c-str">&#39;job&#39;</span>, sort: { key: <span class="c-str">&#39;age&#39;</span>, dir: <span class="c-str">&#39;desc&#39;</span> }, perPage: <span class="c-num">4</span>, sizes: [<span class="c-num">4</span>, <span class="c-num">8</span>],
+    select: {
+      can: (r) =&gt; !r.locked,
+      actions: [
+        { label: <span class="c-str">&#39;Download&#39;</span>, run: (rows, table) =&gt; table.download(<span class="c-str">&#39;jobs.csv&#39;</span>, rows) },
+        { label: <span class="c-str">&#39;Cancel&#39;</span>, tone: <span class="c-str">&#39;bad&#39;</span>, run: <span class="c-key">async</span> (rows, table) =&gt; {
+          <span class="c-key">if</span> (!<span class="c-key">await</span> <span class="c-fn">Dash</span>.confirm(rows.map((r) =&gt; r.name).join(<span class="c-str">&#39;, &#39;</span>), { title: <span class="c-str">`Cancel ${Dash.fmt.plural(rows.length, &#39;job&#39;)}?`</span>, ok: <span class="c-str">&#39;Cancel them&#39;</span>, tone: <span class="c-str">&#39;bad&#39;</span>, cancel: <span class="c-str">&#39;Keep&#39;</span> })) <span class="c-key">return</span>;
+          table.update(table.rows.filter((r) =&gt; !rows.includes(r)));
+        } },
+      ],
+    },
+  });
+&lt;/<span class="c-tag">script</span>&gt;</code></pre></figure>
+      <ul>
+        <li>What is picked is kept by <code>key</code>: through a refresh, sorting, paging and a search, until the row leaves the data. The bar counts the ones that aren't in sight (“2 not on this page”), and an action gets them all, so name them before doing something that can't be undone.</li>
+        <li>The header's box picks this page; when there is more, the bar offers every row that passes the filter. Shift-click picks a range. The whole cell is the box.</li>
+        <li><code>can: (row) =&gt; …</code> says which rows may be picked. <code>actions: [{ label, tone, primary, run: (rows, table) =&gt; … }]</code>: while a promise <code>run</code> gave is pending its button is busy, and an error it throws shows as a toast. <code>onChange(rows)</code> runs when the picked rows change.</li>
+        <li><code>table.selected</code> is the rows. <code>table.select(keys)</code> picks those and no others, <code>table.select((row) =&gt; …)</code> the rows that pass, <code>table.select([])</code> none.</li>
+        <li>On a phone, where the cards have no header, a box above them picks them all.</li>
+        <li>A screen reader hears each box as “Select” and the row's name: the <code>main</code> column's text, or <code>rowLabel: (row) =&gt; text</code>. While that column is hidden by <a href="feedback.html#private">the reader's eye</a> it is the row's number.</li>
+      </ul>
+    </section>
+
+    <section id="expand" data-terms=".row-turn .row-open .row-detail .row-box .row-note expand details master detail accordion">
+      <h2>Rows that open</h2>
+      <p><code>expand: (row, box) =&gt; markup</code> gives each row a button that opens its details under it. Without <code>onRow</code> a click anywhere on the row does it too. It needs <code>key</code>.</p>
+      <figure class="example" id="ex-3"><div class="example-view">
+<div class="panel"><div id="open-table"></div></div>
+<script>
+  const hours = (base) => Array.from({ length: 25 }, (_, i) => [Date.now() - (24 - i) * 3600e3, Math.round(base + 14 * Math.sin(i / 3))]);
+  Dash.table('open-table', {
+    columns: [
+      { key: 'name', label: 'Server', main: true, firstDir: 'asc' },
+      { key: 'region', label: 'Region' },
+      { key: 'cpu', label: 'CPU', num: true, format: (v) => v + '%' },
+    ],
+    rows: [{ name: 'web-1', region: 'Frankfurt', cpu: 42 }, { name: 'web-2', region: 'Dublin', cpu: 71 }, { name: 'db-1', region: 'Dublin', cpu: 23 }],
+    key: 'name',
+    expand: (row, box) => { Dash.lines(box, [{ label: 'CPU', points: hours(row.cpu) }], { label: `CPU of ${row.name}`, height: 130, area: true, max: 100, format: (v) => v + '%' }); },
+  }).expand('web-2');
+</script>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;div class=&quot;panel&quot;&gt;&lt;div id=&quot;open-table&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;script&gt;
+  const hours = (base) =&gt; Array.from({ length: 25 }, (_, i) =&gt; [Date.now() - (24 - i) * 3600e3, Math.round(base + 14 * Math.sin(i / 3))]);
+  Dash.table(&#39;open-table&#39;, {
+    columns: [
+      { key: &#39;name&#39;, label: &#39;Server&#39;, main: true, firstDir: &#39;asc&#39; },
+      { key: &#39;region&#39;, label: &#39;Region&#39; },
+      { key: &#39;cpu&#39;, label: &#39;CPU&#39;, num: true, format: (v) =&gt; v + &#39;%&#39; },
+    ],
+    rows: [{ name: &#39;web-1&#39;, region: &#39;Frankfurt&#39;, cpu: 42 }, { name: &#39;web-2&#39;, region: &#39;Dublin&#39;, cpu: 71 }, { name: &#39;db-1&#39;, region: &#39;Dublin&#39;, cpu: 23 }],
+    key: &#39;name&#39;,
+    expand: (row, box) =&gt; { Dash.lines(box, [{ label: &#39;CPU&#39;, points: hours(row.cpu) }], { label: `CPU of ${row.name}`, height: 130, area: true, max: 100, format: (v) =&gt; v + &#39;%&#39; }); },
+  }).expand(&#39;web-2&#39;);
+&lt;/script&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;panel&quot;</span>&gt;&lt;<span class="c-tag">div</span> <span class="c-attr">id</span>=<span class="c-str">&quot;open-table&quot;</span>&gt;&lt;/<span class="c-tag">div</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+&lt;<span class="c-tag">script</span>&gt;
+  <span class="c-key">const</span> hours = (base) =&gt; Array.from({ length: <span class="c-num">25</span> }, (_, i) =&gt; [Date.now() - (<span class="c-num">24</span> - i) * <span class="c-num">3600e3</span>, Math.round(base + <span class="c-num">14</span> * Math.sin(i / <span class="c-num">3</span>))]);
+  <span class="c-fn">Dash</span>.table(<span class="c-str">&#39;open-table&#39;</span>, {
+    columns: [
+      { key: <span class="c-str">&#39;name&#39;</span>, label: <span class="c-str">&#39;Server&#39;</span>, main: <span class="c-key">true</span>, firstDir: <span class="c-str">&#39;asc&#39;</span> },
+      { key: <span class="c-str">&#39;region&#39;</span>, label: <span class="c-str">&#39;Region&#39;</span> },
+      { key: <span class="c-str">&#39;cpu&#39;</span>, label: <span class="c-str">&#39;CPU&#39;</span>, num: <span class="c-key">true</span>, format: (v) =&gt; v + <span class="c-str">&#39;%&#39;</span> },
+    ],
+    rows: [{ name: <span class="c-str">&#39;web-1&#39;</span>, region: <span class="c-str">&#39;Frankfurt&#39;</span>, cpu: <span class="c-num">42</span> }, { name: <span class="c-str">&#39;web-2&#39;</span>, region: <span class="c-str">&#39;Dublin&#39;</span>, cpu: <span class="c-num">71</span> }, { name: <span class="c-str">&#39;db-1&#39;</span>, region: <span class="c-str">&#39;Dublin&#39;</span>, cpu: <span class="c-num">23</span> }],
+    key: <span class="c-str">&#39;name&#39;</span>,
+    expand: (row, box) =&gt; { <span class="c-fn">Dash</span>.lines(box, [{ label: <span class="c-str">&#39;CPU&#39;</span>, points: hours(row.cpu) }], { label: <span class="c-str">`CPU of ${row.name}`</span>, height: <span class="c-num">130</span>, area: <span class="c-key">true</span>, max: <span class="c-num">100</span>, format: (v) =&gt; v + <span class="c-str">&#39;%&#39;</span> }); },
+  }).expand(<span class="c-str">&#39;web-2&#39;</span>);
+&lt;/<span class="c-tag">script</span>&gt;</code></pre></figure>
+      <ul>
+        <li>Give markup, an element, or nothing when you draw in <code>box</code> yourself. <code>box</code> stays the same element while the row is open, so a chart or a table in it keeps its place when the data is refreshed. Markup that comes out different is drawn anew (the box the reader is typing in keeps its text). Draw on every update as above, or keep what you made: <code>(box.jobs ||= Dash.table(box, { … })).update(row.jobs)</code>.</li>
+        <li>Give a promise for details that have to be fetched: <code>expand: async (row) =&gt; render(await Dash.api('/jobs/' + row.id))</code>. The row says “Loading…”, then shows the answer, or the error with a button to try again. It is asked for when the row is opened, and again on <code>table.redraw()</code>, not on every update. An answer that comes after the row was closed is dropped.</li>
+        <li><code>expand: { draw, can, one }</code>: <code>can: (row) =&gt; …</code> says which rows have details, <code>one: true</code> keeps one open at a time.</li>
+        <li><code>table.expanded</code> is the open rows; <code>table.expand(key)</code> opens one, <code>table.expand(key, false)</code> closes it. A row stays open through a refresh, sorting and paging, until it leaves the data.</li>
+        <li>A table in the details is its own: its headers, pager and boxes don't reach the one around it.</li>
       </ul>
     </section>
 
     <section id="markup" data-terms=".table-wrap th td aria-sort data-sort .num Dash.th .compact --cell-x">
       <h2>Tables by hand</h2>
       <p>A <code>.table</code> inside a <code>.panel</code> gets a rounded header strip; in a <code>.table-wrap</code> the table is its own card and scrolls sideways if it must. Sortable headers are <code>&lt;th aria-sort="descending"&gt;&lt;button data-sort="key"&gt;</code>, which <code>Dash.th(label, key, sort, { num, unit, title, cls, mark })</code> writes. <code>th.num</code> and <code>td.num</code> align right. <code>.table.compact</code> puts 8 px between columns instead of 12 (<code>--cell-x</code>).</p>
-      <figure class="example" id="ex-2"><div class="example-view">
+      <figure class="example" id="ex-4"><div class="example-view">
 <div class="table-wrap">
   <table class="table compact">
     <thead><tr><th aria-sort="ascending"><button type="button" data-sort="name">Server</button></th><th class="num"><button type="button" data-sort="cpu">CPU</button></th><th class="num">Memory <span class="unit">GB</span></th></tr></thead>
@@ -167,7 +301,7 @@
         <li><code>tr.click</code>: a pointer, for rows that open something. <code>.empty-row</code>: one row saying there is nothing.</li>
         <li><code>td.actions</code> (and <code>th.actions</code>): a row's buttons at the right, as narrow as they are; on a phone's card they sit in its top corner (<code>--actions-w</code> keeps the title clear of them).</li>
       </ul>
-      <figure class="example" id="ex-3"><div class="example-view">
+      <figure class="example" id="ex-5"><div class="example-view">
 <div class="table-wrap">
   <table class="table">
     <thead><tr><th>Server</th><th class="num">CPU</th><th class="actions"><span class="sr-only">Actions</span></th></tr></thead>
@@ -209,7 +343,7 @@
       <h2>On a phone, and long tables</h2>
       <p><code>.table.stack</code> turns each row into a small card on a phone. Give each <code>td</code> a <code>data-label</code>; the <code>td.main</code> cell is the card's title. <code>.stack-md</code> does it from 900 px down instead, for a table too wide for a tablet. <code>Dash.table</code> does all of this by itself.</p>
       <p><code>.table.sticky</code> inside a <code>.table-wrap.open</code> keeps the header under the top bar while a long page scrolls (<code>.open</code> lets the header out of the card's own scrolling).</p>
-      <figure class="example" id="ex-4"><div class="example-view">
+      <figure class="example" id="ex-6"><div class="example-view">
 <table class="table stack">
   <thead><tr><th>Server</th><th class="num">CPU</th><th>Region</th></tr></thead>
   <tbody>

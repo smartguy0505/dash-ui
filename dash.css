@@ -1,4 +1,4 @@
-/* dash-ui 1.11.1: the look shared by my dashboards (agents, fleet, leaderboard, payouts, balances).
+/* dash-ui 1.12.0: the look shared by my dashboards (agents, fleet, leaderboard, payouts, balances).
    Warm neutral backgrounds, white panels, tinted status colours, light and dark from the system setting
    (or data-theme="light|dark" on <html>). No build step, no dependencies: link this file, or paste it into a page.
 
@@ -374,8 +374,8 @@ details > summary:hover { color: var(--text); }
 .table-wrap .table thead th { border-bottom: 1px solid var(--line); }
 .table-wrap .table thead th:first-child { border-radius: 13px 0 0 0; }
 .table-wrap .table thead th:last-child { border-radius: 0 13px 0 0; }
-.table tbody tr:last-child td { border-bottom: 0; }
-.table tbody tr:hover td { background: color-mix(in srgb, var(--soft) 70%, var(--card)); }
+.table tbody tr:last-child > td { border-bottom: 0; } /* (> : a table inside an open row's details has its own rows) */
+.table tbody tr:hover > td { background: color-mix(in srgb, var(--soft) 70%, var(--card)); }
 .table tbody tr.click { cursor: pointer; }
 .table td.wrap { white-space: normal; overflow-wrap: anywhere; }
 .table td .sub { font-size: 12.5px; }
@@ -394,8 +394,31 @@ details > summary:hover { color: var(--text); }
 .table td .icon-btn { vertical-align: middle; } /* buttons (and button-sized gaps) centred on the text line */
 .table th[aria-sort] button::after { content: " ▼"; font-size: 9px; vertical-align: 1px; }
 .table th[aria-sort="ascending"] button::after { content: " ▲"; }
+/* Dash.table's select and expand: a box and a details button before the cells, the open row's details, and the bar for
+   the picked rows, which stays at the bottom of the window while its table is in view */
+.table .row-pick, .table .row-turn { width: 1%; padding-top: 0; padding-bottom: 0; }
+.table .row-pick { cursor: pointer; user-select: none; -webkit-user-select: none; } /* the whole cell is the box */
+.row-pick > input, .table-pick-all > input { display: block; flex: none; width: 16px; height: 16px; margin: 0; accent-color: var(--blue); cursor: inherit; }
+.table .row-pick + .row-turn { padding-left: 0; }
+.table .row-turn { padding-right: 0; }
+.table tr.row-picked { --picked: color-mix(in srgb, var(--blue) 8%, var(--card)); }
+.table tbody tr.row-picked > td { background: var(--picked); }
+.table tbody tr.row-open > td { border-bottom: 0; }
+.table tbody tr.row-detail > td { padding: 0; background: color-mix(in srgb, var(--soft) 55%, var(--card)); white-space: normal; }
+.row-box { padding: 12px 16px 14px; }
+.row-box > :first-child { margin-top: 0; }
+.row-box > :last-child { margin-bottom: 0; }
+.row-note { margin: 0; color: var(--muted); }
+.table-pick-all { display: none; align-items: center; gap: 10px; padding: 10px 14px; color: var(--muted); font-size: 13.5px; font-weight: 600; }
+.panel .table-pick-all { padding-inline: 0; }
+.table-bar { position: sticky; bottom: 12px; z-index: 6; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; min-height: 46px; margin-top: 10px; padding: 8px 10px 8px 16px; background: var(--card);
+  border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow-pop); font-size: 14px; }
+.table-bar > span:empty { display: none; }
+.table-bar .btn.tone { color: var(--c); } /* an action with a tone */
+.table-host:has(+ .table-bar:not([hidden])) :is(tr, a, button, input, select) { scroll-margin-bottom: 76px; } /* the focus doesn't go under the bar */
+
 /* sticky header under the top bar, for a long table on a page that scrolls (needs .table-wrap.open, which lets it overflow) */
-.table.sticky thead th { position: sticky; top: var(--topbar-h); z-index: 2; }
+.table.sticky > thead th { position: sticky; top: var(--topbar-h); z-index: 2; }
 .table-wrap.open { overflow: visible; }
 /* row states: a mark on the left in the tone colour (blue unless a tone class is on the row) */
 .table tr.marked td { background: color-mix(in srgb, var(--c) 8%, var(--card)); }
@@ -944,6 +967,7 @@ textarea.input.autosize { min-height: 62px; max-height: var(--max-h, 320px); fie
 @media (max-width: 640px) {
   .bottom-nav { display: flex; }
   body:has(> .bottom-nav) { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+  body:has(> .bottom-nav) .table-bar { bottom: calc(76px + env(safe-area-inset-bottom)); }
   body:has(> .bottom-nav) .fab { bottom: calc(78px + env(safe-area-inset-bottom)); }
 }
 
@@ -1018,30 +1042,46 @@ textarea.input.autosize { min-height: 62px; max-height: var(--max-h, 320px); fie
   .hero { grid-template-columns: 1fr; }
   .grid { grid-template-columns: minmax(0, 1fr); }
   .table-wrap.open { overflow-x: auto; } /* too narrow to hang out of its card: scroll it sideways instead */
-  .table-wrap .table.sticky thead th { position: static; } /* (sticky inside a scroller would stick to the scroller) */
+  .table-wrap .table.sticky > thead th { position: static; } /* (sticky inside a scroller would stick to the scroller) */
   .grid > .span-2 { grid-column: auto; }
   .stats.fixed { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 /* .table.stack.stack-md: the same cards from 900 px down, for a table too wide for a tablet (the balances dashboard's).
    Keep these rules equal to the .table.stack ones below; a test compares them. */
 @media (max-width: 900px) {
-  .table.stack-md thead { display: none; }
-  .table.stack-md, .table.stack-md tbody, .table.stack-md tr, .table.stack-md td { display: block; width: 100%; }
-  .table.stack-md tr { padding: 10px 14px; border-bottom: 1px solid var(--line); }
-  .panel .table.stack-md tr { padding-inline: 0; }
-  .table.stack-md tr:last-child { border-bottom: 0; }
-  .table.stack-md td { padding: 2px 0; border: 0; text-align: right; white-space: normal; overflow-wrap: anywhere; }
-  .table.stack-md td::before { content: attr(data-label); float: left; margin-right: 12px; color: var(--muted); font-size: 12.5px; font-weight: 600; line-height: 21px; text-align: left; }
-  .table.stack-md td::after { content: ""; display: table; clear: both; }
-  .table.stack-md td.main { font-size: 15px; font-weight: 700; text-align: left; }
-  .table.stack-md td.main::before, .table.stack-md td:not([data-label])::before { content: none; }
-  .table.stack-md tbody tr:hover td { background: none; }
-  .table.stack-md tr.marked td:first-child { box-shadow: none; }
-  .table.stack-md tr.marked { box-shadow: inset 3px 0 0 var(--c); padding-left: 10px; }
-  .table.stack-md tr:has(> td.actions) { position: relative; }
-  .table.stack-md td.actions { position: absolute; top: 8px; right: 14px; width: auto; padding: 0; }
-  .panel .table.stack-md td.actions { right: 0; }
-  .table.stack-md tr:has(> td.actions) td.main { padding-right: var(--actions-w, 96px); }
+  .table.stack-md > thead { display: none; }
+  .table.stack-md, .table.stack-md > tbody, .table.stack-md > * > tr, .table.stack-md > * > * > td { display: block; width: 100%; }
+  .table.stack-md > * > tr { padding: 10px 14px; border-bottom: 1px solid var(--line); }
+  .panel .table.stack-md > * > tr { padding-inline: 0; }
+  .table.stack-md > * > tr:last-child { border-bottom: 0; }
+  .table.stack-md > * > * > td { padding: 2px 0; border: 0; text-align: right; white-space: normal; overflow-wrap: anywhere; }
+  .table.stack-md > * > * > td::before { content: attr(data-label); float: left; margin-right: 12px; color: var(--muted); font-size: 12.5px; font-weight: 600; line-height: 21px; text-align: left; }
+  .table.stack-md > * > * > td::after { content: ""; display: table; clear: both; }
+  .table.stack-md > * > * > td.main { font-size: 15px; font-weight: 700; text-align: left; }
+  .table.stack-md > * > * > td.main::before, .table.stack-md > * > * > td:not([data-label])::before { content: none; }
+  .table.stack-md > tbody > tr:hover > td { background: none; }
+  .table.stack-md > * > tr.marked > td:first-child { box-shadow: none; }
+  .table.stack-md > * > tr.marked { box-shadow: inset 3px 0 0 var(--c); padding-left: 10px; }
+  .table.stack-md > * > tr:has(> td.actions) { position: relative; }
+  .table.stack-md > * > * > td.actions { position: absolute; top: 8px; right: 14px; width: auto; padding: 0; }
+  .panel .table.stack-md > * > * > td.actions { right: 0; }
+  .table.stack-md > * > tr:has(> td.actions) > td.main { padding-right: var(--actions-w, 96px); }
+  /* a row's box and its details button sit before the title */
+  .table.stack-md > * > tr:has(> .row-pick, > .row-turn) { position: relative; }
+  .table.stack-md > * > * > :is(.row-pick, .row-turn) { position: absolute; top: 0; left: 0; display: grid; place-items: center; width: 44px; height: 46px; padding: 0; }
+  .table.stack-md > * > * > :is(.row-pick, .row-turn)::after { content: none; }
+  .table.stack-md > * > * > .row-pick + .row-turn { left: 34px; }
+  .panel .table.stack-md > * > * > :is(.row-pick, .row-turn) { left: -14px; }
+  .panel .table.stack-md > * > * > .row-pick + .row-turn { left: 20px; }
+  .table.stack-md > * > * > .row-pick + td:not(.row-turn), .table.stack-md > * > * > .row-turn + td { padding-left: 32px; }
+  .table.stack-md > * > * > .row-pick + .row-turn + td { padding-left: 66px; }
+  .table.stack-md > * > tr.row-picked { background: var(--picked); }
+  .table.stack-md > * > tr.row-picked > td { background: none; }
+  .panel .table.stack-md > * > tr.row-picked:not(.marked) { box-shadow: -10px 0 0 var(--picked), 10px 0 0 var(--picked); }
+  .table.stack-md > * > tr.row-open { border-bottom: 0; }
+  .table.stack-md > * > tr.row-detail { padding: 0; }
+  .table.stack-md > * > tr.row-detail > td { padding: 0; text-align: left; }
+  .table-pick-all.stack-md { display: flex; }
 }
 @media (max-width: 640px) {
   .topbar { position: static; padding: 10px 16px; gap: 6px 14px; } /* it wraps to two or three lines here: too tall to pin */
@@ -1063,24 +1103,40 @@ textarea.input.autosize { min-height: 62px; max-height: var(--max-h, 320px); fie
   .notice:nth-last-child(n+3) { display: none; } /* the newest two; more would cover the page */
   .hide-sm { display: none !important; }
   /* .table.stack: each row becomes a small card, cells labelled from data-label */
-  .table.stack thead { display: none; }
-  .table.stack, .table.stack tbody, .table.stack tr, .table.stack td { display: block; width: 100%; }
-  .table.stack tr { padding: 10px 14px; border-bottom: 1px solid var(--line); }
-  .panel .table.stack tr { padding-inline: 0; }
-  .table.stack tr:last-child { border-bottom: 0; }
+  .table.stack > thead { display: none; }
+  .table.stack, .table.stack > tbody, .table.stack > * > tr, .table.stack > * > * > td { display: block; width: 100%; }
+  .table.stack > * > tr { padding: 10px 14px; border-bottom: 1px solid var(--line); }
+  .panel .table.stack > * > tr { padding-inline: 0; }
+  .table.stack > * > tr:last-child { border-bottom: 0; }
   /* the label floats left, the cell's own content stays right-aligned (and may be several elements) */
-  .table.stack td { padding: 2px 0; border: 0; text-align: right; white-space: normal; overflow-wrap: anywhere; }
-  .table.stack td::before { content: attr(data-label); float: left; margin-right: 12px; color: var(--muted); font-size: 12.5px; font-weight: 600; line-height: 21px; text-align: left; }
-  .table.stack td::after { content: ""; display: table; clear: both; }
-  .table.stack td.main { font-size: 15px; font-weight: 700; text-align: left; }
-  .table.stack td.main::before, .table.stack td:not([data-label])::before { content: none; }
-  .table.stack tbody tr:hover td { background: none; }
-  .table.stack tr.marked td:first-child { box-shadow: none; }
-  .table.stack tr.marked { box-shadow: inset 3px 0 0 var(--c); padding-left: 10px; }
-  .table.stack tr:has(> td.actions) { position: relative; }
-  .table.stack td.actions { position: absolute; top: 8px; right: 14px; width: auto; padding: 0; }
-  .panel .table.stack td.actions { right: 0; }
-  .table.stack tr:has(> td.actions) td.main { padding-right: var(--actions-w, 96px); }
+  .table.stack > * > * > td { padding: 2px 0; border: 0; text-align: right; white-space: normal; overflow-wrap: anywhere; }
+  .table.stack > * > * > td::before { content: attr(data-label); float: left; margin-right: 12px; color: var(--muted); font-size: 12.5px; font-weight: 600; line-height: 21px; text-align: left; }
+  .table.stack > * > * > td::after { content: ""; display: table; clear: both; }
+  .table.stack > * > * > td.main { font-size: 15px; font-weight: 700; text-align: left; }
+  .table.stack > * > * > td.main::before, .table.stack > * > * > td:not([data-label])::before { content: none; }
+  .table.stack > tbody > tr:hover > td { background: none; }
+  .table.stack > * > tr.marked > td:first-child { box-shadow: none; }
+  .table.stack > * > tr.marked { box-shadow: inset 3px 0 0 var(--c); padding-left: 10px; }
+  .table.stack > * > tr:has(> td.actions) { position: relative; }
+  .table.stack > * > * > td.actions { position: absolute; top: 8px; right: 14px; width: auto; padding: 0; }
+  .panel .table.stack > * > * > td.actions { right: 0; }
+  .table.stack > * > tr:has(> td.actions) > td.main { padding-right: var(--actions-w, 96px); }
+  /* a row's box and its details button sit before the title */
+  .table.stack > * > tr:has(> .row-pick, > .row-turn) { position: relative; }
+  .table.stack > * > * > :is(.row-pick, .row-turn) { position: absolute; top: 0; left: 0; display: grid; place-items: center; width: 44px; height: 46px; padding: 0; }
+  .table.stack > * > * > :is(.row-pick, .row-turn)::after { content: none; }
+  .table.stack > * > * > .row-pick + .row-turn { left: 34px; }
+  .panel .table.stack > * > * > :is(.row-pick, .row-turn) { left: -14px; }
+  .panel .table.stack > * > * > .row-pick + .row-turn { left: 20px; }
+  .table.stack > * > * > .row-pick + td:not(.row-turn), .table.stack > * > * > .row-turn + td { padding-left: 32px; }
+  .table.stack > * > * > .row-pick + .row-turn + td { padding-left: 66px; }
+  .table.stack > * > tr.row-picked { background: var(--picked); }
+  .table.stack > * > tr.row-picked > td { background: none; }
+  .panel .table.stack > * > tr.row-picked:not(.marked) { box-shadow: -10px 0 0 var(--picked), 10px 0 0 var(--picked); }
+  .table.stack > * > tr.row-open { border-bottom: 0; }
+  .table.stack > * > tr.row-detail { padding: 0; }
+  .table.stack > * > tr.row-detail > td { padding: 0; text-align: left; }
+  .table-pick-all.stack { display: flex; }
 }
 @media (min-width: 641px) { .show-sm { display: none !important; } }
 @media (prefers-reduced-motion: reduce) {

@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Table row checks</title>
+<link rel="stylesheet" href="../dash.css">
+<script src="../dash.js"></script>
+</head>
+<body>
+<header class="topbar"><div class="brand"><h1>Rows</h1></div><div class="top-right"><button type="button" class="icon-btn" id="eye" data-privacy="costs"></button></div></header>
+<main class="page">
+  <section class="panel"><div class="panel-head"><h2>Both</h2></div><div id="both"></div></section>
+  <section class="section"><h2>As its own card, with buttons in the row</h2><div id="wrap"></div></section>
+  <section class="panel"><div class="panel-head"><h2>Picked only</h2></div><div id="picks"></div></section>
+  <section class="panel"><div class="panel-head"><h2>Opened only, and loaded when asked</h2></div><div id="opens"></div></section>
+  <section class="panel"><div class="panel-head"><h2>Neither</h2></div><div id="plain"></div></section>
+  <p><button type="button" class="btn" id="after">After</button></p>
+</main>
+<script>
+  // invented, and always the same
+  const { fmt } = Dash;
+  const NAMES = ['amber', 'birch', 'cedar', 'delta', 'ember', 'fjord', 'grove', 'heron', 'inlet', 'jade', 'kelp', 'larch', 'maple', 'north', 'olive', 'pine', 'quartz', 'river', 'slate', 'tundra', 'umber', 'vale', 'willow'];
+  const make = (n = 0) => NAMES.map((name, i) => ({ id: i + 1, name, region: ['eu', 'us', 'ap'][i % 3], cpu: (i * 37 + n) % 100, cost: 40 + i * 13.5, state: i === 4 ? 'locked' : 'ok', jobs: i % 4 }));
+  const columns = [
+    { key: 'name', label: 'Server', main: true, firstDir: 'asc' },
+    { key: 'region', label: 'Region' },
+    { key: 'cpu', label: 'CPU', num: true, format: (v) => v + '%' },
+  ];
+  window.log = [];
+  window.both = Dash.table('both', {
+    columns, rows: make(), key: 'id', noun: 'server', perPage: 8, sizes: [8, 16], sort: { key: 'name', dir: 'asc' },
+    select: {
+      can: (r) => r.state !== 'locked',
+      onChange: (rows) => log.push(rows.map((r) => r.id).join(',')),
+      actions: [
+        { label: 'Restart', run: async (rows) => { log.push('restart ' + rows.length); await new Promise((ok) => setTimeout(ok, 150)); } },
+        { label: 'Remove', tone: 'bad', run: (rows, table) => { const gone = new Set(rows.map((r) => r.id)); table.update(table.rows.filter((r) => !gone.has(r.id))); } },
+        { label: 'Fail', run: async () => { throw new Error('No room left'); } },
+      ],
+    },
+    expand: { can: (r) => r.jobs > 0, draw: (r) => `<p><b>${Dash.esc(r.name)}</b> at ${r.cpu}%, ${fmt.plural(r.jobs, 'job')}, <span class="cost">${Dash.mask(fmt.usd(r.cost))}</span></p><p><input class="input" data-key="note" aria-label="Note"></p>` },
+  });
+  window.wrapped = Dash.table('wrap', {
+    columns: [...columns, { key: 'act', label: '', sort: false, cls: 'actions', html: () => '<button type="button" class="btn sm">Restart</button>' }],
+    rows: make().slice(0, 4), key: 'id', wrap: true, select: true, onRow: (r) => log.push('row ' + r.id),
+    expand: { one: true, draw: (r, box) => {
+      (box.nested ||= Dash.table(box, { columns: [{ key: 'job', label: 'Job', main: true }, { key: 's', label: 'Seconds', num: true }], key: 'job', sort: { key: 's', dir: 'desc' }, perPage: 2, sizes: [2, 4], select: true, noun: 'job' }))
+        .update([1, 2, 3].map((k) => ({ job: `${r.name} ${k}`, s: k * 10 + r.id })));
+    } },
+  });
+  window.picks = Dash.table('picks', { columns: [{ key: 'name', label: 'Server', main: true, private: true }, { key: 'cost', label: 'Cost', num: true, private: true, format: (v) => fmt.usd(v) }], rows: make().slice(0, 5), key: 'id', select: true });
+  window.asked = [];
+  window.answer = {};
+  window.opens = Dash.table('opens', {
+    columns, rows: make().slice(0, 5), key: 'id',
+    expand: (r) => { asked.push(r.id); return new Promise((ok, no) => { answer[r.id] = { ok, no }; }); },
+  });
+  window.plain = Dash.table('plain', { columns, rows: make().slice(0, 3), key: 'id', onRow: (r) => log.push('plain ' + r.id), perPage: 2, sizes: [2, 4] });
+</script>
+</body>
+</html>
