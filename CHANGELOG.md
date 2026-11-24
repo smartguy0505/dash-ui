@@ -2,6 +2,11 @@
 
 Dashboards keep a copy of `dash.css` and `dash.js`; the first line of each file says which version it is. Versions only add things: a page that worked with an older copy works the same with a newer one.
 
+## 1.11.1 (2026-11-24)
+
+- The colours page and the README show the four series colours, and the README's list of builders for a strict style policy names `Dash.lines` and `Dash.progress`.
+- One CSS declaration that changed nothing is gone from `.line-ends`.
+
 ## 1.11.0 (2026-11-24)
 
 A line chart over time.

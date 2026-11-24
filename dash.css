@@ -1,4 +1,4 @@
-/* dash-ui 1.11.0: the look shared by my dashboards (agents, fleet, leaderboard, payouts, balances).
+/* dash-ui 1.11.1: the look shared by my dashboards (agents, fleet, leaderboard, payouts, balances).
    Warm neutral backgrounds, white panels, tinted status colours, light and dark from the system setting
    (or data-theme="light|dark" on <html>). No build step, no dependencies: link this file, or paste it into a page.
 
@@ -515,7 +515,7 @@ button.hbar:hover { background: var(--soft); }
 .line-val > i { flex: none; align-self: center; }
 .line-val b { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .line-val > span { min-width: 0; overflow: hidden; color: var(--muted); text-overflow: ellipsis; white-space: nowrap; }
-.line-ends { display: grid; grid-template-rows: 100%; align-items: start; width: max-content; max-width: 130px; height: var(--chart-h); margin-left: 10px; }
+.line-ends { display: grid; align-items: start; width: max-content; max-width: 130px; height: var(--chart-h); margin-left: 10px; }
 .line-ends span { position: relative; grid-area: 1 / 1; overflow: hidden; color: var(--muted); font-size: 12px; line-height: 16px; text-overflow: ellipsis; transform: translateY(-50%); white-space: nowrap; }
 .line-x { position: relative; grid-column: 1; height: 16px; margin: 6px 0 0 var(--gut); color: var(--muted); font-size: 12px; }
 .line-x span { position: absolute; line-height: 16px; transform: translateX(-50%); white-space: nowrap; font-variant-numeric: tabular-nums; }

@@ -41,8 +41,17 @@
           <span class="pill teal"><span class="dot"></span>teal</span><span class="pill purple"><span class="dot"></span>purple</span><span class="pill idle"><span class="dot"></span>idle</span>
         </div>
       </example>
-      <p>Status colours mean something: <code>ok</code>, <code>warn</code> and <code>bad</code> for good, needs a look and failed, <code>idle</code> for something switched off. The others are for telling things apart (a series in a chart, a team). In a builder the tone is an argument: <code>Dash.pill('Down', 'bad')</code>, <code>Dash.bar(0.7, 'warn')</code>.</p>
+      <p>Status colours mean something: <code>ok</code>, <code>warn</code> and <code>bad</code> for good, needs a look and failed, <code>idle</code> for something switched off. The others are for telling things apart (a team, a kind). In a builder the tone is an argument: <code>Dash.pill('Down', 'bad')</code>, <code>Dash.bar(0.7, 'warn')</code>.</p>
       <p><code>Dash.tone(value, { 75: 'warn', 90: 'bad' })</code> picks a tone from thresholds: <code>'ok'</code> below 75, <code>'warn'</code> from 75, <code>'bad'</code> from 90 (<code>{ below: true }</code> when lower is worse).</p>
+      <p>The lines of a <a href="charts.html#lines">line chart</a> have four colours of their own. Every pair of them can be told apart in both themes, by colour-blind readers too, which isn't so of the tones. They are for lines, dots and keys, not for text.</p>
+      <example title="The series colours">
+        <div class="swatches">
+          <div class="swatch series-1"><i></i><b>series-1</b><code>--series-1</code></div>
+          <div class="swatch series-2"><i></i><b>series-2</b><code>--series-2</code></div>
+          <div class="swatch series-3"><i></i><b>series-3</b><code>--series-3</code></div>
+          <div class="swatch series-4"><i></i><b>series-4</b><code>--series-4</code></div>
+        </div>
+      </example>
     </section>
 
     <section id="tint" data-terms=".tint">

@@ -149,12 +149,14 @@ Surfaces and text: `--bg`, `--card`, `--soft` (a block inside a card, table head
 | `warn` | `#a84e08` | `#f0b04a` | stale, probation, outside the cut |
 | `bad` | `#c81e1e` | `#ff7d7d` | errors, incidents, blocked, down |
 | `orange` | `#b83e0b` | `#ff9b55` | needs you (agent-dash's "waiting"; deliberately not `warn`) |
-| `teal` | `#0f766e` | `#42d3bf` | a second series, running |
+| `teal` | `#0f766e` | `#42d3bf` | running, a second part of a bar |
 | `purple` | `#6d3fd1` | `#b79dff` | shell |
 | `pink` | `#b5179e` | `#f28fd8` | ultra |
 | `gold` `silver` `bronze` | `#965b07` … | `#f0c04a` … | medals, USD |
 | `idle` | `#6b6862` | `#a7a59e` | idle, closed |
 | `neutral` | `--muted` | | default grey |
+
+**Lines in a chart** have four colours of their own, `series-1` to `series-4` (`--series-1`…): light `#2158d4` `#d9650c` `#2a9a88` `#a13283`, dark `#1967ee` `#d96623` `#26aa96` `#a4469e`. Every pair can be told apart in both themes, by colour-blind readers too, which isn't so of the tones. They are for lines, dots and keys, not for text.
 
 **Contrast:** every tone clears WCAG AA (4.5:1) as text on a card and inside its own tinted pill, tag or rank (10–14 % tints), light and dark. `accent` (3.9:1) and `faint` (3.5:1) are not meant for body text. A test keeps it that way.
 
@@ -392,7 +394,7 @@ Builders return HTML strings, with every value escaped. Put them in with `innerH
 
 `Dash.config` holds `loginUrl` (null), `themeKey` (`'dash.theme'`), `sideKey` (`'dash.side'`), `privacyKey` (`'dash.private'`) and `csp` (false, below).
 
-**Pages with a strict style policy.** A page served with `Content-Security-Policy: style-src 'self'` (no `'unsafe-inline'`) drops every `style=""` in markup, and the builders that size things write sizes that way: `Dash.bar`, `Dash.meter`, `Dash.split`, `Dash.hbars`, `Dash.bars` and `Dash.spark`. On such a page, set `Dash.config.csp = true` before drawing anything:
+**Pages with a strict style policy.** A page served with `Content-Security-Policy: style-src 'self'` (no `'unsafe-inline'`) drops every `style=""` in markup, and the builders that size things write sizes that way: `Dash.bar`, `Dash.meter`, `Dash.split`, `Dash.hbars`, `Dash.bars`, `Dash.lines`, `Dash.spark` and `Dash.progress`. On such a page, set `Dash.config.csp = true` before drawing anything:
 
 - The builders then write their numbers as `data-css-*` attributes instead. The kit sets them through the CSSOM, which the policy allows. It does this at once wherever the kit puts markup in (`Dash.render`, popups, modals, dialogs), and before the next paint for markup the page puts in itself.
 - Only numbers are set, only on the kit's own pieces (a `.bar`'s fill, a chart's columns, and so on), so other markup can't use it to style anything.

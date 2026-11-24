@@ -11,10 +11,10 @@
 <script src="../dash.js"></script>
 </head>
 <body>
-<!-- dash-ui 1.11.0 docs, written by tools/docs.mjs from docs-src/colours.html: edit that, not this -->
+<!-- dash-ui 1.11.1 docs, written by tools/docs.mjs from docs-src/colours.html: edit that, not this -->
 <header class="topbar">
   <button type="button" class="icon-btn docs-menu" data-toggle-side aria-label="Pages"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3 5h12M3 9h12M3 13h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
-  <a class="brand" href="./"><span class="mark">d</span><h1>dash-ui</h1></a><span class="tag plain docs-version">1.11.0</span>
+  <a class="brand" href="./"><span class="mark">d</span><h1>dash-ui</h1></a><span class="tag plain docs-version">1.11.1</span>
   <div class="top-right">
     <label class="search docs-search"><span class="sr-only">Search the docs</span><svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.6"/><path d="m11 11 3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><input class="input" type="search" id="docs-search" placeholder="Search" aria-keyshortcuts="/"><kbd class="docs-key">/</kbd></label>
     <div class="seg" role="group" aria-label="Theme"><button type="button" data-theme-set="system">Auto</button><button type="button" data-theme-set="light">Light</button><button type="button" data-theme-set="dark">Dark</button></div>
@@ -121,14 +121,33 @@
   &lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;pill ok&quot;</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;dot&quot;</span>&gt;&lt;/<span class="c-tag">span</span>&gt;ok&lt;/<span class="c-tag">span</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;pill warn&quot;</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;dot&quot;</span>&gt;&lt;/<span class="c-tag">span</span>&gt;warn&lt;/<span class="c-tag">span</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;pill bad&quot;</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;dot&quot;</span>&gt;&lt;/<span class="c-tag">span</span>&gt;bad&lt;/<span class="c-tag">span</span>&gt;
   &lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;pill teal&quot;</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;dot&quot;</span>&gt;&lt;/<span class="c-tag">span</span>&gt;teal&lt;/<span class="c-tag">span</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;pill purple&quot;</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;dot&quot;</span>&gt;&lt;/<span class="c-tag">span</span>&gt;purple&lt;/<span class="c-tag">span</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;pill idle&quot;</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;dot&quot;</span>&gt;&lt;/<span class="c-tag">span</span>&gt;idle&lt;/<span class="c-tag">span</span>&gt;
 &lt;/<span class="c-tag">div</span>&gt;</code></pre></figure>
-      <p>Status colours mean something: <code>ok</code>, <code>warn</code> and <code>bad</code> for good, needs a look and failed, <code>idle</code> for something switched off. The others are for telling things apart (a series in a chart, a team). In a builder the tone is an argument: <code>Dash.pill('Down', 'bad')</code>, <code>Dash.bar(0.7, 'warn')</code>.</p>
+      <p>Status colours mean something: <code>ok</code>, <code>warn</code> and <code>bad</code> for good, needs a look and failed, <code>idle</code> for something switched off. The others are for telling things apart (a team, a kind). In a builder the tone is an argument: <code>Dash.pill('Down', 'bad')</code>, <code>Dash.bar(0.7, 'warn')</code>.</p>
       <p><code>Dash.tone(value, { 75: 'warn', 90: 'bad' })</code> picks a tone from thresholds: <code>'ok'</code> below 75, <code>'warn'</code> from 75, <code>'bad'</code> from 90 (<code>{ below: true }</code> when lower is worse).</p>
+      <p>The lines of a <a href="charts.html#lines">line chart</a> have four colours of their own. Every pair of them can be told apart in both themes, by colour-blind readers too, which isn't so of the tones. They are for lines, dots and keys, not for text.</p>
+      <figure class="example" id="ex-3"><figcaption>The series colours</figcaption><div class="example-view">
+<div class="swatches">
+  <div class="swatch series-1"><i></i><b>series-1</b><code>--series-1</code></div>
+  <div class="swatch series-2"><i></i><b>series-2</b><code>--series-2</code></div>
+  <div class="swatch series-3"><i></i><b>series-3</b><code>--series-3</code></div>
+  <div class="swatch series-4"><i></i><b>series-4</b><code>--series-4</code></div>
+</div>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;div class=&quot;swatches&quot;&gt;
+  &lt;div class=&quot;swatch series-1&quot;&gt;&lt;i&gt;&lt;/i&gt;&lt;b&gt;series-1&lt;/b&gt;&lt;code&gt;--series-1&lt;/code&gt;&lt;/div&gt;
+  &lt;div class=&quot;swatch series-2&quot;&gt;&lt;i&gt;&lt;/i&gt;&lt;b&gt;series-2&lt;/b&gt;&lt;code&gt;--series-2&lt;/code&gt;&lt;/div&gt;
+  &lt;div class=&quot;swatch series-3&quot;&gt;&lt;i&gt;&lt;/i&gt;&lt;b&gt;series-3&lt;/b&gt;&lt;code&gt;--series-3&lt;/code&gt;&lt;/div&gt;
+  &lt;div class=&quot;swatch series-4&quot;&gt;&lt;i&gt;&lt;/i&gt;&lt;b&gt;series-4&lt;/b&gt;&lt;code&gt;--series-4&lt;/code&gt;&lt;/div&gt;
+&lt;/div&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;swatches&quot;</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;swatch series-1&quot;</span>&gt;&lt;<span class="c-tag">i</span>&gt;&lt;/<span class="c-tag">i</span>&gt;&lt;<span class="c-tag">b</span>&gt;series-1&lt;/<span class="c-tag">b</span>&gt;&lt;<span class="c-tag">code</span>&gt;--series-1&lt;/<span class="c-tag">code</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;swatch series-2&quot;</span>&gt;&lt;<span class="c-tag">i</span>&gt;&lt;/<span class="c-tag">i</span>&gt;&lt;<span class="c-tag">b</span>&gt;series-2&lt;/<span class="c-tag">b</span>&gt;&lt;<span class="c-tag">code</span>&gt;--series-2&lt;/<span class="c-tag">code</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;swatch series-3&quot;</span>&gt;&lt;<span class="c-tag">i</span>&gt;&lt;/<span class="c-tag">i</span>&gt;&lt;<span class="c-tag">b</span>&gt;series-3&lt;/<span class="c-tag">b</span>&gt;&lt;<span class="c-tag">code</span>&gt;--series-3&lt;/<span class="c-tag">code</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;swatch series-4&quot;</span>&gt;&lt;<span class="c-tag">i</span>&gt;&lt;/<span class="c-tag">i</span>&gt;&lt;<span class="c-tag">b</span>&gt;series-4&lt;/<span class="c-tag">b</span>&gt;&lt;<span class="c-tag">code</span>&gt;--series-4&lt;/<span class="c-tag">code</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+&lt;/<span class="c-tag">div</span>&gt;</code></pre></figure>
     </section>
 
     <section id="tint" data-terms=".tint">
       <h2>A tinted block</h2>
       <p><code>.tint</code> gives anything a soft fill and text in its tone: a highlighted note, a selected row of your own, a box around a warning.</p>
-      <figure class="example" id="ex-3"><div class="example-view">
+      <figure class="example" id="ex-4"><div class="example-view">
 <div class="vstack">
   <div class="tint p-3 rounded">A soft block in the muted grey, with no tone.</div>
   <div class="tint warn p-3 rounded">Certificates expire in 9 days.</div>
@@ -148,7 +167,7 @@
     <section id="themes" data-terms="data-theme data-theme-set Dash.theme Dash.theme.get Dash.theme.set Dash.theme.apply Dash.theme.current Dash.color dark-mode prefers-color-scheme">
       <h2>Light and dark</h2>
       <p>A page follows the reader's system setting with nothing to do. To let them choose, give buttons <code>data-theme-set</code> with <code>system</code>, <code>light</code> or <code>dark</code>: the choice is saved, set as <code>data-theme</code> on the page, and the pressed button says so (<code>aria-pressed</code>). The docs' own switch, top right, is this:</p>
-      <figure class="example" id="ex-4"><div class="example-view">
+      <figure class="example" id="ex-5"><div class="example-view">
 <div class="seg" role="group" aria-label="Theme">
   <button type="button" data-theme-set="system">Auto</button><button type="button" data-theme-set="light">Light</button><button type="button" data-theme-set="dark">Dark</button>
 </div>
