@@ -1832,7 +1832,9 @@ let reference;
   await tab.mouse.click(edge.x + 3, edge.y + 3);
   await tab.keyboard.up('Shift');
   check('1.12 rows: Shift-clicking a box\'s cell selects no text', (await at(() => String(getSelection()))) === '' && (await ids()) === '4', await at(() => String(getSelection())));
-  await at(() => document.activeElement.blur());
+  await tab.mouse.dblclick(edge.x + 3, edge.y + 3);
+  check('1.12 rows: nor does a double click on it (a selection would hold refreshes back)', await at(() => getSelection().isCollapsed) && (await ids()) === '4', await at(() => JSON.stringify(String(getSelection()))));
+  await at(() => { getSelection().removeAllRanges(); document.activeElement.blur(); });
   await tab.click(row('fjord') + ' .row-pick input', { modifiers: ['Shift'] });
   check('1.12 rows: a Shift-clicked box has the focus', (await at(() => document.activeElement.getAttribute('aria-label'))) === 'Select fjord', await at(() => document.activeElement.outerHTML.slice(0, 80)));
   const tall = await at(() => ['[data-all]', '[data-none]'].map((q) => Math.round(document.querySelector('#both > .table-bar ' + q).getBoundingClientRect().height)));
@@ -2017,6 +2019,9 @@ let reference;
   check('1.12 rows: details asked for again keep what was typed, and the focus goes to their button', JSON.stringify(asks) === '["Details of birch","Loading…","3","typed"]', JSON.stringify(asks));
   const own = await at(async () => { const n = document.createElement('div'); document.querySelector('main').append(n); const t = Dash.table(n, { columns, rows: make().slice(0, 4), key: 'id', expand: (r, box) => { if (r.id === 1) throw new Error('made to fail'); if (r.id === 2) { const e = document.createElement('p'); e.textContent = 'an element'; return e; } if (r.id === 3) return (async () => { await null; box.textContent = 'drawn'; })(); return (async () => { await null; })(); } }); for (const k of [1, 2, 3, 4]) try { t.expand(k); } catch { /* (it should not reach the page) */ } await new Promise((ok) => setTimeout(ok, 20)); const out = [...n.querySelectorAll('.row-box')].map((b) => b.textContent.trim()); n.remove(); return out; });
   check('1.12 rows: details may be an element, be drawn into the box, or be nothing; an error in one leaves the others', JSON.stringify(own) === JSON.stringify(['Couldn’t load this: made to fail Try again', 'an element', 'drawn', '']), JSON.stringify(own));
+
+  const second = await at(async () => { const n = document.createElement('div'); document.querySelector('main').append(n); let k = 0; const t = Dash.table(n, { columns, rows: make().slice(0, 2), key: 'id', expand: () => { if (!k++) throw new Error('made to fail'); return 'there'; } }); t.expand(2); const b = n.querySelector('[data-retry]'); b.focus(); b.click(); await new Promise((ok) => setTimeout(ok, 10)); const out = [n.querySelector('.row-box').textContent, document.activeElement.getAttribute('aria-label')]; n.remove(); return out; });
+  check('1.12 rows: trying again what failed at once draws it, with the focus on its button', JSON.stringify(second) === '["there","Details of birch"]', JSON.stringify(second));
 
   // hidden values
   await at(() => { both.expand(2); picks.select([1]); opens.expand(1, false); opens.expand(1); answer[1].ok('<p>costs $53.50</p>'); });
