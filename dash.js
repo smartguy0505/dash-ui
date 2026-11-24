@@ -1,4 +1,4 @@
-/* dash-ui 1.12.1 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
+/* dash-ui 1.12.2 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
    A plain script with no dependencies: a script tag for dash.js in <head> gives window.Dash, and puts the
    saved light/dark choice on the page before it paints. In Node, require('./dash.js') returns the same object
    (the parts that need a page are skipped).
@@ -8,7 +8,7 @@
 (function (root) {
   'use strict';
   const hasDom = typeof document !== 'undefined';
-  const Dash = { version: '1.12.1', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side', privacyKey: 'dash.private', csp: false } };
+  const Dash = { version: '1.12.2', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side', privacyKey: 'dash.private', csp: false } };
 
   // ---- basics
 
@@ -531,8 +531,9 @@
     const fill = (d, r, again) => {
       if (again && d.async) return;
       const run = ++d.run;
-      const kept = d.box.hasAttribute('aria-busy') ? d.kept : edits(d.box);
+      const kept = d.failed || d.box.hasAttribute('aria-busy') ? d.kept : edits(d.box); // (not from an error, or Loading…)
       d.kept = kept;
+      d.failed = false;
       if (d.async) { // what an older run still draws goes nowhere
         const box = d.box.cloneNode(false), held = d.box.contains(document.activeElement);
         d.box.replaceWith(box);
@@ -541,6 +542,7 @@
       }
       const box = d.box;
       const failed = (e) => {
+        d.failed = true;
         Dash.render(box, `<p class="row-note">Couldn’t load this: ${esc(error(e))} <button type="button" class="btn sm" data-retry>Try again</button></p>`, { force: true });
         box.querySelector('[data-retry]').addEventListener('click', () => { const now = details.get(idOf(r)); if (now === d) { fill(d, data.find((x) => idOf(x) === idOf(r)) || r); const b = turnOf(r); if (b) b.focus({ preventScroll: true }); } });
       };

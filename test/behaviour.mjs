@@ -1860,6 +1860,8 @@ let reference;
   await reset();
   const held = await at(() => { const r = document.createRange(); r.selectNodeContents(document.querySelector('#both tbody td.main')); getSelection().removeAllRanges(); getSelection().addRange(r); both.update(make().reverse().slice(0, 4).concat(make().slice(0, 3))); const tr = [...document.querySelectorAll('#both tbody tr')].find((t) => t.querySelector('.main').textContent === 'birch'); tr.querySelector('.row-pick input').click(); const gone = [...document.querySelectorAll('#both tbody tr')].find((t) => t.querySelector('.main').textContent === 'fjord').querySelector('.row-pick input'); gone.click(); const out = [both.selected.map((x) => x.name).join(), document.querySelector('#both > .table-bar b').textContent, gone.checked]; getSelection().removeAllRanges(); return out; });
   check('1.12 rows: a box clicked while a refresh waits is for the row on screen; a row that is gone by then isn\'t picked', JSON.stringify(held) === '["birch","1 selected",false]', JSON.stringify(held));
+  const bare = await at(() => { both.select([1, 3]); both.filter(() => false); const t = document.querySelector('#both table'), e = t.querySelector('tbody td'), h = t.querySelector('thead input'); const out = [e.colSpan === t.querySelector('thead tr').cells.length, h.checked, h.disabled, document.querySelector('#both > .table-bar .tone').textContent, document.querySelector('#both .table-pick-all')]; both.filter(null); both.update([]); out.push(both.selected.length, document.querySelector('#both > .table-bar').hidden); return out; });
+  check('1.12 rows: with no rows on screen the header box is off and the bar says where the picked ones are', JSON.stringify(bare) === '[true,false,true,"2 not on this page",null,0,true]', JSON.stringify(bare));
   // from the page, and the CSV
   await reset();
   const api = await at(() => { const out = []; both.select((r) => r.cpu > 80); out.push(both.selected.map((r) => r.id).join()); both.select(['3', 5, 99]); out.push(both.selected.map((r) => r.id).join()); out.push(both.csv(both.selected).trim().split('\r\n').length, both.csv().trim().split('\r\n').length); both.select(4); both.select(4); out.push(both.selected.map((r) => r.id).join(), log.join('|')); both.select(); out.push(both.selected.length); return out; });
@@ -2013,10 +2015,17 @@ let reference;
     t.redraw(); // (asked twice, before the first answer)
     go[1](html(2)); go[2](html(3)); await soon();
     const out = [focus, text, n.querySelector('.row-box p').textContent, n.querySelector('.row-box input').value];
+    t.redraw(); go[3](Promise.reject(new Error('no answer'))); await soon();
+    const said = n.querySelector('.row-box').textContent.trim();
+    n.querySelector('[data-retry]').click(); go[4](html(4)); await soon();
+    out.push(said, n.querySelector('.row-box p').textContent, n.querySelector('.row-box input').value);
+    n.querySelector('.row-box input').value = 'later'; t.redraw(); go[5](html(5)); await soon();
+    out.push(n.querySelector('.row-box input').value);
     n.remove();
     return out;
   });
-  check('1.12 rows: details asked for again keep what was typed, and the focus goes to their button', JSON.stringify(asks) === '["Details of birch","Loading…","3","typed"]', JSON.stringify(asks));
+  check('1.12 rows: details asked for again keep what was typed, and the focus goes to their button', JSON.stringify(asks.slice(0, 4)) === '["Details of birch","Loading…","3","typed"]', JSON.stringify(asks));
+  check('1.12 rows: also when the answer fails first and is asked for once more', JSON.stringify(asks.slice(4)) === '["Couldn’t load this: no answer Try again","4","typed","later"]', JSON.stringify(asks));
   const own = await at(async () => { const n = document.createElement('div'); document.querySelector('main').append(n); const t = Dash.table(n, { columns, rows: make().slice(0, 4), key: 'id', expand: (r, box) => { if (r.id === 1) throw new Error('made to fail'); if (r.id === 2) { const e = document.createElement('p'); e.textContent = 'an element'; return e; } if (r.id === 3) return (async () => { await null; box.textContent = 'drawn'; })(); return (async () => { await null; })(); } }); for (const k of [1, 2, 3, 4]) try { t.expand(k); } catch { /* (it should not reach the page) */ } await new Promise((ok) => setTimeout(ok, 20)); const out = [...n.querySelectorAll('.row-box')].map((b) => b.textContent.trim()); n.remove(); return out; });
   check('1.12 rows: details may be an element, be drawn into the box, or be nothing; an error in one leaves the others', JSON.stringify(own) === JSON.stringify(['Couldn’t load this: made to fail Try again', 'an element', 'drawn', '']), JSON.stringify(own));
 

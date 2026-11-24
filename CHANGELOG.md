@@ -2,6 +2,10 @@
 
 Dashboards keep a copy of `dash.css` and `dash.js`; the first line of each file says which version it is. Versions only add things: a page that worked with an older copy works the same with a newer one.
 
+## 1.12.2 (2026-11-24)
+
+- Details that failed to load and are tried again keep what the reader had typed in them, too.
+
 ## 1.12.1 (2026-11-24)
 
 - What the reader typed, ticked or chose in a row's details stays when a refresh draws them anew, also after they moved on to another box. (1.12.0 kept only the box they were in, so a note was lost on the way to its Save button.) Give the field an `id`, a `data-key` or a `name` of its own. A field the page gives a new starting value gets that value.
