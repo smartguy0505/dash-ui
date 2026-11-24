@@ -1,4 +1,4 @@
-/* dash-ui 1.9.2 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
+/* dash-ui 1.10.0 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
    A plain script with no dependencies: a script tag for dash.js in <head> gives window.Dash, and puts the
    saved light/dark choice on the page before it paints. In Node, require('./dash.js') returns the same object
    (the parts that need a page are skipped).
@@ -8,7 +8,7 @@
 (function (root) {
   'use strict';
   const hasDom = typeof document !== 'undefined';
-  const Dash = { version: '1.9.2', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side', csp: false } };
+  const Dash = { version: '1.10.0', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side', privacyKey: 'dash.private', csp: false } };
 
   // ---- basics
 
@@ -380,7 +380,9 @@
   //   accounts.update(rows);                                             // whenever the data changes
   //   accounts.filter((r) => Dash.match(r, query));                      // a search; accounts.download('accounts.csv')
   // A column: key, label, num (right-aligned), unit, title, cls, value (row → what it shows and sorts by),
-  // format ((value, row) → text), html (row → HTML from a builder, not escaped), sort: false, firstDir: 'asc', main.
+  // format ((value, row) → text), html (row → HTML from a builder, not escaped), sort: false, firstDir: 'asc', main,
+  // private (true, or the stand-in's text): hidden while the reader hides values (Dash.privacy). The order of the rows
+  // stays, and csv() and download() still hold the values.
   // Options: cls (table classes, 'stack' by default: cards on phones), wrap (the table as its own card), perPage
   // (0: no pager), sizes, noun, key (row → data-key, so Dash.render keeps its focus), rowClass (row → class),
   // empty (text when there are no rows), onRow (row, event): a click or Enter on a row, not on a control in it,
@@ -400,7 +402,8 @@
     let size = perPage;
     const cell = (c, r) => {
       const v = valueOf(c, r);
-      const inner = c.html ? c.html(r) : esc(c.format ? c.format(v, r) : v == null || v === '' ? NONE : v);
+      let inner = c.html ? c.html(r) : esc(c.format ? c.format(v, r) : v == null || v === '' ? NONE : v);
+      if (c.private) inner = Dash.mask(inner, { html: true, ...(c.private === true ? {} : { as: c.private }) });
       const classes = [c.num ? 'num' : '', c.main ? 'main' : '', c.cls || ''].filter(Boolean).join(' ');
       return `<td${classes ? ` class="${esc(classes)}"` : ''}${c.main ? '' : ` data-label="${esc(c.label)}"`}>${inner}</td>`;
     };
@@ -458,6 +461,8 @@
       draw(true);
     });
     draw();
+    node.__dashPrivate?.(); // a table made again here: the old one stops listening
+    node.__dashPrivate = columns.some((c) => c.private) ? Dash.privacy.onChange(() => draw(true)) : null;
     return {
       update(next) { data = next || []; draw(); },
       get rows() { return data; },
@@ -858,6 +863,74 @@
       if (show) s.removeAttribute('aria-label'); else s.setAttribute('aria-label', 'IP address, hidden. Press to show it');
     }
   };
+
+  // ---- values the reader can hide (an eye in the top bar), so they stay out of meetings and screenshots
+
+  // While they are hidden a private value isn't in the page at all: a fixed stand-in is blurred in its place, so there is
+  // nothing to read, select, copy or find in the markup. (.ip is another thing: it blurs the real address, and a click
+  // shows it.)
+  //   <button type="button" class="icon-btn" data-privacy="balances"></button>    the eye; Dash.privacy.button('balances') writes it
+  //   Dash.mask(fmt.usd(total))                 HTML: the text, escaped, or the stand-in
+  //   Dash.mask.text(name, 'an account')        plain text, for a title, a label or a toast: the text, or the other words
+  //   Dash.privacy.onChange(() => draw())          draw again when the reader hides or shows them
+  // Dash.table does it by itself for columns with private: true. A text box with data-private shows dots until it is
+  // clicked or typed in (its value is still in the box). The choice is kept in this browser (Dash.config.privacyKey); its
+  // other open tabs follow.
+  const privacyFns = new Set();
+  let privacyOn = null; // not read yet: Dash.config.privacyKey may still change
+  const eye = (off) => '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+    + `<path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8Z"/><circle cx="8" cy="8" r="2"/>${off ? '<path d="m2.5 2.5 11 11"/>' : ''}</svg>`;
+  const privacyLabel = (noun, on) => `${on ? 'Show' : 'Hide'} ${noun || 'values'}`;
+  // every eye, and the mark on <html> that text boxes look at
+  const markPrivacy = (on = Dash.privacy.on) => {
+    if (!hasDom) return;
+    if (on) document.documentElement.dataset.values = 'hidden'; else delete document.documentElement.dataset.values;
+    for (const b of document.querySelectorAll('[data-privacy]')) {
+      if (!b.textContent.trim()) { // an eye: the picture and the words say what pressing it does
+        b.innerHTML = eye(!on);
+        b.title = privacyLabel(b.dataset.privacy, on);
+        b.setAttribute('aria-label', b.title);
+      } else b.setAttribute('aria-pressed', String(on)); // a button with its own words keeps them
+    }
+  };
+  const setPrivacy = (on) => {
+    const was = Dash.privacy.on;
+    privacyOn = on;
+    if (on && hasDom) { // what would keep one showing: selected text (Dash.render waits for it), an open tip, a box being read
+      getSelection()?.removeAllRanges();
+      hideTip();
+      if (tipEl) tipEl.textContent = '';
+      for (const box of document.querySelectorAll('.reveal[data-private]')) box.classList.remove('reveal');
+    }
+    markPrivacy();
+    if (was === on) return;
+    // one part's mistake must not leave another part's values showing
+    for (const fn of [...privacyFns]) try { fn(on); } catch (e) { setTimeout(() => { throw e; }); }
+  };
+  Dash.privacy = {
+    // are values hidden now?
+    get on() {
+      if (privacyOn == null) privacyOn = Dash.store.get(Dash.config.privacyKey) === true;
+      return privacyOn;
+    },
+    set(on) { Dash.store.set(Dash.config.privacyKey, Boolean(on)); setPrivacy(Boolean(on)); },
+    toggle() { Dash.privacy.set(!Dash.privacy.on); },
+    // fn(hidden) whenever it changes, here or in another tab; returns a function that stops it
+    onChange(fn) { privacyFns.add(fn); return () => { privacyFns.delete(fn); }; },
+    // the eye as HTML: Dash.privacy.button('balances') is "Hide balances", then "Show balances"
+    button(noun = 'values', { cls = '' } = {}) {
+      const on = Dash.privacy.on, words = privacyLabel(noun, on);
+      return `<button type="button" class="icon-btn${cls ? ' ' + esc(cls) : ''}" data-privacy="${esc(noun)}" title="${esc(words)}" aria-label="${esc(words)}">${eye(!on)}</button>`;
+    },
+  };
+  // a value as HTML, or its stand-in while values are hidden. html: true takes markup from a builder; as is the
+  // stand-in's text (never the value's own length). Nothing to hide ('' or —) shows as it is.
+  Dash.mask = (text, { html = false, as = '000.00', label = 'hidden' } = {}) => {
+    const shown = text == null ? '' : html ? String(text) : esc(text);
+    if (shown === '' || shown === NONE || !Dash.privacy.on) return shown;
+    return `<span class="private" aria-hidden="true">${esc(as)}</span><span class="sr-only">${esc(label)}</span>`;
+  };
+  Dash.mask.text = (text, as = 'hidden') => (text == null || text === '' ? '' : Dash.privacy.on ? String(as) : String(text));
 
   // ---- layers: what shows above what
   // An open modal dialog sits above the page and makes the rest of it unclickable, so toasts, notices, tooltips and
@@ -2070,6 +2143,7 @@
 
   if (hasDom) {
     Dash.theme.apply(); // before first paint when dash.js is in <head>
+    if (Dash.store.get(Dash.config.privacyKey) === true) document.documentElement.dataset.values = 'hidden'; // too
 
     // the sticky top bar's height, for things that stick under it (0 when it scrolls away, as on phones)
     const syncTopbar = () => {
@@ -2079,6 +2153,7 @@
     };
     const ready = () => {
       Dash.theme.apply();
+      markPrivacy();
       syncTopbar();
       const bar = document.querySelector('.topbar');
       if (bar && typeof ResizeObserver !== 'undefined') new ResizeObserver(syncTopbar).observe(bar);
@@ -2100,6 +2175,8 @@
       let hit;
       if ((hit = t.closest('.ip[data-ip]'))) {
         toggleIp(hit);
+      } else if ((hit = t.closest('[data-privacy]'))) {
+        Dash.privacy.toggle();
       } else if ((hit = t.closest('[data-theme-set]'))) {
         Dash.theme.set(hit.dataset.themeSet);
       } else if ((hit = t.closest('[data-copy]'))) {
@@ -2288,6 +2365,25 @@
       const open = document.querySelector('.shell.offcanvas.side-open');
       if (open && !popups.length && !document.querySelector('dialog[open], details.menu[open]')) { e.preventDefault(); sideDrawer(open, false); }
     });
+    // hidden values: the choice made in another tab, or while the browser kept this page for its back button
+    const followPrivacy = () => {
+      const on = Dash.store.get(Dash.config.privacyKey);
+      if (typeof on === 'boolean') setPrivacy(on); // nothing stored (cleared, blocked): as it is
+    };
+    window.addEventListener('storage', (e) => { if (e.key === Dash.config.privacyKey) followPrivacy(); });
+    window.addEventListener('pageshow', (e) => { if (e.persisted) followPrivacy(); });
+    // text boxes: clicking or typing shows one, until the reader leaves it. Not focus: Tab goes through boxes too, and
+    // not a finger's press: that may be the start of a scroll (its click comes after).
+    const showBox = (e) => {
+      if (Dash.privacy.on && e.target.matches?.('input[data-private], textarea[data-private]')) e.target.classList.add('reveal');
+    };
+    document.addEventListener('pointerdown', (e) => { if (e.pointerType !== 'touch') showBox(e); });
+    document.addEventListener('click', showBox);
+    document.addEventListener('input', (e) => { if (e.target === document.activeElement) showBox(e); }); // (not the browser filling it in)
+    document.addEventListener('focusout', (e) => { if (e.target.matches?.('[data-private]')) e.target.classList.remove('reveal'); });
+    document.addEventListener('close', (e) => { // a dialog that closes takes the focus out without a focusout
+      for (const box of e.target.querySelectorAll?.('.reveal[data-private]') || []) box.classList.remove('reveal');
+    }, true);
     // tooltips: data-tooltip on hover or keyboard focus
     document.addEventListener('mouseover', (e) => {
       const t = e.target.closest && e.target.closest('[data-tooltip]');

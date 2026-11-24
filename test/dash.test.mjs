@@ -250,6 +250,30 @@ test('1.3: the address as settings', () => {
   assert.deepEqual(Dash.hash.parse(Dash.hash.format(o)), o);
 });
 
+test('1.10: a private value is written only while values are shown', () => {
+  const { mask, privacy } = Dash; // both can be taken out of it (a reserved word couldn't)
+  assert.equal(mask, Dash.mask); assert.equal(privacy, Dash.privacy);
+  Dash.privacy.set(false);
+  assert.equal(Dash.mask('€1,204.50'), '€1,204.50');
+  assert.equal(Dash.mask('<b>1,204</b>'), '&lt;b&gt;1,204&lt;/b&gt;');
+  assert.equal(Dash.mask('<b>1,204</b>', { html: true }), '<b>1,204</b>');
+  assert.equal(Dash.mask.text('1,204', 'an amount'), '1,204');
+  Dash.privacy.set(true);
+  assert.equal(Dash.privacy.on, true);
+  for (const out of [Dash.mask('€1,204.50'), Dash.mask('<b>1,204</b>', { html: true, as: '0<0', label: '"gone"' }), Dash.mask.text('1,204', 'an amount'), Dash.mask.text(1204)]) assert.doesNotMatch(out, /1,?204/);
+  assert.equal(Dash.mask(1), Dash.mask('€1,204,000.50'), 'the stand-in says nothing about the length');
+  assert.match(Dash.mask(0), /class="private"/, 'a zero is a value');
+  assert.equal(Dash.mask('x', { as: '0<0', label: '"gone"' }), '<span class="private" aria-hidden="true">0&lt;0</span><span class="sr-only">&quot;gone&quot;</span>');
+  for (const none of ['', null, undefined]) { assert.equal(Dash.mask(none), ''); assert.equal(Dash.mask.text(none), ''); }
+  assert.equal(Dash.mask('—'), '—');
+  assert.equal(Dash.mask.text('1,204', 'an amount'), 'an amount');
+  assert.equal(Dash.mask.text('1,204'), 'hidden');
+  assert.match(Dash.privacy.button('"b"'), /data-privacy="&quot;b&quot;" title="Show &quot;b&quot;" aria-label="Show &quot;b&quot;"/);
+  Dash.privacy.toggle();
+  assert.equal(Dash.privacy.on, false);
+  assert.match(Dash.privacy.button(), /data-privacy="values" title="Hide values" aria-label="Hide values"/);
+});
+
 test('1.9.2: a timeline time to come counts down; one within a minute of now, or past, is written as before', () => {
   const kind = (t) => /<time [^>]*data-(ago|near|until)=/.exec(Dash.timeline([{ title: 'x', time: t }]))[1];
   assert.equal(kind(Date.now() + 2 * 3600e3), 'near');

@@ -38,6 +38,7 @@
           <tr><td><code>format: (value, row) =&gt; text</code></td><td>Text for the cell (escaped).</td></tr>
           <tr><td><code>html: (row) =&gt; markup</code></td><td>Markup from a builder (<code>Dash.pill</code>, <code>Dash.ago</code>, <code>Dash.bar</code>…), not escaped.</td></tr>
           <tr><td><code>sort: false</code>, <code>firstDir: 'asc'</code></td><td>A column that doesn't sort; one whose first click sorts up (names, latency).</td></tr>
+          <tr><td><code>private: true</code></td><td>Hidden while the reader <a href="feedback.html#private">hides values</a>; a text is the stand-in to show instead of <code>000.00</code>. Rows keep their order, and the CSV its values.</td></tr>
           <tr><td><code>title</code>, <code>cls</code></td><td>A tooltip on the header; classes on its cells.</td></tr>
         </tbody>
       </table></div>

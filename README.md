@@ -303,6 +303,7 @@ Surfaces and text: `--bg`, `--card`, `--soft` (a block inside a card, table head
 - `.live` with `data-state="on|stale|off|connecting"`: the connection status (the dot pulses while connecting).
 - `.flash`: highlights a value that just changed.
 - `.ip`: a blurred IP address (`Dash.maskIps`).
+- `.private`: the blurred stand-in of a value the reader has hidden (`Dash.mask`); `<input data-private>` shows dots then, until it is clicked or typed in.
 - `.login-page` on `<body>`, then `form.login` with `.lead` and `.note`: the sign-in page.
 
 ## dash.js
@@ -349,6 +350,8 @@ Builders return HTML strings, with every value escaped. Put them in with `innerH
 | `Dash.entries(rows, { title, sub, lead, end, href, button, key, wrap, empty, label })` | a list: `title` and `sub` are keys or functions (escaped), `lead` and `end` return HTML, `href(row)` makes links, `button: true` buttons with `data-key` |
 | `Dash.side.open()`, `.close()` | the `.shell.offcanvas` drawer from code; `open` returns `false` wider than 900 px, where there is no drawer |
 | `Dash.maskIps(text)`, `Dash.hideIps(text)` | blur IPv4 addresses (a click shows every copy of that address); `(IP hidden)` for tooltips |
+| `Dash.mask(text, { html, as, label })`, `Dash.mask.text(text, as)` | a value, or its stand-in while the reader hides values (the real one isn't in the page then); `.text` for titles, labels and toasts |
+| `Dash.privacy.on`, `.set(on)`, `.toggle()`, `.onChange(fn)`, `.button(noun)` | whether values are hidden (remembered, and followed across tabs), and the eye that hides them; `<button class="icon-btn" data-privacy="balances">` is an eye too |
 | `Dash.copy(text)` | clipboard with the old fallback for plain-HTTP pages; returns true/false |
 | `Dash.toast(msg, { tone, ms, action, onAction })` | short message; with `action: 'Undo'` it has a button and stays 6 s |
 | `Dash.notify({ key, title, status, text, tone, onClick, ms, max })`, `Dash.notify.dismiss(key)` | alert in the corner |
@@ -385,7 +388,7 @@ Builders return HTML strings, with every value escaped. Put them in with `innerH
 - `<details class="menu">`: closes on a click outside, on Escape and once an item is chosen.
 - `.ip`: click or Enter shows that IP address everywhere on the page.
 
-`Dash.config` holds `loginUrl` (null), `themeKey` (`'dash.theme'`), `sideKey` (`'dash.side'`) and `csp` (false, below).
+`Dash.config` holds `loginUrl` (null), `themeKey` (`'dash.theme'`), `sideKey` (`'dash.side'`), `privacyKey` (`'dash.private'`) and `csp` (false, below).
 
 **Pages with a strict style policy.** A page served with `Content-Security-Policy: style-src 'self'` (no `'unsafe-inline'`) drops every `style=""` in markup, and the builders that size things write sizes that way: `Dash.bar`, `Dash.meter`, `Dash.split`, `Dash.hbars`, `Dash.bars` and `Dash.spark`. On such a page, set `Dash.config.csp = true` before drawing anything:
 
@@ -399,6 +402,7 @@ Builders return HTML strings, with every value escaped. Put them in with `innerH
 - `num: true` aligns it right; `unit`, `title` and `cls` as for `Dash.th`; `main: true` makes it the card title on a phone;
 - `value: (row) => …` when what it shows and sorts by isn't `row[key]`;
 - `format: (value, row) => text` for text (escaped), or `html: (row) => markup` for a builder's output (`Dash.pill`, `Dash.ago`, …);
+- `private: true` for a column the reader can hide with the rest (`Dash.privacy`), or the stand-in's text.
 - `sort: false` for a column that doesn't sort; `firstDir: 'asc'` for one whose first click should sort up (names, latency).
 
 **`Dash.modal`.** For more than a question: a form that saves, details that keep updating, a long list.
@@ -491,7 +495,7 @@ node --test test/dash.test.mjs
 
 The tests cover the formatters, sorting, paging, escaping in every builder, and chart sizes. For `dash-utils.css`, they check four things: it is what `tools/utils.mjs` writes; no utility takes the name of a kit class; shorthands come before their parts and the variants come in order; and it stays within its size budget. They also check that the two dark palettes in `dash.css` are equal, that every token has a dark value, and that every class used in the pages and in dash.js exists in `dash.css`. For the docs, they check that `docs/` is what `tools/docs.mjs` writes, that every kit class and `Dash` function is named on some page, that every class the docs use exists, and that the links between the pages lead somewhere. For layout, `test/screens.mjs` loads every page (the docs too) in headless Chromium at 390, 700, 860 and 1440 px, light and dark. It fails on a page wider than the window, a console error, or a stacked table whose rows aren't cards at the right widths (or whose `td.actions` left the card's corner). It needs Playwright, which the kit itself doesn't:
 
-`test/behaviour.mjs` checks in the same browser what a node test can't see: `Dash.render` keeping focus, typing, open details, scroll and a selection; the poll's live status; the chart readout; copy buttons across a redraw; the sidebar event; the search count; saved choices in `Dash.seg`; `.topbar.static-md` and phone tiles; `Dash.table`, tabs, menus, tooltips, dialogs, `Dash.search`, `Dash.key`, live times and stacked columns; and modals, popups and menus (each popup check runs with the browser's own popovers and without them), and what shows above an open dialog; lanes; and, on a page served with `style-src 'self'` (`test/csp.html`), `Dash.lanes` and the sizing builders with `Dash.config.csp`, drawn as without the policy and with no violations; and `dash-utils.css` next to the kit (`test/utils.html`): every rule parses, utilities beat the kit's rules while its modifiers keep their meaning, and the widths, `dark:` both ways, hover, focus and print work; the components on `test/components.html` (slider values, file drops, the offcanvas drawer, the stepper on a phone, the combobox with the keyboard, the mouse, a server search and inside a dialog, and the date picker's keyboard grid, range and typed dates); and the docs' search and their phone and theme previews. `KIT=<dir>` serves `dash.css`, `dash.js` and `dash-utils.css` from another folder, to try a change (the node tests read it too, and `tools/utils.mjs` from there when it has one).
+`test/behaviour.mjs` checks in the same browser what a node test can't see: `Dash.render` keeping focus, typing, open details, scroll and a selection; the poll's live status; the chart readout; copy buttons across a redraw; the sidebar event; the search count; saved choices in `Dash.seg`; `.topbar.static-md` and phone tiles; `Dash.table`, tabs, menus, tooltips, dialogs, `Dash.search`, `Dash.key`, live times and stacked columns; and modals, popups and menus (each popup check runs with the browser's own popovers and without them), and what shows above an open dialog; lanes; and, on a page served with `style-src 'self'` (`test/csp.html`), `Dash.lanes` and the sizing builders with `Dash.config.csp`, drawn as without the policy and with no violations; and `dash-utils.css` next to the kit (`test/utils.html`): every rule parses, utilities beat the kit's rules while its modifiers keep their meaning, and the widths, `dark:` both ways, hover, focus and print work; the components on `test/components.html` (slider values, file drops, the offcanvas drawer, the stepper on a phone, the combobox with the keyboard, the mouse, a server search and inside a dialog, and the date picker's keyboard grid, range and typed dates); the docs' search and their phone and theme previews; what shows in high contrast, by its pixels (`test/contrast.html`); and values the reader hides, in the page, in its text boxes and across tabs (`test/private.html`). `KIT=<dir>` serves `dash.css`, `dash.js` and `dash-utils.css` from another folder, to try a change (the node tests read it too, and `tools/utils.mjs` from there when it has one).
 
 ```sh
 npm i --no-save playwright-core && npx playwright-core install --only-shell chromium

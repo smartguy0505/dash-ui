@@ -83,7 +83,7 @@
       <ul>
         <li><code>Dash.store.get(key, fallback)</code> and <code>.set(key, value)</code>: JSON in the browser's storage that never throws (a private window, blocked storage: you get the fallback).</li>
         <li><code>Dash.hash</code>: the part of the address after <code>#</code> as settings, <code>#view=list&amp;id=7</code>. <code>.get(key)</code>, <code>.set({ key: value }, { push })</code> (null removes a key; <code>push</code> adds a history entry), <code>.on(fn)</code> when it changes, <code>.parse(text)</code> and <code>.format(object)</code>.</li>
-        <li><code>Dash.config</code>: <code>loginUrl</code> (null), <code>themeKey</code> (<code>'dash.theme'</code>), <code>sideKey</code> (<code>'dash.side'</code>) and <code>csp</code> (false; see <a href="charts.html#strict">strict style policies</a>).</li>
+        <li><code>Dash.config</code>: <code>loginUrl</code> (null), <code>themeKey</code> (<code>'dash.theme'</code>), <code>sideKey</code> (<code>'dash.side'</code>), <code>privacyKey</code> (<code>'dash.private'</code>, for <a href="feedback.html#private">hidden values</a>) and <code>csp</code> (false; see <a href="charts.html#strict">strict style policies</a>).</li>
       </ul>
     </section>
 

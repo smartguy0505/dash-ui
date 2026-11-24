@@ -11,10 +11,10 @@
 <script src="../dash.js"></script>
 </head>
 <body>
-<!-- dash-ui 1.9.2 docs, written by tools/docs.mjs from docs-src/feedback.html: edit that, not this -->
+<!-- dash-ui 1.10.0 docs, written by tools/docs.mjs from docs-src/feedback.html: edit that, not this -->
 <header class="topbar">
   <button type="button" class="icon-btn docs-menu" data-toggle-side aria-label="Pages"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3 5h12M3 9h12M3 13h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
-  <a class="brand" href="./"><span class="mark">d</span><h1>dash-ui</h1></a><span class="tag plain docs-version">1.9.2</span>
+  <a class="brand" href="./"><span class="mark">d</span><h1>dash-ui</h1></a><span class="tag plain docs-version">1.10.0</span>
   <div class="top-right">
     <label class="search docs-search"><span class="sr-only">Search the docs</span><svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.6"/><path d="m11 11 3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><input class="input" type="search" id="docs-search" placeholder="Search" aria-keyshortcuts="/"><kbd class="docs-key">/</kbd></label>
     <div class="seg" role="group" aria-label="Theme"><button type="button" data-theme-set="system">Auto</button><button type="button" data-theme-set="light">Light</button><button type="button" data-theme-set="dark">Dark</button></div>
@@ -23,7 +23,7 @@
 <div class="shell offcanvas">
   <nav class="sidebar" aria-label="Pages"><div class="side-head">Start</div><a class="nav-item" href="./"><span class="nav-main"><span class="nav-name">Getting started</span></span></a><div class="side-head">Foundations</div><a class="nav-item" href="colours.html"><span class="nav-main"><span class="nav-name">Colours and themes</span></span></a><a class="nav-item" href="layout.html"><span class="nav-main"><span class="nav-name">Page layout</span></span></a><a class="nav-item" href="text.html"><span class="nav-main"><span class="nav-name">Text and labels</span></span></a><div class="side-head">Components</div><a class="nav-item" href="buttons.html"><span class="nav-main"><span class="nav-name">Buttons</span></span></a><a class="nav-item" href="forms.html"><span class="nav-main"><span class="nav-name">Forms</span></span></a><a class="nav-item" href="surfaces.html"><span class="nav-main"><span class="nav-name">Panels and cards</span></span></a><a class="nav-item" href="navigation.html"><span class="nav-main"><span class="nav-name">Navigation</span></span></a><a class="nav-item" href="tables.html"><span class="nav-main"><span class="nav-name">Tables</span></span></a><a class="nav-item" href="charts.html"><span class="nav-main"><span class="nav-name">Charts and progress</span></span></a><a class="nav-item" href="overlays.html"><span class="nav-main"><span class="nav-name">Modals and popups</span></span></a><a class="nav-item" href="feedback.html" aria-current="page"><span class="nav-main"><span class="nav-name">Feedback</span></span></a><div class="side-head">JavaScript</div><a class="nav-item" href="helpers.html"><span class="nav-main"><span class="nav-name">dash.js helpers</span></span></a><div class="side-head">Utilities</div><a class="nav-item" href="utilities.html"><span class="nav-main"><span class="nav-name">Utility classes</span></span></a><a class="nav-item" href="utilities-layout.html"><span class="nav-main"><span class="nav-name">Layout utilities</span></span></a><a class="nav-item" href="utilities-spacing.html"><span class="nav-main"><span class="nav-name">Spacing utilities</span></span></a><a class="nav-item" href="utilities-sizing.html"><span class="nav-main"><span class="nav-name">Sizing utilities</span></span></a><a class="nav-item" href="utilities-type.html"><span class="nav-main"><span class="nav-name">Type utilities</span></span></a><a class="nav-item" href="utilities-colour.html"><span class="nav-main"><span class="nav-name">Colour utilities</span></span></a><a class="nav-item" href="utilities-effects.html"><span class="nav-main"><span class="nav-name">Borders and effects</span></span></a></nav>
   <main class="content docs" id="top">
-    <header class="docs-head"><p class="docs-group">Components</p><h1>Feedback</h1><p class="docs-blurb">Toasts, notices, the live status, flashes and the sign-in page.</p><nav class="chips docs-toc" aria-label="On this page"><a class="chip" href="#toasts">Toasts</a><a class="chip" href="#notices">Notices</a><a class="chip" href="#live">The live status</a><a class="chip" href="#flash">Flashing a change</a><a class="chip" href="#ips">Hidden addresses</a><a class="chip" href="#login">The sign-in page</a></nav></header>
+    <header class="docs-head"><p class="docs-group">Components</p><h1>Feedback</h1><p class="docs-blurb">Toasts, notices, the live status, flashes and the sign-in page.</p><nav class="chips docs-toc" aria-label="On this page"><a class="chip" href="#toasts">Toasts</a><a class="chip" href="#notices">Notices</a><a class="chip" href="#live">The live status</a><a class="chip" href="#flash">Flashing a change</a><a class="chip" href="#ips">Hidden addresses</a><a class="chip" href="#private">Hidden values</a><a class="chip" href="#login">The sign-in page</a></nav></header>
 <section id="toasts" data-terms="Dash.toast .toast .toast-text .toast-act .act .show">
       <h2>Toasts</h2>
       <p><code>Dash.toast(message, { tone, ms, action, onAction })</code> is a short message at the bottom of the window that goes away on its own. With <code>action: 'Undo'</code> it has a button and stays six seconds. Screen readers hear it. Toasts and notices show above an open modal too.</p>
@@ -142,10 +142,80 @@
 &lt;/<span class="c-tag">script</span>&gt;</code></pre></figure>
     </section>
 
+    <section id="private" data-terms=".private .reveal data-private data-privacy data-values Dash.mask Dash.mask.text Dash.privacy Dash.privacy.on Dash.privacy.set Dash.privacy.toggle Dash.privacy.onChange Dash.privacy.button Dash.config.privacyKey hide-values balances blur eye">
+      <h2>Hidden values</h2>
+      <p>An eye in the top bar lets the reader hide amounts, names or account numbers before a meeting or a screenshot. While they are hidden the real ones aren't in the page at all: <code>Dash.mask(text)</code> writes a fixed blurred stand-in, so there is nothing to select, copy or find, and its length says nothing. The choice is remembered in this browser, and other open tabs follow it.</p>
+      <figure class="example" id="ex-6"><div class="example-view">
+<div class="row"><span class="muted">Balance</span> <b class="num" id="hide-total"></b> <span id="hide-change"></span> <span class="push" id="hide-eye"></span></div>
+<div id="hide-table" style="margin-top:12px"></div>
+<div class="field" style="margin:14px 0 0"><label for="hide-acct">Account number</label><input class="input mono" id="hide-acct" data-private value="4417 0092 1185"></div>
+<script>
+  const draw = () => {
+    Dash.render('hide-total', Dash.mask('$12,480.20'));
+    Dash.render('hide-change', Dash.mask(Dash.chg(1.4, '+1.4%'), { html: true, as: '0.0%' }));
+  };
+  Dash.privacy.onChange(draw);
+  draw();
+  document.getElementById('hide-eye').innerHTML = Dash.privacy.button('balances');
+  Dash.table('hide-table', {
+    columns: [
+      { key: 'name', label: 'Account', main: true },
+      { key: 'balance', label: 'Balance', num: true, private: true, format: (v) => Dash.fmt.usd(v) },
+    ],
+    rows: [{ name: 'Main', balance: 9310.5 }, { name: 'Savings', balance: 3169.7 }],
+  });
+</script>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;div class=&quot;row&quot;&gt;&lt;span class=&quot;muted&quot;&gt;Balance&lt;/span&gt; &lt;b class=&quot;num&quot; id=&quot;hide-total&quot;&gt;&lt;/b&gt; &lt;span id=&quot;hide-change&quot;&gt;&lt;/span&gt; &lt;span class=&quot;push&quot; id=&quot;hide-eye&quot;&gt;&lt;/span&gt;&lt;/div&gt;
+&lt;div id=&quot;hide-table&quot; style=&quot;margin-top:12px&quot;&gt;&lt;/div&gt;
+&lt;div class=&quot;field&quot; style=&quot;margin:14px 0 0&quot;&gt;&lt;label for=&quot;hide-acct&quot;&gt;Account number&lt;/label&gt;&lt;input class=&quot;input mono&quot; id=&quot;hide-acct&quot; data-private value=&quot;4417 0092 1185&quot;&gt;&lt;/div&gt;
+&lt;script&gt;
+  const draw = () =&gt; {
+    Dash.render(&#39;hide-total&#39;, Dash.mask(&#39;$12,480.20&#39;));
+    Dash.render(&#39;hide-change&#39;, Dash.mask(Dash.chg(1.4, &#39;+1.4%&#39;), { html: true, as: &#39;0.0%&#39; }));
+  };
+  Dash.privacy.onChange(draw);
+  draw();
+  document.getElementById(&#39;hide-eye&#39;).innerHTML = Dash.privacy.button(&#39;balances&#39;);
+  Dash.table(&#39;hide-table&#39;, {
+    columns: [
+      { key: &#39;name&#39;, label: &#39;Account&#39;, main: true },
+      { key: &#39;balance&#39;, label: &#39;Balance&#39;, num: true, private: true, format: (v) =&gt; Dash.fmt.usd(v) },
+    ],
+    rows: [{ name: &#39;Main&#39;, balance: 9310.5 }, { name: &#39;Savings&#39;, balance: 3169.7 }],
+  });
+&lt;/script&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;row&quot;</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;muted&quot;</span>&gt;Balance&lt;/<span class="c-tag">span</span>&gt; &lt;<span class="c-tag">b</span> <span class="c-attr">class</span>=<span class="c-str">&quot;num&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;hide-total&quot;</span>&gt;&lt;/<span class="c-tag">b</span>&gt; &lt;<span class="c-tag">span</span> <span class="c-attr">id</span>=<span class="c-str">&quot;hide-change&quot;</span>&gt;&lt;/<span class="c-tag">span</span>&gt; &lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;push&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;hide-eye&quot;</span>&gt;&lt;/<span class="c-tag">span</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+&lt;<span class="c-tag">div</span> <span class="c-attr">id</span>=<span class="c-str">&quot;hide-table&quot;</span> <span class="c-attr">style</span>=<span class="c-str">&quot;margin-top:12px&quot;</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;field&quot;</span> <span class="c-attr">style</span>=<span class="c-str">&quot;margin:14px 0 0&quot;</span>&gt;&lt;<span class="c-tag">label</span> <span class="c-attr">for</span>=<span class="c-str">&quot;hide-acct&quot;</span>&gt;Account number&lt;/<span class="c-tag">label</span>&gt;&lt;<span class="c-tag">input</span> <span class="c-attr">class</span>=<span class="c-str">&quot;input mono&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;hide-acct&quot;</span> <span class="c-attr">data-private</span> <span class="c-attr">value</span>=<span class="c-str">&quot;4417 0092 1185&quot;</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+&lt;<span class="c-tag">script</span>&gt;
+  <span class="c-key">const</span> draw = () =&gt; {
+    <span class="c-fn">Dash</span>.render(<span class="c-str">&#39;hide-total&#39;</span>, <span class="c-fn">Dash</span>.mask(<span class="c-str">&#39;$12,480.20&#39;</span>));
+    <span class="c-fn">Dash</span>.render(<span class="c-str">&#39;hide-change&#39;</span>, <span class="c-fn">Dash</span>.mask(<span class="c-fn">Dash</span>.chg(<span class="c-num">1.4</span>, <span class="c-str">&#39;+1.4%&#39;</span>), { html: <span class="c-key">true</span>, as: <span class="c-str">&#39;0.0%&#39;</span> }));
+  };
+  <span class="c-fn">Dash</span>.privacy.onChange(draw);
+  draw();
+  document.getElementById(<span class="c-str">&#39;hide-eye&#39;</span>).innerHTML = <span class="c-fn">Dash</span>.privacy.button(<span class="c-str">&#39;balances&#39;</span>);
+  <span class="c-fn">Dash</span>.table(<span class="c-str">&#39;hide-table&#39;</span>, {
+    columns: [
+      { key: <span class="c-str">&#39;name&#39;</span>, label: <span class="c-str">&#39;Account&#39;</span>, main: <span class="c-key">true</span> },
+      { key: <span class="c-str">&#39;balance&#39;</span>, label: <span class="c-str">&#39;Balance&#39;</span>, num: <span class="c-key">true</span>, private: <span class="c-key">true</span>, format: (v) =&gt; <span class="c-fn">Dash</span>.fmt.usd(v) },
+    ],
+    rows: [{ name: <span class="c-str">&#39;Main&#39;</span>, balance: <span class="c-num">9310.5</span> }, { name: <span class="c-str">&#39;Savings&#39;</span>, balance: <span class="c-num">3169.7</span> }],
+  });
+&lt;/<span class="c-tag">script</span>&gt;</code></pre></figure>
+      <ul>
+        <li><code>Dash.mask(text, { html, as, label })</code>: the text (escaped), or the stand-in. <code>html: true</code> takes a builder's markup; <code>as</code> is the stand-in's text (<code>000.00</code>) and <code>label</code> what a screen reader hears (<code>hidden</code>). Nothing to hide (empty, or —) shows as it is.</li>
+        <li><code>Dash.mask.text(text, as)</code>: plain text for a <code>title</code>, a label, a chart's tooltip or a toast: the text, or <code>as</code> while values are hidden.</li>
+        <li><code>Dash.privacy.onChange(fn)</code>: draw again when the reader hides or shows them; it returns a function that stops it. <code>Dash.table</code> does it by itself for <a href="tables.html#table">columns</a> with <code>private: true</code> (or the stand-in's text).</li>
+        <li>The eye: <code>Dash.privacy.button('balances')</code>, or an empty <code>&lt;button class="icon-btn" data-privacy="balances"&gt;</code> in the page: "Hide balances", then "Show balances". A <code>data-privacy</code> button with its own words keeps them and is pressed while values are hidden. From code: <code>Dash.privacy.on</code>, <code>.set(true)</code>, <code>.toggle()</code>.</li>
+        <li>A text box with <code>data-private</code> shows dots until the reader clicks or types in it (Tab alone doesn't), and again when they leave it. The dots are only a look: the value is in the box.</li>
+        <li>It hides values from people looking at the screen; the page still has them. Keep the real ones out of <code>title</code>, <code>data-key</code> and <code>data-copy</code> yourself. <code>Dash.table</code>'s CSV holds them. Hiding drops a text selection and an open tooltip; a toast or a notice that names a value is the page's to dismiss, in <code>onChange</code>.</li>
+      </ul>
+    </section>
+
     <section id="login" data-terms=".login-page .login .lead .note">
       <h2>The sign-in page</h2>
       <p>Put <code>.login-page</code> on the <code>body</code> and a <code>form.login</code> in it: a title, a <code>.lead</code> line, the fields, a <code>btn primary block</code> and a <code>.note</code> under it. <code>Dash.config.loginUrl</code> sends any request that comes back 401 there.</p>
-      <figure class="example framed" id="ex-6"><figcaption>A sign-in page</figcaption><div class="example-view"><p class="muted">This one takes the whole screen, so it isn't shown in the page: open it with Phone or Other theme.</p></div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;form class=&quot;login&quot;&gt;
+      <figure class="example framed" id="ex-7"><figcaption>A sign-in page</figcaption><div class="example-view"><p class="muted">This one takes the whole screen, so it isn't shown in the page: open it with Phone or Other theme.</p></div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;form class=&quot;login&quot;&gt;
   &lt;h1&gt;Fleet&lt;/h1&gt;
   &lt;p class=&quot;lead&quot;&gt;Sign in to see the servers.&lt;/p&gt;
   &lt;div class=&quot;field&quot;&gt;&lt;label for=&quot;pw&quot;&gt;Password&lt;/label&gt;&lt;input class=&quot;input&quot; type=&quot;password&quot; id=&quot;pw&quot; autocomplete=&quot;current-password&quot; required&gt;&lt;/div&gt;

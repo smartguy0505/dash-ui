@@ -8,7 +8,7 @@
 // Dash.config.csp, drawn as without the policy, in markup the page or the kit puts in; from 1.7 dash-utils.css next to
 // the kit (test/utils.html); from 1.8 the new pieces that need a page (test/components.html): sliders, drops, the
 // drawer, the bottom nav, input groups, the stepper on a phone, badges and choices; from 1.9.2 what shows in high contrast
-// (test/contrast.html), narrow pages, targets and times to come.
+// (test/contrast.html), narrow pages, targets and times to come; from 1.10 values the reader hides (test/private.html).
 //
 //   npm i --no-save playwright-core && npx playwright-core install --only-shell chromium
 //   node test/behaviour.mjs          (KIT=<dir> serves dash.css, dash.js and dash-utils.css from <dir> instead: to check a change)
@@ -1481,6 +1481,148 @@ let reference;
   const after = await at(() => document.querySelector('.timeline-time').textContent);
   check('timeline: "in 5m" becomes "2 min ago" by itself', before.startsWith('in ') && after === '2 min ago', `${before} → ${after}`);
   await tab.context().close();
+}
+
+// ---- 1.10 values the reader can hide (test/private.html)
+{
+  const ctx = await browser.newContext({ viewport: { width: 1200, height: 800 } });
+  const openPrivate = async () => { const t = await ctx.newPage(); t.on('pageerror', (e) => errors.push(e.message)); await t.goto(url.replace('behaviour.html', 'private.html'), { waitUntil: 'load' }); return t; };
+  const tab = await openPrivate();
+  const at = (f, a) => tab.evaluate(f, a);
+  const eye = () => at(() => { const b = document.getElementById('eye'), w = document.getElementById('words'); return { label: b.getAttribute('aria-label'), title: b.title, pressed: b.getAttribute('aria-pressed'), svg: b.querySelectorAll('svg').length, slash: b.querySelectorAll('path').length === 2, words: w.textContent, wordsPressed: w.getAttribute('aria-pressed') }; });
+  const before = await eye();
+  check('1.10 hidden values: shown to begin with, and the eye says what it does', await at(() => left()) && before.label === 'Hide balances' && before.title === before.label && before.pressed === null && before.svg === 1 && before.slash, JSON.stringify(before));
+  check('1.10 hidden values: a button with its own words keeps them', before.words === 'Private mode' && before.wordsPressed === 'false', JSON.stringify(before));
+
+  // a refresh that waits for the selection, with a newer value in it, then hiding
+  await at(() => { const r = document.createRange(); r.selectNodeContents(document.getElementById('total')); getSelection().removeAllRanges(); getSelection().addRange(r); big = 911817391.5; sum(); });
+  const held = await at(() => document.getElementById('total').textContent);
+  await at(() => Dash.privacy.set(true));
+  await tab.waitForTimeout(100);
+  const heldAfter = await at(() => ({ left: left(), total: document.getElementById('total').textContent }));
+  check('1.10 hidden values: a refresh that was waiting for a selection doesn\'t bring one back', held.includes('247,823') && !heldAfter.left && heldAfter.total === '000.00hidden', JSON.stringify([held, heldAfter]));
+  await at(() => { big = 247823.7391; Dash.privacy.set(false); });
+  // hidden while the reader has text selected in a part that Dash.render draws, and in the table
+  await at(() => { const r = document.createRange(); r.selectNodeContents(document.getElementById('total')); getSelection().removeAllRanges(); getSelection().addRange(r); window.n0 = drawn; });
+  await at(() => Dash.privacy.toggle());
+  const hid = await at(() => ({ left: left(), n: drawn - n0, stored: localStorage.getItem('dash.private'), sel: String(getSelection()), total: document.getElementById('total').innerHTML, title: document.getElementById('total').title, chg: document.getElementById('chg').textContent, none: document.getElementById('none').innerHTML }));
+  check('1.10 hidden values: none is left in the page, even with one selected', !hid.left && hid.sel === '' && hid.n === 1, JSON.stringify(hid));
+  check('1.10 hidden values: a stand-in, and words for a screen reader', /^<span class="private" aria-hidden="true">000\.00<\/span><span class="sr-only">hidden<\/span>$/.test(hid.total) && hid.title === 'hidden' && hid.chg === '00change hidden' && hid.none === '—', JSON.stringify(hid));
+  const after = await eye();
+  check('1.10 hidden values: the eye then says "Show balances"', after.label === 'Show balances' && after.title === after.label && !after.slash && after.wordsPressed === 'true', JSON.stringify(after));
+  const look = await at(() => { const s = getComputedStyle(document.querySelector('.private')); return { filter: s.filter, select: s.userSelect }; });
+  check('1.10 hidden values: the stand-in is blurred and can\'t be selected', look.filter.startsWith('blur') && look.select === 'none', JSON.stringify(look));
+
+  // the table
+  const cells = () => at(() => [...document.querySelectorAll('#table tbody tr')].map((r) => [...r.cells].map((c) => c.textContent)));
+  const masked = await cells();
+  check('1.10 hidden values: a table\'s private columns, in the same order, with nothing to hide left as it is', JSON.stringify(masked) === JSON.stringify([['Savings', '000.00hidden', 'Somebodyhidden'], ['Main', '000.00hidden', 'Somebodyhidden'], ['Empty', '—', '']]), JSON.stringify(masked));
+  check('1.10 hidden values: the table\'s CSV still holds them', (await at(() => table.csv())).includes('173912'), '');
+  await at(() => Dash.privacy.set(false));
+  await at(() => { const r = document.createRange(); r.selectNodeContents(document.querySelector('#table tbody td:nth-child(2)')); getSelection().removeAllRanges(); getSelection().addRange(r); });
+  await tab.click('#eye');
+  check('1.10 hidden values: a press on the eye hides them, in a table with one selected too', !(await at(() => left())) && (await at(() => document.activeElement.id)) === 'eye', '');
+
+  // remembered, and the mark is there before the page draws
+  await tab.reload({ waitUntil: 'load' });
+  check('1.10 hidden values: still hidden after a reload, from the first paint', !(await at(() => left())) && (await at(() => early)) === 'hidden', await at(() => early));
+  check('1.10 hidden values: the eye is right after a reload', (await eye()).label === 'Show balances', '');
+
+  // text boxes
+  const dots = (id) => at((i) => getComputedStyle(document.getElementById(i)).webkitTextSecurity === 'disc', id);
+  check('1.10 hidden values: text boxes show dots', await dots('acct') && await dots('note'), '');
+  await tab.focus('#table th:last-child button');
+  await tab.keyboard.press('Tab');
+  check('1.10 hidden values: Tab into a box keeps its dots', (await at(() => document.activeElement.id)) === 'acct' && await dots('acct'), '');
+  await tab.keyboard.press('End');
+  await tab.keyboard.type('9');
+  check('1.10 hidden values: typing shows what is typed', !(await dots('acct')), '');
+  await tab.keyboard.press('Tab');
+  check('1.10 hidden values: leaving a box hides it again', await dots('acct') && await dots('note'), '');
+  await tab.click('#note');
+  check('1.10 hidden values: a click in a box shows it', !(await dots('note')), '');
+  await at(() => { Dash.privacy.set(true); });
+  check('1.10 hidden values: hiding again hides a box the reader is in', await dots('note'), '');
+  await tab.click('#other');
+  await at(() => { const i = document.getElementById('acct'); i.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'touch' })); });
+  check('1.10 hidden values: a finger that starts a scroll on a box doesn\'t show it', await dots('acct'), '');
+  await at(() => document.getElementById('acct').dispatchEvent(new MouseEvent('click', { bubbles: true })));
+  check('1.10 hidden values: its tap does', !(await dots('acct')), '');
+  await at(() => { const i = document.getElementById('acct'); i.focus(); i.blur(); i.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'mouse' })); });
+  check('1.10 hidden values: the mouse shows one as it goes down, so the caret lands where the text is', !(await dots('acct')), '');
+  await at(() => { const i = document.getElementById('acct'); i.focus(); i.blur(); });
+  await at(() => { const i = document.getElementById('acct'), v = i.value; i.value = ''; window.empty = getComputedStyle(i).webkitTextSecurity; i.value = v; });
+  check('1.10 hidden values: a placeholder is left readable', (await at(() => empty)) === 'none', await at(() => empty));
+  await at(() => { const i = document.getElementById('acct'); i.dispatchEvent(new Event('input', { bubbles: true })); });
+  check('1.10 hidden values: a box the browser fills in while the reader is elsewhere stays hidden', await dots('acct'), '');
+  await at(() => document.getElementById('dlg').showModal());
+  await tab.click('#in-dlg');
+  const inDlg = await dots('in-dlg');
+  await at(() => document.getElementById('dlg').close());
+  await at(() => document.getElementById('dlg').showModal());
+  await at(() => document.activeElement.blur());
+  check('1.10 hidden values: a dialog that closes hides its boxes again', !inDlg && await dots('in-dlg'), '');
+  await at(() => document.getElementById('in-dlg').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'mouse' })));
+  const inDlg2 = await dots('in-dlg');
+  await at(() => { document.getElementById('dlg').close(); document.getElementById('dlg').showModal(); });
+  await tab.waitForTimeout(50);
+  check('1.10 hidden values: one that closes without its box losing the focus too', !inDlg2 && await dots('in-dlg'), '');
+  await at(() => document.getElementById('dlg').close());
+
+  // another tab
+  const other = await openPrivate();
+  await other.evaluate(() => Dash.privacy.set(false));
+  await tab.waitForFunction(() => !Dash.privacy.on, null, { timeout: 4000 }).catch(() => {});
+  check('1.10 hidden values: another tab\'s choice is followed, and the page is drawn again', await at(() => left()) && (await eye()).label === 'Hide balances', '');
+  await other.evaluate(() => Dash.privacy.set(true));
+  await tab.waitForFunction(() => Dash.privacy.on, null, { timeout: 4000 }).catch(() => {});
+  check('1.10 hidden values: and its hiding too', !(await at(() => left())), '');
+  await other.evaluate(() => { localStorage.removeItem('dash.private'); localStorage.clear(); });
+  await tab.waitForTimeout(300);
+  check('1.10 hidden values: cleared storage doesn\'t show them', !(await at(() => left())), '');
+  await other.close();
+  // a page the browser kept for the back button, while the choice changed elsewhere
+  await at(() => { Dash.privacy.set(false); localStorage.setItem('dash.private', 'true'); dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })); });
+  check('1.10 hidden values: a page brought back by the back button reads the choice again', !(await at(() => left())) && (await at(() => Dash.privacy.on)), '');
+
+  // one part's mistake, and a listener that stops
+  const safe = await at(async () => {
+    Dash.privacy.set(false);
+    const seen = [];
+    const caught = [];
+    addEventListener('error', (e) => { caught.push(e.message); e.preventDefault(); });
+    const stop1 = Dash.privacy.onChange(() => { throw new Error('a part that breaks'); });
+    const stop2 = Dash.privacy.onChange((on) => seen.push(on));
+    try { Dash.privacy.set(true); } catch { caught.push('thrown to the caller', 'x'); }
+    Dash.privacy.set(true);
+    stop1(); stop2();
+    Dash.privacy.set(false); Dash.privacy.set(true);
+    await new Promise((ok) => setTimeout(ok, 50));
+    return { seen, caught: caught.length, left: left() };
+  });
+  check('1.10 hidden values: a part that breaks doesn\'t keep another showing; a stopped one isn\'t told', JSON.stringify(safe.seen) === '[true]' && safe.caught === 1 && !safe.left, JSON.stringify(safe));
+  const i = errors.findIndex((e) => e.includes('a part that breaks'));
+  if (i >= 0) errors.splice(i, 1);
+  // a tip that was open goes away
+  await at(() => { Dash.privacy.set(false); const b = document.getElementById('other'); b.dataset.tooltip = 'total 7391'; });
+  await tab.hover('#other');
+  await tab.waitForTimeout(400);
+  const tip = await at(() => [...document.querySelectorAll('.tooltip')].some((t) => t.checkVisibility() && t.textContent.includes('7391')));
+  await at(() => Dash.privacy.set(true));
+  await tab.waitForTimeout(300);
+  const tipAfter = await at(() => [...document.querySelectorAll('.tooltip')].some((t) => t.checkVisibility() || t.textContent.includes('7391')));
+  check('1.10 hidden values: an open tip goes away, and its words with it', tip && !tipAfter, `${tip} ${tipAfter}`);
+  // a big number's blur isn't cut off; a table made again in the same place
+  const clip = await at(() => {
+    document.getElementById('sum').innerHTML = `<div class="stat"><div class="value">${Dash.mask('$1')}</div></div>`;
+    const value = getComputedStyle(document.querySelector('#sum .value')).overflow;
+    Dash.table('table', { columns: [{ key: 'n', label: 'Number' }], rows: [{ n: 5 }] });
+    Dash.privacy.set(false);
+    return { value, table: document.querySelector('#table tbody').textContent };
+  });
+  check('1.10 hidden values: a stat\'s blur isn\'t cut off at its edge', clip.value === 'visible', clip.value);
+  check('1.10 hidden values: a table made again in its place isn\'t drawn over by the old one', clip.table === '5', clip.table);
+  await ctx.close();
 }
 
 await browser.close();

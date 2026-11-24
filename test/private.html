@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hidden values checks</title>
+<link rel="stylesheet" href="../dash.css">
+<script src="../dash.js"></script>
+<script>window.early = document.documentElement.dataset.values || '';</script>
+</head>
+<body>
+<header class="topbar"><div class="brand"><h1>Accounts</h1></div>
+  <div class="top-right"><button type="button" class="icon-btn" id="eye" data-privacy="balances"></button>
+    <button type="button" class="top-link" id="words" data-privacy>Private mode</button></div></header>
+<main class="page">
+  <section class="panel" id="sum"></section>
+  <div id="table"></div>
+  <div class="panel">
+    <label for="acct">Account</label> <input class="input" id="acct" data-private placeholder="acct_…">
+    <label for="note">Note</label> <textarea class="input" id="note" data-private></textarea>
+    <input class="input" id="other" aria-label="Another box">
+  </div>
+</main>
+<dialog class="dialog" id="dlg"><form class="dialog-body" method="dialog"><input class="input" id="in-dlg" data-private aria-label="Account"><button class="btn" id="dlg-close">Close</button></form></dialog>
+<script>
+  const { $, esc, fmt } = Dash;
+  // every real value here holds 7391, so one search of the page finds any that is left
+  const rows = [{ id: 'a', name: 'Main', value: 73911.5, holder: 'Kim 7391' }, { id: 'b', name: 'Savings', value: 173912, holder: 'Lee 7391' }, { id: 'c', name: 'Empty', value: null, holder: '' }];
+  let drawn = 0, big = 247823.7391;
+  const sum = () => {
+    drawn += 1;
+    Dash.render('sum', `<p id="total" title="${esc(Dash.mask.text(fmt.usd(big, 4), 'hidden'))}">${Dash.mask(fmt.usd(big, 4))}</p>
+      <p id="chg">${Dash.mask(Dash.chg(7391, '+7391.00'), { html: true, as: '00', label: 'change hidden' })}</p><p id="none">${Dash.mask('—')}</p>`);
+  };
+  Dash.privacy.onChange(sum);
+  sum();
+  const table = Dash.table('table', { columns: [
+    { key: 'name', label: 'Name', main: true },
+    { key: 'value', label: 'Value', num: true, private: true, format: (v) => (v == null ? '—' : fmt.usd(v)) },
+    { key: 'holder', label: 'Holder', private: 'Somebody', html: (r) => (r.holder ? `<b>${esc(r.holder)}</b>` : '') },
+  ], rows, key: 'id', sort: { key: 'value', dir: 'desc' } });
+  $('acct').value = 'acct_7391x'; // a value the reader put in: in the box, never in the markup
+  $('note').value = 'note 7391';
+  $('in-dlg').value = 'acct_7391z';
+  const left = () => document.documentElement.outerHTML.split('<script>')[0].includes('7391') || document.body.innerText.includes('7391')
+    || [...document.body.children].some((e) => e.tagName !== 'SCRIPT' && e.outerHTML.includes('7391'));
+</script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-/* dash-ui 1.9.2: the look shared by my dashboards (agents, fleet, leaderboard, payouts, balances).
+/* dash-ui 1.10.0: the look shared by my dashboards (agents, fleet, leaderboard, payouts, balances).
    Warm neutral backgrounds, white panels, tinted status colours, light and dark from the system setting
    (or data-theme="light|dark" on <html>). No build step, no dependencies: link this file, or paste it into a page.
 
@@ -955,6 +955,13 @@ textarea.input.autosize { min-height: 62px; max-height: var(--max-h, 320px); fie
 @media (forced-colors: active) {
   .combo-option[aria-selected="true"], .cal-grid [aria-selected="true"] > button { outline: 2px solid Highlight; outline-offset: -2px; }
 }
+
+/* a hidden value's stand-in (Dash.mask): the real one isn't in the page, so the blur is only the look of it */
+.private { color: var(--muted); filter: blur(min(.32em, 6px)); user-select: none; -webkit-user-select: none; }
+.stat .value:has(> .private) { overflow: visible; } /* the blur reaches past the text: not cut off */
+/* <input data-private>: dots while values are hidden, until it is clicked or typed in (not on focus: Tab focuses it too) */
+:root[data-values="hidden"] :is(input, textarea)[data-private]:not(.reveal, :placeholder-shown) { -webkit-text-security: disc; }
+@supports not (-webkit-text-security: disc) { :root[data-values="hidden"] :is(input, textarea)[data-private]:not(.reveal, :placeholder-shown) { filter: blur(.32em); } }
 
 /* ---- tones: set --c; after the components so they win over their defaults ---- */
 .ok { --c: var(--ok); } .warn { --c: var(--warn); } .bad { --c: var(--bad); } .blue { --c: var(--blue); } .accent { --c: var(--accent); }

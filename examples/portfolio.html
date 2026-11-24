@@ -10,13 +10,15 @@
 <body>
 <!-- a balances / payout dashboard style page: hero number, stats, a toolbar, a sortable paged table, an editor dialog.
      Balances tick every few seconds to show live updates. The table uses kit classes only: .compact, .stack-md cards
-     from 900 px, td.actions, units in the headers, fund holdings in sub rows. All accounts and numbers are made up. -->
+     from 900 px, td.actions, units in the headers, fund holdings in sub rows. The eye hides amounts and account IDs
+     (Dash.mask); percentages stay. All accounts and numbers are made up. -->
 <header class="topbar">
   <div class="brand"><span class="mark">€</span><h1>Accounts</h1></div>
   <span class="sub">balances, updated live</span>
   <div class="top-right">
-    <span class="nowrap">EUR/USD <b class="strong num" id="price">1.0842</b></span>
+    <span class="nowrap hide-sm">EUR/USD <b class="strong num" id="price">1.0842</b></span>
     <span id="live"></span>
+    <button type="button" class="icon-btn" data-privacy="balances"></button>
     <button type="button" class="top-link">Sign out</button>
   </div>
 </header>
@@ -57,14 +59,14 @@
     <h2 id="editor-title">Add account</h2>
     <p class="hint">The balance shows up with the next update.</p>
     <div class="field"><label for="e-name">Name</label><input class="input" id="e-name" placeholder="Savings" required></div>
-    <div class="field" id="e-addr-field"><label for="e-addr">Account ID</label><input class="input mono" id="e-addr" placeholder="acct_…" spellcheck="false"><div class="err" id="e-err"></div></div>
+    <div class="field" id="e-addr-field"><label for="e-addr">Account ID</label><input class="input mono" id="e-addr" placeholder="acct_…" spellcheck="false" data-private><div class="err" id="e-err"></div></div>
     <label class="checkline"><input type="checkbox" id="e-total" checked>Count in the total</label>
     <div class="dialog-actions"><button type="button" class="btn ghost" data-dismiss>Cancel</button><button type="submit" class="btn primary">Save</button></div>
   </form>
 </dialog>
 
 <script>
-  const { $, esc, fmt } = Dash;
+  const { $, esc, fmt, mask } = Dash;
   let price = 1.0842; // dollars per euro
   // made-up accounts and IDs
   const ID = 'abcdefghjkmnpqrstuvwxyz23456789';
@@ -107,20 +109,20 @@
     const cash = inTotal.reduce((s, w) => s + w.cash, 0);
     const invested = inTotal.reduce((s, w) => s + w.invested, 0);
     const chg = inTotal.reduce((s, w) => s + w.chg, 0);
-    $('total-usd').innerHTML = `${fmt.usd((cash + invested) * price)} <small>· €${eur(cash + invested)}</small>`;
+    $('total-usd').innerHTML = `${mask(fmt.usd((cash + invested) * price))} <small>· ${mask('€' + eur(cash + invested))}</small>`;
     $('total-line').innerHTML = `<b>${inTotal.length}</b> of ${accounts.length} accounts in the total`;
     const dir = fmt.dir(chg, 0.005);
-    $('change').innerHTML = `<span class="pill lg ${dir}">${dir === 'down' ? '▼' : dir === 'up' ? '▲' : ''} ${fmt.signed(chg, 2)} €</span>`
-      + `<span class="chg ${dir}">${fmt.signedUsd(chg * price, 2)}</span><span class="muted">in the last 24 h</span>`;
+    $('change').innerHTML = mask(`<span class="pill lg ${dir}">${dir === 'down' ? '▼' : dir === 'up' ? '▲' : ''} ${fmt.signed(chg, 2)} €</span>`
+      + `<span class="chg ${dir}">${fmt.signedUsd(chg * price, 2)}</span>`, { html: true }) + '<span class="muted">in the last 24 h</span>';
     $('split').innerHTML = Dash.split([{ value: cash, tone: 'blue', label: 'Cash' }, { value: invested, tone: 'teal', label: 'Invested' }]);
     $('parts').innerHTML = [['Cash', cash, 'blue'], ['Invested', invested, 'teal']].map(([k, v, tone]) =>
-      `<div><dt class="legend-item ${tone}"><i></i>${k}</dt><dd style="font-size:19px">€${eur(v)}</dd><dd class="muted" style="font-weight:400">${fmt.usd(v * price)} · ${fmt.share(v / (cash + invested) * 100)}</dd></div>`).join('');
+      `<div><dt class="legend-item ${tone}"><i></i>${k}</dt><dd style="font-size:19px">${mask('€' + eur(v))}</dd><dd class="muted" style="font-weight:400">${mask(fmt.usd(v * price))} · ${fmt.share(v / (cash + invested) * 100)}</dd></div>`).join('');
     $('stats').innerHTML = [
       ['Accounts', accounts.length, `${accounts.filter((w) => w.hidden).length} hidden · ${accounts.filter((w) => !w.total).length} left out of the total`, 'wrap'],
-      ['Largest', '€' + eur(Math.max(...inTotal.map(value))), inTotal.slice().sort((a, b) => value(b) - value(a))[0].name],
+      ['Largest', mask('€' + eur(Math.max(...inTotal.map(value)))), inTotal.slice().sort((a, b) => value(b) - value(a))[0].name],
       ['Invested share', fmt.share(invested / (cash + invested) * 100), 'of the total'],
       ['Rate', price.toFixed(4), 'dollars per euro'],
-    ].map(([k, v, n, cls = '']) => `<div class="stat"><div class="label">${esc(k)}</div><div class="value">${esc(v)}</div><div class="note ${cls}">${esc(n)}</div></div>`).join('');
+    ].map(([k, v, n, cls = '']) => `<div class="stat"><div class="label">${esc(k)}</div><div class="value">${v}</div><div class="note ${cls}">${esc(n)}</div></div>`).join('');
     for (const v of ['active', 'total', 'hidden', 'all']) {
       $('filter').querySelector(`[data-n="${v}"]`).textContent = accounts.filter((w) => ({ active: !w.hidden, total: w.total && !w.hidden, hidden: w.hidden, all: true })[v]).length;
     }
@@ -145,21 +147,21 @@
         const expand = w.holdings.length
           ? `<button type="button" class="icon-btn" data-act="expand" aria-expanded="${isOpen}" aria-label="Holdings of ${esc(w.name)}">${ICON.chev}</button>`
           : '<span class="icon-btn invisible" aria-hidden="true"></span>';
-        let html = `<tr data-id="${esc(w.id)}"${w.hidden ? ' class="dim"' : ''}>
+        let html = `<tr data-i="${accounts.indexOf(w)}"${w.hidden ? ' class="dim"' : ''}>
           <td class="main">${expand} ${esc(w.name)}${w.hidden ? ' ' + Dash.tag('hidden') : ''}</td>
-          <td data-label="Account ID"><span class="mono muted" title="${esc(w.id)}">${esc(fmt.short(w.id))}</span>
-            <button type="button" class="icon-btn" data-copy="${esc(w.id)}" title="Copy the account ID" aria-label="Copy the account ID"><svg width="13" height="13" viewBox="0 0 15 15" fill="none"><rect x="5" y="5" width="8" height="8" rx="1.6" stroke="currentColor" stroke-width="1.3"/><path d="M10 5V3.6A1.6 1.6 0 0 0 8.4 2H3.6A1.6 1.6 0 0 0 2 3.6v4.8A1.6 1.6 0 0 0 3.6 10H5" stroke="currentColor" stroke-width="1.3"/></svg></button></td>
-          <td class="num" data-label="Cash €" data-cell="cash">${w.cash ? eur(w.cash) : '<span class="faint">0</span>'}</td>
-          <td class="num" data-label="Invested €">${w.invested ? eur(w.invested) : '<span class="faint">0</span>'}</td>
-          <td class="num" data-label="Value €"><b>${eur(value(w))}</b></td>
-          <td class="num muted" data-label="Value $">${fmt.usd(value(w) * price, 2)}</td>
-          <td class="num" data-label="24h €">${Dash.chg(w.chg, fmt.signed(w.chg, 2), { eps: 0.005, title: 'Cash + invested now, against this time yesterday' })}</td>
+          <td data-label="Account ID"><span class="mono muted" title="${esc(mask.text(w.id))}">${mask(fmt.short(w.id), { as: 'acct_000…0000' })}</span>
+            ${Dash.privacy.on ? '' : `<button type="button" class="icon-btn" data-copy="${esc(w.id)}" title="Copy the account ID" aria-label="Copy the account ID"><svg width="13" height="13" viewBox="0 0 15 15" fill="none"><rect x="5" y="5" width="8" height="8" rx="1.6" stroke="currentColor" stroke-width="1.3"/><path d="M10 5V3.6A1.6 1.6 0 0 0 8.4 2H3.6A1.6 1.6 0 0 0 2 3.6v4.8A1.6 1.6 0 0 0 3.6 10H5" stroke="currentColor" stroke-width="1.3"/></svg></button>`}</td>
+          <td class="num" data-label="Cash €" data-cell="cash">${mask(w.cash ? eur(w.cash) : '<span class="faint">0</span>', { html: true })}</td>
+          <td class="num" data-label="Invested €">${mask(w.invested ? eur(w.invested) : '<span class="faint">0</span>', { html: true })}</td>
+          <td class="num" data-label="Value €"><b>${mask(eur(value(w)))}</b></td>
+          <td class="num muted" data-label="Value $">${mask(fmt.usd(value(w) * price, 2))}</td>
+          <td class="num" data-label="24h €">${mask(Dash.chg(w.chg, fmt.signed(w.chg, 2), { eps: 0.005, title: 'Cash + invested now, against this time yesterday' }), { html: true })}</td>
           <td class="hide-sm" data-label="Share" style="min-width:120px">${w.total ? `<div class="share">${Dash.bar(value(w) / max, 'accent', { cls: 'thin' })}<span>${fmt.share(value(w) / max * 100)}</span></div>` : '<span class="faint">—</span>'}</td>
           <td class="num" data-label="In total"><label class="switch"><input type="checkbox" data-act="total"${w.total ? ' checked' : ''}><span class="track"></span><span class="sr-only">Count in the total</span></label></td>
           <td class="actions"><button type="button" class="icon-btn" data-act="edit" title="Edit" aria-label="Edit ${esc(w.name)}">${ICON.edit}</button><button type="button" class="icon-btn" data-act="hide" title="${w.hidden ? 'Show' : 'Hide'}" aria-label="${w.hidden ? 'Show' : 'Hide'} ${esc(w.name)}">${ICON.hide}</button><button type="button" class="icon-btn danger" data-act="remove" title="Remove" aria-label="Remove ${esc(w.name)}">${ICON.remove}</button></td></tr>`;
         if (isOpen) {
           html += `<tr class="sub"><td colspan="${COLS}">${w.holdings.map((st) => `<div class="row" style="padding:3px 0">${Dash.tag(st.code, 'teal')} ${esc(st.name)}
-            <span class="push num">${fmt.num(st.units, 4)} <span class="unit">units</span> · <b class="strong">${eur(st.eur)}</b> <span class="unit">€</span></span></div>`).join('')}</td></tr>`;
+            <span class="push num">${mask(fmt.num(st.units, 4))} <span class="unit">units</span> · <b class="strong">${mask(eur(st.eur))}</b> <span class="unit">€</span></span></div>`).join('')}</td></tr>`;
         }
         return html;
       }).join('')
@@ -169,16 +171,16 @@
 
   Dash.on('table', 'click', '[data-sort]', (e, b) => { sort.toggle(b.dataset.sort); page = 1; render(); });
   Dash.on('table', 'change', '[data-act="total"]', (e, box) => {
-    const w = accounts.find((x) => x.id === box.closest('tr').dataset.id);
+    const w = accountOf(box);
     w.total = box.checked;
     render();
     Dash.toast(box.checked ? `${w.name} counts in the total` : `${w.name} left out of the total`);
   });
-  const accountOf = (el) => accounts.find((x) => x.id === el.closest('tr').dataset.id);
+  const accountOf = (el) => accounts[el.closest('tr').dataset.i]; // (an ID in the markup couldn't be hidden)
   Dash.on('table', 'click', '[data-act="expand"]', (e, b) => { const w = accountOf(b); open.has(w.id) ? open.delete(w.id) : open.add(w.id); render(); });
   Dash.on('table', 'click', '[data-act="hide"]', (e, b) => { const w = accountOf(b); w.hidden = !w.hidden; render(); Dash.toast(`${w.name} ${w.hidden ? 'hidden' : 'shown'}`); });
   Dash.on('table', 'click', '[data-act="remove"]', (e, b) => { const w = accountOf(b); accounts.splice(accounts.indexOf(w), 1); render(); Dash.toast(`${w.name} removed`); });
-  Dash.on('table', 'click', '[data-act="edit"]', (e, b) => openEditor(accounts.find((x) => x.id === b.closest('tr').dataset.id)));
+  Dash.on('table', 'click', '[data-act="edit"]', (e, b) => openEditor(accountOf(b)));
   Dash.on('pager', 'click', '[data-page]', (e, b) => { page = Number(b.dataset.page); render(); });
   Dash.on('pager', 'change', '[data-per-page]', (e, s) => { perPage = Number(s.value); page = 1; render(); });
   $('q').addEventListener('input', () => { page = 1; render(); });
@@ -221,10 +223,11 @@
     price = Math.round((price + (tick % 2 ? 0.0006 : -0.0004)) * 1e4) / 1e4;
     $('price').textContent = price.toFixed(4);
     render();
-    const cell = document.querySelector(`tr[data-id="${CSS.escape(w.id)}"] [data-cell="cash"]`);
+    const cell = document.querySelector(`tr[data-i="${accounts.indexOf(w)}"] [data-cell="cash"]`);
     if (cell) Dash.flash(cell);
     Dash.live('live', 'on', `Live · updated ${fmt.clock(Date.now())}`);
   }, 6000);
+  Dash.privacy.onChange(() => render());
   render();
 </script>
 </body>

@@ -2,6 +2,15 @@
 
 Dashboards keep a copy of `dash.css` and `dash.js`; the first line of each file says which version it is. Versions only add things: a page that worked with an older copy works the same with a newer one.
 
+## 1.10.0 (2026-11-24)
+
+Values the reader can hide, for meetings and screenshots.
+
+- `Dash.mask(text)` writes a value, or a fixed blurred stand-in while values are hidden: the real one isn't in the page then, so there is nothing to select, copy or find. `Dash.mask.text` is the same for titles, labels and toasts.
+- `Dash.privacy`: `.on`, `.set`, `.toggle`, `.onChange`, and `.button('balances')`, the eye that does it ("Hide balances", "Show balances"); a button with `data-privacy` in the page is one too. The choice is remembered (`Dash.config.privacyKey`), applied before the first paint, and followed by the browser's other open tabs. Hiding drops a text selection and an open tooltip, so neither keeps a value showing.
+- `Dash.table` columns: `private: true` (or the stand-in's text).
+- `<input data-private>`: dots while values are hidden, until the reader clicks or types in it.
+
 ## 1.9.2 (2026-11-24)
 
 Fixes found by an audit of every page. Nothing looks different outside high contrast, except where a page was too narrow.
