@@ -48,7 +48,7 @@
 .example-view > :last-child { margin-bottom: 0; }
 .example.on-page .example-view { background: var(--bg); }
 .example-bar { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; padding: 6px 8px; border-top: 1px solid var(--line); background: var(--soft); }
-.example-code { margin: 0; padding: 14px 16px; max-height: 420px; overflow: auto; border-top: 1px solid var(--line); background: var(--bg);
+.example-code { margin: 0; padding: 14px 16px; max-height: 420px; overflow: auto; border-top: 1px solid var(--line); border-radius: 0; background: var(--bg);
   font-family: var(--mono); font-size: 12.5px; line-height: 1.6; tab-size: 2; }
 .example-code code { white-space: pre; }
 .c-tag { color: var(--blue); }

@@ -20,7 +20,7 @@
 
     <section id="code" data-nav="Codes" data-terms="Dash.code .code-field .at .on dash:code data-submit data-letters one-time otp pin verification">
       <h2>Codes</h2>
-      <p><code>Dash.code({ label, name, length, letters, submit })</code> is a box for the code from a message, drawn as one box per character. It is a single field, so a paste (with spaces or dashes), a phone's suggestion and a screen reader all work. Once it is full it fires <code>dash:code</code> with the code in <code>detail</code>; <code>submit: true</code> sends its form, and <code>letters: true</code> takes letters too.</p>
+      <p><code>Dash.code({ label, name, length, letters, submit })</code> is a box for the code from a message, drawn as one box per character. It is a single field, so a paste (with spaces or dashes), a phone's suggestion and a screen reader all work. A press goes into the box that is pressed, and a digit takes the place of the one in the lit box; arrows go from box to box, and Backspace takes a wrong one out. Once it is full it fires <code>dash:code</code> with the code in <code>detail</code>; <code>submit: true</code> sends its form, and <code>letters: true</code> takes letters too.</p>
       <example>
         <div id="code-box"></div>
         <script>

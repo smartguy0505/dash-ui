@@ -1,4 +1,4 @@
-/* dash-ui 1.16.1: the look shared by my dashboards (agents, fleet, leaderboard, payouts, balances).
+/* dash-ui 1.16.2: the look shared by my dashboards (agents, fleet, leaderboard, payouts, balances).
    Warm neutral backgrounds, white panels, tinted status colours, light and dark from the system setting
    (or data-theme="light|dark" on <html>). No build step, no dependencies: link this file, or paste it into a page.
 
@@ -1143,12 +1143,15 @@ button.entry-grip { width: 30px; height: 30px; }
 .tag-box:has(> :disabled) { opacity: .55; cursor: default; }
 .tag-box:has(> :disabled) .tag-x { display: none; }
 /* a code from a message: one box drawn as several (Dash.code) */
-.code-field { --cell: 44px; --gap: 8px; position: relative; display: inline-grid; grid-auto-flow: column; grid-auto-columns: var(--cell); gap: var(--gap); max-width: 100%; margin: -3px; padding: 3px; overflow: hidden; }
+.code-field { --cell: 44px; --gap: 8px; position: relative; display: inline-grid; grid-auto-flow: column; grid-auto-columns: var(--cell); gap: var(--gap); max-width: 100%; margin: -3px; padding: 3px; overflow: hidden; overflow: clip; direction: ltr; }
 .code-field > i { height: 48px; border: 1px solid var(--line); border-radius: 9px; background: var(--card); }
 .code-field > i.on { border-color: var(--muted); }
 .code-field:focus-within > i.at { border-color: var(--blue); box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue) 18%, transparent); }
-.code-field > input { position: absolute; inset: 3px auto 3px 3px; width: calc(100% + var(--gap)); padding: 0 0 0 calc((var(--cell) - 1ch) / 2); border: 0; outline: 0; background: none; color: inherit;
-  font-family: var(--mono); font-size: 20px; font-weight: 600; letter-spacing: calc(var(--cell) + var(--gap) - 1ch); }
+.code-field > input { position: absolute; inset: 3px auto 3px 3px; width: calc(100% + 3 * var(--cell)); padding: 0 0 0 calc((var(--cell) - 1ch) / 2); border: 0; outline: 0; background: none; color: inherit;
+  font-family: var(--mono); font-size: 20px; font-weight: 600; letter-spacing: calc(var(--cell) + var(--gap) - 1ch); } /* (wider than a full code: it never scrolls) */
+.code-field > input[data-letters] { text-transform: uppercase; }
+.code-field > input::selection { background: transparent; color: inherit; } /* (the lit box says it) */
+.code-field > input:autofill { background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: var(--text); }
 .code-field:has(> input[aria-invalid="true"]) > i { border-color: var(--bad); }
 .code-field:has(> input:disabled) { opacity: .55; }
 /* a rating: stars as radio buttons, or shown (Dash.rating) */
@@ -1168,7 +1171,7 @@ button.entry-grip { width: 30px; height: 30px; }
 /* a slider with two ends (Dash.range) */
 .range-field { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; min-width: 0; font-size: 14px; }
 :where(.range-field) { --c: var(--blue); }
-.range-track { position: relative; flex: 1; min-width: 120px; height: 24px; }
+.range-track { position: relative; flex: 1; min-width: 120px; height: 24px; cursor: pointer; direction: ltr; touch-action: pan-y; }
 .range-track::before, .range-track::after { content: ""; position: absolute; top: 10px; height: 4px; border-radius: 2px; background: var(--line); }
 .range-track::before { left: 0; right: 0; }
 .range-track::after { left: var(--from, 0%); right: calc(100% - var(--to, 100%)); background: var(--c); }
@@ -1394,6 +1397,8 @@ button.entry-grip { width: 30px; height: 30px; }
   .top-right { margin-left: 0; }
   .page { padding: 16px 16px 40px; }
   .code-field { --cell: 38px; --gap: 6px; }
+  .code-field:has(> i:nth-of-type(7)) { --cell: 31px; --gap: 5px; }
+  .code-field:has(> i:nth-of-type(9)) { --cell: 25px; --gap: 4px; }
   .palette { max-height: calc(100% - 24px); margin-top: 12px; }
   .palette-item { min-height: 46px; }
   .log-line { flex-wrap: wrap; gap: 0 8px; }
@@ -1453,6 +1458,10 @@ button.entry-grip { width: 30px; height: 30px; }
   .table.stack > * > tr.row-detail { padding: 0; }
   .table.stack > * > tr.row-detail > td { padding: 0; text-align: left; }
   .table-pick-all.stack { display: flex; }
+}
+@media (max-width: 360px) {
+  .code-field:has(> i:nth-of-type(7)) { --cell: 27px; --gap: 4px; }
+  .code-field:has(> i:nth-of-type(9)) { --cell: 21px; --gap: 4px; }
 }
 @media (min-width: 641px) { .show-sm { display: none !important; } }
 @media (prefers-reduced-motion: reduce) {

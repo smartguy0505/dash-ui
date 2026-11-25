@@ -1,4 +1,4 @@
-/* dash-ui 1.16.1 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
+/* dash-ui 1.16.2 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
    A plain script with no dependencies: a script tag for dash.js in <head> gives window.Dash, and puts the
    saved light/dark choice on the page before it paints. In Node, require('./dash.js') returns the same object
    (the parts that need a page are skipped).
@@ -8,7 +8,7 @@
 (function (root) {
   'use strict';
   const hasDom = typeof document !== 'undefined';
-  const Dash = { version: '1.16.1', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side', privacyKey: 'dash.private', csp: false } };
+  const Dash = { version: '1.16.2', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side', privacyKey: 'dash.private', csp: false } };
 
   // ---- basics
 
@@ -4144,15 +4144,31 @@
     return `<span class="code-field"><input${id ? ` id="${esc(id)}"` : ''} name="${esc(name)}" aria-label="${esc(label)}" value="${esc(value)}" maxlength="${n}" inputmode="${letters ? 'text' : 'numeric'}" autocomplete="one-time-code" autocapitalize="characters"`
       + ` spellcheck="false" pattern="${letters ? '[A-Za-z0-9]' : '[0-9]'}{${n}}" title="All ${n} ${letters ? 'characters' : 'digits'}."${letters ? ' data-letters' : ''}${submit ? ' data-submit' : ''}${required ? ' required' : ''}${disabled ? ' disabled' : ''}>${Array.from({ length: n }, (_, i) => (i < String(value).length ? '<i class="on"></i>' : '<i></i>')).join('')}</span>`;
   };
-  const codeAt = (input) => { // which box is next, and which are filled
-    const cells = input.parentElement.querySelectorAll('i'), at = Math.min(input.selectionStart ?? input.value.length, cells.length - 1);
-    cells.forEach((c, i) => { c.classList.toggle('at', i === at); c.classList.toggle('on', i < input.value.length); });
+  const codeLen = (input) => (input.maxLength > 0 ? input.maxLength : 6);
+  const codeWell = (input, text) => String(text).replace('letters' in input.dataset ? /[^a-z0-9]/gi : /\D/g, ''); // what a code can have
+  const codeAt = (input) => { // which boxes are filled, and which one the next character goes into (all that are selected)
+    const cells = input.parentElement.querySelectorAll('i'), s = input.selectionStart ?? input.value.length, e = input.selectionEnd ?? s;
+    cells.forEach((c, i) => { c.classList.toggle('at', s === e ? i === Math.min(s, cells.length - 1) : i >= s && i < e); c.classList.toggle('on', i < input.value.length); });
+    input.__dashLen = input.value.length;
+  };
+  // into box i (or the first empty one): what is in it is selected, so that the next character takes its place
+  const codeTo = (input, i) => {
+    const len = input.value.length, at = clamp(i, 0, Math.min(len, codeLen(input) - 1));
+    if (document.activeElement === input) input.setSelectionRange(at, Math.min(at + 1, len));
+    codeAt(input);
+  };
+  const codeBoxAt = (input, x) => { // the box at a place on the screen
+    const r = [...input.parentElement.querySelectorAll('i')].map((c) => c.getBoundingClientRect());
+    return r.findIndex((c, i) => i === r.length - 1 || x < (c.right + r[i + 1].left) / 2);
   };
   const codeIn = (input) => {
-    const letters = 'letters' in input.dataset, n = input.maxLength > 0 ? input.maxLength : 6;
-    const clean = input.value.replace(letters ? /[^a-z0-9]/gi : /\D/g, '').slice(0, n), v = letters ? clean.toUpperCase() : clean;
-    if (input.value !== v) input.value = v;
-    codeAt(input);
+    const n = codeLen(input), raw = input.value, was = input.__dashLen ?? 0;
+    const clean = codeWell(input, raw).slice(0, n), v = 'letters' in input.dataset ? clean.toUpperCase() : clean;
+    const at = Math.min(codeWell(input, raw.slice(0, input.selectionStart ?? raw.length)).length, v.length);
+    if (raw !== v) { input.value = v; if (document.activeElement === input) input.setSelectionRange(at, at); }
+    // typed over one: on with the next. Between two, while there is room: the rest moves along. After the last of a full one
+    // there is no more to type
+    if (at < v.length && (v.length === n || v.length === was)) codeTo(input, at); else codeAt(input);
     if (v.length < n) { input.__dashCode = ''; return; }
     if (input.__dashCode === v) return; // said once
     input.__dashCode = v;
@@ -5272,7 +5288,7 @@
       if (!t.matches || !t.matches('input')) return;
       if (t.type === 'range' && t.closest('.range-field')) rangeMove(t);
       else if (t.type === 'number' && t.closest('.num-field')) numEnds(t.closest('.num-field'));
-      else if (t.matches('.code-field > input')) codeIn(t);
+      else if (t.matches('.code-field > input')) { if (e.isComposing) codeAt(t); else codeIn(t); }
     });
     document.addEventListener('change', (e) => { if (e.target.matches && e.target.matches('.num-field input')) numEnds(e.target.closest('.num-field')); });
     document.addEventListener('reset', (e) => setTimeout(() => { // what they show goes back too
@@ -5280,15 +5296,69 @@
       for (const n of e.target.querySelectorAll('.range-field input:first-of-type')) rangeMove(n);
       for (const n of e.target.querySelectorAll('.code-field > input')) { n.__dashCode = ''; codeAt(n); }
     }));
+    // a range (Dash.range): a press on its track takes the nearer end there, and along
+    document.addEventListener('pointerdown', (e) => {
+      const track = !e.button && e.isPrimary && e.target.classList && e.target.classList.contains('range-track') ? e.target : null;
+      const [a, b] = track ? track.querySelectorAll('input[type="range"]') : [];
+      if (!b || a.disabled || b.disabled) return;
+      const r = track.getBoundingClientRect(), lo = Number(a.min || 0), span = Number(a.max || 100) - lo;
+      const valueAt = (x) => lo + ((x - r.left - 9) / (r.width - 18)) * span; // (a thumb is 18 px wide; the box keeps it to its ends and steps)
+      const v = valueAt(e.clientX), end = v - Number(a.value) < Number(b.value) - v ? a : b, was = end.value;
+      const to = (x) => { const old = end.value; end.value = valueAt(x); if (end.value !== old) end.dispatchEvent(new Event('input', { bubbles: true })); };
+      const control = new AbortController(), { signal } = control;
+      const done = () => { control.abort(); if (end.value !== was) end.dispatchEvent(new Event('change', { bubbles: true })); };
+      let live = e.pointerType !== 'touch'; // a finger may be about to scroll: it has to tap, or to go sideways
+      if (live) { e.preventDefault(); end.focus({ preventScroll: true }); to(e.clientX); }
+      window.addEventListener('pointermove', (m) => { if (m.pointerId === e.pointerId && (live ||= Math.abs(m.clientX - e.clientX) > 6)) to(m.clientX); }, { signal });
+      window.addEventListener('pointerup', (u) => { if (u.pointerId === e.pointerId) { if (live || Math.abs(u.clientY - e.clientY) < 12) to(u.clientX); done(); } }, { signal });
+      window.addEventListener('pointercancel', (u) => { if (u.pointerId === e.pointerId) done(); }, { signal });
+    });
+    // a code (Dash.code): a press goes into the box that is pressed, arrows from box to box, and a character replaces the one
+    // that is there
+    const codeOf = (t) => (t && t.matches && t.matches('.code-field > input') ? t : null);
+    let finger = false, composing = false;
+    const codeHit = (e) => { const f = !e.button && !e.shiftKey && e.target.closest && e.target.closest('.code-field'), i = f && codeOf(f.querySelector('input')); return i && !i.disabled ? i : null; };
+    document.addEventListener('pointerdown', (e) => { finger = e.pointerType === 'touch' || e.pointerType === 'pen'; }, true);
+    document.addEventListener('mousedown', (e) => {
+      const i = finger ? null : codeHit(e);
+      if (!i) return;
+      e.preventDefault(); // (it would put the caret before or after the character)
+      i.focus({ preventScroll: true });
+      if (e.detail > 1) { i.select(); codeAt(i); } else codeTo(i, codeBoxAt(i, e.clientX));
+    });
+    document.addEventListener('click', (e) => { const i = finger ? codeHit(e) : null; if (i) codeTo(i, codeBoxAt(i, e.clientX)); }); // (a finger's press has to give it the focus itself, for the keyboard)
+    document.addEventListener('keydown', (e) => {
+      const i = codeOf(e.target);
+      if (!i || e.shiftKey || e.ctrlKey || e.metaKey || e.altKey || e.isComposing) return;
+      const s = i.selectionStart, x = i.selectionEnd, some = x - s > 1;
+      const to = { ArrowLeft: some ? s : Math.min(s, codeLen(i) - 1) - 1, ArrowRight: some ? x - 1 : s + 1, Home: 0, ArrowUp: 0, End: i.value.length, ArrowDown: i.value.length }[e.key];
+      if (to == null) return;
+      e.preventDefault();
+      codeTo(i, to);
+    });
+    document.addEventListener('beforeinput', (e) => { // a letter doesn't take a digit's place
+      const i = codeOf(e.target);
+      if (i && e.inputType === 'insertText' && e.data && !e.isComposing && !codeWell(i, e.data)) e.preventDefault();
+    });
+    document.addEventListener('compositionstart', () => { composing = true; });
+    document.addEventListener('compositionend', (e) => { composing = false; const i = codeOf(e.target); if (i) codeIn(i); });
     document.addEventListener('paste', (e) => { // maxlength would cut "123 456" before the space is taken out
-      const i = e.target.closest && e.target.closest('.code-field > input'), text = i && !i.disabled && e.clipboardData ? e.clipboardData.getData('text') : '';
+      const i = codeOf(e.target), text = i && !i.disabled && e.clipboardData ? e.clipboardData.getData('text') : '';
       if (!text) return;
       e.preventDefault();
-      i.value = text.replace('letters' in i.dataset ? /[^a-z0-9]/gi : /\D/g, '').slice(0, i.maxLength);
-      i.setSelectionRange(i.value.length, i.value.length);
+      const n = codeLen(i), got = codeWell(i, text).slice(0, n), s = got.length < n ? i.selectionStart ?? i.value.length : 0, x = i.selectionEnd ?? s;
+      if (!got) return; // nothing a code can have: what is there stays
+      i.value = got.length < n ? (i.value.slice(0, s) + got + i.value.slice(Math.max(x, s + got.length))).slice(0, n) : got;
+      i.setSelectionRange(s + got.length, s + got.length);
       i.dispatchEvent(new Event('input', { bubbles: true }));
     });
-    document.addEventListener('selectionchange', () => { const i = document.activeElement; if (i && i.matches('.code-field > input')) codeAt(i); });
+    document.addEventListener('focusin', (e) => { const i = codeOf(e.target); if (i) codeAt(i); });
+    document.addEventListener('selectionchange', () => {
+      const i = codeOf(document.activeElement);
+      if (!i || composing) return;
+      const s = i.selectionStart;
+      if (s === i.selectionEnd && s < i.value.length && i.value.length === codeLen(i)) codeTo(i, s); else codeAt(i); // (a full one has no room for one more)
+    });
     // a dialog closing: what floats inside it moves down to the next layer
     document.addEventListener('close', (e) => {
       const d = e.target;

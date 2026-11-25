@@ -3426,14 +3426,12 @@ let reference;
   const k4 = await at(() => [...document.querySelectorAll('.code-field:has(#code) > i')].map((i) => (i.classList.contains('at') ? 'A' : i.classList.contains('on') ? 'x' : '.')).join(''));
   await press('End', 'Backspace');
   await tab.keyboard.type('6');
-  check('1.15 code: the box the caret is in is lit; told again once it is full again', k4 === 'xxxxAx' && (await logged()) === 'code 123456', k4);
+  check('1.15 code: the box the caret is in is lit; told again once it is full again', k4 === 'xxxAxx' && (await logged()) === 'code 123456', k4);
   await at(() => { const i = document.getElementById('code'); i.value = ''; const d = new DataTransfer(); d.setData('text', '98 76-54 3'); i.dispatchEvent(new ClipboardEvent('paste', { clipboardData: d, bubbles: true, cancelable: true })); });
   const k3 = [await val('code'), await logged()].join(' ');
   await tab.focus('#code2');
   await tab.keyboard.type('a-b1c9');
   check('1.15 code: a paste with spaces; letters as capitals', k3 === '987654 code 987654' && (await val('code2')) === 'AB1C' && (await logged()) === 'code AB1C', k3 + await val('code2'));
-  const cells = await at(() => { const i = document.getElementById('code'), f = i.parentElement, boxes = [...f.querySelectorAll('i')].map((x) => x.getBoundingClientRect()); const cv = document.createElement('canvas').getContext('2d'); const s = getComputedStyle(i); cv.font = `${s.fontWeight} ${s.fontSize} ${s.fontFamily}`; const ch = cv.measureText('8').width, x0 = i.getBoundingClientRect().left + parseFloat(s.paddingLeft), by = ch + parseFloat(s.letterSpacing); return boxes.every((b, k) => Math.abs(x0 + k * by + ch / 2 - (b.left + b.width / 2)) < 1.5); });
-  check('1.15 code: each digit is in the middle of its box', cells, '');
   const sent = await at(() => { const f = document.createElement('form'); let n = 0; f.addEventListener('submit', (e) => { e.preventDefault(); n++; }); f.innerHTML = Dash.code({ name: 'c', length: 4, submit: true }); document.body.append(f); const i = f.querySelector('input'); const type = (v) => { i.value = v; i.dispatchEvent(new Event('input', { bubbles: true })); }; type('123'); const a = n; type('1234'); type('1234'); const b = n; type('123'); type('1239'); const c = n; f.innerHTML = Dash.code({ name: 'c', length: 4 }); const p = f.querySelector('input'); p.value = '1234'; p.dispatchEvent(new Event('input', { bubbles: true })); f.remove(); return [a, b, c, n, i.pattern].join(); });
   check('1.15 code: sends its form once it is full, if asked to', sent === '0,1,2,2,[0-9]{4}', sent);
 
@@ -3998,6 +3996,242 @@ let reference;
     await ctx.close();
   }
   check('1.16 docs: every button of every example can be pressed', presses > 500 && !threw.length, presses + ' ' + threw.slice(0, 3).join(' ; '));
+}
+
+// ---- 1.16.2 the code box (test/fields.html), used with a real mouse, finger and keyboard, and read off the screen
+{
+  const open = async ({ width = 1000, height = 900, ...more } = {}) => {
+    const ctx = await browser.newContext({ viewport: { width, height }, locale: 'en-US', reducedMotion: 'reduce', ...more });
+    const tab = await ctx.newPage();
+    tab.setDefaultTimeout(5000);
+    tab.on('pageerror', (e) => errors.push(e.message));
+    await tab.goto(url.replace('behaviour.html', 'fields.html'), { waitUntil: 'load' });
+    return tab;
+  };
+  const boxes = (tab, id) => tab.evaluate((k) => { const f = document.getElementById(k).parentElement; f.scrollIntoView({ block: 'center' }); return [...f.querySelectorAll('i')].map((i) => { const r = i.getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; }); }, id);
+  // how far each character is from the middle of its box, in the picture of the page; '-': an empty box
+  const ink = async (tab, id) => {
+    const cells = await boxes(tab, id);
+    const png = (await tab.screenshot({ scale: 'css' })).toString('base64');
+    return tab.evaluate(async ([b64, all]) => {
+      const img = new Image();
+      img.src = 'data:image/png;base64,' + b64;
+      await img.decode();
+      const c = document.createElement('canvas');
+      c.width = img.width; c.height = img.height;
+      const g = c.getContext('2d');
+      g.drawImage(img, 0, 0);
+      return all.map(([x, y, w, h]) => {
+        const W = Math.round(w) - 8, H = Math.round(h) - 12, d = g.getImageData(Math.round(x) + 4, Math.round(y) + 6, W, H).data;
+        let lo = W, hi = -1;
+        for (let i = 0; i < W * H; i++) if (Math.abs(d[i * 4] - d[0]) + Math.abs(d[i * 4 + 1] - d[1]) + Math.abs(d[i * 4 + 2] - d[2]) > 120) { lo = Math.min(lo, i % W); hi = Math.max(hi, i % W); }
+        return hi < 0 ? '-' : hi - lo > 20 ? 'wide' : (lo + hi - W + 1) / 2;
+      });
+    }, [png, cells]);
+  };
+  const middle = (list, n) => list.length === n && list.every((x) => typeof x === 'number' && Math.abs(x) <= 2);
+  const seen = (tab, id) => tab.evaluate((k) => { const i = document.getElementById(k); return [i.value, [...i.parentElement.querySelectorAll('i')].map((c) => (c.classList.contains('at') ? 'A' : c.classList.contains('on') ? 'x' : '.')).join('')].join(' '); }, id);
+  const tab = await open();
+  const press = async (...keys) => { for (const k of keys) await tab.keyboard.press(k); await tab.waitForTimeout(40); };
+  const type = async (t) => { await tab.keyboard.type(t); await tab.waitForTimeout(40); };
+  const hit = async (n, part = 0.5, opts) => { const b = (await boxes(tab, 'code'))[n - 1]; await tab.mouse.click(b[0] + b[2] * part, b[1] + b[3] / 2, opts); await tab.waitForTimeout(40); };
+  const fill = async (t) => { await tab.focus('#code'); await press('Control+a', 'Delete'); await type(t); };
+  const now = () => seen(tab, 'code');
+  const told = async () => { await tab.evaluate(() => { document.dispatchEvent(new Event('selectionchange')); }); await tab.waitForTimeout(20); }; // (Chromium doesn't after a key that changes the text; others do)
+
+  await tab.focus('#code');
+  await type('888');
+  const part = await ink(tab, 'code');
+  await type('888');
+  const whole = await ink(tab, 'code'), still = await tab.evaluate(() => { const i = document.getElementById('code'); return [i.scrollLeft, i.parentElement.scrollLeft, document.activeElement === i].join(); });
+  check('1.16.2 code: on the screen, each digit is in the middle of its box, also once it is full', middle(part.slice(0, 3), 3) && part.slice(3).join('') === '---' && middle(whole, 6) && still === '0,0,true', [part, whole, still].join(' / '));
+  await tab.evaluate(() => { document.getElementById('code').blur(); });
+  const left = await ink(tab, 'code');
+  await press('Tab');
+  check('1.16.2 code: and when it is left', middle(left, 6), left.join());
+
+  await fill('123456');
+  const c = [await now()];
+  for (const [n, p] of [[2, 0.9], [2, 0.1], [1, 0.5], [6, 0.9], [4, 0.6], [2, 1.05], [5, -0.05]]) { await hit(n, p); c.push((await now()).split(' ')[1].indexOf('A') + 1); }
+  const lit = await ink(tab, 'code');
+  await tab.evaluate(() => { document.getElementById('code').blur(); });
+  await hit(3, 0.98);
+  c.push((await now()).split(' ')[1].indexOf('A') + 1, await tab.evaluate(() => document.activeElement.id));
+  check('1.16.2 code: a press goes into the box that is pressed, anywhere on it, also from elsewhere; the digit stays as it is', c.join() === '123456 xxxxxA,2,2,1,6,4,2,5,3,code' && middle(lit, 6), c.join() + ' ' + lit);
+  await tab.evaluate(() => { log.length = 0; });
+  await hit(2);
+  await type('9');
+  const r1 = await now();
+  await type('87');
+  const r2 = [await now(), await tab.evaluate(() => log.splice(0).join())].join(' ');
+  check('1.16.2 code: a digit takes the place of the one in the box, and it goes on to the next; a full code is told each time', r1 === '193456 xxAxxx' && r2 === '198756 xxxxAx code 193456,code 198456,code 198756', r1 + ' / ' + r2);
+  await type('43');
+  await told();
+  await type('21');
+  const o1 = [await now(), await tab.evaluate(() => log.splice(0).join())].join(' ');
+  await hit(6);
+  await type('09');
+  const o2 = [await now(), await tab.evaluate(() => log.splice(0).join())].join(' ');
+  check('1.16.2 code: after the last one nothing more is taken; a press on it, and it is typed over', o1 === '198743 xxxxxA code 198746,code 198743' && o2 === '198740 xxxxxA code 198740', o1 + ' / ' + o2);
+  await fill('198741');
+  await hit(3);
+  await press('Backspace');
+  await told();
+  const f1 = await now();
+  await type('0');
+  const f2 = await now();
+  await hit(3);
+  await press('Delete', 'Delete');
+  const f3 = await now();
+  await type('55');
+  const f4 = await now();
+  check('1.16.2 code: a wrong digit is taken out, and a new one put in there', f1 === '19741 xxAxx.' && f2 === '190741 xxxAxx' && f3 === '1941 xxAx..' && f4 === '195541 xxxxAx', [f1, f2, f3, f4].join(' / '));
+  await press('End', 'Backspace', 'Backspace');
+  const g1 = await now();
+  await type('7');
+  const g2 = await now();
+  await press('Backspace', 'Backspace', 'Backspace', 'Backspace', 'Backspace', 'Backspace');
+  check('1.16.2 code: from the end, Backspace takes one after the other', g1 === '1955 xxxxA.' && g2 === '19557 xxxxxA' && (await now()) === ' A.....', [g1, g2, await now()].join(' / '));
+  await fill('123456');
+  const a = [];
+  for (const k of ['ArrowLeft', 'ArrowLeft', 'Home', 'ArrowLeft', 'ArrowRight', 'End', 'ArrowRight', 'ArrowUp', 'ArrowDown']) { await press(k); a.push((await now()).split(' ')[1].indexOf('A') + 1); }
+  for (const [k, t] of [['Home', '0'], ['End', '7'], ['ArrowUp', '8'], ['ArrowDown', '9']]) { await press(k); await type(t); a.push((await now()).split(' ')[0]); }
+  check('1.16.2 code: arrows go from box to box, Home and End to the first and the last, to type over', a.join('') === '541126616023456023457823457823459', a.join(''));
+  await fill('1234');
+  const h = [];
+  for (const [k, t] of [['Home', '9'], ['ArrowUp', '8'], ['End', '5'], ['ArrowDown', '6']]) { await press(k); await type(t); h.push(await now()); }
+  await press('Backspace', 'Backspace');
+  await hit(2);
+  await type('70');
+  h.push(await now());
+  check('1.16.2 code: in one that isn\'t full, too', h.join('|') === '9234 xAxx..|8234 xAxx..|82345 xxxxxA|823456 xxxxxA|8704 xxxA..', h.join('|'));
+  await fill('123456');
+  await hit(3);
+  await press('Shift+ArrowRight');
+  const sh = [await now()];
+  await press('ArrowRight');
+  sh.push(await now());
+  await press('Shift+Home');
+  sh.push(await now());
+  await press('ArrowLeft');
+  sh.push(await now());
+  check('1.16.2 code: with Shift more than one is picked', sh.join('|') === '123456 xxAAxx|123456 xxxAxx|123456 AAAxxx|123456 Axxxxx', sh.join('|'));
+  await fill('123456');
+  await hit(3);
+  await type('a');
+  const i1 = await now();
+  await tab.evaluate(() => { for (const t of ['hello', '  ']) { const d = new DataTransfer(); d.setData('text', t); document.getElementById('code').dispatchEvent(new ClipboardEvent('paste', { clipboardData: d, bubbles: true, cancelable: true })); } });
+  const i2 = await now();
+  check('1.16.2 code: a letter, or a paste without digits, takes nothing away', i1 === '123456 xxAxxx' && i2 === i1, i1 + ' / ' + i2);
+  const paste = (t) => tab.evaluate((x) => { const d = new DataTransfer(); d.setData('text', x); document.getElementById('code').dispatchEvent(new ClipboardEvent('paste', { clipboardData: d, bubbles: true, cancelable: true })); }, t);
+  await paste('9-8');
+  const p1 = await now();
+  await press('Control+a');
+  const p2 = await now();
+  await paste('70');
+  const p3 = await now();
+  await paste('65 43 21 0');
+  const p4 = await now();
+  check('1.16.2 code: a short paste goes in from the box on; over all of it, it is what is there', p1 === '129856 xxxxAx' && p2 === '129856 AAAAAA' && p3 === '70 xxA...' && p4 === '654321 xxxxxA', [p1, p2, p3, p4].join(' / '));
+  await fill('12');
+  const e1 = [];
+  for (const n of [6, 3, 1]) { await hit(n); e1.push(await now()); }
+  await hit(2, 0.5, { clickCount: 2 });
+  const e2 = await now();
+  await type('7');
+  check('1.16.2 code: a press on an empty box goes to the first that is empty; a double click has all of it', e1.join('|') === '12 xxA...|12 xxA...|12 Ax....' && e2 === '12 AA....' && (await now()) === '7 xA....', [...e1, e2, await now()].join('|'));
+  await fill('123456');
+  await tab.evaluate(() => { document.getElementById('code').blur(); });
+  await tab.evaluate(() => { const i = document.getElementById('code'); i.focus(); i.setSelectionRange(2, 2); });
+  await tab.waitForTimeout(40);
+  const s1 = await now();
+  await type('0');
+  const s2 = await now();
+  await tab.evaluate(() => { const i = document.getElementById('code'); i.value = ''; i.value = '88'; });
+  const s3 = (await ink(tab, 'code')).map((x) => (x === '-' ? '-' : Math.abs(x) <= 2 ? 'o' : 'x')).join('');
+  check('1.16.2 code: wherever the page puts the caret in a full one, it can be typed over; what a page sets shows', s1 === '123456 xxAxxx' && s2 === '120456 xxxAxx' && s3 === 'oo----', [s1, s2, s3].join(' / '));
+  await tab.focus('#code2');
+  await type('mw');
+  const l1 = await ink(tab, 'code2');
+  await type('m0');
+  const l2 = await ink(tab, 'code2');
+  check('1.16.2 code: letters too', middle(l1.slice(0, 2), 2) && middle(l2, 4) && (await seen(tab, 'code2')) === 'MWM0 xxxA' && (await tab.evaluate(() => getComputedStyle(document.getElementById('code2')).textTransform)) === 'uppercase', [l1, l2, await seen(tab, 'code2')].join(' / '));
+  const b2 = (await boxes(tab, 'code2'))[1];
+  await tab.mouse.click(b2[0] + 20, b2[1] + 20);
+  await press('Backspace', 'Delete');
+  const n1 = await seen(tab, 'code2');
+  await type('xy');
+  check('1.16.2 code: small letters put in between stay in order', n1 === 'M0 xA..' && (await seen(tab, 'code2')) === 'MXY0 xxxA', n1 + ' / ' + (await seen(tab, 'code2')));
+  const rtl = await tab.evaluate(() => { document.documentElement.dir = 'rtl'; const r = [...document.querySelectorAll('.code-field:has(#code) > i')].map((i) => i.getBoundingClientRect().left); document.documentElement.dir = ''; return r.every((x, i) => !i || x > r[i - 1]); });
+  check('1.16.2 code: the first digit is on the left, on a page that reads from the right too', rtl, '');
+  await tab.context().close();
+
+  // a range's track
+  const slide = await open();
+  await slide.evaluate(() => { log.length = 0; document.querySelector('[name="price_from"]').closest('.range-field').scrollIntoView({ block: 'center' }); for (const t of ['input', 'change']) document.addEventListener(t, (e) => { if (/price/.test(e.target.name)) log.push(`${t} ${e.target.name.slice(6)} ${e.target.value}`); }); });
+  const tr = await slide.evaluate(() => { const r = document.querySelector('.range-track:has([name="price_from"])').getBoundingClientRect(); return [r.left + 9, r.top + 12, r.width - 18]; });
+  const on = (v) => [tr[0] + (tr[2] * v) / 500, tr[1]];
+  const ends = () => slide.evaluate(() => { const f = document.querySelector('[name="price_from"]').closest('.range-field'); return [f.querySelector('output').textContent, document.activeElement.name, log.splice(0).join()].join(' '); });
+  await slide.mouse.click(...on(352));
+  const t1 = await ends();
+  await slide.mouse.click(...on(111));
+  const t2 = await ends();
+  await slide.mouse.move(...on(300));
+  await slide.mouse.down();
+  await slide.mouse.move(...on(420), { steps: 2 });
+  await slide.mouse.move(tr[0] + 2000, tr[1] + 200);
+  await slide.mouse.up();
+  await slide.mouse.move(...on(50));
+  const t3 = await ends();
+  await slide.mouse.move(...on(300));
+  await slide.mouse.down();
+  await slide.mouse.move(...on(30));
+  await slide.mouse.up();
+  const t4 = await ends();
+  check('1.16.2 range: a press on the track takes the nearer end there, and along', t1 === '50–350 € price_to input to 350,change to 350' && t2 === '110–350 € price_from input from 110,change from 110' && /^110–500 € price_to input to 300,.*input to 420,.*input to 500,change to 500$/.test(t3) && /^30–500 € price_from input from 300,.*change from 30$/.test(t4), [t1, t2, t3, t4].join(' / '));
+  const off = await slide.evaluate(() => { for (const i of document.querySelectorAll('[name^="price_"]')) i.disabled = true; return document.querySelector('[name="price_from"]').closest('.range-field').querySelector('output').textContent; });
+  await slide.mouse.click(...on(250));
+  check('1.16.2 range: not if it is off', (await ends()).startsWith(off), off);
+  await slide.context().close();
+
+  for (const width of [390, 320]) {
+    const phone = await open({ width, height: 780, hasTouch: true, isMobile: true });
+    await phone.evaluate(() => { const d = document.createElement('div'); d.className = 'panel'; d.innerHTML = [6, 8, 10].map((n) => `<p>${Dash.code({ id: 'n' + n, name: 'n' + n, length: n })}</p>`).join(''); document.querySelector('main').prepend(d); });
+    const out = [];
+    for (const n of [6, 8, 10]) {
+      const r = await boxes(phone, 'n' + n), at = r[2];
+      await phone.touchscreen.tap(r[0][0] + 10, r[0][1] + 20);
+      await phone.keyboard.type('8'.repeat(n));
+      await phone.waitForTimeout(40);
+      const o = await ink(phone, 'n' + n);
+      const [x, , w] = r[n - 1];
+      await phone.touchscreen.tap(at[0] + at[2] * 0.9, at[1] + 20);
+      await phone.keyboard.type('0');
+      await phone.waitForTimeout(40);
+      out.push([n, middle(o, n) ? 'in' : o.join(), x + w <= width - 16 ? 'fits' : x + w, (await seen(phone, 'n' + n)).split(' ').map((t, k) => (k ? t.indexOf('A') + 1 : t.slice(0, 4))).join()].join(' '));
+    }
+    // a finger on a range's track: a tap sets it, a swipe up scrolls the page and leaves it
+    const cdp = await phone.context().newCDPSession(phone);
+    await phone.evaluate(() => { document.querySelector('.range-track:has([name="price_from"])').scrollIntoView({ block: 'center' }); });
+    const rt = await phone.evaluate(() => { const r = document.querySelector('.range-track:has([name="price_from"])').getBoundingClientRect(); return [r.left + 9, r.top + 12, r.width - 18]; });
+    const says = () => phone.evaluate(() => [document.querySelector('[name="price_from"]').closest('.range-field').querySelector('output').textContent, Math.round(scrollY)]);
+    const x = rt[0] + rt[2] * 0.8, v0 = await says();
+    const touch = async (type, y) => { await cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y }] }); };
+    await touch('touchStart', rt[1]);
+    for (let k = 1; k <= 6; k++) { await touch('touchMove', rt[1] - k * 30); await phone.waitForTimeout(30); }
+    await phone.waitForTimeout(200); // (it stands still, so that the page doesn't roll on)
+    await touch('touchEnd');
+    await phone.waitForTimeout(250);
+    const v1 = await says();
+    await phone.evaluate((y) => { scrollTo(0, y); }, v0[1]);
+    await phone.waitForTimeout(60);
+    await phone.touchscreen.tap(x, rt[1]);
+    await phone.waitForTimeout(60);
+    const v2 = await says();
+    check(`1.16.2 range: on a phone ${width} px wide, a tap on the track sets it, a swipe up is the page's`, v1[0] === v0[0] && v1[1] > v0[1] && v2[0] === '50–400 €', [v0, v1, v2].join(' / '));
+    check(`1.16.2 code: on a phone ${width} px wide, up to ten fit; a finger's press goes into its box`, out.join('|') === '6 in fits 8808,4|8 in fits 8808,4|10 in fits 8808,4', out.join('|'));
+    await phone.context().close();
+  }
 }
 
 await browser.close();

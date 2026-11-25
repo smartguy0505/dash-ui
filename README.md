@@ -258,7 +258,7 @@ Surfaces and text: `--bg`, `--card`, `--soft` (a block inside a card, table head
 - `.date-field` (`Dash.datepicker`): a date box with a `.date-btn` that opens a `.popup.calendar` (`.cal-head`, `.cal-title`, `.cal-grid`).
 - `.num-field` (`Dash.number`): a number box with a `.btn[data-step="-1"]` and a `.btn[data-step="1"]`; `.num-row` with its `.unit` beside it. `data-peek` on a button shows the password beside it.
 - `.tag-box` (`Dash.tagbox`): a box that takes several things (`.tag-list`, `.tag-x`, `.tag-box-in`; `data-full` when there can be no more).
-- `.code-field` (`Dash.code`): one box drawn as one per character (`.on` filled, `.at` the next).
+- `.code-field` (`Dash.code`): one box drawn as one per character (`.on` filled, `.at` the one the next character goes into). Up to 10; sizes in `--cell` and `--gap`.
 - `.rating` (`Dash.rating`): stars as radio buttons, or shown (`.rating-stars`, `.rating-on`); `.sm`, `.lg`, a tone.
 - `.range-field` (`Dash.range`): a slider with two ends (`.range-track`, `.range-label`).
 - `.inline-edit` (`Dash.inline`): text that becomes a box when it is pressed (`.inline-form`).

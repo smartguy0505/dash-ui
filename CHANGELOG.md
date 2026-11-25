@@ -2,6 +2,18 @@
 
 Dashboards keep a copy of `dash.css` and `dash.js`; the first line of each file says which version it is. Versions only add things: a page that worked with an older copy works the same with a newer one.
 
+## 1.16.2 (2026-11-25)
+
+Fixed: the code box (`Dash.code`), and a press on a range's track.
+
+- A full code slid about 10 px to the left out of its boxes, and the first box was cut off. It stays in place now, on every width.
+- A press goes into the box that is pressed (a press on the right half of one lit the next).
+- A digit takes the place of the one in the lit box, and it goes on to the next: a full code took nothing more, so a wrong digit couldn't simply be typed over. Arrows, Home and End go from box to box; Backspace or Delete take the digit out of the box, and a new one goes in there.
+- A letter, or a paste without digits, no longer takes a digit away; a short paste goes in from the lit box on.
+- Codes of 7 to 10 fit on a phone; the first digit is on the left on a page that reads from the right, too.
+- `Dash.range`: a press on the track takes the nearer end there, and along while it is held, as on any slider (only the ends themselves could be taken).
+- Docs: no white corners where an example's code begins.
+
 ## 1.16.1 (2026-11-25)
 
 - Heatmaps and days that aren't on a panel: no panel-coloured box behind their names (on one, the names go on staying in view).

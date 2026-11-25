@@ -11,10 +11,10 @@
 <script src="../dash.js"></script>
 </head>
 <body>
-<!-- dash-ui 1.16.1 docs, written by tools/docs.mjs from docs-src/fields.html: edit that, not this -->
+<!-- dash-ui 1.16.2 docs, written by tools/docs.mjs from docs-src/fields.html: edit that, not this -->
 <header class="topbar">
   <button type="button" class="icon-btn docs-menu" data-toggle-side aria-label="Pages"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3 5h12M3 9h12M3 13h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
-  <a class="brand" href="./"><span class="mark">d</span><h1>dash-ui</h1></a><span class="tag plain docs-version">1.16.1</span>
+  <a class="brand" href="./"><span class="mark">d</span><h1>dash-ui</h1></a><span class="tag plain docs-version">1.16.2</span>
   <div class="top-right">
     <label class="search docs-search"><span class="sr-only">Search the docs</span><svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.6"/><path d="m11 11 3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><input class="input" type="search" id="docs-search" placeholder="Search" aria-keyshortcuts="/"><kbd class="docs-key">/</kbd></label>
     <div class="seg" role="group" aria-label="Theme"><button type="button" data-theme-set="system">Auto</button><button type="button" data-theme-set="light">Light</button><button type="button" data-theme-set="dark">Dark</button></div>
@@ -57,7 +57,7 @@
 
     <section id="code" data-nav="Codes" data-terms="Dash.code .code-field .at .on dash:code data-submit data-letters one-time otp pin verification">
       <h2>Codes</h2>
-      <p><code>Dash.code({ label, name, length, letters, submit })</code> is a box for the code from a message, drawn as one box per character. It is a single field, so a paste (with spaces or dashes), a phone's suggestion and a screen reader all work. Once it is full it fires <code>dash:code</code> with the code in <code>detail</code>; <code>submit: true</code> sends its form, and <code>letters: true</code> takes letters too.</p>
+      <p><code>Dash.code({ label, name, length, letters, submit })</code> is a box for the code from a message, drawn as one box per character. It is a single field, so a paste (with spaces or dashes), a phone's suggestion and a screen reader all work. A press goes into the box that is pressed, and a digit takes the place of the one in the lit box; arrows go from box to box, and Backspace takes a wrong one out. Once it is full it fires <code>dash:code</code> with the code in <code>detail</code>; <code>submit: true</code> sends its form, and <code>letters: true</code> takes letters too.</p>
       <figure class="example" id="ex-3"><div class="example-view">
 <div id="code-box"></div>
 <script>
