@@ -8,6 +8,41 @@ The look of my dashboards (an agent monitor, a fleet monitor, a leaderboard, a p
 
 It's plain CSS and one plain script: no build step, no dependencies, no framework. A page links the two files (or pastes them in) and writes ordinary HTML.
 
+## Screenshots
+
+<picture><source media="(prefers-color-scheme: dark)" srcset="screenshots/overview-dark.webp"><img src="screenshots/overview-light.webp" alt="An overview page: limits in the top bar, a sidebar, stat tiles, a donut, gauges and a column chart"></picture>
+
+<table>
+  <tr>
+    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="screenshots/portfolio-dark.webp"><img src="screenshots/portfolio-light.webp" alt="Balances: a big number, stat tiles and a table that is sorted, paged and edited"></picture><br><sub>Balances: a big number, stat tiles, a table to sort, page and edit</sub></td>
+    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="screenshots/fleet-dark.webp"><img src="screenshots/fleet-light.webp" alt="Servers: a status banner, stat tiles and a card per server"></picture><br><sub>Servers: a status banner and a card for each</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="screenshots/board-dark.webp"><img src="screenshots/board-light.webp" alt="A kanban board with a card being dragged into another column"></picture><br><sub>A board: <code>Dash.board</code></sub></td>
+    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="screenshots/charts-dark.webp"><img src="screenshots/charts-light.webp" alt="Column charts and lines over time"></picture><br><sub>Charts: columns, lines with a crosshair, donuts, gauges</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="screenshots/tables-dark.webp"><img src="screenshots/tables-light.webp" alt="A table with sorting, filters, shares and a pager"></picture><br><sub>Tables: sorted, filtered, cards on a phone</sub></td>
+    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="screenshots/lists-dark.webp"><img src="screenshots/lists-light.webp" alt="Trees, a tree to tick, a list to put in order and a list to pick from"></picture><br><sub>Lists and trees: to pick from, tick and put in order</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="screenshots/forms-dark.webp"><img src="screenshots/forms-light.webp" alt="Choices, a select, a slider, a date, a file drop, steps and progress"></picture><br><sub>Forms, steps, progress</sub></td>
+    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="screenshots/palette-dark.webp"><img src="screenshots/palette-light.webp" alt="A command palette over the page"></picture><br><sub>Ctrl+K: <code>Dash.palette</code></sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="screenshots/docs-dark.webp"><img src="screenshots/docs-light.webp" alt="The docs: a component, live, with its code under it"></picture><br><sub>The docs: every piece live, with its code</sub></td>
+    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="screenshots/heatmap-dark.webp"><img src="screenshots/heatmap-light.webp" alt="A heatmap of hours by day, and a year of days"></picture><br><sub>Heatmaps and days</sub></td>
+  </tr>
+</table>
+
+On a phone:
+
+<picture><source media="(prefers-color-scheme: dark)" srcset="screenshots/overview-phone-dark.webp"><img src="screenshots/overview-phone-light.webp" alt="The overview on a phone" width="270"></picture> <picture><source media="(prefers-color-scheme: dark)" srcset="screenshots/portfolio-phone-dark.webp"><img src="screenshots/portfolio-phone-light.webp" alt="The balances on a phone" width="270"></picture> <picture><source media="(prefers-color-scheme: dark)" srcset="screenshots/fleet-phone-dark.webp"><img src="screenshots/fleet-phone-light.webp" alt="The servers on a phone" width="270"></picture>
+
+All data in them is made up. `node tools/shots.mjs` takes them again.
+
+## What is here
+
 **The docs** are in `docs/`: a page for each part of the kit and each utility group, with live examples, their code to copy, a preview on a phone and in the other theme, and a search. Serve this folder and open `/docs/`.
 
 | | |
