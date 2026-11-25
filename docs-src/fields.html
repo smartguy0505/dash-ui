@@ -1,0 +1,141 @@
+    <section id="numbers" data-nav="Numbers" data-terms=".num-field .num-row .unit Dash.number data-step stepper plus minus quantity">
+      <h2>Numbers with − and +</h2>
+      <p><code>Dash.number({ label, name, min, max, step, value, unit, hint, required })</code> writes a number box with a button on each side. A button that is held goes on, each is off at its end, and <code>change</code> fires once when it is let go. By hand: <code>&lt;div class="num-field"&gt;</code> with a <code>.btn</code> that has <code>data-step="-1"</code>, the <code>.input</code>, and a <code>.btn</code> with <code>data-step="1"</code>. Keyboards and screen readers use the box itself, with the arrow keys, so the buttons are no stop for Tab.</p>
+      <example>
+        <div class="grid" id="amounts"></div>
+        <script>
+          Dash.render('amounts', Dash.number({ label: 'Seats', name: 'seats', min: 1, max: 50, value: 4, hint: 'Up to 50.' })
+            + Dash.number({ label: 'Storage', name: 'storage', min: 0, step: 0.5, value: 2.5, unit: 'GB' }));
+        </script>
+      </example>
+    </section>
+
+    <section id="password" data-nav="Passwords" data-terms="data-peek password show hide">
+      <h2>Passwords that can be shown</h2>
+      <p>A button with <code>data-peek</code> beside a password box shows what is typed, and hides it again when pressed once more or when the form goes out. Give it <code>data-peek="id"</code> if the box isn't in the same <code>.input-group</code> or <code>.field</code>. Its words change between Show and Hide; with an icon inside, only <code>aria-pressed</code> does.</p>
+      <example>
+        <div class="field" style="max-width: 320px"><label for="secret">Password</label><div class="input-group"><input class="input" id="secret" type="password" value="correct horse" autocomplete="off"><button type="button" class="btn" data-peek aria-pressed="false">Show</button></div></div>
+      </example>
+    </section>
+
+    <section id="code" data-nav="Codes" data-terms="Dash.code .code-field .at .on dash:code data-submit data-letters one-time otp pin verification">
+      <h2>Codes</h2>
+      <p><code>Dash.code({ label, name, length, letters, submit })</code> is a box for the code from a message, drawn as one box per character. It is a single field, so a paste (with spaces or dashes), a phone's suggestion and a screen reader all work. Once it is full it fires <code>dash:code</code> with the code in <code>detail</code>; <code>submit: true</code> sends its form, and <code>letters: true</code> takes letters too.</p>
+      <example>
+        <div id="code-box"></div>
+        <script>
+          Dash.render('code-box', Dash.code({ label: 'Code from your app', name: 'code', length: 6 }));
+          document.addEventListener('dash:code', (e) => Dash.toast(`The code is ${e.detail}`));
+        </script>
+      </example>
+    </section>
+
+    <section id="combobox" data-terms="Dash.combobox .combo-list .combo-option .combo-sub .combo-empty combobox autocomplete">
+      <h2>Suggestions</h2>
+      <p><code>Dash.combobox(input, { options, onPick })</code> gives a text box a list of suggestions that narrows as the reader types. Arrow keys move through it, Enter or a click picks, Escape closes the list (only the list, inside a dialog too), and the box keeps the focus throughout. The typed words are bold in each suggestion.</p>
+      <ul>
+        <li><code>options</code>: strings, or <code>{ value, label, sub }</code> (<code>sub</code> is a second, quieter part), or a function <code>(query) =&gt; list</code> or a promise of one, for a server search. Answers that arrive after the reader typed on are dropped. <code>debounce</code> (150 ms) is how long typing has to pause first.</li>
+        <li><code>strict: true</code>: on leaving, text that is no suggestion is put back to the last pick (or emptied); a box the reader empties stays empty.</li>
+        <li><code>max</code> (50) suggestions, <code>minChars</code> before any show, <code>empty</code> for the line when none match.</li>
+        <li>It returns <code>{ value, set(value), close(), destroy() }</code>; <code>value</code> is the picked option while the box still shows it, else null. It's an ARIA combobox: the box has <code>role="combobox"</code>, the list <code>listbox</code>, the active suggestion <code>aria-activedescendant</code>.</li>
+      </ul>
+      <example>
+        <div class="field" style="max-width: 320px"><label for="city">City</label><input class="input" id="city" placeholder="Start typing: ber, bu, am…"></div>
+        <script>
+          Dash.combobox('city', {
+            options: ['Amsterdam', { label: 'Berlin', sub: 'Germany', value: 'ber' }, 'Bern', 'Brussels', 'Budapest', 'Copenhagen', 'Dublin', 'Lisbon'],
+            onPick: (city) => Dash.toast(`Picked ${city.label}`),
+          });
+        </script>
+      </example>
+    </section>
+
+    <section id="tagbox" data-nav="Tags" data-terms="Dash.tagbox .tag-box .tag-box-in .tag-list .tag-x data-full chips multiple values">
+      <h2>Tags</h2>
+      <p><code>Dash.tagbox(input, { options, max, strict, allow, onChange })</code> makes a text box take several things. Enter or a comma adds what is typed, a pasted list adds all of it, Backspace in the empty box takes the last one away. The form sends one field of the input's name per tag; <code>Dash.form</code> gives them as a list.</p>
+      <ul>
+        <li><code>options</code>: suggestions, as for <a href="#combobox">Dash.combobox</a> (a list, or a function that looks them up). <code>strict: true</code> takes only those.</li>
+        <li><code>allow(text)</code> returns true, or why not as text; the text stays in the box. <code>max</code> is how many there may be.</li>
+        <li>It starts with the box's own value (<code>a, b, c</code>) or <code>value: [...]</code>, and returns <code>{ value, set(list), add(text), remove(text), destroy() }</code>.</li>
+      </ul>
+      <example>
+        <div class="field" style="max-width: 420px"><label for="labels">Labels</label><input class="input" id="labels" name="labels" value="web, eu-west" placeholder="Add a label"></div>
+        <div class="field" style="max-width: 420px"><label for="cities">Offices</label><input class="input" id="cities" name="cities" placeholder="Add a city"></div>
+        <script>
+          Dash.tagbox('labels', { max: 6, noun: 'label', allow: (t) => !/\s/.test(t) || 'Leave out the spaces.' });
+          Dash.tagbox('cities', { options: [{ value: 'ber', label: 'Berlin', sub: 'Germany' }, { value: 'lis', label: 'Lisbon', sub: 'Portugal' }, { value: 'dub', label: 'Dublin', sub: 'Ireland' }, 'Copenhagen'], strict: true, value: ['lis'] });
+        </script>
+      </example>
+    </section>
+
+    <section id="multi" data-nav="Searchable selects" data-terms="Dash.multi .multi .multi-btn .multi-off .multi-pop .multi-list .multi-foot .multi-text select multiple search">
+      <h2>Selects that can be searched</h2>
+      <p><code>Dash.multi(select, { noun, placeholder, search })</code> puts a button over a <code>&lt;select&gt;</code> that says what is picked and opens a list: boxes to tick for a <code>&lt;select multiple&gt;</code>, one to pick otherwise, with its <code>&lt;optgroup&gt;</code>s as headings and a search box from eight options on. The select stays the field: its label, its <code>change</code> event, a form's reset and <code>Dash.form</code> work as before, and without the script it is the select it was. <code>.update()</code> after the page changes what is selected, <code>.open()</code>, <code>.destroy()</code>.</p>
+      <example>
+        <div class="grid">
+          <div class="field"><label for="regions">Regions</label><select class="input" id="regions" name="regions" multiple>
+            <optgroup label="Europe"><option value="fra" selected>Frankfurt</option><option value="par">Paris</option><option value="dub">Dublin</option><option value="lon" disabled>London</option><option value="mad">Madrid</option></optgroup>
+            <optgroup label="America"><option value="ore">Oregon</option><option value="vir" selected>Virginia</option><option value="sao">São Paulo</option></optgroup></select></div>
+          <div class="field"><label for="plan">Plan</label><select class="input" id="plan" name="plan"><option value="">Any</option><option value="s">Solo</option><option value="t" selected>Team</option><option value="e">Enterprise</option></select></div>
+        </div>
+        <script>
+          Dash.multi('regions', { noun: 'regions', placeholder: 'All regions' });
+          Dash.multi('plan', { placeholder: 'Any plan' });
+        </script>
+      </example>
+    </section>
+
+    <section id="datepicker" data-terms="Dash.datepicker .date-field .date-btn .calendar .cal-head .cal-title .cal-grid date">
+      <h2>Dates</h2>
+      <p><code>Dash.datepicker(input, { min, max, onPick, firstDay })</code> puts a calendar button in a date box. Dates are <code>YYYY-MM-DD</code>, what <code>&lt;input type="date"&gt;</code> sends. The calendar opens on the box's date (or today): arrows move a day or a week, Home and End go to the week's ends, PageUp and PageDown a month (with Shift, a year), Enter picks and Escape closes. Days before <code>min</code> or after <code>max</code> can't be picked. Typing works too: a short date like <code>2026-3-7</code> is written out, and one that doesn't exist is marked <code>aria-invalid</code>. Weeks start on Monday; <code>firstDay: 0</code> starts them on Sunday. Month and day names are in the reader's language.</p>
+      <example>
+        <div class="field" style="max-width: 240px"><label for="due">Due</label><input class="input" id="due" value="2026-12-04"></div>
+        <script>
+          Dash.datepicker('due', { min: '2026-11-01', max: '2027-03-31', onPick: (day) => Dash.toast(`Due ${day}`) });
+        </script>
+      </example>
+      <p>It returns <code>{ value, set(day), open(), close(), destroy() }</code>; <code>value</code> is the box's date if it's a real one in range, or null.</p>
+    </section>
+
+    <section id="range" data-nav="Ranges" data-terms="Dash.range .range-field .range-track .range-label .at-end from to">
+      <h2>From and to</h2>
+      <p><code>Dash.range({ label, name, min, max, step, from, to, unit })</code> is a slider with two ends, where neither passes the other. A form sends <code>name_from</code> and <code>name_to</code>; both fire <code>input</code> and <code>change</code> as any slider.</p>
+      <example>
+        <div class="field" style="max-width: 420px" id="price"></div>
+        <script>
+          Dash.render('price', Dash.range({ label: 'Price', name: 'price', min: 0, max: 500, step: 10, from: 50, to: 200, unit: ' €' }));
+        </script>
+      </example>
+    </section>
+
+    <section id="rating" data-nav="Ratings" data-terms="Dash.rating .rating .rating-stars .rating-on .sm .lg stars">
+      <h2>Ratings</h2>
+      <p><code>Dash.rating({ name, value, max, label })</code> is a group of radio buttons drawn as stars; a form sends the number. With <code>readonly: true</code> it shows one, parts of a star too, and <code>text</code> puts words after it. <code>size: 'sm' | 'lg'</code> and <code>tone</code> set how it looks.</p>
+      <example>
+        <div class="row"><span id="rate"></span></div>
+        <p id="rated" style="margin-top: 12px"></p>
+        <script>
+          Dash.render('rate', Dash.rating({ name: 'stars', value: 4, label: 'How was it', size: 'lg' }));
+          Dash.render('rated', Dash.rating({ value: 4.3, readonly: true, text: '4.3 from 212 reviews' }));
+        </script>
+      </example>
+    </section>
+
+    <section id="inline" data-nav="Edit in place" data-terms="Dash.inline .inline-edit .inline-form inline editing">
+      <h2>Edit in place</h2>
+      <p><code>Dash.inline(el, { value, label, onSave })</code> shows text that becomes a box when it is pressed. Enter or Save saves, Escape puts it back. <code>onSave(value)</code> may return a promise; if it fails, or gives <code>false</code>, the box stays open and says why.</p>
+      <ul>
+        <li><code>type</code>: <code>'text'</code>, <code>'number'</code>, <code>'email'</code> … or <code>'select'</code> with <code>options</code>; <code>attrs: { min: 1, maxlength: 40 }</code> go on the box and are checked.</li>
+        <li><code>check(value)</code> returns what is wrong as text. <code>format(value)</code> is how it reads, <code>empty</code> what stands there for nothing.</li>
+        <li>It returns <code>{ value, set(value), edit(), cancel(), destroy() }</code>.</li>
+      </ul>
+      <example>
+        <dl class="kv" style="max-width: 460px"><dt>Name</dt><dd id="in-name"></dd><dt>Seats</dt><dd id="in-seats"></dd><dt>Region</dt><dd id="in-region"></dd></dl>
+        <script>
+          const later = () => new Promise((ok) => setTimeout(ok, 500));
+          Dash.inline('in-name', { label: 'Name', value: 'web-1', onSave: later, check: (v) => /\s/.test(v) && 'Leave out the spaces.' });
+          Dash.inline('in-seats', { label: 'Seats', value: 4, type: 'number', attrs: { min: 1, max: 50, required: '' }, format: (v) => Dash.fmt.plural(v, 'seat'), onSave: later });
+          Dash.inline('in-region', { label: 'Region', value: 'fra', type: 'select', options: [{ value: 'fra', label: 'Frankfurt' }, { value: 'par', label: 'Paris' }], onSave: later });
+        </script>
+      </example>
+    </section>

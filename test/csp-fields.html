@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>More fields under a strict CSP</title>
+<link rel="stylesheet" href="../dash.css">
+<script src="../dash.js"></script>
+</head>
+<!-- test/behaviour.mjs serves this page with Content-Security-Policy: style-src 'self' -->
+<body>
+<main class="page"><div class="panel" id="host"></div><div class="panel"><input class="input" id="tags" name="t" value="a,b"><select class="input" id="sel" multiple><option>A</option><option selected>B</option></select><span id="inl"></span></div></main>
+<script>
+  Dash.config.csp = true;
+  window.violations = [];
+  document.addEventListener('securitypolicyviolation', (e) => violations.push(e.violatedDirective));
+  Dash.render('host', Dash.range({ name: 'r', min: 0, max: 50, from: 10, to: 30 }) + Dash.rating({ value: 2.5, readonly: true }) + Dash.rating({ name: 's', value: 2 }) + Dash.number({ name: 'n', value: 1 }) + Dash.code({ name: 'c' }));
+  Dash.tagbox('tags', { options: ['a', 'b', 'c'] });
+  Dash.multi('sel').open();
+  Dash.inline('inl', { value: 'x' }).edit();
+</script>
+</body>
+</html>

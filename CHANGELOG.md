@@ -2,6 +2,16 @@
 
 Dashboards keep a copy of `dash.css` and `dash.js`; the first line of each file says which version it is. Versions only add things: a page that worked with an older copy works the same with a newer one.
 
+## 1.15.0 (2026-11-25)
+
+Richer fields, with a class of their own in the docs (suggestions and dates moved there; old links go on working).
+
+- `Dash.number`: a number with − and + that can be held. `data-peek`: a password that can be shown.
+- `Dash.tagbox`: a box that takes several things, with suggestions. `Dash.multi`: a `<select>` (also `multiple`) with a search box and ticks; the select stays the field.
+- `Dash.code`: a code from a message, drawn as one box per character. `Dash.rating`: stars. `Dash.range`: a slider with two ends.
+- `Dash.inline`: text that becomes a box when it is pressed, and saves.
+- All of them work in a form that `Dash.form` checks (several tags are one list), go back with its reset, and keep to a strict style policy.
+
 ## 1.14.0 (2026-11-25)
 
 Trees, lists to work with, and a sidebar that sorts its links.

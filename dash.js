@@ -1,4 +1,4 @@
-/* dash-ui 1.14.0 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
+/* dash-ui 1.15.0 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
    A plain script with no dependencies: a script tag for dash.js in <head> gives window.Dash, and puts the
    saved light/dark choice on the page before it paints. In Node, require('./dash.js') returns the same object
    (the parts that need a page are skipped).
@@ -8,7 +8,7 @@
 (function (root) {
   'use strict';
   const hasDom = typeof document !== 'undefined';
-  const Dash = { version: '1.14.0', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side', privacyKey: 'dash.private', csp: false } };
+  const Dash = { version: '1.15.0', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side', privacyKey: 'dash.private', csp: false } };
 
   // ---- basics
 
@@ -805,7 +805,9 @@
   // style anything this way. Dash.applyStyles(el) applies them at once, for a page that measures right after
   // putting markup in. Off (the default), the builders write style="" exactly as before.
   const STYLED = [
-    ['.bar > i, .meter > i, .split > i, .progress > i', 'data-css-w', 'width', (v) => v + '%'],
+    ['.bar > i, .meter > i, .split > i, .progress > i, .rating-on', 'data-css-w', 'width', (v) => v + '%'],
+    ['.range-track', 'data-css-from', '--from', (v) => v + '%'],
+    ['.range-track', 'data-css-to', '--to', (v) => v + '%'],
     ['.chart-col > i', 'data-css-h', 'height', (v) => v + '%'],
     ['.chart-grid', 'data-css-top', 'top', (v) => v + '%'],
     ['.chart-col u', 'data-css-grow', 'flex-grow', (v) => String(v)],
@@ -3757,6 +3759,407 @@
     return handle;
   };
 
+  // ---- more fields (1.15)
+
+  // A number with − and + beside it: Dash.number({ label: 'Seats', name: 'seats', min: 1, max: 50, value: 4 }). By hand:
+  // <div class="num-field"><button type="button" class="btn" data-step="-1" aria-label="Less" tabindex="-1">−</button>
+  // <input class="input" type="number"> and a + with data-step="1"</div>. Holding a button goes on; min, max and step count.
+  Dash.number = ({ label, name, id, min, max, step, value = '', unit, hint, required = false, disabled = false } = {}) => {
+    const at = id || (label ? 'dash-num-' + ++ids : '');
+    const n = value === '' || value == null ? null : Number(value);
+    const btn = (by, text, word, off) => `<button type="button" class="btn" data-step="${by}" tabindex="-1" aria-label="${word}"${disabled || off ? ' disabled' : ''}>${text}</button>`;
+    const box = `<div class="num-field">${btn(-1, '−', 'Less', n != null && min != null && n <= Number(min))}<input class="input" type="number"${at ? ` id="${esc(at)}"` : ''}${name ? ` name="${esc(name)}"` : ''}`
+      + `${min != null ? ` min="${esc(min)}"` : ''}${max != null ? ` max="${esc(max)}"` : ''}${step != null ? ` step="${esc(step)}"` : ''} value="${esc(value ?? '')}"${!label && name ? ` aria-label="${esc(name)}"` : ''}${required ? ' required' : ''}${disabled ? ' disabled' : ''}>`
+      + `${btn(1, '+', 'More', n != null && max != null && n >= Number(max))}</div>${unit ? `<span class="unit">${esc(unit)}</span>` : ''}`;
+    const row = unit ? `<div class="num-row">${box}</div>` : box;
+    return label ? `<div class="field"><label for="${esc(at)}"${required ? ' class="req"' : ''}>${esc(label)}</label>${row}${hint ? `<div class="hint">${esc(hint)}</div>` : ''}</div>` : row;
+  };
+  const numEnds = (field) => { // − and + are off at the ends
+    const i = field.querySelector('input');
+    if (!i) return;
+    const v = i.value === '' ? NaN : Number(i.value);
+    for (const b of field.querySelectorAll('[data-step]')) {
+      const down = Number(b.dataset.step) < 0;
+      b.disabled = i.disabled || i.readOnly || (down ? i.min !== '' && v <= Number(i.min) : i.max !== '' && v >= Number(i.max));
+    }
+  };
+  const numStep = (field, by) => {
+    const i = field.querySelector('input');
+    if (!i || i.disabled || i.readOnly) return false;
+    const was = i.value;
+    try {
+      if (i.value === '' && i.min !== '' && Number(i.min) > 0) i.value = i.min; // an empty box starts at its least
+      else if (by < 0) i.stepDown(-by); else i.stepUp(by);
+    } catch { // step="any"
+      const v = Number(i.value || 0) + by;
+      i.value = String(clamp(v, i.min === '' ? -Infinity : Number(i.min), i.max === '' ? Infinity : Number(i.max)));
+    }
+    numEnds(field);
+    if (i.value === was) return false;
+    i.dispatchEvent(new Event('input', { bubbles: true }));
+    return true;
+  };
+
+  // A rating: Dash.rating({ name: 'stars', value: 4 }) is a group of radio buttons drawn as stars; with readonly: true it
+  // shows one, parts of a star too ("4.3 of 5").
+  const STAR = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.8l2.5 5.2 5.7.8-4.1 4 1 5.7-5.1-2.7-5.1 2.7 1-5.7-4.1-4 5.7-.8z"/></svg>';
+  Dash.rating = ({ name = 'rating', value = 0, max = 5, label = 'Rating', readonly = false, required = false, disabled = false, size, tone, text } = {}) => {
+    const v = clamp(Number(value) || 0, 0, max), cls = `rating${size === 'lg' ? ' lg' : size === 'sm' ? ' sm' : ''}${toneClass(tone)}`;
+    if (readonly) {
+      const p = +((v / max) * 100).toFixed(2);
+      return `<span class="${cls}" role="img" aria-label="${esc(label)}: ${fmt.num(v, Number.isInteger(v) ? 0 : 1)} of ${max}"><span class="rating-stars">${STAR.repeat(max)}</span>`
+        + `<span class="rating-stars rating-on"${sized('data-css-w', p, `width:${p}%`)}>${STAR.repeat(max)}</span></span>${text != null ? ` <span class="muted">${esc(text)}</span>` : ''}`;
+    }
+    return `<fieldset class="${cls}"><legend class="sr-only">${esc(label)}</legend>${Array.from({ length: max }, (_, i) =>
+      `<label><input type="radio" name="${esc(name)}" value="${i + 1}" aria-label="${fmt.plural(i + 1, 'star')}"${Math.round(v) === i + 1 ? ' checked' : ''}${required ? ' required' : ''}${disabled ? ' disabled' : ''}>${STAR}</label>`).join('')}</fieldset>`;
+  };
+
+  // A slider with two ends: Dash.range({ label: 'Price', name: 'price', min: 0, max: 500, from: 50, to: 200, unit: ' €' }). The
+  // ends are two fields, price_from and price_to; neither passes the other.
+  Dash.range = ({ label, name = 'range', id, min = 0, max = 100, step = 1, from = min, to = max, unit = '', tone, disabled = false } = {}) => {
+    const one = (end, v, word) => `<input type="range" name="${esc(name)}_${end}"${id ? ` id="${esc(id)}_${end}"` : ''} min="${esc(min)}" max="${esc(max)}" step="${esc(step)}" value="${esc(v)}" aria-label="${esc(label || name)}, ${word}"${disabled ? ' disabled' : ''}>`;
+    const pos = (v) => +pctOf(Number(v) - Number(min), Number(max) - Number(min)).toFixed(2), a = pos(from), b = pos(to);
+    return `<div class="range-field${toneClass(tone)}" role="group" aria-label="${esc(label || name)}"${unit ? ` data-unit="${esc(unit)}"` : ''}>${label ? `<span class="range-label" aria-hidden="true">${esc(label)}</span>` : ''}`
+      + `<span class="range-track"${strict() ? sized('data-css-from', a) + sized('data-css-to', b) : ` style="--from:${a}%;--to:${b}%"`}>${one('from', from, 'from')}${one('to', to, 'to')}</span>`
+      + `<output>${esc(`${from}–${to}${unit}`)}</output></div>`;
+  };
+  const rangeMove = (input) => {
+    const field = input.closest('.range-field'), [a, b] = field.querySelectorAll('input[type="range"]');
+    if (!b) return;
+    if (Number(a.value) > Number(b.value)) { if (input === a) a.value = b.value; else b.value = a.value; } // neither passes the other
+    const lo = Number(a.min || 0), span = Number(a.max || 100) - lo, track = field.querySelector('.range-track');
+    track.style.setProperty('--from', pctOf(Number(a.value) - lo, span) + '%');
+    track.style.setProperty('--to', pctOf(Number(b.value) - lo, span) + '%');
+    track.classList.toggle('at-end', Number(a.value) >= Number(a.max || 100)); // both at the far end: the first one is on top
+    const out = field.querySelector('output');
+    if (out) out.textContent = `${a.value}–${b.value}${field.dataset.unit || ''}`;
+  };
+
+  // Tags the reader types: Dash.tagbox(input, { options, max, strict, allow, onChange }). Enter or a comma adds what is typed, a
+  // paste of several adds them all, Backspace in the empty box (or the tag's ×) takes one away. options are suggestions, a list
+  // or a function as for Dash.combobox; strict: true takes only those. allow(text) returns true, or why not as text. The form
+  // sends one field of the input's name per tag. .value (a list), .set(list), .add(text), .remove(text), .destroy()
+  Dash.tagbox = (target, { value, options, max = Infinity, strict: only = false, allow, onChange, noun = 'tag', label } = {}) => {
+    const input = el(target);
+    if (!input || !hasDom) return null;
+    input.__dashTags?.destroy();
+    const name = input.name, must = input.required, typed0 = input.value;
+    const control = new AbortController(), { signal } = control;
+    const box = document.createElement('div');
+    box.className = `${input.className} tag-box`;
+    const list = document.createElement('span');
+    list.className = 'tag-list';
+    list.setAttribute('role', 'list');
+    const was = input.className;
+    input.className = 'tag-box-in';
+    input.before(box);
+    box.append(list, input);
+    input.name = '';
+    input.required = false;
+    if (must) input.setAttribute('aria-required', 'true');
+    let tags = [];
+    const same = (a, b) => a.toLowerCase() === b.toLowerCase();
+    const known = () => (Array.isArray(options) ? options.map((o) => (o && typeof o === 'object' ? { ...o, value: String(o.value ?? o.label), label: String(o.label ?? o.value) } : { value: String(o), label: String(o) })) : []);
+    const labels = new Map(known().map((o) => [o.value, o.label]));
+    const labelOf = (v) => labels.get(v) || v;
+    const draw = () => {
+      list.innerHTML = tags.map((v) => `<span class="tag" role="listitem" data-tag="${esc(v)}">${esc(labelOf(v))}<button type="button" class="tag-x" tabindex="-1" aria-label="Remove ${esc(labelOf(v))}">×</button>`
+        + `${name ? `<input type="hidden" name="${esc(name)}" value="${esc(v)}"${input.disabled ? ' disabled' : ''}>` : ''}</span>`).join('');
+      for (const h of list.querySelectorAll('input')) h.__dashPart = true; // (for Dash.form the box is one field)
+      box.toggleAttribute('data-full', tags.length >= max);
+    };
+    const changed = () => {
+      draw();
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      if (combo) combo.close(); // (not what was typed: no suggestions for it)
+      if (onChange) onChange(tags.slice());
+    };
+    const say = (t) => { voiceOf(input).textContent = t; };
+    const no = (text, why) => { if (why) Dash.toast(why, { tone: 'bad' }); return false; };
+    // true: added; false: it can't be
+    const add = (text, quiet = false) => {
+      let v = String(text ?? '').trim();
+      if (!v) return false;
+      const o = [...labels].find(([k, l]) => same(l, v) || same(k, v)); // one that is, or was, offered
+      if (o) v = o[0];
+      else if (only) return no(v, quiet ? '' : Dash.form.text.list);
+      const there = tags.find((t) => same(t, v));
+      if (there != null) { Dash.flash(list.querySelector(`[data-tag="${CSS.escape(there)}"]`)); return true; }
+      if (tags.length >= max) return no(v, quiet ? '' : `At most ${fmt.plural(max, noun)}.`);
+      const ok = allow ? allow(v) : true;
+      if (ok !== true && ok !== undefined) return no(v, quiet ? '' : typeof ok === 'string' ? ok : `${v} can’t be added.`);
+      tags = [...tags, v];
+      changed();
+      say(`${labelOf(v)} added`);
+      return true;
+    };
+    const take = (v, focus) => {
+      const i = tags.indexOf(v);
+      if (i < 0) return;
+      tags = tags.filter((t) => t !== v);
+      changed();
+      say(`${labelOf(v)} removed`);
+      const xs = list.querySelectorAll('.tag-x');
+      if (focus && xs.length) xs[Math.min(i, xs.length - 1)].focus(); else input.focus({ preventScroll: true });
+    };
+    const combo = options ? Dash.combobox(input, {
+      options: async (q) => {
+        const all = typeof options === 'function' ? await options(q) : known().filter((o) => Dash.match(o, q, ['label', 'sub']));
+        return (all || []).filter((o) => {
+          const v = String(o && typeof o === 'object' ? o.value ?? o.label : o);
+          labels.set(v, String(o && typeof o === 'object' ? o.label ?? v : o));
+          return !tags.some((t) => same(t, v));
+        });
+      },
+      debounce: typeof options === 'function' ? 150 : 0, label: label || 'Suggestions',
+      onPick: (o) => { input.value = ''; add(String(o.value)); input.focus({ preventScroll: true }); },
+    }) : null;
+    const flush = (quiet = false) => { // what is typed becomes tags; what can't be stays in the box
+      const parts = input.value.split(/[,;\n\t]+/).map((x) => x.trim()).filter(Boolean);
+      const left = parts.filter((x) => !add(x, quiet));
+      input.value = left.join(', ');
+      return !left.length;
+    };
+    input.addEventListener('keydown', (e) => {
+      if (e.defaultPrevented || e.isComposing || e.altKey || e.ctrlKey || e.metaKey) return;
+      if ((e.key === 'Enter' || e.key === ',' || e.key === ';') && input.value.trim()) { e.preventDefault(); flush(); if (combo) combo.close(); } else if (e.key === ',' && !input.value.trim()) e.preventDefault();
+      else if (e.key === 'Backspace' && !input.value && tags.length) { e.preventDefault(); take(tags[tags.length - 1]); } else if (e.key === 'ArrowLeft' && !input.value && tags.length) { e.preventDefault(); list.lastElementChild.querySelector('.tag-x').focus(); }
+    }, { signal });
+    input.addEventListener('paste', (e) => {
+      const text = e.clipboardData && e.clipboardData.getData('text');
+      if (!text || !/[,;\n\t]/.test(text)) return;
+      e.preventDefault();
+      input.value = [input.value, text.replace(/[;\n\t]+/g, ',')].filter(Boolean).join(',');
+      flush();
+    }, { signal });
+    input.addEventListener('blur', () => setTimeout(() => { if (!signal.aborted && document.activeElement !== input && input.value.trim()) flush(only); }), { signal });
+    box.addEventListener('click', (e) => {
+      if (input.disabled || input.readOnly) return;
+      const x = e.target.closest('.tag-x');
+      if (x) { take(x.parentElement.dataset.tag, e.detail === 0); return; }
+      if (e.target === box || e.target === list) input.focus();
+    }, { signal });
+    box.addEventListener('keydown', (e) => {
+      const x = e.target.closest('.tag-x');
+      if (!x || e.altKey || e.ctrlKey || e.metaKey || input.disabled || input.readOnly) return;
+      const xs = [...list.querySelectorAll('.tag-x')], i = xs.indexOf(x);
+      if (e.key === 'ArrowLeft') xs[Math.max(0, i - 1)].focus();
+      else if (e.key === 'ArrowRight') (xs[i + 1] || input).focus();
+      else if (e.key === 'Delete' || e.key === 'Backspace') take(x.parentElement.dataset.tag, true);
+      else return;
+      e.preventDefault();
+    }, { signal });
+    // for Dash.form: at least one, if it must be filled in; and no text left over that can't be a tag
+    const says = (k) => { const t = input.dataset.problem || Dash.form.text[k]; return String(typeof t === 'function' ? t(input) : t); };
+    input.__dashCheck = () => (input.value.trim() && document.activeElement !== input ? says('list') : must && !tags.length ? says('valueMissing') : '');
+    input.__dashName = name;
+    input.__dashValue = () => tags.slice();
+    const first = [].concat(value ?? typed0.split(',').map((x) => x.trim()).filter(Boolean)).map(String);
+    if (input.form) input.form.addEventListener('reset', () => setTimeout(() => { if (signal.aborted) return; input.value = ''; handle.set(first); }), { signal });
+    const handle = {
+      el: box,
+      get value() { return tags.slice(); },
+      set(next) { tags = [...new Set([].concat(next ?? []).map(String))]; draw(); },
+      add: (t) => add(t, true),
+      remove(t) { const v = tags.find((x) => same(x, String(t))); if (v != null) { tags = tags.filter((x) => x !== v); changed(); } },
+      destroy() {
+        if (signal.aborted) return;
+        control.abort();
+        if (combo) combo.destroy();
+        for (const k of ['__dashCheck', '__dashName', '__dashValue', '__dashTags']) delete input[k];
+        input.value = tags.join(', ');
+        input.className = was;
+        input.name = name;
+        input.required = must;
+        input.removeAttribute('aria-required');
+        box.replaceWith(input);
+      },
+    };
+    input.__dashTags = handle;
+    input.value = '';
+    handle.set(first);
+    voiceOf(input);
+    return handle;
+  };
+
+  // Text that becomes a box when it is pressed: Dash.inline(el, { value, onSave }). Enter (or the tick) saves, Escape puts it
+  // back; onSave(value) may take its time, and false or an error keeps the box open and says why. type: 'number' | 'textarea' | 'select' …,
+  // options for a select, check(value) returns what is wrong, format(value) how it reads, empty what stands for nothing.
+  Dash.inline = (target, { value = '', type = 'text', options, check, onSave, format, empty = 'Empty', label = 'Edit', attrs = {} } = {}) => {
+    const node = el(target);
+    if (!node || !hasDom) return null;
+    let now = value, editing = false, busy = false;
+    const opts = (options || []).map((o) => (o && typeof o === 'object' ? { value: String(o.value ?? o.label), label: String(o.label ?? o.value) } : { value: String(o), label: String(o) }));
+    const reads = (v) => (format ? format(v) : type === 'select' ? opts.find((o) => o.value === String(v))?.label ?? v : v);
+    const show = () => {
+      editing = false;
+      const t = reads(now), none = t == null || t === '';
+      node.innerHTML = `<button type="button" class="inline-edit" aria-label="${esc(label)}: ${esc(none ? empty : t)}"><span${none ? ' class="muted"' : ''}>${esc(none ? empty : t)}</span><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M10.5 2.5l3 3-8 8H2.5v-3z"/></svg></button>`;
+    };
+    const err = (t) => {
+      const e = node.querySelector('.err');
+      if (!e) return;
+      e.textContent = t || '';
+      e.hidden = !t;
+      const i = node.querySelector('.input');
+      if (t) i.setAttribute('aria-invalid', 'true'); else i.removeAttribute('aria-invalid');
+    };
+    const edit = () => {
+      if (editing) return;
+      editing = true;
+      const id = 'dash-inline-' + ++ids, more = Object.entries(attrs).map(([k, v]) => ` ${esc(k)}="${esc(v)}"`).join('');
+      const field = type === 'textarea' ? `<textarea class="input sm" rows="3" aria-label="${esc(label)}" aria-describedby="${id}"${more}>${esc(now ?? '')}</textarea>`
+        : type === 'select' ? `<span class="select"><select class="input sm" aria-label="${esc(label)}" aria-describedby="${id}"${more}>${opts.map((o) => `<option value="${esc(o.value)}"${o.value === String(now) ? ' selected' : ''}>${esc(o.label)}</option>`).join('')}</select></span>`
+        : `<input class="input sm" type="${esc(type)}" value="${esc(now ?? '')}" aria-label="${esc(label)}" aria-describedby="${id}"${more}>`;
+      node.innerHTML = `<div class="inline-form"><div class="row">${field}<button type="button" class="btn sm primary" data-inline-save>Save</button><button type="button" class="btn sm ghost" data-inline-cancel>Cancel</button></div><div class="err" id="${id}" role="alert" hidden></div></div>`;
+      const i = node.querySelector('.input');
+      i.focus({ preventScroll: true });
+      if (i.select) i.select();
+    };
+    const leave = () => { show(); node.querySelector('.inline-edit').focus({ preventScroll: true }); };
+    const save = async () => {
+      if (busy) return;
+      const i = node.querySelector('.input'), raw = i.value, v = type === 'number' ? (raw === '' ? null : Number(raw)) : raw;
+      const bad = problemOf(i) || (check ? check(v) : '');
+      if (typeof bad === 'string' && bad) { err(bad); i.focus(); return; }
+      if (same0(v, now)) { leave(); return; }
+      busy = true;
+      err('');
+      i.readOnly = true;
+      let no = '';
+      try { if ((await Dash.busy(node.querySelector('[data-inline-save]'), () => (onSave ? onSave(v) : true))) === false) no = 'That wasn’t saved.'; } catch (e) { no = (e && e.message) || String(e); }
+      busy = false;
+      if (!editing || !node.contains(i)) return; // destroyed, or put back, meanwhile
+      i.readOnly = false;
+      if (no) { err(no); i.focus(); return; }
+      now = v;
+      leave();
+    };
+    const same0 = (a, b) => String(a ?? '') === String(b ?? '');
+    const control = new AbortController(), { signal } = control;
+    node.addEventListener('click', (e) => {
+      if (e.target.closest('.inline-edit')) edit();
+      else if (e.target.closest('[data-inline-save]')) save();
+      else if (e.target.closest('[data-inline-cancel]') && !busy) leave();
+    }, { signal });
+    node.addEventListener('keydown', (e) => {
+      if (!editing || e.isComposing) return;
+      if (e.key === 'Escape' && !busy) { e.preventDefault(); e.stopPropagation(); leave(); }
+      // (no form of its own: it may be in one, which Enter must not send)
+      if (e.key === 'Enter' && e.target.matches('.input') && (e.target.tagName !== 'TEXTAREA' || e.ctrlKey || e.metaKey)) { e.preventDefault(); save(); }
+    }, { signal });
+    show();
+    return { el: node, get value() { return now; }, set(v) { now = v; if (!editing) show(); }, edit, cancel() { if (editing && !busy) leave(); }, destroy() { control.abort(); node.textContent = ''; } };
+  };
+
+  // A select that can be searched: Dash.multi(select) puts a button in its place that says what is picked, and opens a list with a
+  // search box and boxes to tick (a <select multiple>) or one to pick. The select stays the field: a form sends it, its change
+  // event fires, and Dash.form checks it. search: true | false (from 8 options on), noun for "3 regions", placeholder, all: what
+  // it says when nothing is picked. .update() after the options change, .open(), .destroy()
+  Dash.multi = (target, { search, noun = 'picked', placeholder, width, label } = {}) => {
+    const sel = el(target);
+    if (!sel || sel.tagName !== 'SELECT') return null;
+    sel.__dashMulti?.destroy();
+    const many = sel.multiple;
+    const control = new AbortController(), { signal } = control;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'input multi-btn';
+    btn.id = 'dash-multi-' + ++ids;
+    const host = sel.closest('.select') || sel;
+    const box = document.createElement('span');
+    box.className = 'multi';
+    const name = () => label || sel.getAttribute('aria-label') || (sel.labels[0] && sel.labels[0].textContent.trim()) || 'Choose';
+    const rows = () => [...sel.options].filter((o) => !o.hidden).map((o, i) => ({ id: String(i), value: o.value, title: o.textContent.trim(), sub: o.dataset.sub, group: o.parentElement.tagName === 'OPTGROUP' ? o.parentElement.label : '', off: o.disabled || o.parentElement.disabled, o }));
+    const draw = () => {
+      const on = [...sel.selectedOptions].filter((o) => o.value !== '' || many);
+      const t = !on.length ? placeholder ?? ((!many && sel.selectedOptions[0]?.textContent.trim()) || 'Choose') : on.length < 3 ? on.map((o) => o.textContent.trim()).join(', ') : `${on.length} ${noun}`;
+      btn.innerHTML = `<span class="multi-text${on.length ? '' : ' muted'}">${esc(t)}</span>`;
+      btn.setAttribute('aria-label', `${name()}: ${t}`);
+      btn.disabled = sel.disabled;
+      for (const a of ['aria-invalid', 'aria-describedby']) { if (sel.hasAttribute(a)) btn.setAttribute(a, sel.getAttribute(a)); else btn.removeAttribute(a); }
+    };
+    const fire = () => {
+      sel.dispatchEvent(new Event('input', { bubbles: true }));
+      sel.dispatchEvent(new Event('change', { bubbles: true }));
+    };
+    let pop = null, list = null;
+    const open = () => {
+      if (pop || sel.disabled) return;
+      const all = rows(), find = search ?? all.length >= 8;
+      pop = Dash.popup(btn, `${find ? '<label class="search"><input class="input sm" type="search" placeholder="Search" aria-label="Search"></label>' : ''}<div class="multi-list"></div>`
+        + `${many ? '<div class="multi-foot"><button type="button" class="link quiet" data-multi="all">All</button><button type="button" class="link quiet" data-multi="none">None</button></div>' : ''}`,
+      { label: name(), cls: 'multi-pop', width: width || `${Math.max(220, Math.round(btn.getBoundingClientRect().width))}px`, onClose: () => { if (list) list.destroy(); pop = list = null; } });
+      if (!pop) return;
+      const grouped = all.some((r) => r.group);
+      list = Dash.list(pop.el.querySelector('.multi-list'), {
+        rows: all, select: many ? 'many' : 'one', selected: all.filter((r) => r.o.selected).map((r) => r.id), can: (r) => !r.off, group: grouped ? 'group' : undefined, height: 280, label: name(),
+        empty: 'Nothing to choose',
+        onSelect: (got) => {
+          const on = new Set([].concat(got || []).map((r) => r.o));
+          for (const r of all) r.o.selected = on.has(r.o);
+          draw();
+          fire();
+          if (!many && pop) pop.close();
+        },
+        onPick: () => { if (pop) pop.close(); },
+      });
+      const box = pop.el.querySelector('input[type="search"]'), opt = () => pop && pop.el.querySelector('[role="option"][tabindex="0"]');
+      if (box) {
+        box.addEventListener('input', () => list.filter(box.value));
+        box.addEventListener('keydown', (e) => { if (e.key === 'ArrowDown' && opt()) { e.preventDefault(); opt().focus(); } });
+      }
+      pop.el.addEventListener('click', (e) => {
+        const b = e.target.closest('[data-multi]');
+        if (b) list.select(b.dataset.multi === 'all' ? list.shown.filter((r) => !r.off).map((r) => r.id) : []);
+        else if (!many && e.target.closest('[role="option"]:not([aria-disabled="true"])') && pop) pop.close(); // the one that is picked already
+      });
+      (box || opt() || pop.el).focus({ preventScroll: true });
+    };
+    btn.addEventListener('click', open, { signal });
+    btn.addEventListener('keydown', (e) => { if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); open(); } }, { signal });
+    sel.addEventListener('focus', () => btn.focus(), { signal }); // a click on its label, or Dash.form going to it
+    sel.addEventListener('change', draw, { signal });
+    if (sel.form) sel.form.addEventListener('reset', () => setTimeout(draw), { signal });
+    const wasTab = sel.getAttribute('tabindex'), wasHidden = sel.getAttribute('aria-hidden');
+    host.classList.add('multi-off');
+    sel.tabIndex = -1;
+    sel.setAttribute('aria-hidden', 'true');
+    host.before(box);
+    box.append(host, btn);
+    draw();
+    const watch = new MutationObserver(draw); // its options, and what a form says about it
+    watch.observe(sel, { attributes: true, attributeFilter: ['aria-invalid', 'aria-describedby', 'disabled', 'aria-label'], childList: true, subtree: true });
+    const handle = { el: btn, open, update: draw, close() { if (pop) pop.close(); }, destroy() { if (signal.aborted) return; control.abort(); watch.disconnect(); if (pop) pop.close(); box.replaceWith(host); host.classList.remove('multi-off'); if (wasTab == null) sel.removeAttribute('tabindex'); else sel.setAttribute('tabindex', wasTab); if (wasHidden == null) sel.removeAttribute('aria-hidden'); delete sel.__dashMulti; } };
+    sel.__dashMulti = handle;
+    return handle;
+  };
+
+  // A code from a message, one box drawn as several: Dash.code({ label: 'Code', name: 'code', length: 6 }). It takes a paste, and the
+  // code a phone offers. Once it is full it fires dash:code (detail: the code) and, with submit: true, sends its form.
+  // letters: true takes letters too, as capitals.
+  Dash.code = ({ label = 'Code', name = 'code', id, length = 6, letters = false, submit = false, required = true, disabled = false, value = '' } = {}) => {
+    const n = clamp(Math.round(Number(length)) || 6, 3, 10);
+    return `<span class="code-field"><input${id ? ` id="${esc(id)}"` : ''} name="${esc(name)}" aria-label="${esc(label)}" value="${esc(value)}" maxlength="${n}" inputmode="${letters ? 'text' : 'numeric'}" autocomplete="one-time-code" autocapitalize="characters"`
+      + ` spellcheck="false" pattern="${letters ? '[A-Za-z0-9]' : '[0-9]'}{${n}}" title="All ${n} ${letters ? 'characters' : 'digits'}."${letters ? ' data-letters' : ''}${submit ? ' data-submit' : ''}${required ? ' required' : ''}${disabled ? ' disabled' : ''}>${Array.from({ length: n }, (_, i) => (i < String(value).length ? '<i class="on"></i>' : '<i></i>')).join('')}</span>`;
+  };
+  const codeAt = (input) => { // which box is next, and which are filled
+    const cells = input.parentElement.querySelectorAll('i'), at = Math.min(input.selectionStart ?? input.value.length, cells.length - 1);
+    cells.forEach((c, i) => { c.classList.toggle('at', i === at); c.classList.toggle('on', i < input.value.length); });
+  };
+  const codeIn = (input) => {
+    const letters = 'letters' in input.dataset, n = input.maxLength > 0 ? input.maxLength : 6;
+    const clean = input.value.replace(letters ? /[^a-z0-9]/gi : /\D/g, '').slice(0, n), v = letters ? clean.toUpperCase() : clean;
+    if (input.value !== v) input.value = v;
+    codeAt(input);
+    if (v.length < n) { input.__dashCode = ''; return; }
+    if (input.__dashCode === v) return; // said once
+    input.__dashCode = v;
+    input.dispatchEvent(new CustomEvent('dash:code', { bubbles: true, detail: v }));
+    if ('submit' in input.dataset && input.form) input.form.requestSubmit();
+  };
+
   // ---- forms that say what is wrong (1.13)
   // Dash.form(form, { rules, onSubmit }): checks a form's fields and puts what is wrong under each, instead of the
   // browser's bubbles. The fields' own checks count (required, type="email", minlength, pattern, min, max, step), and
@@ -3804,7 +4207,7 @@
     if (key) { const words = e.dataset.problem || Dash.form.text[key]; return String(typeof words === 'function' ? words(e) : words); }
     return v.customError ? e.validationMessage : e.__dashCheck ? e.__dashCheck() : '';
   };
-  const FORM_WRAPS = '.input-group, .date-field, .select, .search, .dropzone, .slider, .checkline, .switch, .choice, label';
+  const FORM_WRAPS = '.input-group, .date-field, .select, .search, .dropzone, .slider, .num-row, .num-field, .tag-box, .code-field, .range-field, .multi, .checkline, .switch, .choice, label';
   // forms with an id that were drawn again as a whole: what was made for the old one moves to the new one
   const followed = new Set();
   let follower = null;
@@ -3833,8 +4236,8 @@
     const units = () => {
       const list = [], groups = new Map(), count = new Map();
       for (const e of form.elements) {
-        if (!/^(INPUT|SELECT|TEXTAREA)$/.test(e.tagName) || /^(submit|button|reset|image)$/.test(e.type) || e.matches(':disabled')) continue;
-        const name = e.name || e.id, g = name && /^(radio|checkbox)$/.test(e.type) ? e.type + ' ' + name : null;
+        if (!/^(INPUT|SELECT|TEXTAREA)$/.test(e.tagName) || /^(submit|button|reset|image)$/.test(e.type) || e.__dashPart || e.matches(':disabled')) continue;
+        const name = e.__dashName || e.name || e.id, g = name && /^(radio|checkbox)$/.test(e.type) ? e.type + ' ' + name : null;
         if (g && groups.has(g)) { groups.get(g).els.push(e); continue; }
         const n = (count.get(name) || 0) + 1;
         count.set(name, n);
@@ -3846,6 +4249,7 @@
     };
     const unitOf = (e) => units().find((u) => u.els.includes(e)), unitAt = (k) => units().find((u) => u.key === k);
     const valueOf = ({ e, els, name }) => {
+      if (e.__dashValue) return e.__dashValue();
       if (e.type === 'checkbox') return els.length > 1 || name.endsWith('[]') ? els.filter((x) => x.checked).map((x) => x.value) : e.checked;
       if (e.type === 'radio') return (els.find((x) => x.checked) || { value: '' }).value;
       if (e.type === 'file') return e.multiple ? [...e.files] : e.files[0] || null;
@@ -3856,7 +4260,7 @@
     const values = () => {
       const out = new Map();
       for (const u of units()) {
-        if (!u.e.name) continue;
+        if (!u.e.name && !u.e.__dashName) continue;
         const v = valueOf(u), more = out.has(u.name);
         if (more || (u.name.endsWith('[]') && !Array.isArray(v))) out.set(u.name, more ? [].concat(out.get(u.name), v) : [v]);
         else out.set(u.name, v);
@@ -4364,6 +4768,73 @@
       clickOf = e.detail ? lastPress.seq : -1; // a click from a key (detail 0) has no press
       setTimeout(() => { clickOf = -1; });
     }, true);
+    // more fields (1.15): − and + (a press that is held goes on), codes, ranges, and passwords that can be shown
+    let holding = 0;
+    const letGo = () => { if (!holding) return; clearTimeout(holding); holding = 0; };
+    document.addEventListener('pointerdown', (e) => {
+      const b = e.target.closest && e.target.closest('.num-field [data-step]');
+      if (!b || e.button || b.disabled) return;
+      const field = b.closest('.num-field'), input = field.querySelector('input'), by = Number(b.dataset.step) || 1, was = input ? input.value : '';
+      e.preventDefault();
+      try { field.setPointerCapture(e.pointerId); } catch { /* a press a page made */ } // (the button may go off under the pointer: the release still comes)
+      if (input && e.pointerType === 'mouse') input.focus({ preventScroll: true });
+      numStep(field, by);
+      const again = (ms) => { holding = setTimeout(() => { if (field.isConnected && !b.disabled && numStep(field, by)) again(70); }, ms); };
+      again(420);
+      const done = () => {
+        letGo();
+        for (const t of ['pointerup', 'pointercancel', 'blur']) window.removeEventListener(t, done);
+        if (input && input.value !== was) input.dispatchEvent(new Event('change', { bubbles: true }));
+      };
+      for (const t of ['pointerup', 'pointercancel', 'blur']) window.addEventListener(t, done);
+    });
+    document.addEventListener('click', (e) => {
+      const t = e.target.closest ? e.target : null;
+      if (!t) return;
+      const step = e.detail === 0 && t.closest('.num-field [data-step]'); // (a screen reader's press: no pointer)
+      if (step) {
+        const field = step.closest('.num-field');
+        if (numStep(field, Number(step.dataset.step) || 1)) field.querySelector('input').dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      const eye = t.closest('[data-peek]');
+      const box = eye && (document.getElementById(eye.dataset.peek) || (eye.closest('.input-group, .field, label') || document).querySelector('input[type="password"], input[data-peeked]'));
+      if (box) {
+        const show = box.type === 'password';
+        box.type = show ? 'text' : 'password';
+        box.toggleAttribute('data-peeked', show);
+        eye.setAttribute('aria-pressed', String(show));
+        if (!eye.firstElementChild) eye.textContent = show ? 'Hide' : 'Show';
+      }
+    });
+    document.addEventListener('submit', (e) => { // a password goes out as one
+      for (const i of e.target.querySelectorAll('input[data-peeked]')) {
+        i.type = 'password';
+        i.removeAttribute('data-peeked');
+        for (const b of (i.closest('.input-group, .field, label') || e.target).querySelectorAll('[data-peek]')) { b.setAttribute('aria-pressed', 'false'); if (!b.firstElementChild) b.textContent = 'Show'; }
+      }
+    }, true);
+    document.addEventListener('input', (e) => {
+      const t = e.target;
+      if (!t.matches || !t.matches('input')) return;
+      if (t.type === 'range' && t.closest('.range-field')) rangeMove(t);
+      else if (t.type === 'number' && t.closest('.num-field')) numEnds(t.closest('.num-field'));
+      else if (t.matches('.code-field > input')) codeIn(t);
+    });
+    document.addEventListener('change', (e) => { if (e.target.matches && e.target.matches('.num-field input')) numEnds(e.target.closest('.num-field')); });
+    document.addEventListener('reset', (e) => setTimeout(() => { // what they show goes back too
+      for (const n of e.target.querySelectorAll('.num-field')) numEnds(n);
+      for (const n of e.target.querySelectorAll('.range-field input:first-of-type')) rangeMove(n);
+      for (const n of e.target.querySelectorAll('.code-field > input')) { n.__dashCode = ''; codeAt(n); }
+    }));
+    document.addEventListener('paste', (e) => { // maxlength would cut "123 456" before the space is taken out
+      const i = e.target.closest && e.target.closest('.code-field > input'), text = i && !i.disabled && e.clipboardData ? e.clipboardData.getData('text') : '';
+      if (!text) return;
+      e.preventDefault();
+      i.value = text.replace('letters' in i.dataset ? /[^a-z0-9]/gi : /\D/g, '').slice(0, i.maxLength);
+      i.setSelectionRange(i.value.length, i.value.length);
+      i.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    document.addEventListener('selectionchange', () => { const i = document.activeElement; if (i && i.matches('.code-field > input')) codeAt(i); });
     // a dialog closing: what floats inside it moves down to the next layer
     document.addEventListener('close', (e) => {
       const d = e.target;

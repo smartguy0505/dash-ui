@@ -9,7 +9,9 @@
 // the kit (test/utils.html); from 1.8 the new pieces that need a page (test/components.html): sliders, drops, the
 // drawer, the bottom nav, input groups, the stepper on a phone, badges and choices; from 1.9.2 what shows in high contrast
 // (test/contrast.html), narrow pages, targets and times to come; from 1.10 values the reader hides (test/private.html);
-// from 1.11 line charts (test/lines.html); from 1.12 table rows to pick and to open (test/rows.html).
+// from 1.11 line charts (test/lines.html); from 1.12 table rows to pick and to open (test/rows.html); from 1.13 forms that
+// say what is wrong (test/forms.html); from 1.14 trees, lists, the sidebar (test/lists.html) and the docs' own; from 1.15
+// more fields (test/fields.html).
 //
 //   npm i --no-save playwright-core && npx playwright-core install --only-shell chromium
 //   node test/behaviour.mjs          (KIT=<dir> serves dash.css, dash.js and dash-utils.css from <dir> instead: to check a change)
@@ -37,7 +39,7 @@ const server = createServer(async (req, res) => {
   const base = ['/dash.css', '/dash.js', '/dash-utils.css'].includes(path) ? kit : root;
   try {
     // test/csp.html: under a strict style policy, as some dashboards are
-    const csp = ['/test/csp.html', '/test/csp-forms.html', '/test/csp-lists.html'].includes(path) ? { 'Content-Security-Policy': "style-src 'self'" } : {};
+    const csp = ['/test/csp.html', '/test/csp-forms.html', '/test/csp-lists.html', '/test/csp-fields.html'].includes(path) ? { 'Content-Security-Policy': "style-src 'self'" } : {};
     const body = await readFile(join(base, path)); // first: a missing file is a 404
     res.writeHead(200, { 'Content-Type': TYPES[extname(path)] || 'application/octet-stream', ...csp }).end(body);
   } catch {
@@ -1355,7 +1357,7 @@ let reference;
   await Promise.all([tab.waitForNavigation({ timeout: 3000 }).catch(() => null), tab.keyboard.press('Enter')]);
   const went = new URL(tab.url());
   check('docs: "/" focuses the search, it finds a name, and Enter goes to its section',
-    focused === 'docs-search' && shown.some((t) => t.startsWith('Dash.datepicker')) && went.pathname.endsWith('/docs/forms.html') && went.hash === '#datepicker',
+    focused === 'docs-search' && shown.some((t) => t.startsWith('Dash.datepicker')) && went.pathname.endsWith('/docs/fields.html') && went.hash === '#datepicker',
     JSON.stringify({ focused, shown: shown.slice(0, 4), went: went.pathname + went.hash }));
 
   await tab.goto(url.replace('test/behaviour.html', 'docs/buttons.html'), { waitUntil: 'load' });
@@ -3232,15 +3234,15 @@ let reference;
   await tab.waitForTimeout(250);
   const hits = await tab.evaluate(() => [...document.querySelectorAll('#docs-nav a')].filter((x) => x.checkVisibility()).map((x) => x.textContent).join());
   check('1.14 docs: the box over it filters it', hits === 'Dates', hits);
-  await tab.click('#docs-nav a[href="forms.html#datepicker"]');
+  await tab.click('#docs-nav a[href="fields.html#datepicker"]');
   await tab.waitForTimeout(250);
-  check('1.14 docs: a link goes to its section', tab.url().endsWith('/docs/forms.html#datepicker') && (await side()) === 'Forms Dates:location', tab.url() + await side());
+  check('1.14 docs: a link goes to its section', tab.url().endsWith('/docs/fields.html#datepicker') && (await side()) === 'Richer fields Dates:location', tab.url() + await side());
   await tab.click('#docs-nav summary:has-text("Tables")');
   await tab.waitForTimeout(60);
   await tab.goto(url.replace('test/behaviour.html', 'docs/buttons.html'), { waitUntil: 'load' });
   await tab.waitForTimeout(150);
   check('1.14 docs: the classes the reader opened stay open on the next page', (await side()).startsWith('Buttons,Tables '), await side());
-  for (const [from, to] of [['text.html#pills', 'labels.html#pills'], ['feedback.html#private', 'privacy.html#private'], ['navigation.html#timeline', 'lists.html#timeline']]) {
+  for (const [from, to] of [['text.html#pills', 'labels.html#pills'], ['feedback.html#private', 'privacy.html#private'], ['navigation.html#timeline', 'lists.html#timeline'], ['forms.html#datepicker', 'fields.html#datepicker']]) {
     await tab.goto(url.replace('test/behaviour.html', 'docs/' + from), { waitUntil: 'load' });
     await tab.waitForTimeout(250);
     check(`1.14 docs: an old link to ${from} goes where that is now`, tab.url().endsWith('/docs/' + to), tab.url());
@@ -3248,7 +3250,7 @@ let reference;
   await tab.goto(url.replace('test/behaviour.html', 'docs/components.html'), { waitUntil: 'load' });
   const cards = () => tab.evaluate(() => [[...document.querySelectorAll('.docs-class')].filter((x) => !x.hidden).map((x) => x.id).join(), [...document.querySelectorAll('.docs-class .card')].filter((x) => x.checkVisibility()).length, document.getElementById('docs-found').textContent, [...document.querySelectorAll('#docs-nav [aria-current="page"]')].map((x) => x.textContent).join()].join(' / '));
   const all = await cards();
-  check('1.14 docs: all components, by their class', /^buttons,forms,labels,lists,tables,charts,surfaces,navigation,overlays,feedback,privacy \/ (\d+) \/ \1 components \/ All components$/.test(all), all);
+  check('1.14 docs: all components, by their class', /^buttons,forms,fields,labels,lists,tables,charts,surfaces,navigation,overlays,feedback,privacy \/ (\d+) \/ \1 components \/ All components$/.test(all), all);
   await tab.fill('#docs-find', 'Dash.tree');
   await tab.waitForTimeout(250);
   const trees = await cards();
@@ -3261,6 +3263,378 @@ let reference;
   const g = await gal.evaluate(() => { const links = [...document.querySelectorAll('#side a')]; return [document.querySelectorAll('#side .side-head').length, links.every((a) => document.getElementById(a.getAttribute('href').slice(1))), links.length > 20, document.querySelector('#side [aria-current="location"]')?.getAttribute('href'), ['colours', 'numbers', 'labels', 'controls', 'surfaces', 'tables', 'charts', 'more', 'popups', 'forms', 'feedback'].every((id) => document.getElementById(id))].join(); });
   check('1.14 gallery: a sidebar of its sections by class, every link to something; the old anchors still there', g === '2,true,true,#lists,true', g);
   await gal.context().close();
+}
+
+// ---- 1.15 more fields (test/fields.html)
+{
+  const openFields = async ({ width = 1000, height = 900, page = 'fields.html', ...more } = {}) => {
+    const ctx = await browser.newContext({ viewport: { width, height }, locale: 'en-US', reducedMotion: 'reduce', ...more });
+    const tab = await ctx.newPage();
+    tab.setDefaultTimeout(5000);
+    tab.on('pageerror', (e) => errors.push(e.message));
+    await tab.goto(url.replace('behaviour.html', page), { waitUntil: 'load' });
+    return tab;
+  };
+  const tab = await openFields();
+  const at = async (f, a) => { let t; try { return await Promise.race([tab.evaluate(f, a), new Promise((_, no) => { t = setTimeout(() => no(new Error('the page hangs')), 10000); })]); } finally { clearTimeout(t); } };
+  const tick = (ms = 40) => tab.waitForTimeout(ms);
+  const logged = () => at(() => log.splice(0).join(' | '));
+  const press = async (...keys) => { for (const k of keys) await tab.keyboard.press(k); };
+  const val = (id) => at((k) => document.getElementById(k).value, id);
+
+  // ---- a number
+  const seats = '[name="seats"]';
+  const num = () => at(() => { const f = document.querySelector('[name="seats"]').closest('.num-field'); return [f.querySelector('input').value, ...[...f.querySelectorAll('button')].map((b) => b.disabled)].join(); });
+  check('1.15 number: a box with − and +', (await num()) === '4,false,false', await num());
+  const more = `.num-field:has(${seats}) [data-step="1"]`, less = `.num-field:has(${seats}) [data-step="-1"]`;
+  await tab.click(more);
+  const n1 = [await num(), await logged(), await at(() => document.activeElement.name)].join(' ');
+  await at(() => { window.typed = 0; document.querySelector('[name="seats"]').addEventListener('input', () => { window.typed++; }); });
+  await tab.click(less);
+  const n0 = await at(() => { const b = document.querySelector('.num-field:has([name="seats"]) [data-step="-1"]'); b.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 })); return window.typed; });
+  check('1.15 number: + adds one, and is off at the end; the change is told once', n1 === '5,false,true seats 5 seats' && (await num()) === '4,false,false' && (await logged()) === 'seats 4' && n0 === 1, n1 + await num() + n0);
+  await tab.hover(less);
+  await tab.mouse.down();
+  await tick(1200);
+  const n2 = [await num(), await logged()].join(' ');
+  await tab.mouse.up();
+  await tick();
+  check('1.15 number: held, it goes on to the end; then the change is told', n2 === '1,true,false ' && (await logged()) === 'seats 1', n2);
+  await tab.focus(seats);
+  await tab.keyboard.press('Control+a');
+  await tab.keyboard.type('5');
+  const n3 = await num();
+  await at(() => document.querySelector('[name="seats"]').blur());
+  await at(() => { document.querySelector('.num-field [data-step="-1"]').click(); });
+  check('1.15 number: typing sets what is off; a screen reader\'s press counts', n3 === '5,false,true' && (await num()) === '4,false,false', n3 + await num());
+  await at(() => { log.length = 0; const b = document.querySelector('.num-field:has([name="limit"]) [data-step="1"]'); b.click(); b.click(); });
+  const n4 = await at(() => document.querySelector('[name="limit"]').value);
+  const n5 = await at(() => { const d = document.createElement('div'); d.innerHTML = Dash.number({ name: 'q', min: 3 }) + Dash.number({ name: 'any', step: 'any', value: 1.5, max: 2 }) + Dash.number({ name: 'off', value: 2, disabled: true }); document.body.append(d); const go = (n) => { const b = d.querySelector(`.num-field:has([name="${n}"]) [data-step="1"]`); b.click(); return d.querySelector(`[name="${n}"]`).value; }; const out = [go('q'), go('any'), go('off')]; d.innerHTML = Dash.number({ name: 'low', min: 3 }) + '<div class="num-field"><button type="button" data-step="-1">−</button><input type="number" name="ro" value="2" readonly><button type="button" data-step="1">+</button></div>'; d.querySelector('button').click(); out.push(d.querySelector('[name="low"]').value, go('ro')); const ends = (o) => [...Dash.number(o).matchAll(/data-step="(-?1)"[^>]*?( disabled)?>/g)].map((m) => (m[2] ? 'off' : 'on')).join('+'); out.push(ends({ min: 1, max: 5, value: 1 }), ends({ min: 1, max: 5, value: 5 }), ends({ min: 1, max: 5, value: 2 }), ends({ value: 2 })); d.remove(); return out.join(); });
+  check('1.15 number: steps, an empty box starts at its least, step="any", off, the ends', n4 === '1' && n5 === '3,2,2,3,2,off+on,on+off,on+on,on+on', n4 + ' ' + n5);
+
+  // ---- a password
+  const pw = () => at(() => { const b = document.querySelector('[data-peek]'); return [document.getElementById('pw').type, b.textContent, b.getAttribute('aria-pressed')].join(); });
+  await tab.click('[data-peek]');
+  const p1 = await pw();
+  await tab.click('[data-peek]');
+  const p2 = await pw();
+  await tab.click('[data-peek]');
+  await at(() => { const f = document.getElementById('form'); f.addEventListener('submit', (e) => e.preventDefault(), { once: true, capture: true }); f.requestSubmit(); });
+  check('1.15 password: shown, hidden, and hidden again when its form goes out', p1 === 'text,Hide,true' && p2 === 'password,Show,false' && (await pw()) === 'password,Show,false', p1 + p2 + await pw());
+  await at(() => form.clear());
+  const peeked = await at(() => { const d = document.createElement('div'); d.innerHTML = '<input type="password" id="far" value="x"><p><button type="button" data-peek="far"><svg width="4" height="4"></svg></button></p>'; document.body.append(d); const b = d.querySelector('button'); b.click(); const a = [d.firstElementChild.type, b.innerHTML.startsWith('<svg'), b.getAttribute('aria-pressed')]; d.remove(); return a.join(); });
+  check('1.15 password: an icon stays an icon, and a box that is elsewhere is found by its id', peeked === 'text,true,true', peeked);
+
+  // ---- tags
+  const tagsNow = () => at(() => [tags.value.join('+'), [...document.querySelectorAll('input[type="hidden"][name="labels"]')].map((i) => i.value).join('+'), document.getElementById('tags').value].join(' '));
+  check('1.15 tags: from what is in the box; a field each in the form', (await tagsNow()) === 'web+eu-west web+eu-west ', await tagsNow());
+  await tab.focus('#tags');
+  await tick();
+  const ring = await at(() => { const i = document.createElement('i'); i.style.color = getComputedStyle(document.documentElement).getPropertyValue('--blue'); document.body.append(i); const c = getComputedStyle(i).color; i.remove(); return getComputedStyle(document.querySelector('.tag-box')).borderTopColor === c; });
+  check('1.15 tags: the box is lit while its input has the focus', ring, '');
+  await tab.keyboard.type('db,');
+  check('1.15 tags: said', (await at(() => document.querySelector('body > [data-dash-voice]').textContent)) === 'db added', '');
+  await tab.keyboard.type('Web,');
+  const t1 = [await tagsNow(), await logged()].join(' / ');
+  check('1.15 tags: Enter or a comma adds; one that is there isn\'t added twice', t1 === 'web+eu-west+db web+eu-west+db  / tags web+eu-west+db', t1);
+  await tab.keyboard.type('a b');
+  await press('Enter');
+  await tick();
+  const t2 = [await tagsNow(), await at(() => [...document.querySelectorAll('.toast')].map((x) => x.textContent).join())].join(' / ');
+  check('1.15 tags: allow() says why not, and the text stays', t2 === 'web+eu-west+db web+eu-west+db a b / “a b” has a space in it.', t2);
+  await tab.fill('#tags', '');
+  await at(() => { const d = new DataTransfer(); d.setData('text', 'x1, x2\nx3'); const e = new ClipboardEvent('paste', { clipboardData: d, bubbles: true, cancelable: true }); document.getElementById('tags').dispatchEvent(e); });
+  const t3 = await tagsNow();
+  check('1.15 tags: a paste of several, up to the most there may be', t3 === 'web+eu-west+db+x1 web+eu-west+db+x1 x2, x3', t3);
+  await tab.fill('#tags', '');
+  await tab.focus('#tags');
+  await press('Backspace');
+  const t4 = [await tagsNow(), await at(() => document.querySelector('body > [data-dash-voice]').textContent)].join(' / ');
+  await press('ArrowLeft', 'ArrowLeft', 'Delete');
+  const t5 = [await tagsNow(), await at(() => document.activeElement.getAttribute('aria-label'))].join(' / ');
+  await press('ArrowRight');
+  check('1.15 tags: Backspace takes the last; arrows go to the ones before, Delete takes one', t4 === 'web+eu-west+db web+eu-west+db  / x1 removed' && t5 === 'web+db web+db  / Remove db' && (await at(() => document.activeElement.id)) === 'tags', t4 + t5);
+  await tab.click('.tag-box .tag-x >> nth=0');
+  await tab.keyboard.type('zz');
+  await press('Backspace');
+  const t6 = [await at(() => tags.value.length), await val('tags')].join();
+  await tab.fill('#tags', '');
+  check('1.15 tags: Backspace in a box that has text is for the text', t6 === '1,z', t6);
+  check('1.15 tags: or its ×', (await tagsNow()).startsWith('db db') && (await at(() => document.activeElement.id)) === 'tags', await tagsNow());
+  await tab.keyboard.type('left');
+  await at(() => document.activeElement.blur());
+  await tick();
+  check('1.15 tags: what is typed is added when the box is left', (await tagsNow()) === 'db+left db+left ', await tagsNow());
+  await logged();
+  await tab.focus('#cities');
+  await tab.keyboard.type('ber');
+  await tick(80);
+  const c1 = await at(() => [...document.querySelectorAll('.combo-option')].map((x) => x.textContent).join());
+  await press('ArrowDown', 'Enter');
+  await tick(60);
+  const c2 = [await at(() => cities.value.join('+')), await val('cities'), await logged()].join(' / ');
+  const quiet = await at(() => document.querySelectorAll('.combo-list:popover-open').length);
+  await tab.keyboard.type('ber');
+  await tick(80);
+  const c3 = await at(() => [...document.querySelectorAll('.combo-option')].map((x) => x.textContent).join());
+  await press('Escape');
+  await tab.keyboard.type('lin');
+  await press('Enter');
+  await tab.keyboard.press('Control+a');
+  await tab.keyboard.type('Porto,');
+  await tick(60);
+  const c4 = [await at(() => cities.value.join('+')), await at(() => [...document.querySelectorAll('input[name="cities"]')].map((i) => i.value).join('+'))].join(' / ');
+  check('1.15 tags: suggestions, without the ones that are there; only those with strict', c1 === 'BerlinGermany,Bern' && c2 === 'ber /  / cities ber' && c3 === 'Bern' && c4 === 'ber+Porto / ber+Porto' && quiet === 0, [c1, c2, c3, c4, quiet].join(' ; '));
+  await at(() => { cities.set([]); const i = document.getElementById('cities'); i.value = ''; i.focus(); });
+  await tab.keyboard.type('berlin, Nowhere');
+  await at(() => { document.querySelectorAll('.toast').forEach((x) => { x.textContent = ''; }); document.activeElement.blur(); });
+  await tick();
+  const c6 = await at(() => [cities.value.join('+'), document.querySelector('[data-tag="ber"]')?.textContent, document.getElementById('cities').value, [...document.querySelectorAll('.toast')].map((x) => x.textContent).join('')].join(' / '));
+  check('1.15 tags: left with strict, what is one of them is added by its name, the rest stays, and nothing pops up', c6 === 'ber / Berlin× / Nowhere / ', c6);
+  await at(() => { document.getElementById('cities').value = ''; });
+  const api = await at(() => { tags.set(['a', 'b']); const out = [tags.value.join('+'), tags.add('c'), tags.add('d d'), tags.add('A'), tags.value.join('+')]; tags.remove('B'); out.push(tags.value.join('+')); return out.join(); });
+  check('1.15 tags: set(), add(), remove()', api === 'a+b,true,false,true,a+b+c,a+c', api);
+  const escd = await at(() => { const d = document.createElement('div'); d.innerHTML = '<input class="input" name="z">'; document.body.append(d); const t = Dash.tagbox(d.firstElementChild, { value: ['<b>x</b>'], options: [{ value: 'y', label: '<i>Y</i>' }] }); t.add('y'); const a = [d.querySelectorAll('b, i').length, d.querySelector('.tag').textContent, d.querySelectorAll('.tag')[1].textContent]; d.remove(); return a.join(); });
+  check('1.15 tags: escaped', escd === '0,<b>x</b>×,<i>Y</i>×', escd);
+  await at(() => { const d = document.createElement('div'); d.id = 'looked'; d.innerHTML = '<input class="input" name="z">'; document.body.append(d); window.looked = Dash.tagbox(d.firstElementChild, { options: async () => [{ value: 'x1', label: 'Ex one' }, 'Two'], strict: true }); d.querySelector('input').focus(); });
+  await tab.keyboard.type('e');
+  await tick(300);
+  await tab.click('.combo-option:visible >> nth=0');
+  await tick(60);
+  const asked = await at(() => { const d = document.getElementById('looked'), a = [looked.value.join('+')]; a.push(looked.add('two'), looked.add('three'), looked.value.join('+')); d.querySelector('.tag-box-in').disabled = true; d.querySelector('.tag-x').click(); a.push(looked.value.length, getComputedStyle(d.querySelector('.tag-x')).display); looked.destroy(); d.remove(); return a.join(); });
+  check('1.15 tags: suggestions that are looked up; off, nothing is taken away', asked === 'x1,true,false,x1+Two,2,none', asked);
+  const undone = await at(() => { const d = document.createElement('div'); d.innerHTML = '<input class="input" name="z" value="q" required>'; document.body.append(d); const i = d.firstElementChild; const t = Dash.tagbox(i); const a = [i.name, i.required, d.querySelectorAll('[name="z"]').length]; Dash.tagbox(i); a.push(d.querySelectorAll('.tag-box').length); i.__dashTags.destroy(); a.push(i.name, i.required, i.className, d.children.length); d.remove(); return a.join(); });
+  check('1.15 tags: made again, and undone', undone === ',false,1,1,z,true,input,1', undone);
+
+  // ---- a code
+  await logged();
+  await tab.focus('#code');
+  await tab.keyboard.type('12a34');
+  const k1 = [await val('code'), await at(() => [...document.querySelectorAll('.code-field:has(#code) > i')].map((i) => (i.classList.contains('at') ? 'A' : i.classList.contains('on') ? 'x' : '.')).join('')), await logged()].join(' ');
+  await tab.keyboard.type('56');
+  const k2 = [await val('code'), await logged()].join(' ');
+  check('1.15 code: digits only, a box for each; told once when full', k1 === '1234 xxxxA. ' && k2 === '123456 code 123456', k1 + ' / ' + k2);
+  await press('ArrowLeft', 'ArrowLeft');
+  await tick();
+  const k4 = await at(() => [...document.querySelectorAll('.code-field:has(#code) > i')].map((i) => (i.classList.contains('at') ? 'A' : i.classList.contains('on') ? 'x' : '.')).join(''));
+  await press('End', 'Backspace');
+  await tab.keyboard.type('6');
+  check('1.15 code: the box the caret is in is lit; told again once it is full again', k4 === 'xxxxAx' && (await logged()) === 'code 123456', k4);
+  await at(() => { const i = document.getElementById('code'); i.value = ''; const d = new DataTransfer(); d.setData('text', '98 76-54 3'); i.dispatchEvent(new ClipboardEvent('paste', { clipboardData: d, bubbles: true, cancelable: true })); });
+  const k3 = [await val('code'), await logged()].join(' ');
+  await tab.focus('#code2');
+  await tab.keyboard.type('a-b1c9');
+  check('1.15 code: a paste with spaces; letters as capitals', k3 === '987654 code 987654' && (await val('code2')) === 'AB1C' && (await logged()) === 'code AB1C', k3 + await val('code2'));
+  const cells = await at(() => { const i = document.getElementById('code'), f = i.parentElement, boxes = [...f.querySelectorAll('i')].map((x) => x.getBoundingClientRect()); const cv = document.createElement('canvas').getContext('2d'); const s = getComputedStyle(i); cv.font = `${s.fontWeight} ${s.fontSize} ${s.fontFamily}`; const ch = cv.measureText('8').width, x0 = i.getBoundingClientRect().left + parseFloat(s.paddingLeft), by = ch + parseFloat(s.letterSpacing); return boxes.every((b, k) => Math.abs(x0 + k * by + ch / 2 - (b.left + b.width / 2)) < 1.5); });
+  check('1.15 code: each digit is in the middle of its box', cells, '');
+  const sent = await at(() => { const f = document.createElement('form'); let n = 0; f.addEventListener('submit', (e) => { e.preventDefault(); n++; }); f.innerHTML = Dash.code({ name: 'c', length: 4, submit: true }); document.body.append(f); const i = f.querySelector('input'); const type = (v) => { i.value = v; i.dispatchEvent(new Event('input', { bubbles: true })); }; type('123'); const a = n; type('1234'); type('1234'); const b = n; type('123'); type('1239'); const c = n; f.innerHTML = Dash.code({ name: 'c', length: 4 }); const p = f.querySelector('input'); p.value = '1234'; p.dispatchEvent(new Event('input', { bubbles: true })); f.remove(); return [a, b, c, n, i.pattern].join(); });
+  check('1.15 code: sends its form once it is full, if asked to', sent === '0,1,2,2,[0-9]{4}', sent);
+
+  const full = await at(() => { const d = document.createElement('div'); d.innerHTML = Dash.code({ value: '12', length: 4 }) + Dash.rating({ name: 'q', required: true, disabled: true }); return [d.querySelectorAll('i.on').length, d.querySelectorAll('[required]:disabled').length].join(); });
+  check('1.15 code: one that has a value from the start; a rating that has to be given, and one that can\'t be', full === '2,5', full);
+
+  // ---- a rating
+  const stars = async () => { await tick(); return at(() => { const rgb = (x) => getComputedStyle(x).fill; const l = [...document.querySelectorAll('#stars .rating label')]; const off = rgb(document.querySelector('#stars .rating label:last-child svg')); return [document.querySelector('[name="stars"]:checked')?.value, l.map((x) => (rgb(x.querySelector('svg')) === off ? '-' : '*')).join('')].join(' '); }); };
+  await tab.mouse.move(5, 5);
+  const s1 = await stars();
+  await tab.focus('[name="stars"][value="3"]');
+  await press('ArrowRight');
+  await tab.mouse.move(5, 5);
+  const s2 = await stars();
+  await tab.click('#stars .rating label >> nth=1');
+  await tab.mouse.move(5, 5);
+  check('1.15 rating: radio buttons drawn as stars', s1 === '3 ***--' && s2 === '4 ****-' && (await stars()) === '2 **---', s1 + s2 + await stars());
+  const names = await at(() => [document.querySelector('#stars legend')?.textContent, document.querySelector('[name="stars"][value="1"]').getAttribute('aria-label'), document.querySelector('[name="stars"][value="3"]').getAttribute('aria-label')].join());
+  const read = await at(() => { const r = document.querySelector('#shown .rating'); return [r.getAttribute('aria-label'), r.getAttribute('role'), Math.round((r.querySelector('.rating-on').getBoundingClientRect().width / r.getBoundingClientRect().width) * 100), r.querySelectorAll('input').length].join(); });
+  check('1.15 rating: names for each; one that is only shown has parts of a star', names === 'How was it,1 star,3 stars' && read === 'Rating: 4.3 of 5,img,86,0', names + ' / ' + read);
+
+  await tab.hover('#stars .rating label >> nth=3');
+  await tick();
+  const s5 = await stars();
+  await tab.mouse.move(5, 5);
+  await tick();
+  check('1.15 rating: under the pointer, what a click would give', s5 === '2 ****-' && (await stars()) === '2 **---', s5 + await stars());
+  const cut = await at(() => { const r = document.querySelector('#shown .rating'), on = r.querySelector('.rating-on'), box = on.getBoundingClientRect(); const hit = document.elementFromPoint(box.right + 6, box.top + box.height / 2); return [on.contains(hit), getComputedStyle(on).overflowX].join(); });
+  check('1.15 rating: and cut where it ends', cut === 'false,hidden', cut);
+
+  // ---- a range
+  const range = async () => { await tick(); return at(() => { const f = document.querySelector('.range-field'), [a, b] = f.querySelectorAll('input'), t = f.querySelector('.range-track'), s = getComputedStyle(t, '::after'); return [a.value, b.value, f.querySelector('output').textContent, Math.round((parseFloat(s.left) / t.clientWidth) * 100), Math.round((1 - parseFloat(s.right) / t.clientWidth) * 100)].join(); }); };
+  const g1 = await range();
+  await tab.focus('[name="price_from"]');
+  await press('ArrowRight', 'ArrowRight');
+  const g2 = await range();
+  await press('End');
+  const g3 = await range();
+  await tab.focus('[name="price_to"]');
+  await press('Home');
+  check('1.15 range: two ends, neither passes the other', g1 === '50,200,50–200 €,10,40' && g2 === '70,200,70–200 €,14,40' && g3 === '200,200,200–200 €,40,40' && (await range()) === g3, [g1, g2, g3, await range()].join(' / '));
+  await at(() => document.querySelector('#ends input').dispatchEvent(new Event('input', { bubbles: true })));
+  await tick();
+  const top = await at(() => { const f = document.querySelector('#ends .range-field'), [a, b] = f.querySelectorAll('input'); return [f.querySelector('.range-track').classList.contains('at-end'), getComputedStyle(a).zIndex, getComputedStyle(b).zIndex, a.getAttribute('aria-label'), b.getAttribute('aria-label')].join(); });
+  check('1.15 range: with both at the far end the first can still be taken', top === 'true,2,1,end, from,end, to', top);
+
+  const grab = await at(() => { const f = document.querySelector('.range-field'), [a, b] = f.querySelectorAll('input'); a.value = 100; b.value = 300; a.dispatchEvent(new Event('input', { bubbles: true })); f.scrollIntoView({ block: 'center' }); const t = f.querySelector('.range-track').getBoundingClientRect(), at = (v) => document.elementFromPoint(t.left + 9 + ((t.width - 18) * v) / 500, t.top + 12); return [at(100) === a, at(300) === b].join(); });
+  check('1.15 range: both can be taken with the pointer', grab === 'true,true', grab);
+  const other = await at(() => { const d = document.createElement('div'); d.innerHTML = Dash.range({ name: 'o', min: 20, max: 60, from: 30, to: 40 }); document.body.append(d); const t = d.querySelector('.range-track'), [a] = d.querySelectorAll('input'); const one = [t.style.getPropertyValue('--from'), t.style.getPropertyValue('--to')]; a.value = 35; a.dispatchEvent(new Event('input', { bubbles: true })); one.push(t.style.getPropertyValue('--from')); const z = d.querySelectorAll('input')[1]; z.value = 50; z.dispatchEvent(new Event('input', { bubbles: true })); one.push(t.style.getPropertyValue('--to')); d.remove(); return one.join(); });
+  check('1.15 range: from another least', other === '25%,50%,37.5%,75%', other);
+
+  // ---- text that becomes a box
+  const shown = (id) => at((k) => document.getElementById(k).textContent.trim(), id);
+  await tab.click('#in-name .inline-edit');
+  const i1 = await at(() => [document.activeElement.value, document.activeElement.selectionEnd, document.activeElement.getAttribute('aria-label')].join());
+  await tab.keyboard.type('web 2');
+  await press('Enter');
+  const i2 = await at(() => [document.querySelector('#in-name .err')?.textContent, document.activeElement.getAttribute('aria-invalid'), saves.length].join());
+  await tab.fill('#in-name .input', 'web-2');
+  await press('Enter');
+  await tick();
+  const i3 = [await shown('in-name'), await at(() => [saves.join(), document.activeElement.className, inName.value].join())].join(' ');
+  check('1.15 inline: a press makes it a box, Enter saves it, and the focus goes back', i1 === 'web-1,5,Name' && i2 === 'Leave out the spaces.,true,0' && i3 === 'web-2 web-2,inline-edit,web-2', [i1, i2, i3].join(' / '));
+  await press('Enter');
+  await tab.keyboard.type('other');
+  await press('Escape');
+  const i4 = [await shown('in-name'), await at(() => saves.length)].join();
+  await press('Enter', 'Enter');
+  check('1.15 inline: Escape puts it back; no change is no save', i4 === 'web-2,1' && (await at(() => saves.length)) === 1 && (await shown('in-name')) === 'web-2', i4);
+  await at(() => { answer = () => Promise.reject(new Error('No <net>')); });
+  await tab.click('#in-seats .inline-edit');
+  await tab.fill('#in-seats .input', '12');
+  await press('Enter');
+  const j1 = await at(() => [document.querySelector('#in-seats .err')?.textContent, saves.length].join());
+  await tab.fill('#in-seats .input', '7');
+  await press('Enter');
+  await tick();
+  const j2 = await at(() => [document.querySelector('#in-seats .err')?.textContent, document.querySelector('#in-seats .input')?.value, inSeats.value, document.querySelector('#in-seats [data-inline-save]')?.disabled].join());
+  await at(() => { answer = () => false; });
+  await press('Enter');
+  await tick();
+  const j3 = await at(() => document.querySelector('#in-seats .err')?.textContent);
+  let go;
+  await at(() => { answer = () => new Promise((ok) => { window.go = ok; }); });
+  await press('Enter');
+  await tick();
+  const j4 = await at(() => [document.querySelector('#in-seats [data-inline-save]')?.getAttribute('aria-busy'), document.querySelector('#in-seats .input')?.readOnly].join());
+  await press('Escape');
+  await at(() => window.go?.());
+  await tick();
+  check('1.15 inline: a save that fails keeps the box open and says why; while it goes on, it waits', j1 === 'Use 9 or less.,1' && j2 === 'No <net>,7,4,false' && j3 === 'That wasn’t saved.' && j4 === 'true,true' && (await shown('in-seats')) === '7 seats' && (await at(() => typeof inSeats.value)) === 'number', [j1, j2, j3, j4, await shown('in-seats')].join(' / '));
+  await at(() => { answer = null; });
+  await tab.click('#in-region .inline-edit');
+  await tab.selectOption('#in-region select', 'par');
+  await tab.click('#in-region [data-inline-save]');
+  await tick();
+  const note = await at(() => [document.getElementById('in-note').textContent, document.querySelector('#in-note .inline-edit').getAttribute('aria-label')].join());
+  check('1.15 inline: a select; words for nothing', (await shown('in-region')) === 'Paris' && (await at(() => inRegion.value)) === 'par' && note === 'Add a note,Note: Add a note', await shown('in-region') + note);
+
+  await tab.click('#in-note .inline-edit');
+  await tab.fill('#in-note .input', 'never mind');
+  await tab.click('#in-note [data-inline-cancel]');
+  const c5 = [await shown('in-note'), await at(() => document.activeElement.className)].join();
+  check('1.15 inline: Cancel', c5 === 'Add a note,inline-edit', c5);
+  const set = await at(() => { inNote.set('<b>hi</b>'); const a = [document.querySelectorAll('#in-note b').length, document.getElementById('in-note').textContent, inNote.value]; const s = document.createElement('p'); document.body.append(s); const h = Dash.inline(s, { value: 'q', label: 'Q' }); h.edit(); a.push(s.querySelector('input').value); h.cancel(); a.push(s.textContent.trim()); h.destroy(); a.push(s.innerHTML, document.querySelectorAll('#in-note .inline-form').length); s.remove(); return a.join('|'); });
+  check('1.15 inline: set(), escaped; edit(), cancel(), destroy()', set === '0|<b>hi</b>|<b>hi</b>|q|q||0', set);
+
+  const inForm = await at(async () => { const f = document.createElement('form'); let n = 0; f.addEventListener('submit', (e) => { e.preventDefault(); n++; }); f.innerHTML = '<input name="a"><p></p><button>Go</button>'; document.body.append(f); const got = [], h = Dash.inline(f.querySelector('p'), { value: 'one', type: 'textarea', onSave: (v) => got.push(v) }); h.edit(); const t = f.querySelector('textarea'); t.value = 'two'; const key = (o) => t.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true, ...o })); key({}); const a = got.length; key({ ctrlKey: true }); await new Promise((ok) => setTimeout(ok, 30)); f.remove(); return [n, a, got.join(), h.value, document.forms.length].join(); });
+  check('1.15 inline: in a form, which it doesn\'t send; a longer text, saved with Ctrl+Enter', inForm === '0,0,two,two,1', inForm);
+
+  // ---- a select that can be searched
+  await logged();
+  const multi = () => at(() => document.querySelector('.field:has(#regions) .multi-btn').textContent);
+  const m0 = [await multi(), await at(() => document.querySelector('.field:has(#regions) .multi-btn').getAttribute('aria-label'))].join(' / ');
+  await tab.click('label[for="regions"]');
+  const m1 = await at(() => document.activeElement.className);
+  await tab.keyboard.press('ArrowDown');
+  await tick(80);
+  const m2 = await at(() => [[...document.querySelectorAll('.multi-pop [role="option"]')].map((x) => x.textContent).join('+'), [...document.querySelectorAll('.multi-pop .entries-head')].map((x) => x.textContent).join('+'), document.querySelectorAll('.multi-pop input').length, document.activeElement.textContent].join(' / '));
+  await press('ArrowDown', 'Space', 'ArrowDown', 'Space');
+  const m3 = [await multi(), await logged(), await at(() => [...document.getElementById('regions').selectedOptions].map((o) => o.value).join('+'))].join(' / ');
+  check('1.15 multi: a button that says what is picked, and a list to tick; the select stays the field', m0 === 'Frankfurt, Virginia / Regions: Frankfurt, Virginia' && m1 === 'input multi-btn' && m2 === 'Frankfurt+Paris+Dublin+London+Oregon+Virginia+São Paulo / Europe+America / 0 / Frankfurt' && m3 === '4 regions / regions fra+par+vir | regions fra+par+dub+vir / fra+par+dub+vir', [m0, m1, m2, m3].join(' ; '));
+  await tab.click('[data-multi="none"]');
+  const m4 = await multi();
+  await tab.click('[data-multi="all"]');
+  const m5 = [await multi(), await at(() => document.getElementById('regions').selectedOptions.length)].join();
+  await press('Escape');
+  await tick();
+  check('1.15 multi: all, none, and not one that is off; Escape goes back to the button', m4 === 'All regions' && m5 === '6 regions,6' && (await at(() => document.activeElement.className)) === 'input multi-btn', m4 + m5);
+  await logged();
+  await tab.click('.field:has(#plan) .multi-btn');
+  await tick(60);
+  await tab.click('.multi-pop [role="option"] >> nth=1');
+  await tick(60);
+  const m6 = [await at(() => document.querySelector('.field:has(#plan) .multi-btn').textContent), await val('plan'), await logged(), await at(() => document.querySelectorAll('.multi-pop').length)].join(' / ');
+  check('1.15 multi: of a select for one, a pick closes it', m6 === 'Solo / s / plan s / 0', m6);
+  await tab.click('.field:has(#plan) .multi-btn');
+  await tick(60);
+  await tab.click('.multi-pop [role="option"] >> nth=1');
+  await tick(60);
+  const m8 = await at(() => { const s = document.createElement('select'); s.innerHTML = '<option value="">Anything</option><option>B</option>'; document.body.append(s); const m = Dash.multi(s), a = m.el.textContent; m.destroy(); s.remove(); return [document.querySelectorAll('.multi-pop').length, a].join(); });
+  check('1.15 multi: so does the one that is picked already; nothing picked reads as the select would', m8 === '0,Anything', m8);
+  await at(() => { const s = document.getElementById('plan'); for (let i = 0; i < 9; i++) s.add(new Option('Plan ' + i, 'p' + i)); });
+  await tab.click('.field:has(#plan) .multi-btn');
+  await tick(60);
+  await tab.keyboard.type('plan 7');
+  await tick(60);
+  const m7 = await at(() => [document.activeElement.type, [...document.querySelectorAll('.multi-pop [role="option"]')].map((x) => x.textContent).join('+')].join());
+  await press('ArrowDown', 'Space');
+  await tick(60);
+  const shutBy = await at(() => document.querySelectorAll('.multi-pop').length);
+  const hid = await at(() => { const s = document.getElementById('plan'), r = s.closest('.multi-off').getBoundingClientRect(); return [r.width <= 2 && r.height <= 2, s.tabIndex, s.getAttribute('aria-hidden')].join(); });
+  check('1.15 multi: the select itself is out of sight and of Tab', hid === 'true,-1,true', hid);
+  check('1.15 multi: a search box once there are many', m7 === 'search,Plan 7' && (await val('plan')) === 'p7' && shutBy === 0, m7 + await val('plan') + shutBy);
+  await at(() => document.getElementById('form').reset());
+  await tick(60);
+  check('1.15 multi: a reset takes it back', (await multi()) === 'Frankfurt, Virginia', await multi());
+  const told = await at(async () => { const s = document.getElementById('plan'), b = document.querySelector('.field:has(#plan) .multi-btn'); s.value = 'p2'; s.dispatchEvent(new Event('change', { bubbles: true })); const a = [b.textContent]; s.value = 'p3'; plan.update(); a.push(b.textContent); s.disabled = true; await new Promise((ok) => setTimeout(ok)); a.push(b.disabled); plan.open(); a.push(document.querySelectorAll('.multi-pop').length); s.disabled = false; await new Promise((ok) => setTimeout(ok)); a.push(b.disabled); Dash.multi(s, { placeholder: 'Any plan' }); a.push(document.querySelectorAll('.field:has(#plan) .multi-btn').length); window.plan = s.__dashMulti; return a.join(); });
+  check('1.15 multi: changed from code, off, and made again', told === 'Plan 2,Plan 3,true,0,false,1', told);
+  const many = await at(() => { const s = document.createElement('select'); s.multiple = true; for (let i = 0; i < 12; i++) s.add(new Option(`${i % 2 ? 'odd' : 'even'} ${i}`, String(i))); document.body.append(s); const m = Dash.multi(s); m.open(); const q = document.querySelector('.multi-pop input[type="search"]'); q.value = 'odd'; q.dispatchEvent(new Event('input')); document.querySelector('[data-multi="all"]').click(); const a = [...s.selectedOptions].map((o) => o.value).join('+'); m.destroy(); s.remove(); return a; });
+  check('1.15 multi: all of what is found', many === '1+3+5+7+9+11', many);
+  const off = await at(() => { plan.destroy(); const s = document.getElementById('plan'); const a = [s.getAttribute('tabindex'), s.getAttribute('aria-hidden'), document.querySelectorAll('.field:has(#plan) .multi-btn').length, s.getBoundingClientRect().width > 20].join(); window.plan = Dash.multi('plan'); return a; });
+  check('1.15 multi: undone', off === ',,0,true', off);
+
+  // ---- in a form
+  await at(() => { document.getElementById('plan').value = 't'; plan.update(); tags.set(['one', 'two']); document.getElementById('code').value = '123456'; document.getElementById('code2').value = ''; cities.set(['ber']); document.querySelector('[name="price_from"]').value = 10; document.querySelector('[name="stars"][value="5"]').checked = true; form.clear(); });
+  await tab.click('#form .btn.primary');
+  await tick(80);
+  const v = await at(() => JSON.stringify(window.sent));
+  check('1.15 in a form: what each of them gives', v === JSON.stringify({ seats: 4, limit: null, pw: 'open sesame', labels: ['one', 'two'], cities: ['ber'], code: '123456', code2: '', stars: '5', price_from: 10, price_to: 200, regions: ['fra', 'vir'], plan: 't' }), v);
+  const raw = await at(() => window.data);
+  check('1.15 in a form: and what the browser would send', raw.includes('labels=one&labels=two&cities=ber') && raw.includes('regions=fra&regions=vir') && raw.includes('price_from=10&price_to=200'), raw);
+  await at(() => { window.sent = null; tags.set([]); document.getElementById('code').value = '12'; for (const o of document.getElementById('regions').options) o.selected = false; regions.update(); });
+  await tab.click('#form .btn.primary');
+  await tick(120);
+  const bad = await at(() => JSON.stringify([form.errors, document.activeElement.id, window.sent]));
+  check('1.15 in a form: what is wrong with each of them', bad === JSON.stringify([{ labels: 'Fill this in.', code: 'All 6 digits.', regions: 'Choose one.' }, 'tags', null]), bad);
+  const lit = await at(() => { const red = getComputedStyle(document.documentElement).getPropertyValue('--bad').trim(); const probe = document.createElement('i'); probe.style.color = red; document.body.append(probe); const want = getComputedStyle(probe).color; probe.remove(); return [getComputedStyle(document.querySelector('.tag-box')).borderTopColor === want, getComputedStyle(document.querySelector('.code-field > i')).borderTopColor === want, getComputedStyle(document.querySelector('.field:has(#regions) .multi-btn')).borderTopColor === want].join(); });
+  check('1.15 in a form: and their boxes are marked', lit === 'true,true,true', lit);
+  await at(() => { const s = document.getElementById('regions'); s.focus(); });
+  check('1.15 in a form: going to a select that is a button goes to the button', (await at(() => document.activeElement.className.includes('multi-btn'))), '');
+  const back = await at(async () => { const f = document.getElementById('form'); f.reset(); await new Promise((ok) => setTimeout(ok, 30)); const n = f.querySelector('.num-field'), r = f.querySelector('.range-field'); document.querySelector('[name="seats"]').value = 5; const a = [tags.value.join('+'), document.getElementById('tags').value, cities.value.length, r.querySelector('output').textContent, r.querySelector('.range-track').style.getPropertyValue('--from'), document.querySelectorAll('.code-field:has(#code) > i.on').length]; n.querySelector('input').dispatchEvent(new Event('input', { bubbles: true })); a.push(n.lastElementChild.disabled); f.reset(); await new Promise((ok) => setTimeout(ok, 30)); a.push(n.lastElementChild.disabled); return a.join(); });
+  check('1.15 in a form: a reset puts all of them back', back === 'web+eu-west,,0,50–200 €,10%,0,true,false', back);
+  await at(() => { window.sent = null; const i = document.getElementById('cities'); i.value = 'Nowhere'; document.getElementById('code').value = '123456'; document.activeElement.blur(); });
+  await tab.click('#form .btn.primary');
+  await tick(80);
+  const text = await at(() => JSON.stringify([form.errors, window.sent]));
+  check('1.15 in a form: text left over that can be no tag', text === '[{"cities":"Choose one from the list."},null]', text);
+  const loose = await at(async () => { const f = document.createElement('form'); f.innerHTML = `<p><select name="m" multiple required><option>A</option></select></p>${Dash.code({ name: 'c' })}<div>${Dash.number({ name: 'n', required: true })}</div><p><input class="input" name="t" required></p>${Dash.range({ name: 'r' })}<button>Go</button>`; document.body.append(f); Dash.multi(f.querySelector('select')); Dash.tagbox(f.querySelector('[name="t"]')); const g = Dash.form(f); await g.check(); const a = [...f.querySelectorAll('.field-err')].filter((x) => x.textContent).map((x) => x.previousElementSibling.className.split(' ').pop()).join(); g.destroy(); f.remove(); return a; });
+  check('1.15 in a form: without a .field, what is wrong goes after the whole of it', loose === 'multi,code-field,num-field,tag-box', loose);
+  await tab.context().close();
+
+  // ---- on a phone, in high contrast, under a strict style policy
+  const phone = await openFields({ width: 390, height: 800, hasTouch: true, isMobile: true });
+  const fits = await phone.evaluate(() => [document.documentElement.scrollWidth - innerWidth, [...document.querySelectorAll('.num-field > .btn')].every((b) => b.getBoundingClientRect().width >= 44), document.querySelector('.code-field > i:last-of-type').getBoundingClientRect().right <= 374, innerWidth].join());
+  await phone.tap('.num-field:has([name="seats"]) [data-step="1"]');
+  await phone.waitForTimeout(60);
+  const tapped = await phone.evaluate(() => [document.querySelector('[name="seats"]').value, document.activeElement === document.querySelector('[name="seats"]')].join());
+  check('1.15 on a phone: all of it fits; a tap on + opens no keyboard', fits === '0,true,true,390' && tapped === '5,false', fits + tapped);
+  await phone.context().close();
+  const hc = await openFields({ forcedColors: 'active' });
+  const seen = await hc.evaluate(() => { const l = [...document.querySelectorAll('#stars .rating label svg')].map((x) => getComputedStyle(x).fill); return [l[2] !== l[3], getComputedStyle(document.querySelector('#stars .rating label:last-child svg')).stroke === getComputedStyle(document.body).color, ...['::after', '::before'].map((p, n) => { const i = document.createElement('i'); i.style.color = n ? 'GrayText' : 'Highlight'; document.body.append(i); const c = getComputedStyle(i).color; i.remove(); return getComputedStyle(document.querySelector('.range-track'), p).backgroundColor === c; })].join(); });
+  check('1.15 in high contrast: stars and the part between the ends are told apart', seen === 'true,true,true,true', seen);
+  await hc.context().close();
+  const strict = await openFields({ page: 'csp-fields.html' });
+  const csp = await strict.evaluate(() => { const t = document.querySelector('.range-track'), s = getComputedStyle(t, '::after'), r = document.querySelector('.rating'); return [Math.round((parseFloat(s.left) / t.clientWidth) * 100), Math.round((1 - parseFloat(s.right) / t.clientWidth) * 100), Math.round((r.querySelector('.rating-on').getBoundingClientRect().width / r.getBoundingClientRect().width) * 100), violations.length].join(); });
+  check('1.15 under a strict style policy: a range and a rating', csp === '20,60,50,0', csp);
+  await strict.context().close();
 }
 
 await browser.close();

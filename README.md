@@ -256,6 +256,13 @@ Surfaces and text: `--bg`, `--card`, `--soft` (a block inside a card, table head
 - `.dropzone`: a `<label>` round an `input type="file"`, so a click chooses files and a drop puts them in the input (only the kinds its `accept` allows), with `input` and `change` events as if chosen. The names show in its `.files`.
 - `.combo-list` (`Dash.combobox`): suggestions under a text box, narrowing as the reader types; `.combo-option` with a quieter `.combo-sub`, `.combo-empty` when nothing matches.
 - `.date-field` (`Dash.datepicker`): a date box with a `.date-btn` that opens a `.popup.calendar` (`.cal-head`, `.cal-title`, `.cal-grid`).
+- `.num-field` (`Dash.number`): a number box with a `.btn[data-step="-1"]` and a `.btn[data-step="1"]`; `.num-row` with its `.unit` beside it. `data-peek` on a button shows the password beside it.
+- `.tag-box` (`Dash.tagbox`): a box that takes several things (`.tag-list`, `.tag-x`, `.tag-box-in`; `data-full` when there can be no more).
+- `.code-field` (`Dash.code`): one box drawn as one per character (`.on` filled, `.at` the next).
+- `.rating` (`Dash.rating`): stars as radio buttons, or shown (`.rating-stars`, `.rating-on`); `.sm`, `.lg`, a tone.
+- `.range-field` (`Dash.range`): a slider with two ends (`.range-track`, `.range-label`).
+- `.inline-edit` (`Dash.inline`): text that becomes a box when it is pressed (`.inline-form`).
+- `.multi` (`Dash.multi`): a `.multi-btn` over a `<select>` that opens a list with a search box (`.multi-pop`, `.multi-list`, `.multi-foot`).
 - `.menu`: `<details class="menu"><summary class="btn">Actions</summary><div class="menu-list">…</div></details>`. The list holds buttons and links, `<hr>` and `.menu-label`; a tone on an item colours it (`class="bad"`). `.menu.end` opens leftwards. It closes on a click outside, on Escape (only the menu, inside a dialog too) and once an item is chosen. Inside a sideways-scrolling `.table-wrap` the list gets cut off: there, use `Dash.menu`, which draws the same list above everything.
 - `data-tooltip="text"`: a tooltip on hover and keyboard focus, kept inside the window, in an open dialog or popup too. Use it for a word or a line; a `title` is enough for long text.
 - `.popup` (`Dash.popup`, `Dash.menu`, `data-popup`): a box beside a button, above everything. Inside it, `.popup-title`, `.popup-text` and `.popup-actions` give a small question or note its shape.
@@ -386,6 +393,13 @@ Builders return HTML strings, with every value escaped. Put them in with `innerH
 | `Dash.menu(anchor, items, { placement, align, label })` | a menu beside a button, or at the pointer for a right-click; resolves to the chosen value or null (below) |
 | `Dash.combobox(input, { options, onPick, strict, minChars, max, empty, debounce, label })` | suggestions for a text box: `options` are strings, `{ value, label, sub }`, or a function `(query) => list` (or a promise of one) for a server search, whose late answers are dropped. Arrows, Enter, a click; Escape closes only the list; `strict: true` allows only a suggestion (or an empty box). Returns `{ value, set(value), close(), destroy() }`; `value` is the pick while the box still shows it, else null |
 | `Dash.datepicker(input, { min, max, onPick, firstDay, label })` | a calendar for a `YYYY-MM-DD` box: arrows by day and week, Home/End, PageUp/PageDown by month (Shift: year); days outside `min`/`max` can't be picked; a typed day that doesn't exist is `aria-invalid`. `firstDay` 1 = Monday (0 = Sunday). Returns `{ value, set(day), open(), close(), destroy() }` |
+| `Dash.number({ label, name, min, max, step, value, unit, hint, required, disabled })` | HTML: a number box with − and + beside it; held, they go on, and each is off at its end |
+| `Dash.tagbox(input, { value, options, max, strict, allow, onChange, noun })` | a box that takes several things: Enter, a comma or a paste adds, Backspace or the × takes away; `options` as for a combobox; one field of the input's name per tag. Returns `{ value, set(list), add(text), remove(text), destroy() }` |
+| `Dash.multi(select, { noun, placeholder, search, width, label })` | a button over a `<select>` (also `multiple`) that opens a list with a search box; the select stays the field. Returns `{ open(), close(), update(), destroy() }` |
+| `Dash.code({ label, name, length, letters, submit, required })` | HTML: a box for a code, drawn as one per character; `dash:code` fires once it is full |
+| `Dash.rating({ name, value, max, label, readonly, text, size, tone })` | HTML: stars to give, or (readonly) shown, parts of a star too |
+| `Dash.range({ label, name, min, max, step, from, to, unit })` | HTML: a slider with two ends, `name_from` and `name_to` |
+| `Dash.inline(el, { value, type, options, attrs, check, format, empty, label, onSave })` | text that becomes a box when it is pressed; a save that fails keeps it open and says why. Returns `{ value, set(value), edit(), cancel(), destroy() }` |
 | `Dash.busy(button, work)` | the button is disabled with a spinner until `work` (a function or a promise) is done; returns its result |
 | `Dash.place(rect, size, view, { placement, align, offset })` | where a box goes beside a rectangle, flipped and kept inside the window (what `Dash.popup` uses) |
 | `Dash.theme.get/set/current()`, `Dash.color(name)` | light/dark; a token's current value (for a canvas) |

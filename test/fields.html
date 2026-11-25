@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>More fields</title>
+<link rel="stylesheet" href="../dash.css">
+<script src="../dash.js"></script>
+</head>
+<body>
+<main class="page">
+  <form class="panel" id="form">
+    <h3>Fields</h3>
+    <div class="grid">
+      <div id="numbers"></div>
+      <div class="field"><label for="pw">Password</label><div class="input-group"><input class="input" id="pw" name="pw" type="password" value="open sesame"><button type="button" class="btn" data-peek aria-pressed="false">Show</button></div></div>
+      <div class="field"><label for="tags">Labels</label><input class="input" id="tags" name="labels" value="web, eu-west" required></div>
+      <div class="field"><label for="cities">Cities</label><input class="input" id="cities" name="cities" placeholder="Add a city"></div>
+      <div class="field"><label for="code">Code</label><span id="code-host"></span></div>
+      <div class="field"><label for="code2">Short code</label><span id="code2-host"></span></div>
+      <div class="field" id="stars"></div>
+      <div class="field" id="price"></div>
+      <div class="field"><label for="regions">Regions</label><select class="input" id="regions" name="regions" multiple required>
+        <optgroup label="Europe"><option value="fra" selected>Frankfurt</option><option value="par">Paris</option><option value="dub">Dublin</option><option value="lon" disabled>London</option></optgroup>
+        <optgroup label="America"><option value="ore">Oregon</option><option value="vir" selected>Virginia</option><option value="sao">São Paulo</option></optgroup></select></div>
+      <div class="field"><label for="plan">Plan</label><span class="select"><select class="input" id="plan" name="plan"><option value="">Any</option><option value="s">Solo</option><option value="t" selected>Team</option></select></span></div>
+    </div>
+    <div class="row"><button class="btn primary">Save</button><button type="reset" class="btn">Reset</button></div>
+  </form>
+  <div class="panel"><h3>Inline</h3>
+    <dl class="kv"><dt>Name</dt><dd id="in-name"></dd><dt>Seats</dt><dd id="in-seats"></dd><dt>Region</dt><dd id="in-region"></dd><dt>Note</dt><dd id="in-note"></dd></dl>
+    <p id="shown"></p>
+  </div>
+  <div class="panel"><h3>Ends</h3><div id="ends"></div></div>
+</main>
+<script>
+  const log = window.log = [];
+  Dash.render('numbers', Dash.number({ label: 'Seats', name: 'seats', min: 1, max: 5, value: 4 }) + Dash.number({ label: 'Limit', name: 'limit', min: 0, step: 0.5, unit: 'GB', hint: 'In halves.' }));
+  Dash.render('code-host', Dash.code({ id: 'code', name: 'code' }));
+  Dash.render('code2-host', Dash.code({ id: 'code2', name: 'code2', length: 4, letters: true, required: false }));
+  Dash.render('stars', '<span class="field-label">Rating</span> ' + Dash.rating({ name: 'stars', value: 3, label: 'How was it' }));
+  Dash.render('price', Dash.range({ label: 'Price', name: 'price', min: 0, max: 500, step: 10, from: 50, to: 200, unit: ' €' }));
+  Dash.render('shown', Dash.rating({ value: 4.3, readonly: true, text: '4.3 from 212 people' }) + ' ' + Dash.rating({ value: 2, readonly: true, size: 'sm', tone: 'blue' }));
+  Dash.render('ends', Dash.range({ name: 'end', min: 0, max: 10, from: 10, to: 10 }));
+  window.tags = Dash.tagbox('tags', { max: 4, allow: (t) => (/\s/.test(t) ? `“${t}” has a space in it.` : true), onChange: (l) => log.push('tags ' + l.join('+')) });
+  window.cities = Dash.tagbox('cities', { options: [{ value: 'ber', label: 'Berlin', sub: 'Germany' }, { value: 'bern', label: 'Bern' }, 'Paris', 'Porto'], strict: true, onChange: (l) => log.push('cities ' + l.join('+')) });
+  window.regions = Dash.multi('regions', { noun: 'regions', placeholder: 'All regions' });
+  window.plan = Dash.multi('plan', { placeholder: 'Any plan' });
+  for (const id of ['regions', 'plan']) document.getElementById(id).addEventListener('change', (e) => log.push(`${id} ${[...e.target.selectedOptions].map((o) => o.value).join('+')}`));
+  document.addEventListener('dash:code', (e) => log.push('code ' + e.detail));
+  for (const t of ['change']) document.getElementById('form').addEventListener(t, (e) => { if (e.target.name === 'seats') log.push(`seats ${e.target.value}`); });
+  window.saves = []; window.answer = null;
+  const save = (v) => { saves.push(v); return answer ? answer() : undefined; };
+  window.inName = Dash.inline('in-name', { value: 'web-1', label: 'Name', onSave: save, check: (v) => /\s/.test(v) && 'Leave out the spaces.' });
+  window.inSeats = Dash.inline('in-seats', { value: 4, type: 'number', label: 'Seats', attrs: { min: 1, max: 9 }, onSave: save, format: (v) => Dash.fmt.plural(v, 'seat') });
+  window.inRegion = Dash.inline('in-region', { value: 'fra', type: 'select', options: [{ value: 'fra', label: 'Frankfurt' }, { value: 'par', label: 'Paris' }], label: 'Region', onSave: save });
+  window.inNote = Dash.inline('in-note', { value: '', label: 'Note', empty: 'Add a note', onSave: save });
+  window.form = Dash.form('form', { onSubmit: (v) => { window.sent = v; window.data = [...new FormData(document.getElementById('form'))].map((x) => x.join('=')).join('&'); } });
+</script>
+</body>
+</html>

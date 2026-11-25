@@ -41,6 +41,7 @@
     navigation: { timeline: 'lists' },
     layout: { sidebar: 'navigation', drawer: 'navigation' },
     feedback: { private: 'privacy', ips: 'privacy', login: 'privacy' },
+    forms: { combobox: 'fields', datepicker: 'fields' },
   };
   const moved = () => {
     const id = location.hash.slice(1), to = MOVED[document.querySelector('main')?.dataset.page]?.[id];

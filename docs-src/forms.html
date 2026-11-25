@@ -130,38 +130,6 @@
       </example>
     </section>
 
-    <section id="combobox" data-terms="Dash.combobox .combo-list .combo-option .combo-sub .combo-empty combobox autocomplete">
-      <h2>Suggestions</h2>
-      <p><code>Dash.combobox(input, { options, onPick })</code> gives a text box a list of suggestions that narrows as the reader types. Arrow keys move through it, Enter or a click picks, Escape closes the list (only the list, inside a dialog too), and the box keeps the focus throughout. The typed words are bold in each suggestion.</p>
-      <ul>
-        <li><code>options</code>: strings, or <code>{ value, label, sub }</code> (<code>sub</code> is a second, quieter part), or a function <code>(query) =&gt; list</code> or a promise of one, for a server search. Answers that arrive after the reader typed on are dropped. <code>debounce</code> (150 ms) is how long typing has to pause first.</li>
-        <li><code>strict: true</code>: on leaving, text that is no suggestion is put back to the last pick (or emptied); a box the reader empties stays empty.</li>
-        <li><code>max</code> (50) suggestions, <code>minChars</code> before any show, <code>empty</code> for the line when none match.</li>
-        <li>It returns <code>{ value, set(value), close(), destroy() }</code>; <code>value</code> is the picked option while the box still shows it, else null. It's an ARIA combobox: the box has <code>role="combobox"</code>, the list <code>listbox</code>, the active suggestion <code>aria-activedescendant</code>.</li>
-      </ul>
-      <example>
-        <div class="field" style="max-width: 320px"><label for="city">City</label><input class="input" id="city" placeholder="Start typing: ber, bu, am…"></div>
-        <script>
-          Dash.combobox('city', {
-            options: ['Amsterdam', { label: 'Berlin', sub: 'Germany', value: 'ber' }, 'Bern', 'Brussels', 'Budapest', 'Copenhagen', 'Dublin', 'Lisbon'],
-            onPick: (city) => Dash.toast(`Picked ${city.label}`),
-          });
-        </script>
-      </example>
-    </section>
-
-    <section id="datepicker" data-terms="Dash.datepicker .date-field .date-btn .calendar .cal-head .cal-title .cal-grid date">
-      <h2>Dates</h2>
-      <p><code>Dash.datepicker(input, { min, max, onPick, firstDay })</code> puts a calendar button in a date box. Dates are <code>YYYY-MM-DD</code>, what <code>&lt;input type="date"&gt;</code> sends. The calendar opens on the box's date (or today): arrows move a day or a week, Home and End go to the week's ends, PageUp and PageDown a month (with Shift, a year), Enter picks and Escape closes. Days before <code>min</code> or after <code>max</code> can't be picked. Typing works too: a short date like <code>2026-3-7</code> is written out, and one that doesn't exist is marked <code>aria-invalid</code>. Weeks start on Monday; <code>firstDay: 0</code> starts them on Sunday. Month and day names are in the reader's language.</p>
-      <example>
-        <div class="field" style="max-width: 240px"><label for="due">Due</label><input class="input" id="due" value="2026-12-04"></div>
-        <script>
-          Dash.datepicker('due', { min: '2026-11-01', max: '2027-03-31', onPick: (day) => Dash.toast(`Due ${day}`) });
-        </script>
-      </example>
-      <p>It returns <code>{ value, set(day), open(), close(), destroy() }</code>; <code>value</code> is the box's date if it's a real one in range, or null.</p>
-    </section>
-
     <section id="validation" data-terms="Dash.form data-validate .field-err .form-error .req data-error-for data-problem formnovalidate required pattern validation rules errors onSubmit">
       <h2>Checking a form</h2>
       <p><code>Dash.form(form, { rules, onSubmit })</code> says what is wrong under each field, instead of the browser’s bubbles. A field is checked once the reader leaves it changed, and what it says goes as soon as it is put right. Submitting checks all of them and goes to the first problem: in a closed part or another tab too.</p>

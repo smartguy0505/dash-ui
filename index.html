@@ -173,6 +173,21 @@
         <div id="stepper-v-demo"></div>
       </div>
       <div class="panel span-2">
+        <div class="panel-head"><h3>Richer fields</h3><span class="read">Dash.number · data-peek · Dash.code · Dash.tagbox · Dash.multi · Dash.range · Dash.rating · Dash.inline</span></div>
+        <form class="grid" id="richer" data-validate>
+          <div id="rich-seats"></div>
+          <div class="field"><label for="rich-key">Password</label><div class="input-group"><input class="input" id="rich-key" type="password" value="correct horse" autocomplete="off"><button type="button" class="btn" data-peek aria-pressed="false">Show</button></div></div>
+          <div class="field"><label for="rich-labels">Labels</label><input class="input" id="rich-labels" name="labels" value="web, eu-west" placeholder="Add a label"></div>
+          <div class="field"><label for="rich-regions">Regions</label><select class="input" id="rich-regions" name="regions" multiple>
+            <optgroup label="Europe"><option selected>Frankfurt</option><option>Paris</option><option>Dublin</option><option>Madrid</option></optgroup>
+            <optgroup label="America"><option>Oregon</option><option selected>Virginia</option><option>São Paulo</option><option>Montreal</option></optgroup></select></div>
+          <div class="field" id="rich-price"></div>
+          <div class="field"><span class="field-label">Rating</span><div id="rich-stars"></div></div>
+          <div class="field"><span class="field-label">Code</span><div id="rich-code"></div></div>
+          <div class="field"><span class="field-label">Name (press it)</span><div id="rich-name"></div></div>
+        </form>
+      </div>
+      <div class="panel span-2">
         <div class="panel-head"><h3>Lists and accordions</h3></div>
         <div class="grid">
           <div id="entries-demo"></div>
@@ -203,7 +218,7 @@
       <div class="demo"><p class="demo-label">Tags: small facts</p>
         <span class="tag">default</span><span class="tag plain">eu-west</span><span class="tag accent">Opus 5.5</span><span class="tag blue">acct-b</span>
         <span class="tag ok">primary</span><span class="tag warn">probation</span><span class="tag bad">blocked</span><span class="tag outline bad">blocked</span>
-        <span class="tag pink">ultra</span><span class="tag teal">SN 42</span>
+        <span class="tag pink">ultra</span><span class="tag teal">Rack 42</span>
       </div>
       <div class="demo"><p class="demo-label">Ranks, changes, chips</p>
         <span id="ranks" class="row"></span>
@@ -760,6 +775,13 @@
   Dash.render('slider-demo', Dash.slider({ label: 'Alert at', name: 'alert', min: 50, max: 100, value: 85, unit: '%' }));
   Dash.combobox('f-city', { options: ['Amsterdam', { label: 'Berlin', sub: 'Germany', value: 'ber' }, 'Bern', 'Brussels', 'Budapest', 'Copenhagen', 'Dublin', 'Lisbon'] });
   Dash.datepicker('f-due', { min: '2026-11-01', max: '2027-03-31' });
+  Dash.render('rich-seats', Dash.number({ label: 'Seats', name: 'seats', min: 1, max: 50, value: 4 }));
+  Dash.render('rich-price', Dash.range({ label: 'Price', name: 'price', min: 0, max: 500, step: 10, from: 50, to: 200, unit: ' €' }));
+  Dash.render('rich-stars', Dash.rating({ name: 'stars', value: 4, label: 'Rating' }));
+  Dash.render('rich-code', Dash.code({ label: 'Code from your app', name: 'code', required: false }));
+  Dash.tagbox('rich-labels', { options: ['web', 'eu-west', 'us-east', 'staging', 'batch'], max: 6, noun: 'label' });
+  Dash.multi('rich-regions', { noun: 'regions', placeholder: 'All regions' });
+  Dash.inline('rich-name', { label: 'Name', value: 'web-1', check: (v) => !v.trim() && 'Give it a name.', onSave: () => new Promise((ok) => setTimeout(ok, 500)) });
   Dash.render('crumbs-demo', Dash.crumbs([{ label: 'Fleet', href: '#forms' }, { label: 'eu-west', href: '#forms' }, 'web-04']));
   Dash.render('stepper-demo', Dash.stepper(['Account', 'Plan', 'Payment', 'Done'], 2));
   Dash.render('avatars-demo', Dash.avatars(['Ada Lovelace', 'Grace Hopper', 'Alan Turing', 'Katherine Johnson', 'Edsger Dijkstra', 'Barbara Liskov'], { max: 4 })
