@@ -56,6 +56,7 @@ All data in them is made up. `node tools/shots.mjs` takes them again.
 | `examples/starter.html` | the smallest useful page; copy it to start a new dashboard |
 | `examples/utilities.html` | a page laid out with `dash-utils.css` and no CSS of its own |
 | `CONTRIBUTING.md` | how to change the kit: for people and for coding agents |
+| `LICENSE` | MIT |
 
 To look at them:
 
@@ -651,3 +652,7 @@ npm run screens            # SHOTS=1 npm run screens also saves the screenshots 
 npm run behaviour
 node test/only.mjs 1.17    # only the parts of it with that in their name
 ```
+
+## Licence
+
+[MIT](LICENSE). Use it, change it, sell what you make with it; keep the licence line at the top of the files you copy. To change the kit itself, see [CONTRIBUTING.md](CONTRIBUTING.md).

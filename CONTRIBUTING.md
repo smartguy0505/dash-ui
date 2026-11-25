@@ -129,6 +129,7 @@ Never weaken a check to get a change through. If it is wrong, say why in the com
 - A commit's first line says what changed in plain words (`1.16.2: the code box works as boxes do`).
 - Add files by name, and read `git status` first: `node_modules` and `screens/` stay out (`*.png` is ignored; the README's pictures are WebP).
 - Generated files go in the same commit as what they come from.
+- The kit is under the [MIT licence](LICENSE), and so is what you send. Don't bring in code, icons or fonts that don't allow it.
 
 ## For coding agents
 
