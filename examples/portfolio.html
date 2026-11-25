@@ -58,9 +58,9 @@
   <form class="dialog-body" id="editor-form" method="dialog">
     <h2 id="editor-title">Add account</h2>
     <p class="hint">The balance shows up with the next update.</p>
-    <div class="field"><label for="e-name">Name</label><input class="input" id="e-name" placeholder="Savings" required></div>
-    <div class="field" id="e-addr-field"><label for="e-addr">Account ID</label><input class="input mono" id="e-addr" placeholder="acct_…" spellcheck="false" data-private><div class="err" id="e-err"></div></div>
-    <label class="checkline"><input type="checkbox" id="e-total" checked>Count in the total</label>
+    <div class="field"><label for="e-name">Name</label><input class="input" id="e-name" name="name" placeholder="Savings" required></div>
+    <div class="field"><label for="e-addr">Account ID</label><input class="input mono" id="e-addr" name="id" placeholder="acct_…" spellcheck="false" data-private><div class="err"></div></div>
+    <label class="checkline"><input type="checkbox" id="e-total" name="total" checked>Count in the total</label>
     <div class="dialog-actions"><button type="button" class="btn ghost" data-dismiss>Cancel</button><button type="submit" class="btn primary">Save</button></div>
   </form>
 </dialog>
@@ -193,21 +193,19 @@
     $('e-name').value = w ? w.name : '';
     $('e-addr').value = w ? w.id : '';
     $('e-total').checked = w ? w.total : true;
-    $('e-err').textContent = '';
-    $('e-addr-field').classList.remove('invalid');
+    editor.clear();
     $('editor').showModal();
   }
   $('add').addEventListener('click', () => openEditor(null));
-  $('editor-form').addEventListener('submit', (e) => {
-    const addr = $('e-addr').value.trim();
-    if (!/^acct_[a-z2-9]{20}$/.test(addr) && !(editing && addr === editing.id)) {
-      e.preventDefault();
-      $('e-err').textContent = 'That isn’t a valid account ID (acct_ and 20 letters or digits).';
-      $('e-addr-field').classList.add('invalid');
-      return;
-    }
-    if (editing) Object.assign(editing, { name: $('e-name').value.trim(), id: addr, total: $('e-total').checked });
-    else accounts.push({ name: $('e-name').value.trim(), id: addr, total: $('e-total').checked, hidden: false, cash: 0, invested: 0, chg: 0 });
+  const editor = Dash.form('editor-form', {
+    rules: {
+      id: (text) => !/^acct_[a-z2-9]{20}$/.test(text.trim()) && !(editing && text.trim() === editing.id) && 'That isn’t a valid account ID (acct_ and 20 letters or digits).',
+    },
+  });
+  $('editor-form').addEventListener('submit', () => { // once it is right; the dialog closes by itself
+    const { name, id, total } = editor.values();
+    if (editing) Object.assign(editing, { name: name.trim(), id: id.trim(), total });
+    else accounts.push({ name: name.trim(), id: id.trim(), total, hidden: false, cash: 0, invested: 0, chg: 0 });
     render();
     Dash.toast('Saved');
   });

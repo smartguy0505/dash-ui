@@ -2,6 +2,18 @@
 
 Dashboards keep a copy of `dash.css` and `dash.js`; the first line of each file says which version it is. Versions only add things: a page that worked with an older copy works the same with a newer one.
 
+## 1.13.0 (2026-11-25)
+
+Forms that say what is wrong, under each field.
+
+- `Dash.form(form, { rules, onSubmit })`: the fields' own checks and your rules, in the kit's words instead of the browser's bubbles. A field is checked once it is left changed, and what it says goes as soon as it is put right; submitting checks all and goes to the first problem, in a closed part or another tab too. Rules can look at other fields, at the form as a whole, or ask a server. `onSubmit` gets the values with the button busy, and an error it throws lands on the fields (`errors: { name: 'text' }`) or above the buttons.
+- `<form data-validate>` does the fields' own checks without code.
+- `Dash.modal` and `Dash.dialog` take `rules`, `Dash.ask` a `check`. Without them they are as they were, except that the box in `Dash.ask` has a name for a screen reader now: the title.
+- The date picker and a `strict` combobox tell a checked form what is wrong with their box.
+- `.field-err`, `.form-error`, `label.req`. Marks show in high contrast too, and fields or forms that are drawn again keep theirs.
+- A tooltip no longer takes a field's hint and message away from a screen reader while it shows: its words are added to them.
+- Typing in an email or a number box that a page draws again: the caret went to the start, so the text came out backwards. It stays at the end now.
+
 ## 1.12.2 (2026-11-24)
 
 - Details that failed to load and are tried again keep what the reader had typed in them, too.

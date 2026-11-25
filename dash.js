@@ -1,4 +1,4 @@
-/* dash-ui 1.12.2 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
+/* dash-ui 1.13.0 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
    A plain script with no dependencies: a script tag for dash.js in <head> gives window.Dash, and puts the
    saved light/dark choice on the page before it paints. In Node, require('./dash.js') returns the same object
    (the parts that need a page are skipped).
@@ -8,7 +8,7 @@
 (function (root) {
   'use strict';
   const hasDom = typeof document !== 'undefined';
-  const Dash = { version: '1.12.2', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side', privacyKey: 'dash.private', csp: false } };
+  const Dash = { version: '1.13.0', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side', privacyKey: 'dash.private', csp: false } };
 
   // ---- basics
 
@@ -1664,7 +1664,10 @@
     if (focus) {
       const again = (focus.key && find(focus.key)) || [...node.querySelectorAll(focus.tag)].find((e) => sigOf(e) === focus.sig);
       if (again) {
-        if (focus.value != null && 'value' in again) again.value = focus.value; // what the reader is typing
+        if (focus.value != null && 'value' in again) {
+          if (!focus.caret) again.value = ''; // (an email or a number box: its caret can't be read, and goes to the end this way)
+          again.value = focus.value; // what the reader is typing
+        }
         again.focus({ preventScroll: true });
         if (focus.caret) try { again.setSelectionRange(...focus.caret); } catch { /* not a text box */ }
       }
@@ -1864,8 +1867,9 @@
   //   const r = await Dash.dialog({ title: 'Rename', body: '<input class="input" name="name">', actions: [{ label: 'Save', value: 'save', primary: true }] })
   // An action: { label, value, primary, tone ('bad': a red primary button) }. A Cancel button comes first (cancel: its label,
   // or false for none). text: a line under the title. drawer: true slides in from the right instead.
-  // focus: a selector for what has the focus (the first input by default).
-  Dash.dialog = ({ title = '', text = '', body = '', actions = [{ label: 'OK', value: 'ok', primary: true }], cancel = 'Cancel', drawer = false, focus } = {}) => new Promise((resolve) => {
+  // focus: a selector for what has the focus (the first input by default). rules: the fields are checked by Dash.form
+  // before it closes ({} for just the fields' own checks).
+  Dash.dialog = ({ title = '', text = '', body = '', actions = [{ label: 'OK', value: 'ok', primary: true }], cancel = 'Cancel', drawer = false, focus, rules } = {}) => new Promise((resolve) => {
     const d = document.createElement('dialog');
     d.className = drawer ? 'drawer' : 'dialog';
     const all = (cancel ? [{ label: cancel, cancel: true }] : []).concat(actions);
@@ -1875,6 +1879,7 @@
       + `${text ? `<p class="hint">${esc(text)}</p>` : ''}${body}<div class="dialog-actions">${all.map(btn).join('')}</div></form>`;
     document.body.appendChild(d);
     if (Dash.config.csp) Dash.applyStyles(d);
+    if (rules) Dash.form(d.querySelector('form'), { rules });
     d.addEventListener('close', () => {
       const fields = Object.fromEntries(new FormData(d.querySelector('form')));
       resolve({ value: d.returnValue || null, fields });
@@ -1891,10 +1896,11 @@
       title: title || text, text: title ? text : '', cancel, actions: [{ label: ok, value: 'ok', primary: true, tone }], focus: '[data-dismiss]',
     })).value === 'ok');
   // One line of text, or null: const name = await Dash.ask('New name', { value: old, placeholder: 'web-1' })
-  Dash.ask = async (title, { text = '', value = '', placeholder = '', ok = 'OK', cancel = 'Cancel', required = true, type = 'text' } = {}) => {
+  // check: (text) => what is wrong with it (or a promise of that); it shows under the box and the dialog stays open.
+  Dash.ask = async (title, { text = '', value = '', placeholder = '', ok = 'OK', cancel = 'Cancel', required = true, type = 'text', check } = {}) => {
     const r = await Dash.dialog({
-      title, text, cancel, actions: [{ label: ok, value: 'ok', primary: true }],
-      body: `<input class="input dialog-input" name="answer" type="${esc(type)}" value="${esc(value)}" placeholder="${esc(placeholder)}"${required ? ' required' : ''}>`,
+      title, text, cancel, rules: check ? { answer: check } : undefined, actions: [{ label: ok, value: 'ok', primary: true }],
+      body: `<input class="input dialog-input" name="answer" aria-label="${esc(title)}" type="${esc(type)}" value="${esc(value)}" placeholder="${esc(placeholder)}"${required ? ' required' : ''}>`,
     });
     return r.value === 'ok' ? r.fields.answer : null;
   };
@@ -1927,7 +1933,9 @@
   //   m.update({ body: html }); m.close(); const { value, fields } = await m.closed;
   // size: sm | md (default) | lg | xl | full. drawer: true slides it in from the right, full height.
   // cancel: a ghost button first in the foot (its label; none by default). An action: { label, value, primary, tone };
-  // Enter in a field presses the primary one, after the fields' own checks (required, type="email", …). Buttons
+  // Enter in a field presses the primary one, after the fields' own checks (required, type="email", …). With rules,
+  // Dash.form does the checking: what is wrong shows under each field, and an error with errors: { name: 'text' } lands
+  // there too (m.form is its handle; rules: {} for just the fields' own checks). Buttons
   // of your own in the body need type="button". An error thrown by onAction shows in the foot (so does m.error(text)).
   // dismissable: false drops the × and ignores Escape and clicks outside: only its buttons or m.close() end it.
   // text: a line under the title. focus: a selector (the first field by default). onClose({ value, fields }).
@@ -1935,7 +1943,7 @@
   // Handle: el, body (the part that scrolls), fields(), update({ title, text, body, actions }), error(text),
   // close(value), closed (a promise of { value, fields }; value is null after ×, Cancel, Escape or a click outside).
   Dash.modal = ({ title = '', text = '', body = '', actions = [], cancel = '', size = 'md', drawer = false, dismissable = true,
-    focus, onAction, onClose, cls = '' } = {}) => {
+    focus, onAction, onClose, cls = '', rules } = {}) => {
     const d = document.createElement('dialog');
     d.className = 'modal' + (cls ? ' ' + cls : '');
     d.dataset.size = size;
@@ -1958,7 +1966,8 @@
     let resolveClosed;
     const closed = new Promise((ok) => { resolveClosed = ok; });
     const fields = () => Object.fromEntries(new FormData(form));
-    const error = (msg) => { const e = q('.modal-error'); if (e) e.textContent = msg || ''; };
+    const checks = rules ? Dash.form(form, { rules }) : null;
+    const error = (msg) => { if (checks) checks.error('', msg); else { const e = q('.modal-error'); if (e) e.textContent = msg || ''; } };
     const drawFoot = () => {
       foot.innerHTML = '<span class="modal-error" role="alert"></span>'
         + (cancel ? `<button type="button" class="btn ghost" data-dismiss>${esc(cancel)}</button>` : '')
@@ -1999,7 +2008,7 @@
         if (onAction) keep = (await Dash.busy(btn, () => onAction(a.value ?? a.label, handle))) === false;
       } catch (err) {
         keep = true;
-        error(err && err.message ? err.message : String(err));
+        if (checks) checks.fail(err); else error(err && err.message ? err.message : String(err));
       }
       running = false;
       if (!keep) close(a.value ?? a.label);
@@ -2015,7 +2024,7 @@
     });
     d.addEventListener('cancel', (e) => { if (!dismissable) e.preventDefault(); });
     d.addEventListener('close', finish);
-    const handle = { el: d, body: bodyEl, fields, update, error, close, closed };
+    const handle = { el: d, body: bodyEl, form: checks, fields, update, error, close, closed };
     drawFoot();
     update({ title, text, body });
     document.body.appendChild(d);
@@ -2543,6 +2552,11 @@
         else if (exact) { picked = exact; input.value = exact.label; if (onPick) onPick(exact); } else input.value = picked ? picked.label : '';
       }
     });
+    // for Dash.form: text that is no suggestion, while the box has the focus (leaving it puts it right)
+    if (strict) input.__dashCheck = () => {
+      const t = input.value.trim().toLowerCase();
+      return !t || document.activeElement !== input || (picked && input.value === picked.label) || all().some((o) => o.label.toLowerCase() === t) ? '' : Dash.form.text.list;
+    };
     input.addEventListener('input', onInput);
     input.addEventListener('click', onClick);
     input.addEventListener('keydown', onKey);
@@ -2674,6 +2688,10 @@
       if (d && inRange(d)) { input.removeAttribute('aria-invalid'); if (isoDay(d) !== t) input.value = isoDay(d); } else input.setAttribute('aria-invalid', 'true');
     };
     const onKey = (e) => { if (e.key === 'ArrowDown' && e.altKey) { e.preventDefault(); open(); } };
+    input.__dashCheck = () => { // for Dash.form
+      const t = input.value.trim(), d = dayOf(t), say = Dash.form.text;
+      return !t ? '' : !d ? say.date : inRange(d) ? '' : say.dateRange(lo && isoDay(lo), hi && isoDay(hi));
+    };
     btn.addEventListener('click', onBtn);
     input.addEventListener('change', onChange);
     input.addEventListener('keydown', onKey);
@@ -2681,8 +2699,468 @@
       get value() { const d = value(); return d && inRange(d) ? isoDay(d) : null; },
       set: (iso) => { const d = dayOf(iso); input.value = d ? isoDay(d) : ''; onChange(); },
       open, close,
-      destroy: () => { close(); btn.remove(); wrap.replaceWith(input); input.removeEventListener('change', onChange); input.removeEventListener('keydown', onKey); },
+      destroy: () => { close(); btn.remove(); wrap.replaceWith(input); delete input.__dashCheck; input.removeEventListener('change', onChange); input.removeEventListener('keydown', onKey); },
     };
+  };
+
+  // ---- forms that say what is wrong (1.13)
+  // Dash.form(form, { rules, onSubmit }): checks a form's fields and puts what is wrong under each, instead of the
+  // browser's bubbles. The fields' own checks count (required, type="email", minlength, pattern, min, max, step), and
+  // rules adds the page's: a function per name that returns the problem as text, or anything else when it is fine.
+  //   const f = Dash.form('account', {
+  //     rules: {
+  //       name: (v) => /\s/.test(v) && 'Leave out the spaces.',
+  //       again: (v, all) => v !== all.password && 'The passwords differ.',     // all: the other fields' values
+  //       handle: async (v) => (await taken(v)) && 'That name is taken.',       // asked once the reader leaves the field
+  //       '': (all) => all.from > all.to && 'The start is after the end.',      // about the form as a whole
+  //     },
+  //     onSubmit: async (values) => { await Dash.api('/api/accounts', { method: 'POST', json: values }); },
+  //   });
+  // A field is checked once the reader leaves it changed; a problem that shows goes as soon as it is put right. Submitting
+  // checks all of them (a rule also runs on an empty field; several: a list) and goes to the first problem. onSubmit(values,
+  // f, button) runs once all is fine, with the button busy; without it the form goes on as it would. An error it throws shows
+  // above the buttons, or on the fields when it has errors: { name: 'text' } (or its body has, as Dash.api's errors do).
+  // Values: text as typed; a number box a number (null when empty); one checkbox true or false, several of a name (or a
+  // name ending in []) a list; files a File or a list. Disabled fields are left out, and not checked.
+  // The message goes into the field's .err (made when there is none), or into an element with data-error-for="name".
+  // data-problem="Text" on a field: its own words for the browser's checks; Dash.form.text has the kit's, to translate.
+  // A button with formnovalidate skips the checks. No code: <form data-validate>. Fields that are drawn again keep their
+  // marks; a form that is drawn again as a whole is followed by its id.
+  // Returns { el, values(), errors, check(which), error(name, text), fail(err), clear(), destroy() }: check() of all, of
+  // a name, a list of names, or the fields in an element, resolves true or false and goes to the first problem; error()
+  // puts a text on a field ('' for the form) until it is changed; fail() shows a thrown error as onSubmit's are.
+  const describe = (e, id, on) => { // an id in or out of an element's aria-describedby; the others stay
+    const list = (e.getAttribute('aria-describedby') || '').split(/\s+/).filter((x) => x && x !== id);
+    if (on) list.push(id);
+    if (list.length) e.setAttribute('aria-describedby', list.join(' ')); else e.removeAttribute('aria-describedby');
+  };
+  const thenable = (x) => Boolean(x && typeof x.then === 'function');
+  const texty = (e) => e.tagName === 'TEXTAREA' || /^(text|search|url|tel|email|password)$/.test(e.type);
+  const same = (a, b) => a === b || (Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every((x, i) => x === b[i]));
+  // what the browser's checks say about one control (and the kit's own widgets: __dashCheck), as text
+  const problemOf = (e) => {
+    if (!e.willValidate) return '';
+    const v = e.validity, t = texty(e), n = e.value.length;
+    const key = v.badInput ? 'badInput'
+      : v.valueMissing || (e.required && t && e.type !== 'password' && !e.value.trim()) ? 'valueMissing'
+      : v.typeMismatch ? 'typeMismatch'
+      : t && n && e.minLength > n ? 'tooShort' // (the browser's own looks only at what was typed, not at what a page put in)
+      : t && e.maxLength >= 0 && n > e.maxLength ? 'tooLong'
+      : ['patternMismatch', 'rangeUnderflow', 'rangeOverflow', 'stepMismatch'].find((k) => v[k]);
+    if (key) { const words = e.dataset.problem || Dash.form.text[key]; return String(typeof words === 'function' ? words(e) : words); }
+    return v.customError ? e.validationMessage : e.__dashCheck ? e.__dashCheck() : '';
+  };
+  const FORM_WRAPS = '.input-group, .date-field, .select, .search, .dropzone, .slider, .checkline, .switch, .choice, label';
+  // forms with an id that were drawn again as a whole: what was made for the old one moves to the new one
+  const followed = new Set();
+  let follower = null;
+  const followForms = () => {
+    for (const f of followed) {
+      const now = f.form.isConnected ? null : document.getElementById(f.form.id);
+      if (now && now.tagName === 'FORM') { if (now.__dashForm) followed.delete(f); else f.move(now); }
+    }
+  };
+  Dash.form = (target, { rules = {}, onSubmit } = {}) => {
+    let form = el(target);
+    if (!form || form.tagName !== 'FORM') return null;
+    if (form.__dashForm) form.__dashForm.destroy(); // made again: the new rules
+    let bubbles = true;
+    const state = new Map(); // by field: { touched, text, wait, run, value, page, asked }. By name, so a redraw keeps it
+    const marks = new WeakMap(); // control: what we put on it
+    const ours = new WeakSet(); // messages and .field boxes we wrote to
+    const made = new Map(), added = new Set(); // messages we added: by key where there is no .field; all of them
+    const line = { page: '', rule: '', lost: '' }, warned = new Set();
+    let lineShown = false, busy = false, pass = false, status = null;
+    const words = (x) => (typeof x === 'string' ? x : '');
+    const told = (x) => (x && x.message ? x.message : String(x));
+    const at = (u) => { if (!state.has(u.key)) state.set(u.key, {}); return state.get(u.key); };
+
+    // the fields: one per control, one per group of radios or of checkboxes
+    const units = () => {
+      const list = [], groups = new Map(), count = new Map();
+      for (const e of form.elements) {
+        if (!/^(INPUT|SELECT|TEXTAREA)$/.test(e.tagName) || /^(submit|button|reset|image)$/.test(e.type) || e.matches(':disabled')) continue;
+        const name = e.name || e.id, g = name && /^(radio|checkbox)$/.test(e.type) ? e.type + ' ' + name : null;
+        if (g && groups.has(g)) { groups.get(g).els.push(e); continue; }
+        const n = (count.get(name) || 0) + 1;
+        count.set(name, n);
+        const u = { name, key: !name ? e : n > 1 ? `${name} ${n}` : name, els: [e], e };
+        if (g) groups.set(g, u);
+        list.push(u);
+      }
+      return list;
+    };
+    const unitOf = (e) => units().find((u) => u.els.includes(e)), unitAt = (k) => units().find((u) => u.key === k);
+    const valueOf = ({ e, els, name }) => {
+      if (e.type === 'checkbox') return els.length > 1 || name.endsWith('[]') ? els.filter((x) => x.checked).map((x) => x.value) : e.checked;
+      if (e.type === 'radio') return (els.find((x) => x.checked) || { value: '' }).value;
+      if (e.type === 'file') return e.multiple ? [...e.files] : e.files[0] || null;
+      if (e.tagName === 'SELECT' && e.multiple) return [...e.selectedOptions].map((o) => o.value);
+      if (/^(number|range)$/.test(e.type)) return e.value === '' ? null : Number(e.value);
+      return e.value;
+    };
+    const values = () => {
+      const out = new Map();
+      for (const u of units()) {
+        if (!u.e.name) continue;
+        const v = valueOf(u), more = out.has(u.name);
+        if (more || (u.name.endsWith('[]') && !Array.isArray(v))) out.set(u.name, more ? [].concat(out.get(u.name), v) : [v]);
+        else out.set(u.name, v);
+      }
+      return Object.fromEntries(out);
+    };
+    const nameOf = (u) => {
+      const group = u.els.length > 1 && u.e.closest('fieldset, [role="radiogroup"], [role="group"]');
+      const from = group ? group.querySelector(':scope > legend') : u.e.labels && u.e.labels[0];
+      const copy = from && from.cloneNode(true);
+      if (copy) for (const x of copy.querySelectorAll('.err, .hint, select, textarea, output, button')) x.remove();
+      return ((copy && copy.textContent) || (group || u.e).getAttribute('aria-label') || u.name || '').replace(/\s+/g, ' ').trim();
+    };
+
+    // where a field's message goes
+    const fieldOf = (u) => { const f = u.e.closest('.field'); return f && !f.contains(form) && u.els.every((x) => f.contains(x)) ? f : null; };
+    const wrapOf = (e) => { let out = e; for (let n = e.parentElement; n && n !== form; n = n.parentElement) if (n.matches(FORM_WRAPS)) out = n; return out; };
+    const slotOf = (u, make) => {
+      const own = u.name && [...form.querySelectorAll('[data-error-for]')].find((x) => x.dataset.errorFor === u.name);
+      if (own) return own;
+      const field = fieldOf(u);
+      const there = field ? [...field.querySelectorAll('.err')].find((x) => x.closest('.field') === field) : made.get(u.key);
+      if (there && there.getRootNode() === u.e.getRootNode()) return there; // (also in a form that is out of the page)
+      if (!make) return null;
+      const err = document.createElement('div');
+      err.className = field ? 'err' : 'field-err';
+      err.hidden = true;
+      if (field) field.append(err);
+      else {
+        made.set(u.key, err);
+        let box = u.e.parentElement; // a group's message goes after the box that holds just that group
+        while (box && box !== form && !u.els.every((x) => box.contains(x))) box = box.parentElement;
+        const alone = u.els.length > 1 && box && box !== form && units().every((x) => x.key === u.key || !box.contains(x.e));
+        if (!alone) wrapOf(u.els[u.els.length - 1]).after(err);
+        else if (box.tagName === 'FIELDSET') box.append(err);
+        else box.after(err);
+      }
+      added.add(err);
+      return err;
+    };
+    const mark = (e, bad, slot) => {
+      const was = marks.get(e) || { bad: false, id: '' };
+      if (!bad) { if (was.bad) e.removeAttribute('aria-invalid'); } else if (e.getAttribute('aria-invalid') !== 'true') e.setAttribute('aria-invalid', 'true');
+      if (!form.contains(e)) e.toggleAttribute('data-dash-form', bad); // (a control with form="…": dash.css looks for this)
+      let id = '';
+      if (slot) {
+        if (!slot.id) slot.id = 'dash-err-' + ++ids;
+        if (was.id === slot.id || !(e.getAttribute('aria-describedby') || '').split(/\s+/).includes(slot.id)) id = slot.id; // (a page's own stays its own)
+      }
+      if (was.id && was.id !== id) describe(e, was.id, false);
+      if (id && was.id !== id) describe(e, id, true);
+      if (bad || id || marks.has(e)) marks.set(e, { bad, id });
+    };
+    const lineEl = (make) => {
+      const there = form.querySelector('.form-error, .modal-error');
+      if (there || !make) return there;
+      const p = document.createElement('p');
+      p.className = 'form-error';
+      p.setAttribute('role', 'alert');
+      const b = [...form.elements].find((x) => x.type === 'submit' && form.contains(x)), box = b && b.closest('.dialog-actions, .row, .input-group, .field, form');
+      if (!b || (box === form && form.matches('.row'))) form.append(p); else (box === form ? b : box).before(p);
+      return p;
+    };
+    // put what is known on the page; nothing is written that is there already, so it can run as often as it likes
+    const paint = () => {
+      if (form.__dashForm !== me) return; // made again
+      const slots = new Map(), boxes = new Map();
+      for (const u of units()) {
+        const s = state.get(u.key) || {}, text = s.text || '', wait = !text && Boolean(s.wait);
+        const slot = slotOf(u, Boolean(text || wait)), field = fieldOf(u);
+        if (slot) { const x = slots.get(slot) || { text: '', wait: false }; slots.set(slot, { text: x.text || text, wait: x.wait || wait }); }
+        if (field) boxes.set(field, boxes.get(field) || Boolean(text));
+        for (const e of u.els) mark(e, Boolean(text), text || wait ? slot : null);
+      }
+      for (const [slot, x] of slots) {
+        const say = x.text || (x.wait ? Dash.form.text.checking : '');
+        if (!say && !ours.has(slot)) continue; // (a page's own words, until there is something to say)
+        ours.add(slot);
+        if (slot.textContent !== say) slot.textContent = say;
+        slot.toggleAttribute('data-checking', !x.text && x.wait);
+        if (!say && 'dashHide' in slot.dataset) slot.hidden = true; else if (say && slot.hidden) { slot.hidden = false; slot.dataset.dashHide = ''; }
+        if (slot.closest('label')) slot.setAttribute('aria-hidden', 'true'); // not part of the control's name; it still describes it
+      }
+      for (const [field, bad] of boxes) if (bad || ours.has(field)) { ours.add(field); field.classList.toggle('invalid', bad); }
+      const say = [line.page, line.rule, line.lost].filter(Boolean).join(' ');
+      if (say || lineShown) {
+        const p = lineEl(Boolean(say));
+        if (p && p.textContent !== say) p.textContent = say;
+        if (p && p.matches('.form-error')) p.hidden = !say;
+        lineShown = Boolean(say);
+      }
+    };
+    const announce = (text) => { // for a screen reader whose reader has already moved on
+      if (!status) { status = document.createElement('span'); status.className = 'sr-only'; status.setAttribute('role', 'status'); }
+      if (status.parentNode !== form) form.append(status);
+      status.textContent = text;
+    };
+
+    // what is wrong with a field: text, or a promise of it when a rule has to ask. mayAsk: false uses only answers that are in.
+    const problem = (u, s, v, all, mayAsk) => {
+      for (const e of u.els) { const t = problemOf(e); if (t) return t; }
+      const list = u.name && Object.hasOwn(rules, u.name) ? [].concat(rules[u.name]) : [];
+      if (!s.asked) s.asked = [];
+      const from = (i) => {
+        for (; i < list.length; i++) {
+          let c = s.asked[i];
+          if (!c || !same(c.value, v)) {
+            if (!mayAsk && (c || list[i].constructor.name === 'AsyncFunction')) continue; // a rule that asks: not on every key
+            const out = list[i](v, all, u.e);
+            if (!thenable(out)) { if (words(out)) return out; continue; }
+            c = s.asked[i] = { value: v, out };
+            const mine = c;
+            c.out = out.then((x) => (mine.out = words(x)), (x) => { if (s.asked[i] === mine) s.asked[i] = { value: {} }; throw x; });
+            c.out.catch(() => {}); // (looked at below, or asked again)
+          }
+          if (!thenable(c.out)) { if (c.out) return c.out; continue; }
+          const next = i + 1;
+          return c.out.then((x) => x || from(next));
+        }
+        return '';
+      };
+      return from(0);
+    };
+    // check a field and keep what came out; returns the text, or a promise of it when the answer has to be waited for.
+    // sure: a rule that can't answer counts as a problem.
+    const settle = (u, all, { mayAsk = false, sure = false, tell = false } = {}) => {
+      const s = at(u), v = valueOf(u), before = s.text;
+      if (s.wait && !sure && same(s.value, v)) return ''; // its answer is on the way
+      const run = (s.run = (s.run || 0) + 1);
+      if (s.page && !same(s.page.value, v)) s.page = null;
+      s.value = v;
+      const cant = (x) => (sure ? Dash.form.text.cantCheck(told(x)) : '');
+      const set = (text) => {
+        s.wait = false;
+        s.text = text;
+        if (tell && text && text !== before) announce(`${nameOf(unitAt(u.key) || u)}: ${text}`);
+        return text;
+      };
+      let out;
+      try { out = s.page ? s.page.text : problem(u, s, v, all, mayAsk); } catch (x) { setTimeout(() => { throw x; }); out = cant(x); }
+      if (!thenable(out)) return set(out);
+      s.wait = true;
+      s.text = '';
+      return out.then(words, cant).then((text) => { if (s.run === run) { set(text); paint(); } return text; });
+    };
+    const whole = (all) => { // the rule about the form itself
+      if (!Object.hasOwn(rules, '')) return '';
+      let out = '';
+      try { out = rules[''](all); } catch (x) { setTimeout(() => { throw x; }); return told(x); }
+      return thenable(out) ? out.then(words, told) : words(out);
+    };
+
+    const tabOf = (panel) => { // the tab that shows a panel: the nearest one of its name
+      for (let n = panel.parentElement; n; n = n.parentElement) { const t = [...n.querySelectorAll('[role="tab"]')].find((b) => b.dataset.value === panel.dataset.tab); if (t) return t; }
+      return null;
+    };
+    const reveal = (e, tabs) => {
+      for (let n = e.parentElement; n; n = n.parentElement) {
+        if (n.tagName === 'DETAILS') n.open = true;
+        const t = tabs && n.hidden && n.dataset.tab != null && tabOf(n);
+        if (t) t.click();
+      }
+    };
+    const seen = (e) => e.getClientRects().length > 0;
+    const take = (e) => { e.focus({ preventScroll: true }); return document.activeElement === e; };
+    // go to the first problem; what can't be shown where it belongs goes on the form's line
+    const goTo = (bad) => {
+      let gone = false;
+      line.lost = '';
+      for (const u of bad) {
+        reveal(u.e, !gone);
+        const field = fieldOf(u);
+        const can = [...u.els.filter((x) => x.checked), ...u.els, ...(field ? field.querySelectorAll('button, input, select, textarea, [tabindex="0"]') : [])].filter(seen);
+        const to = gone ? can[0] : can.find(take);
+        if (to && !gone) { gone = true; (field || wrapOf(to)).scrollIntoView({ block: 'nearest' }); }
+        const away = gone && u.e.closest('[data-tab][hidden]'); // in another tab: its turn comes
+        if (!to && !away) line.lost = [line.lost, `${nameOf(u)}: ${at(u).text}`].filter(Boolean).join(' ');
+      }
+      paint();
+      if (!gone && lineShown) lineEl().scrollIntoView({ block: 'nearest' });
+    };
+    const which = (w) => {
+      const all = units();
+      if (w == null) return all;
+      if (w.nodeType) return all.filter((u) => w.contains(u.e));
+      const names = [].concat(w);
+      return all.filter((u) => names.includes(u.name));
+    };
+    // check fields: true or false, or a promise of it. Asks again while the reader keeps changing them.
+    const run = (w) => {
+      const list = which(w), all = values(), snap = () => units().map((u) => [u.key, valueOf(u)]), was = snap();
+      const out = list.map((u) => { const s = at(u); s.touched = true; s.page = null; return settle(u, all, { mayAsk: true, sure: true }); });
+      const rule = w == null ? whole(all) : '';
+      if (w == null) {
+        line.page = '';
+        for (const k of Object.keys(rules)) if (k && !warned.has(k) && !list.some((u) => u.name === k)) { warned.add(k); console.warn(`Dash.form: no field is named “${k}”`); }
+      }
+      const end = (texts, text) => {
+        if (w == null) line.rule = text;
+        const bad = list.map((u, i) => [unitAt(u.key), texts[i]]).filter(([u, say]) => { // (drawn again meanwhile, or gone)
+          const s = u && at(u);
+          if (s && !s.page) Object.assign(s, { text: say, wait: false, value: valueOf(u) });
+          return s && s.text;
+        }).map(([u]) => u);
+        if (bad.length > 1) announce(Dash.form.text.count(bad.length));
+        paint();
+        goTo(bad);
+        return !bad.length && !text;
+      };
+      paint();
+      if (!out.some(thenable) && !thenable(rule)) return end(out, rule);
+      return Promise.all([rule, ...out]).then(([text, ...texts]) => {
+        if (form.__dashForm !== me || !form.isConnected) return false; // closed, or made again
+        const now = snap(), moved = now.length !== was.length || now.some(([k, v], i) => k !== was[i][0] || !same(v, was[i][1]));
+        return moved ? run(w) : end(texts, text);
+      });
+    };
+    const put = (u, say) => { // the page's words on a field, until it is changed
+      const s = at(u), value = valueOf(u);
+      Object.assign(s, { run: (s.run || 0) + 1, wait: false, value, text: say, page: say ? { value, text: say } : null }); // (an answer still on its way is too late)
+    };
+    const error = (name, text = '') => {
+      const say = text == null ? '' : String(text), u = name && units().find((x) => x.name === name);
+      if (u) put(u, say); else if (name) return false; else line.page = say;
+      paint();
+      return true;
+    };
+    const fail = (x) => {
+      if (form.__dashForm !== me) return;
+      const by = [x && x.errors, x && x.body && x.body.errors].find((o) => o && typeof o === 'object' && !Array.isArray(o));
+      const list = Object.entries(by || {}).map(([k, t]) => [k, words(Array.isArray(t) ? t[0] : t)]).filter(([, t]) => t);
+      const rest = list.filter(([k, t]) => !k || !error(k, t)).map(([k, t]) => (k ? `${k}: ${t}` : t));
+      error('', rest.length || !list.length ? rest.join(' ') || told(x) : '');
+      goTo(units().filter((u) => at(u).text));
+    };
+    const clear = () => { state.clear(); Object.assign(line, { page: '', rule: '', lost: '' }); if (status) status.textContent = ''; paint(); };
+    const handle = {
+      get el() { return form; },
+      values, error, fail, clear,
+      get errors() {
+        const out = units().map((u) => [u.name, (state.get(u.key) || {}).text]).filter(([k, t]) => k && t);
+        const say = [line.page, line.rule].filter(Boolean).join(' ');
+        return Object.fromEntries(say ? [...out, ['', say]] : out);
+      },
+      check: async (w) => run(w),
+      destroy() {
+        clear();
+        for (const x of added) x.remove();
+        if (status) status.remove();
+        watch.disconnect();
+        form.noValidate = !bubbles;
+        delete form.dataset.dashForm;
+        delete form.__dashForm;
+        followed.delete(me);
+      },
+    };
+    const fresh = () => { // fields redrawn: the marks and messages go on the new ones
+      const all = values();
+      for (const u of units()) { const s = state.get(u.key); if (s && (s.text || s.wait) && !same(s.value, valueOf(u))) settle(u, all); }
+      paint();
+    };
+    const watch = new MutationObserver(fresh);
+    const me = { // what the page wiring calls
+      get form() { return form; },
+      move(f) {
+        watch.disconnect();
+        form = f;
+        bubbles = !f.noValidate;
+        f.noValidate = true;
+        f.dataset.dashForm = '';
+        f.__dashForm = me;
+        watch.observe(f, { childList: true, subtree: true });
+        fresh();
+      },
+      destroy: handle.destroy, clear, check: () => run(),
+      key: (e) => { const u = unitOf(e); return u && at(u).touched ? u.key : undefined; }, // of a field that was changed
+      here: (k) => { const u = unitAt(k); return Boolean(u) && u.els.includes(document.activeElement); }, // is the focus still in it (or its group)?
+      many: (e) => { const u = unitOf(e); return Boolean(u) && u.els.length > 1 && e.type === 'checkbox'; },
+      input(e) {
+        const u = unitOf(e);
+        if (!u) return;
+        at(u).touched = true;
+        const all = values();
+        for (const x of units()) { const s = state.get(x.key); if (s && (s.text || s.wait)) settle(x, all); }
+        if (line.rule) { const t = whole(all); if (!thenable(t)) line.rule = t; }
+        if (line.lost) line.lost = '';
+        paint();
+      },
+      left(k) {
+        const u = unitAt(k);
+        if (!u || !form.isConnected) return;
+        const all = values();
+        settle(u, all, { mayAsk: true, tell: true });
+        for (const x of units()) if (x.key !== u.key && (state.get(x.key) || {}).touched) settle(x, all, { tell: true }); // it may be about this one
+        paint();
+      },
+      submit(e) {
+        if (pass) { pass = false; return; } // checked, and let go on
+        const by = e.submitter;
+        if (busy) { e.preventDefault(); e.stopImmediatePropagation(); return; }
+        const ok = (by && by.formNoValidate) || run();
+        if (ok === true && !onSubmit) return;
+        e.preventDefault();
+        e.stopImmediatePropagation(); // wrong, not known yet, or onSubmit's
+        if (ok === false) return;
+        const btn = by || [...form.elements].find((x) => x.type === 'submit');
+        const held = btn && document.activeElement === btn;
+        busy = true;
+        (async () => {
+          let on = false;
+          try {
+            await Dash.busy(btn, async () => {
+              if (!(await ok)) return;
+              if (onSubmit) await onSubmit(values(), handle, by); else on = true;
+            });
+          } catch (x) { fail(x); } finally { busy = false; }
+          if (held && (!document.activeElement || document.activeElement === document.body)) (btn.isConnected ? btn : document.getElementById(btn.id) || btn).focus({ preventScroll: true }); // (a busy button lets go of the focus)
+          if (on && form.isConnected) { pass = true; form.requestSubmit(by && by.form === form ? by : null); pass = false; }
+        })();
+      },
+    };
+    me.move(form);
+    if (form.id) {
+      followed.add(me);
+      if (!follower) { follower = new MutationObserver(followForms); follower.observe(document.documentElement, { childList: true, subtree: true }); }
+    }
+    // what the server wrote into the page counts, until the reader changes the field
+    const wrote = units().filter((u) => { const f = fieldOf(u); return f && f.classList.contains('invalid'); });
+    for (const u of wrote) {
+      const field = fieldOf(u), slot = slotOf(u), say = slot ? slot.textContent.trim() : '', marked = (x) => x.e.getAttribute('aria-invalid') === 'true';
+      const mates = wrote.filter((x) => fieldOf(x) === field), one = mates.find(marked) || mates[0]; // in a field of several: the marked ones, or the first
+      if (say && (u === one || marked(u))) { ours.add(slot).add(field); put(u, say); }
+    }
+    paint();
+    return handle;
+  };
+  // the kit's words for the browser's checks: a text, or a function of the control
+  Dash.form.text = {
+    valueMissing: (e) => (e.type === 'checkbox' ? 'Tick this to go on.' : e.type === 'radio' || e.tagName === 'SELECT' ? 'Choose one.'
+      : e.type === 'file' ? 'Choose a file.' : /^(date|month|week)/.test(e.type) ? 'Choose a date.' : e.type === 'time' ? 'Choose a time.' : 'Fill this in.'),
+    badInput: (e) => (e.type === 'number' ? 'Enter a number.' : e.type === 'time' ? 'Enter a whole time.' : 'Enter a whole date.'),
+    typeMismatch: (e) => (e.type === 'url' ? 'Enter a whole address, like https://example.com.' : 'Enter an email address, like name@example.com.'),
+    tooShort: (e) => `Use at least ${fmt.plural(e.minLength, 'character')}.`,
+    tooLong: (e) => `Use at most ${fmt.plural(e.maxLength, 'character')}.`,
+    patternMismatch: (e) => e.title || 'That isn’t in the right form.',
+    rangeUnderflow: (e) => (isNum(e.min) ? `Use ${e.min} or more.` : `Choose ${e.min} or later.`),
+    rangeOverflow: (e) => (isNum(e.max) ? `Use ${e.max} or less.` : `Choose ${e.max} or earlier.`),
+    stepMismatch: (e) => {
+      const step = Number(e.step || 1), base = Number(e.min || 0);
+      if (!isNum(e.value)) return 'Choose another one.';
+      return step === 1 && Number.isInteger(base) ? 'Use a whole number.' : `Use steps of ${step}${base ? ` from ${base}` : ''}.`;
+    },
+    date: 'Enter a date as YYYY-MM-DD.', // Dash.datepicker
+    dateRange: (from, to) => (from && to ? `Choose a day from ${from} to ${to}.` : from ? `Choose ${from} or later.` : `Choose ${to} or earlier.`),
+    list: 'Choose one from the list.', // Dash.combobox, strict
+    checking: 'Checking…',
+    cantCheck: (why) => `Couldn’t check this: ${why}`,
+    count: (n) => `${fmt.plural(n, 'field')} to fix`,
   };
 
   // ---- menus and tooltips (wired below; no code needed)
@@ -2697,7 +3175,7 @@
   let tipFor = null;
   let tipBy = ''; // 'hover' or 'focus': each kind hides for its own reasons
   const hideTip = () => {
-    if (tipFor) tipFor.removeAttribute('aria-describedby');
+    if (tipFor) describe(tipFor, 'dash-tooltip', false);
     if (tipEl) tipEl.hidden = true;
     tipFor = null;
   };
@@ -2712,11 +3190,11 @@
       tipEl.id = 'dash-tooltip';
     }
     lift(tipEl, target); // inside the popup or dialog the target is in: those sit above the rest of the page
-    if (tipFor && tipFor !== target) tipFor.removeAttribute('aria-describedby');
+    if (tipFor && tipFor !== target) describe(tipFor, 'dash-tooltip', false);
     tipFor = target;
     tipEl.textContent = text;
     tipEl.hidden = false;
-    target.setAttribute('aria-describedby', 'dash-tooltip');
+    describe(target, 'dash-tooltip', true);
     const r = target.getBoundingClientRect();
     const t = tipEl.getBoundingClientRect();
     const gap = 8;
@@ -2856,6 +3334,51 @@
         if (open) { e.preventDefault(); closeMenus(); open.querySelector('summary')?.focus(); } // only the menu: a dialog around it stays
       }
     });
+    // ---- 1.13: forms (Dash.form). A field that is left while the pointer is down waits for the click: a message that
+    // pushes the Save button away from under it would lose that click.
+    const formOf = (e) => (e.target && e.target.form && e.target.form.__dashForm) || null;
+    let pressing = false, later = [], waiting = 0;
+    const released = () => {
+      pressing = false;
+      clearTimeout(waiting);
+      const now = later;
+      later = [];
+      if (now.length) setTimeout(() => { for (const fn of now) fn(); });
+    };
+    const left = (f, e) => {
+      const k = f.key(e); // (the box may be drawn again before it is looked at)
+      if (k === undefined) return;
+      const go = () => { if (!f.here(k)) f.left(k); };
+      if (!pressing) { setTimeout(go); return; } // (after a strict combobox has put its text right)
+      later.push(go);
+      clearTimeout(waiting);
+      waiting = setTimeout(released, 1200); // a press that ended where the page can't see it (a select's own list)
+    };
+    document.addEventListener('pointerdown', () => { pressing = true; }, true);
+    for (const type of ['pointerup', 'pointercancel']) document.addEventListener(type, released, true);
+    document.addEventListener('input', (e) => { const f = formOf(e); if (f) f.input(e.target); });
+    document.addEventListener('change', (e) => {
+      const f = formOf(e), t = e.target;
+      if (!f) return;
+      f.input(t);
+      if (f.many(t)) return; // a group of checkboxes: once it is left
+      if (document.activeElement !== t) left(f, t); // (a calendar's pick)
+      else if (!texty(t) && !/^(number|date|month|week|time|datetime-local)$/.test(t.type)) f.left(f.key(t)); // (a date is whole only once it is left)
+    });
+    document.addEventListener('focusout', (e) => { const f = formOf(e); if (f) left(f, e.target); });
+    document.addEventListener('reset', (e) => { const f = e.target.__dashForm; if (f) setTimeout(() => { if (!e.defaultPrevented) f.clear(); }); });
+    // <form data-validate>, also one that comes later
+    const validated = (f) => { if (f && f.matches && f.matches('form[data-validate]') && !f.__dashForm) Dash.form(f); };
+    const wireForms = () => { for (const f of document.querySelectorAll('form[data-validate]')) validated(f); };
+    for (const type of ['focusin', 'pointerdown']) document.addEventListener(type, (e) => validated((e.target && e.target.form) || (e.target.closest && e.target.closest('form'))), true);
+    document.addEventListener('submit', (e) => { validated(e.target); const f = e.target.__dashForm; if (f) f.submit(e); }, true);
+    document.addEventListener('invalid', (e) => { // (submitted by a script before anyone touched it)
+      const f = e.target.form;
+      if (!f || !f.matches('form[data-validate]')) return;
+      e.preventDefault();
+      if (!f.__dashForm) { validated(f); f.__dashForm.check(); }
+    }, true);
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wireForms); else wireForms();
     // ---- 1.8: sliders show their value; drop zones take dropped files; the sidebar as a drawer on smaller screens
     document.addEventListener('input', (e) => {
       const r = e.target;

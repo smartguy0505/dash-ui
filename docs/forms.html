@@ -11,10 +11,10 @@
 <script src="../dash.js"></script>
 </head>
 <body>
-<!-- dash-ui 1.12.2 docs, written by tools/docs.mjs from docs-src/forms.html: edit that, not this -->
+<!-- dash-ui 1.13.0 docs, written by tools/docs.mjs from docs-src/forms.html: edit that, not this -->
 <header class="topbar">
   <button type="button" class="icon-btn docs-menu" data-toggle-side aria-label="Pages"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3 5h12M3 9h12M3 13h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
-  <a class="brand" href="./"><span class="mark">d</span><h1>dash-ui</h1></a><span class="tag plain docs-version">1.12.2</span>
+  <a class="brand" href="./"><span class="mark">d</span><h1>dash-ui</h1></a><span class="tag plain docs-version">1.13.0</span>
   <div class="top-right">
     <label class="search docs-search"><span class="sr-only">Search the docs</span><svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.6"/><path d="m11 11 3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><input class="input" type="search" id="docs-search" placeholder="Search" aria-keyshortcuts="/"><kbd class="docs-key">/</kbd></label>
     <div class="seg" role="group" aria-label="Theme"><button type="button" data-theme-set="system">Auto</button><button type="button" data-theme-set="light">Light</button><button type="button" data-theme-set="dark">Dark</button></div>
@@ -23,7 +23,7 @@
 <div class="shell offcanvas">
   <nav class="sidebar" aria-label="Pages"><div class="side-head">Start</div><a class="nav-item" href="./"><span class="nav-main"><span class="nav-name">Getting started</span></span></a><div class="side-head">Foundations</div><a class="nav-item" href="colours.html"><span class="nav-main"><span class="nav-name">Colours and themes</span></span></a><a class="nav-item" href="layout.html"><span class="nav-main"><span class="nav-name">Page layout</span></span></a><a class="nav-item" href="text.html"><span class="nav-main"><span class="nav-name">Text and labels</span></span></a><div class="side-head">Components</div><a class="nav-item" href="buttons.html"><span class="nav-main"><span class="nav-name">Buttons</span></span></a><a class="nav-item" href="forms.html" aria-current="page"><span class="nav-main"><span class="nav-name">Forms</span></span></a><a class="nav-item" href="surfaces.html"><span class="nav-main"><span class="nav-name">Panels and cards</span></span></a><a class="nav-item" href="navigation.html"><span class="nav-main"><span class="nav-name">Navigation</span></span></a><a class="nav-item" href="tables.html"><span class="nav-main"><span class="nav-name">Tables</span></span></a><a class="nav-item" href="charts.html"><span class="nav-main"><span class="nav-name">Charts and progress</span></span></a><a class="nav-item" href="overlays.html"><span class="nav-main"><span class="nav-name">Modals and popups</span></span></a><a class="nav-item" href="feedback.html"><span class="nav-main"><span class="nav-name">Feedback</span></span></a><div class="side-head">JavaScript</div><a class="nav-item" href="helpers.html"><span class="nav-main"><span class="nav-name">dash.js helpers</span></span></a><div class="side-head">Utilities</div><a class="nav-item" href="utilities.html"><span class="nav-main"><span class="nav-name">Utility classes</span></span></a><a class="nav-item" href="utilities-layout.html"><span class="nav-main"><span class="nav-name">Layout utilities</span></span></a><a class="nav-item" href="utilities-spacing.html"><span class="nav-main"><span class="nav-name">Spacing utilities</span></span></a><a class="nav-item" href="utilities-sizing.html"><span class="nav-main"><span class="nav-name">Sizing utilities</span></span></a><a class="nav-item" href="utilities-type.html"><span class="nav-main"><span class="nav-name">Type utilities</span></span></a><a class="nav-item" href="utilities-colour.html"><span class="nav-main"><span class="nav-name">Colour utilities</span></span></a><a class="nav-item" href="utilities-effects.html"><span class="nav-main"><span class="nav-name">Borders and effects</span></span></a></nav>
   <main class="content docs" id="top">
-    <header class="docs-head"><p class="docs-group">Components</p><h1>Forms</h1><p class="docs-blurb">Inputs, fields, selects, input groups, checkboxes and radios, choices, switches, sliders, file drops, suggestions and dates.</p><nav class="chips docs-toc" aria-label="On this page"><a class="chip" href="#inputs">Inputs</a><a class="chip" href="#fields">Fields</a><a class="chip" href="#search">Search boxes</a><a class="chip" href="#select">Selects</a><a class="chip" href="#input-group">Input groups</a><a class="chip" href="#checks">Checkboxes and radios</a><a class="chip" href="#choices">Choices as cards</a><a class="chip" href="#switch">Switches</a><a class="chip" href="#slider">Sliders</a><a class="chip" href="#dropzone">Dropping files</a><a class="chip" href="#combobox">Suggestions</a><a class="chip" href="#datepicker">Dates</a></nav></header>
+    <header class="docs-head"><p class="docs-group">Components</p><h1>Forms</h1><p class="docs-blurb">Inputs, fields, selects, input groups, checkboxes and radios, choices, switches, sliders, file drops, suggestions and dates.</p><nav class="chips docs-toc" aria-label="On this page"><a class="chip" href="#inputs">Inputs</a><a class="chip" href="#fields">Fields</a><a class="chip" href="#search">Search boxes</a><a class="chip" href="#select">Selects</a><a class="chip" href="#input-group">Input groups</a><a class="chip" href="#checks">Checkboxes and radios</a><a class="chip" href="#choices">Choices as cards</a><a class="chip" href="#switch">Switches</a><a class="chip" href="#slider">Sliders</a><a class="chip" href="#dropzone">Dropping files</a><a class="chip" href="#combobox">Suggestions</a><a class="chip" href="#datepicker">Dates</a><a class="chip" href="#validation">Checking a form</a></nav></header>
 <section id="inputs" data-terms=".input .mono .sm .lg textarea .autosize --max-h">
       <h2>Inputs</h2>
       <p><code>.input</code> styles a text box, a <code>select</code> and a <code>textarea</code> alike. <code>.input.mono</code> is for addresses and ids; <code>.input.sm</code> and <code>.input.lg</code> change its size. <code>textarea.input.autosize</code> grows as it's typed into, up to <code>--max-h</code> (320 px), where the browser supports <code>field-sizing</code> (elsewhere it keeps its size).</p>
@@ -47,9 +47,9 @@
 &lt;/<span class="c-tag">div</span>&gt;</code></pre></figure>
     </section>
 
-    <section id="fields" data-terms=".field .field-label .hint .err .invalid">
+    <section id="fields" data-terms=".field .field-label .hint .err .invalid .req">
       <h2>Fields</h2>
-      <p><code>.field</code> stacks a <code>label</code>, the input, then a <code>.hint</code> or an <code>.err</code>. <code>.field.invalid</code> turns it red; set <code>aria-invalid="true"</code> on the input as well, and point <code>aria-describedby</code> at the message. <code>.field-label</code> is the same label for a group that isn't one input (a row of choices).</p>
+      <p><code>.field</code> stacks a <code>label</code>, the input, then a <code>.hint</code> or an <code>.err</code>. <code>.field.invalid</code> turns it red; set <code>aria-invalid="true"</code> on the input as well, and point <code>aria-describedby</code> at the message. <a href="#validation">Dash.form</a> does all of that for you. <code>label.req</code> adds a star, for a field that must be filled in. <code>.field-label</code> is the same label for a group that isn't one input (a row of choices).</p>
       <figure class="example" id="ex-2"><div class="example-view">
 <div style="max-width: 420px">
   <div class="field"><label for="f-name">Name</label><input class="input" id="f-name" value="Treasury" aria-describedby="f-name-hint"><div class="hint" id="f-name-hint">Shown in the table.</div></div>
@@ -308,6 +308,165 @@
   <span class="c-fn">Dash</span>.datepicker(<span class="c-str">&#39;due&#39;</span>, { min: <span class="c-str">&#39;2026-11-01&#39;</span>, max: <span class="c-str">&#39;2027-03-31&#39;</span>, onPick: (day) =&gt; <span class="c-fn">Dash</span>.toast(<span class="c-str">`Due ${day}`</span>) });
 &lt;/<span class="c-tag">script</span>&gt;</code></pre></figure>
       <p>It returns <code>{ value, set(day), open(), close(), destroy() }</code>; <code>value</code> is the box's date if it's a real one in range, or null.</p>
+    </section>
+
+    <section id="validation" data-terms="Dash.form data-validate .field-err .form-error .req data-error-for data-problem formnovalidate required pattern validation rules errors onSubmit">
+      <h2>Checking a form</h2>
+      <p><code>Dash.form(form, { rules, onSubmit })</code> says what is wrong under each field, instead of the browser’s bubbles. A field is checked once the reader leaves it changed, and what it says goes as soon as it is put right. Submitting checks all of them and goes to the first problem: in a closed part or another tab too.</p>
+      <figure class="example" id="ex-13"><div class="example-view">
+<form class="panel" id="join" style="max-width: 460px">
+  <div class="panel-head"><h3>New account</h3></div>
+  <div class="field"><label class="req" for="j-name">Name</label><input class="input" id="j-name" name="name" required minlength="3" aria-describedby="j-name-hint"><div class="hint" id="j-name-hint">At least 3 characters.</div></div>
+  <div class="field"><label class="req" for="j-email">Email</label><input class="input" id="j-email" name="email" type="email" required autocomplete="off"></div>
+  <div class="field"><label class="req" for="j-handle">Handle</label><input class="input mono" id="j-handle" name="handle" required pattern="[a-z0-9]+" title="Use small letters and digits." autocomplete="off"><div class="hint">“ada” is taken.</div></div>
+  <div class="field"><label class="req" for="j-region">Region</label><span class="select"><select class="input" id="j-region" name="region" required><option value="">Pick one</option><option value="eu">Frankfurt</option><option value="us">Virginia</option></select></span></div>
+  <div class="field"><label for="j-seats">Seats</label><input class="input" id="j-seats" name="seats" type="number" min="1" max="20" value="2"></div>
+  <label class="checkline"><input type="checkbox" name="terms" required>The invoice goes to this email</label>
+  <button class="btn primary">Create</button>
+</form>
+<script>
+  const wait = (ms) => new Promise((done) => setTimeout(done, ms)); // stands in for the server
+  Dash.form('join', {
+    rules: {
+      name: (text) => /^\d/.test(text) && 'Start with a letter.',
+      handle: async (text) => { await wait(500); return text === 'ada' && 'That handle is taken.'; },
+      '': (all) => all.region === 'eu' && all.seats > 10 && 'Frankfurt has ten seats left.',
+    },
+    onSubmit: async (values, form) => { // Dash.api('api/accounts', { method: 'POST', json: values })
+      await wait(600);
+      if (values.name === 'Broken') throw new Error('The server didn’t answer. Nothing was saved.');
+      if (values.email.endsWith('@example.org')) throw Object.assign(new Error('Not saved'), { errors: { email: 'That domain isn’t allowed.' } });
+      Dash.toast(`${values.name} created, with ${Dash.fmt.plural(values.seats, 'seat')}`);
+      form.el.reset();
+    },
+  });
+</script>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;form class=&quot;panel&quot; id=&quot;join&quot; style=&quot;max-width: 460px&quot;&gt;
+  &lt;div class=&quot;panel-head&quot;&gt;&lt;h3&gt;New account&lt;/h3&gt;&lt;/div&gt;
+  &lt;div class=&quot;field&quot;&gt;&lt;label class=&quot;req&quot; for=&quot;j-name&quot;&gt;Name&lt;/label&gt;&lt;input class=&quot;input&quot; id=&quot;j-name&quot; name=&quot;name&quot; required minlength=&quot;3&quot; aria-describedby=&quot;j-name-hint&quot;&gt;&lt;div class=&quot;hint&quot; id=&quot;j-name-hint&quot;&gt;At least 3 characters.&lt;/div&gt;&lt;/div&gt;
+  &lt;div class=&quot;field&quot;&gt;&lt;label class=&quot;req&quot; for=&quot;j-email&quot;&gt;Email&lt;/label&gt;&lt;input class=&quot;input&quot; id=&quot;j-email&quot; name=&quot;email&quot; type=&quot;email&quot; required autocomplete=&quot;off&quot;&gt;&lt;/div&gt;
+  &lt;div class=&quot;field&quot;&gt;&lt;label class=&quot;req&quot; for=&quot;j-handle&quot;&gt;Handle&lt;/label&gt;&lt;input class=&quot;input mono&quot; id=&quot;j-handle&quot; name=&quot;handle&quot; required pattern=&quot;[a-z0-9]+&quot; title=&quot;Use small letters and digits.&quot; autocomplete=&quot;off&quot;&gt;&lt;div class=&quot;hint&quot;&gt;“ada” is taken.&lt;/div&gt;&lt;/div&gt;
+  &lt;div class=&quot;field&quot;&gt;&lt;label class=&quot;req&quot; for=&quot;j-region&quot;&gt;Region&lt;/label&gt;&lt;span class=&quot;select&quot;&gt;&lt;select class=&quot;input&quot; id=&quot;j-region&quot; name=&quot;region&quot; required&gt;&lt;option value=&quot;&quot;&gt;Pick one&lt;/option&gt;&lt;option value=&quot;eu&quot;&gt;Frankfurt&lt;/option&gt;&lt;option value=&quot;us&quot;&gt;Virginia&lt;/option&gt;&lt;/select&gt;&lt;/span&gt;&lt;/div&gt;
+  &lt;div class=&quot;field&quot;&gt;&lt;label for=&quot;j-seats&quot;&gt;Seats&lt;/label&gt;&lt;input class=&quot;input&quot; id=&quot;j-seats&quot; name=&quot;seats&quot; type=&quot;number&quot; min=&quot;1&quot; max=&quot;20&quot; value=&quot;2&quot;&gt;&lt;/div&gt;
+  &lt;label class=&quot;checkline&quot;&gt;&lt;input type=&quot;checkbox&quot; name=&quot;terms&quot; required&gt;The invoice goes to this email&lt;/label&gt;
+  &lt;button class=&quot;btn primary&quot;&gt;Create&lt;/button&gt;
+&lt;/form&gt;
+&lt;script&gt;
+  const wait = (ms) =&gt; new Promise((done) =&gt; setTimeout(done, ms)); // stands in for the server
+  Dash.form(&#39;join&#39;, {
+    rules: {
+      name: (text) =&gt; /^\d/.test(text) &amp;&amp; &#39;Start with a letter.&#39;,
+      handle: async (text) =&gt; { await wait(500); return text === &#39;ada&#39; &amp;&amp; &#39;That handle is taken.&#39;; },
+      &#39;&#39;: (all) =&gt; all.region === &#39;eu&#39; &amp;&amp; all.seats &gt; 10 &amp;&amp; &#39;Frankfurt has ten seats left.&#39;,
+    },
+    onSubmit: async (values, form) =&gt; { // Dash.api(&#39;api/accounts&#39;, { method: &#39;POST&#39;, json: values })
+      await wait(600);
+      if (values.name === &#39;Broken&#39;) throw new Error(&#39;The server didn’t answer. Nothing was saved.&#39;);
+      if (values.email.endsWith(&#39;@example.org&#39;)) throw Object.assign(new Error(&#39;Not saved&#39;), { errors: { email: &#39;That domain isn’t allowed.&#39; } });
+      Dash.toast(`${values.name} created, with ${Dash.fmt.plural(values.seats, &#39;seat&#39;)}`);
+      form.el.reset();
+    },
+  });
+&lt;/script&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">form</span> <span class="c-attr">class</span>=<span class="c-str">&quot;panel&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;join&quot;</span> <span class="c-attr">style</span>=<span class="c-str">&quot;max-width: 460px&quot;</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;panel-head&quot;</span>&gt;&lt;<span class="c-tag">h3</span>&gt;New account&lt;/<span class="c-tag">h3</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;field&quot;</span>&gt;&lt;<span class="c-tag">label</span> <span class="c-attr">class</span>=<span class="c-str">&quot;req&quot;</span> <span class="c-attr">for</span>=<span class="c-str">&quot;j-name&quot;</span>&gt;Name&lt;/<span class="c-tag">label</span>&gt;&lt;<span class="c-tag">input</span> <span class="c-attr">class</span>=<span class="c-str">&quot;input&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;j-name&quot;</span> <span class="c-attr">name</span>=<span class="c-str">&quot;name&quot;</span> <span class="c-attr">required</span> <span class="c-attr">minlength</span>=<span class="c-str">&quot;3&quot;</span> <span class="c-attr">aria-describedby</span>=<span class="c-str">&quot;j-name-hint&quot;</span>&gt;&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;hint&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;j-name-hint&quot;</span>&gt;At least 3 characters.&lt;/<span class="c-tag">div</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;field&quot;</span>&gt;&lt;<span class="c-tag">label</span> <span class="c-attr">class</span>=<span class="c-str">&quot;req&quot;</span> <span class="c-attr">for</span>=<span class="c-str">&quot;j-email&quot;</span>&gt;Email&lt;/<span class="c-tag">label</span>&gt;&lt;<span class="c-tag">input</span> <span class="c-attr">class</span>=<span class="c-str">&quot;input&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;j-email&quot;</span> <span class="c-attr">name</span>=<span class="c-str">&quot;email&quot;</span> <span class="c-attr">type</span>=<span class="c-str">&quot;email&quot;</span> <span class="c-attr">required</span> <span class="c-attr">autocomplete</span>=<span class="c-str">&quot;off&quot;</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;field&quot;</span>&gt;&lt;<span class="c-tag">label</span> <span class="c-attr">class</span>=<span class="c-str">&quot;req&quot;</span> <span class="c-attr">for</span>=<span class="c-str">&quot;j-handle&quot;</span>&gt;Handle&lt;/<span class="c-tag">label</span>&gt;&lt;<span class="c-tag">input</span> <span class="c-attr">class</span>=<span class="c-str">&quot;input mono&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;j-handle&quot;</span> <span class="c-attr">name</span>=<span class="c-str">&quot;handle&quot;</span> <span class="c-attr">required</span> <span class="c-attr">pattern</span>=<span class="c-str">&quot;[a-z0-9]+&quot;</span> <span class="c-attr">title</span>=<span class="c-str">&quot;Use small letters and digits.&quot;</span> <span class="c-attr">autocomplete</span>=<span class="c-str">&quot;off&quot;</span>&gt;&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;hint&quot;</span>&gt;“ada” is taken.&lt;/<span class="c-tag">div</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;field&quot;</span>&gt;&lt;<span class="c-tag">label</span> <span class="c-attr">class</span>=<span class="c-str">&quot;req&quot;</span> <span class="c-attr">for</span>=<span class="c-str">&quot;j-region&quot;</span>&gt;Region&lt;/<span class="c-tag">label</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;select&quot;</span>&gt;&lt;<span class="c-tag">select</span> <span class="c-attr">class</span>=<span class="c-str">&quot;input&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;j-region&quot;</span> <span class="c-attr">name</span>=<span class="c-str">&quot;region&quot;</span> <span class="c-attr">required</span>&gt;&lt;<span class="c-tag">option</span> <span class="c-attr">value</span>=<span class="c-str">&quot;&quot;</span>&gt;Pick one&lt;/<span class="c-tag">option</span>&gt;&lt;<span class="c-tag">option</span> <span class="c-attr">value</span>=<span class="c-str">&quot;eu&quot;</span>&gt;Frankfurt&lt;/<span class="c-tag">option</span>&gt;&lt;<span class="c-tag">option</span> <span class="c-attr">value</span>=<span class="c-str">&quot;us&quot;</span>&gt;Virginia&lt;/<span class="c-tag">option</span>&gt;&lt;/<span class="c-tag">select</span>&gt;&lt;/<span class="c-tag">span</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;field&quot;</span>&gt;&lt;<span class="c-tag">label</span> <span class="c-attr">for</span>=<span class="c-str">&quot;j-seats&quot;</span>&gt;Seats&lt;/<span class="c-tag">label</span>&gt;&lt;<span class="c-tag">input</span> <span class="c-attr">class</span>=<span class="c-str">&quot;input&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;j-seats&quot;</span> <span class="c-attr">name</span>=<span class="c-str">&quot;seats&quot;</span> <span class="c-attr">type</span>=<span class="c-str">&quot;number&quot;</span> <span class="c-attr">min</span>=<span class="c-str">&quot;1&quot;</span> <span class="c-attr">max</span>=<span class="c-str">&quot;20&quot;</span> <span class="c-attr">value</span>=<span class="c-str">&quot;2&quot;</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+  &lt;<span class="c-tag">label</span> <span class="c-attr">class</span>=<span class="c-str">&quot;checkline&quot;</span>&gt;&lt;<span class="c-tag">input</span> <span class="c-attr">type</span>=<span class="c-str">&quot;checkbox&quot;</span> <span class="c-attr">name</span>=<span class="c-str">&quot;terms&quot;</span> <span class="c-attr">required</span>&gt;The invoice goes to this email&lt;/<span class="c-tag">label</span>&gt;
+  &lt;<span class="c-tag">button</span> <span class="c-attr">class</span>=<span class="c-str">&quot;btn primary&quot;</span>&gt;Create&lt;/<span class="c-tag">button</span>&gt;
+&lt;/<span class="c-tag">form</span>&gt;
+&lt;<span class="c-tag">script</span>&gt;
+  <span class="c-key">const</span> wait = (ms) =&gt; <span class="c-key">new</span> Promise((done) =&gt; setTimeout(done, ms)); <span class="c-com">// stands in for the server</span>
+  <span class="c-fn">Dash</span>.form(<span class="c-str">&#39;join&#39;</span>, {
+    rules: {
+      name: (text) =&gt; /^\d/.test(text) &amp;&amp; <span class="c-str">&#39;Start with a letter.&#39;</span>,
+      handle: <span class="c-key">async</span> (text) =&gt; { <span class="c-key">await</span> wait(<span class="c-num">500</span>); <span class="c-key">return</span> text === <span class="c-str">&#39;ada&#39;</span> &amp;&amp; <span class="c-str">&#39;That handle is taken.&#39;</span>; },
+      <span class="c-str">&#39;&#39;</span>: (all) =&gt; all.region === <span class="c-str">&#39;eu&#39;</span> &amp;&amp; all.seats &gt; <span class="c-num">10</span> &amp;&amp; <span class="c-str">&#39;Frankfurt has ten seats left.&#39;</span>,
+    },
+    onSubmit: <span class="c-key">async</span> (values, form) =&gt; { <span class="c-com">// Dash.api(&#39;api/accounts&#39;, { method: &#39;POST&#39;, json: values })</span>
+      <span class="c-key">await</span> wait(<span class="c-num">600</span>);
+      <span class="c-key">if</span> (values.name === <span class="c-str">&#39;Broken&#39;</span>) <span class="c-key">throw</span> <span class="c-key">new</span> Error(<span class="c-str">&#39;The server didn’t answer. Nothing was saved.&#39;</span>);
+      <span class="c-key">if</span> (values.email.endsWith(<span class="c-str">&#39;@example.org&#39;</span>)) <span class="c-key">throw</span> Object.assign(<span class="c-key">new</span> Error(<span class="c-str">&#39;Not saved&#39;</span>), { errors: { email: <span class="c-str">&#39;That domain isn’t allowed.&#39;</span> } });
+      <span class="c-fn">Dash</span>.toast(<span class="c-str">`${values.name} created, with ${Dash.fmt.plural(values.seats, &#39;seat&#39;)}`</span>);
+      form.el.reset();
+    },
+  });
+&lt;/<span class="c-tag">script</span>&gt;</code></pre></figure>
+      <p>The fields’ own checks count first: <code>required</code> (spaces alone are no answer), <code>type</code>, <code>minlength</code>, <code>pattern</code> (its <code>title</code> is what it says), <code>min</code>, <code>max</code>, <code>step</code>, and <code>setCustomValidity</code>. <code>Dash.datepicker</code> and a <code>strict</code> <code>Dash.combobox</code> say what is wrong with their box. Then come your rules.</p>
+      <ul>
+        <li><b>Rules</b>: a function <code>(value, values, input)</code> per <code>name</code>, or a list of them. A text is the problem; anything else is fine. They run on empty fields too. A rule about another field (<code>(v, all) =&gt; v !== all.password &amp;&amp; …</code>) runs again when that one changes. <code>''</code> is the form as a whole.</li>
+        <li><b>Asking the server</b>: an <code>async</code> rule is asked once the field is left, with “Checking…” meanwhile; once per text, and late answers are dropped. One that can’t answer says nothing, until the form is sent: then it stops it, and says why.</li>
+        <li><b><code>onSubmit(values, form, button)</code></b> runs once all is fine, with the button busy; a second submit does nothing. What it throws shows above the buttons; with <code>errors: { name: 'text' }</code> on it, or in the answer’s body (as <code>Dash.api</code>’s errors carry), on those fields, until they are changed. Without <code>onSubmit</code> the form goes on as it would, and your own <code>submit</code> listener hears only of a right one.</li>
+        <li><b>Values</b>: text as typed, a number box as a number (<code>null</code> when empty), one checkbox as <code>true</code> or <code>false</code>, several of a name as a list, a file as a <code>File</code>. Disabled fields are left out, and not checked.</li>
+        <li><b>Where it shows</b>: in the field’s <code>.err</code> (made when there is none), as a <code>.field-err</code> under a box that is in no <code>.field</code>, or in an element with <code>data-error-for="name"</code>; a <code>.form-error</code> line is above the buttons. The boxes get <code>aria-invalid</code>, and <code>aria-describedby</code> with the hint kept. A field the server sent as <code>.field.invalid</code> keeps its words until it is changed.</li>
+        <li><b>Words</b>: <code>data-problem="Give the site’s address."</code> on a field, or <code>Dash.form.text</code> for all (to translate them). None of the kit’s hold what was typed. <code>label.req</code> adds the star.</li>
+        <li>A button with <code>formnovalidate</code> skips the checks. Fields that are drawn again keep their marks; a whole form drawn again is followed by its <code>id</code>.</li>
+      </ul>
+      <p>It returns <code>{ el, values(), errors, check(which), error(name, text), fail(err), clear(), destroy() }</code>. <code>check()</code> checks all, or a name, a list of names, or the fields in an element (a step of several), goes to the first problem and resolves to <code>true</code> or <code>false</code>. <code>error(name, text)</code> puts a text on a field until it is changed (<code>''</code>: the line). The same form made again has the new rules.</p>
+      <h3>Without code, and in a dialog</h3>
+      <p><code>&lt;form data-validate&gt;</code> does the fields’ own checks, with no code. <code>Dash.modal</code> and <code>Dash.dialog</code> take <code>rules</code> (<code>{}</code>: just the fields’ own checks) and <code>Dash.ask</code> a <code>check</code>; they stay open until it is right. In a modal <code>m.form</code> is the handle, and an error from <code>onAction</code> with <code>errors</code> lands on the fields.</p>
+      <figure class="example" id="ex-14"><div class="example-view">
+<form class="vstack" data-validate style="max-width: 460px" onsubmit="event.preventDefault(); Dash.toast('Sent')">
+  <div class="field"><label class="req" for="v-site">Site</label><input class="input" id="v-site" name="site" type="url" required placeholder="https://"></div>
+  <div class="row"><button class="btn">Send</button>
+    <button type="button" class="btn ghost" id="v-modal">In a modal…</button>
+    <button type="button" class="btn ghost" id="v-ask">In a question…</button></div>
+</form>
+<script>
+  Dash.$('v-modal').addEventListener('click', () => Dash.modal({
+    title: 'Add server', cancel: 'Cancel',
+    body: '<div class="field"><label for="vm-name">Name</label><input class="input" id="vm-name" name="name" required></div>'
+      + '<div class="field"><label for="vm-size">Disks</label><input class="input" id="vm-size" name="disks" type="number" min="1" max="8" value="12"></div>',
+    rules: { name: (text) => /\s/.test(text) && 'Leave out the spaces.' },
+    actions: [{ label: 'Add', value: 'add', primary: true }],
+    onAction: async (value, m) => { Dash.toast(`${m.form.values().name} added`); },
+  }));
+  Dash.$('v-ask').addEventListener('click', async () => {
+    const name = await Dash.ask('New name', { value: 'web-1', check: (text) => text === 'web-1' && 'That’s the name it has.' });
+    if (name) Dash.toast(`Renamed to ${name}`);
+  });
+</script>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;form class=&quot;vstack&quot; data-validate style=&quot;max-width: 460px&quot; onsubmit=&quot;event.preventDefault(); Dash.toast(&#39;Sent&#39;)&quot;&gt;
+  &lt;div class=&quot;field&quot;&gt;&lt;label class=&quot;req&quot; for=&quot;v-site&quot;&gt;Site&lt;/label&gt;&lt;input class=&quot;input&quot; id=&quot;v-site&quot; name=&quot;site&quot; type=&quot;url&quot; required placeholder=&quot;https://&quot;&gt;&lt;/div&gt;
+  &lt;div class=&quot;row&quot;&gt;&lt;button class=&quot;btn&quot;&gt;Send&lt;/button&gt;
+    &lt;button type=&quot;button&quot; class=&quot;btn ghost&quot; id=&quot;v-modal&quot;&gt;In a modal…&lt;/button&gt;
+    &lt;button type=&quot;button&quot; class=&quot;btn ghost&quot; id=&quot;v-ask&quot;&gt;In a question…&lt;/button&gt;&lt;/div&gt;
+&lt;/form&gt;
+&lt;script&gt;
+  Dash.$(&#39;v-modal&#39;).addEventListener(&#39;click&#39;, () =&gt; Dash.modal({
+    title: &#39;Add server&#39;, cancel: &#39;Cancel&#39;,
+    body: &#39;&lt;div class=&quot;field&quot;&gt;&lt;label for=&quot;vm-name&quot;&gt;Name&lt;/label&gt;&lt;input class=&quot;input&quot; id=&quot;vm-name&quot; name=&quot;name&quot; required&gt;&lt;/div&gt;&#39;
+      + &#39;&lt;div class=&quot;field&quot;&gt;&lt;label for=&quot;vm-size&quot;&gt;Disks&lt;/label&gt;&lt;input class=&quot;input&quot; id=&quot;vm-size&quot; name=&quot;disks&quot; type=&quot;number&quot; min=&quot;1&quot; max=&quot;8&quot; value=&quot;12&quot;&gt;&lt;/div&gt;&#39;,
+    rules: { name: (text) =&gt; /\s/.test(text) &amp;&amp; &#39;Leave out the spaces.&#39; },
+    actions: [{ label: &#39;Add&#39;, value: &#39;add&#39;, primary: true }],
+    onAction: async (value, m) =&gt; { Dash.toast(`${m.form.values().name} added`); },
+  }));
+  Dash.$(&#39;v-ask&#39;).addEventListener(&#39;click&#39;, async () =&gt; {
+    const name = await Dash.ask(&#39;New name&#39;, { value: &#39;web-1&#39;, check: (text) =&gt; text === &#39;web-1&#39; &amp;&amp; &#39;That’s the name it has.&#39; });
+    if (name) Dash.toast(`Renamed to ${name}`);
+  });
+&lt;/script&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">form</span> <span class="c-attr">class</span>=<span class="c-str">&quot;vstack&quot;</span> <span class="c-attr">data-validate</span> <span class="c-attr">style</span>=<span class="c-str">&quot;max-width: 460px&quot;</span> <span class="c-attr">onsubmit</span>=<span class="c-str">&quot;event.preventDefault(); Dash.toast(&#39;Sent&#39;)&quot;</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;field&quot;</span>&gt;&lt;<span class="c-tag">label</span> <span class="c-attr">class</span>=<span class="c-str">&quot;req&quot;</span> <span class="c-attr">for</span>=<span class="c-str">&quot;v-site&quot;</span>&gt;Site&lt;/<span class="c-tag">label</span>&gt;&lt;<span class="c-tag">input</span> <span class="c-attr">class</span>=<span class="c-str">&quot;input&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;v-site&quot;</span> <span class="c-attr">name</span>=<span class="c-str">&quot;site&quot;</span> <span class="c-attr">type</span>=<span class="c-str">&quot;url&quot;</span> <span class="c-attr">required</span> <span class="c-attr">placeholder</span>=<span class="c-str">&quot;https://&quot;</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;row&quot;</span>&gt;&lt;<span class="c-tag">button</span> <span class="c-attr">class</span>=<span class="c-str">&quot;btn&quot;</span>&gt;Send&lt;/<span class="c-tag">button</span>&gt;
+    &lt;<span class="c-tag">button</span> <span class="c-attr">type</span>=<span class="c-str">&quot;button&quot;</span> <span class="c-attr">class</span>=<span class="c-str">&quot;btn ghost&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;v-modal&quot;</span>&gt;In a modal…&lt;/<span class="c-tag">button</span>&gt;
+    &lt;<span class="c-tag">button</span> <span class="c-attr">type</span>=<span class="c-str">&quot;button&quot;</span> <span class="c-attr">class</span>=<span class="c-str">&quot;btn ghost&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;v-ask&quot;</span>&gt;In a question…&lt;/<span class="c-tag">button</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+&lt;/<span class="c-tag">form</span>&gt;
+&lt;<span class="c-tag">script</span>&gt;
+  <span class="c-fn">Dash</span>.$(<span class="c-str">&#39;v-modal&#39;</span>).addEventListener(<span class="c-str">&#39;click&#39;</span>, () =&gt; <span class="c-fn">Dash</span>.modal({
+    title: <span class="c-str">&#39;Add server&#39;</span>, cancel: <span class="c-str">&#39;Cancel&#39;</span>,
+    body: <span class="c-str">&#39;&lt;div class=&quot;field&quot;&gt;&lt;label for=&quot;vm-name&quot;&gt;Name&lt;/label&gt;&lt;input class=&quot;input&quot; id=&quot;vm-name&quot; name=&quot;name&quot; required&gt;&lt;/div&gt;&#39;</span>
+      + <span class="c-str">&#39;&lt;div class=&quot;field&quot;&gt;&lt;label for=&quot;vm-size&quot;&gt;Disks&lt;/label&gt;&lt;input class=&quot;input&quot; id=&quot;vm-size&quot; name=&quot;disks&quot; type=&quot;number&quot; min=&quot;1&quot; max=&quot;8&quot; value=&quot;12&quot;&gt;&lt;/div&gt;&#39;</span>,
+    rules: { name: (text) =&gt; /\s/.test(text) &amp;&amp; <span class="c-str">&#39;Leave out the spaces.&#39;</span> },
+    actions: [{ label: <span class="c-str">&#39;Add&#39;</span>, value: <span class="c-str">&#39;add&#39;</span>, primary: <span class="c-key">true</span> }],
+    onAction: <span class="c-key">async</span> (value, m) =&gt; { <span class="c-fn">Dash</span>.toast(<span class="c-str">`${m.form.values().name} added`</span>); },
+  }));
+  <span class="c-fn">Dash</span>.$(<span class="c-str">&#39;v-ask&#39;</span>).addEventListener(<span class="c-str">&#39;click&#39;</span>, <span class="c-key">async</span> () =&gt; {
+    <span class="c-key">const</span> name = <span class="c-key">await</span> <span class="c-fn">Dash</span>.ask(<span class="c-str">&#39;New name&#39;</span>, { value: <span class="c-str">&#39;web-1&#39;</span>, check: (text) =&gt; text === <span class="c-str">&#39;web-1&#39;</span> &amp;&amp; <span class="c-str">&#39;That’s the name it has.&#39;</span> });
+    <span class="c-key">if</span> (name) <span class="c-fn">Dash</span>.toast(<span class="c-str">`Renamed to ${name}`</span>);
+  });
+&lt;/<span class="c-tag">script</span>&gt;</code></pre></figure>
     </section>
     <nav class="docs-steps" aria-label="More pages"><a class="docs-step prev" href="buttons.html"><span class="faint">Previous</span><b>Buttons</b></a><a class="docs-step next" href="surfaces.html"><span class="faint">Next</span><b>Panels and cards</b></a></nav>
   </main>

@@ -37,7 +37,7 @@ const server = createServer(async (req, res) => {
   const base = ['/dash.css', '/dash.js', '/dash-utils.css'].includes(path) ? kit : root;
   try {
     // test/csp.html: under a strict style policy, as some dashboards are
-    const csp = path === '/test/csp.html' ? { 'Content-Security-Policy': "style-src 'self'" } : {};
+    const csp = path === '/test/csp.html' || path === '/test/csp-forms.html' ? { 'Content-Security-Policy': "style-src 'self'" } : {};
     const body = await readFile(join(base, path)); // first: a missing file is a 404
     res.writeHead(200, { 'Content-Type': TYPES[extname(path)] || 'application/octet-stream', ...csp }).end(body);
   } catch {
@@ -113,6 +113,14 @@ const open = async ({ width = 1200, init, clock = false } = {}) => {
     return out;
   });
   for (const [k, v] of Object.entries(r)) check('render: ' + k, v);
+  // typed with real keys, drawn again after each with what was typed as its value: an email or a number box has no caret
+  // to read and put back
+  for (const [type, text] of [['email', 'ab@example.com'], ['number', '1234'], ['text', 'hello']]) {
+    await tab.evaluate((t) => { getSelection().removeAllRanges(); window.drawBox = () => Dash.render('box', `<p>${Math.random()}</p><input id="typed" type="${t}" value="${document.getElementById('typed')?.value ?? ''}">`); document.getElementById('typed')?.remove(); drawBox(); document.getElementById('typed').focus(); }, type);
+    for (const k of text) { await tab.keyboard.type(k); await tab.evaluate(() => drawBox()); }
+    const got = await tab.evaluate(() => document.getElementById('typed').value);
+    check(`render: typing on in a box of type ${type}`, got === text, got);
+  }
   await tab.context().close();
 }
 
@@ -2076,6 +2084,501 @@ let reference;
   const strict = await strictTab.evaluate(async () => { const n = document.createElement('div'); document.querySelector('main').append(n); const t = Dash.table(n, { columns: [{ key: 'a', label: 'A', main: true }], rows: [{ a: 1 }, { a: 2 }], key: 'a', select: { actions: [{ label: 'Go', run() {} }] }, expand: async () => '<p>x</p>' }); t.select([1]); t.expand(2); await new Promise((ok) => setTimeout(ok, 200)); return [violations.length, n.querySelector('.row-box').textContent, n.querySelector('.table-bar b').textContent, n.innerHTML.includes('style=')]; });
   check('1.12 rows: under a strict style policy it breaks nothing', JSON.stringify(strict) === '[0,"x","1 selected",false]', JSON.stringify(strict));
   await strictTab.context().close();
+}
+
+// ---- 1.13 Dash.form (test/forms.html)
+{
+  const openForms = async ({ width = 1000, height = 900, page = 'forms.html', ...more } = {}) => {
+    const ctx = await browser.newContext({ viewport: { width, height }, locale: 'en-US', ...more });
+    const tab = await ctx.newPage();
+    tab.setDefaultTimeout(5000);
+    tab.on('pageerror', (e) => { if (e.message !== 'made to fail') errors.push(e.message); });
+    await tab.goto(url.replace('behaviour.html', page), { waitUntil: 'load' });
+    return tab;
+  };
+  const tab = await openForms();
+  const at = (f, a) => tab.evaluate(f, a);
+  const errs = (n = 'account') => at((k) => JSON.stringify(window[k].errors), n);
+  const logged = () => at(() => log.splice(0).join('|'));
+  const tick = (ms = 40) => tab.waitForTimeout(ms);
+  const active = () => at(() => document.activeElement.id || document.activeElement.name || document.activeElement.tagName);
+  const about = (id) => at((i) => { const e = document.getElementById(i); return { bad: e.getAttribute('aria-invalid'), text: (e.getAttribute('aria-describedby') || '').split(' ').filter(Boolean).map((k) => document.getElementById(k)?.textContent ?? '?').join(' + '), field: e.closest('.field')?.classList.contains('invalid') ?? null }; }, id);
+  const type = async (id, text) => { await tab.fill('#' + id, ''); await tab.focus('#' + id); await tab.keyboard.type(text); };
+  const good = async () => { // everything right, as the reader would leave it
+    await at(() => { account.clear(); send = null; log.length = 0; for (const [id, v] of Object.entries({ 'a-name': 'Treasury', 'a-email': 'a@example.com', 'a-pw': 'secret', 'a-again': 'secret', 'a-handle': 'ada', 'a-count': '2', 'a-region': 'eu', 'a-day': '2026-01-15', 'a-owner': 'Ada', 'a-note': '' })) document.getElementById(id).value = v;
+      for (const e of document.querySelectorAll('#account [name="days"]')) e.checked = e.value === 'tue'; document.querySelector('#account [name="plan"][value="l"]').checked = true; document.querySelector('[name="terms"]').checked = true; document.querySelector('[name="limit"]').value = '10'; document.querySelector('[name="low"]').value = '1'; document.querySelector('[name="high"]').value = '9'; document.querySelector('[name="nick"]').value = ''; document.querySelector('[name="version"]').value = '7'; });
+  };
+  const save = async (say = '') => { await tab.click('#a-save'); await tick(); await at((t) => { for (const k of Object.keys(answer)) answer[k].ok(t); answer = {}; }, say); await tick(); };
+
+  // nothing until there is something to say
+  const rest = await at(() => ({ marks: document.querySelectorAll('#account [aria-invalid], #account .field-err, #account .field.invalid').length, asked: document.getElementById('account').noValidate, old: document.getElementById('old').noValidate, words: document.querySelector('#old .err').textContent, flag: document.getElementById('old').hasAttribute('data-dash-form') }));
+  check('1.13 forms: nothing shows at the start, and a form that was not asked about is left alone', rest.marks === 0 && rest.asked && !rest.old && rest.words === 'The page’s own words' && !rest.flag, JSON.stringify(rest));
+  await tab.focus('#a-name');
+  for (let i = 0; i < 3; i++) await tab.keyboard.press('Tab');
+  await tick();
+  check('1.13 forms: going through fields without touching them says nothing', (await errs()) === '{}', await errs());
+
+  // leaving a changed field; putting it right
+  await type('a-name', 'ab');
+  const typing = await about('a-name');
+  await tab.keyboard.press('Tab');
+  await tick();
+  const left = await about('a-name');
+  check('1.13 forms: nothing while typing; leaving a field says what is wrong, after its hint', typing.bad === null && left.bad === 'true' && left.text === 'Shown in the list. + Use at least 3 characters.' && left.field && (await active()) === 'a-email', JSON.stringify([typing, left, await active()]));
+  check('1.13 forms: a screen reader hears it, with the field\'s name', (await at(() => document.querySelector('#account > [role="status"]').textContent)) === 'Name: Use at least 3 characters.', await at(() => document.querySelector('#account > [role="status"]').textContent));
+  await tab.focus('#a-name');
+  await tab.keyboard.press('End');
+  await tab.keyboard.type('c');
+  const right = await about('a-name');
+  check('1.13 forms: putting it right takes it away at once, and the hint stays', right.bad === null && right.text === 'Shown in the list.' && !right.field && (await at(() => document.querySelector('#a-name').closest('.field').querySelector('.err').hidden)), JSON.stringify(right));
+  await type('a-name', 'a b c');
+  await tab.keyboard.press('Tab');
+  await tick();
+  const spaces = (await about('a-name')).text;
+  await type('a-name', 'admin');
+  await tab.keyboard.press('Tab');
+  await tick();
+  const admin = (await about('a-name')).text;
+  await type('a-name', '    ');
+  await tab.keyboard.press('Tab');
+  await tick();
+  check('1.13 forms: rules in order, and spaces alone are not an answer', spaces.endsWith('Leave out the spaces.') && admin.endsWith('Not that one.') && (await about('a-name')).text.endsWith('Fill this in.'), JSON.stringify([spaces, admin, (await about('a-name')).text]));
+  await type('a-email', 'abc');
+  await tab.keyboard.press('Tab');
+  await tick();
+  check('1.13 forms: the kit\'s own words, never with what was typed; into the field\'s own .err', (await about('a-email')).text === 'Enter an email address, like name@example.com.' && (await at(() => document.querySelectorAll('#a-email-err').length === 1 && document.querySelector('#a-email').closest('.field').querySelectorAll('.err').length === 1)), JSON.stringify(await about('a-email')));
+  // a field about another field
+  await type('a-pw', 'secret');
+  await type('a-again', 'secreT');
+  await tab.keyboard.press('Tab');
+  await tick();
+  const differ = (await about('a-again')).text;
+  await type('a-pw', 'secreT');
+  const agree = (await about('a-again')).text;
+  await type('a-pw', 'other');
+  const still = (await about('a-again')).text;
+  await tab.keyboard.press('Tab');
+  await tick();
+  check('1.13 forms: a field about another one: says so when left, goes when the other is put right, comes back when that changes again', differ === 'The passwords differ.' && agree === '' && still === '' && (await about('a-again')).text === 'The passwords differ.', JSON.stringify([differ, agree, still, await about('a-again')]));
+
+  // a rule that asks: one that is async isn't asked on any key, also when the field showed something before
+  await good();
+  await type('a-handle', 'BOB');
+  await tab.keyboard.press('Tab');
+  await tick();
+  const small = [(await about('a-handle')).text, await logged()];
+  await type('a-handle', 'bob');
+  const keys = await logged();
+  await tab.keyboard.press('Tab');
+  await tick();
+  const asking = { log: await logged(), ...(await about('a-handle')), busy: await at(() => document.querySelector('#a-handle').closest('.field').querySelector('.err').hasAttribute('data-checking')), color: await at(() => getComputedStyle(document.querySelector('#a-handle').closest('.field').querySelector('.err')).color === getComputedStyle(document.querySelector('#a-name-hint')).color) };
+  check('1.13 forms: a rule that asks waits until the browser\'s checks are fine and the field is left; meanwhile it says so', small[0] === 'Use small letters and digits.' && small[1] === '' && keys === '' && asking.log === 'ask bob' && asking.text === 'Checking…' && asking.bad === null && asking.busy && asking.color, JSON.stringify([small, keys, asking]));
+  await at(() => { window.first = answer.bob; first.ok('That name is taken.'); });
+  await tick();
+  const taken = await about('a-handle');
+  await tab.focus('#a-handle');
+  await tab.keyboard.type('by');
+  const typed = [(await about('a-handle')).text, await logged()];
+  await tab.keyboard.press('Tab');
+  await tick();
+  await type('a-handle', 'cy');
+  await tab.keyboard.press('Tab');
+  await tick();
+  await at(() => { answer.bobby.ok('too late'); answer.cy.ok(''); });
+  await tick();
+  check('1.13 forms: its answer shows; it isn\'t asked on every key; a late answer about an older text is dropped', taken.text === 'That name is taken.' && taken.bad === 'true' && typed.join() === ',' && (await logged()) === 'ask bobby|ask cy' && (await about('a-handle')).text === '', JSON.stringify([taken, typed, await about('a-handle')]));
+  await tab.focus('#a-handle');
+  await tab.keyboard.press('Tab');
+  await tab.focus('#a-name');
+  await tick();
+  check('1.13 forms: an answer that is in isn\'t asked for again', (await logged()) === '', '');
+
+  // submitting
+  await at(() => { document.getElementById('account').reset(); account.clear(); log.length = 0; });
+  await tab.click('#a-save');
+  await tick();
+  const empty = { e: JSON.parse(await errs()), focus: await active(), log: await logged(), say: await at(() => document.querySelector('#account > [role="status"]').textContent) };
+  check('1.13 forms: submitting checks all and goes to the first problem; nothing is sent, and the page\'s own listener isn\'t told', Object.keys(empty.e).join() === 'name,email,password,handle,region,owner,plan,days,terms' && empty.e.region === 'Choose one.' && empty.e.terms === 'Tick this to go on.' && empty.focus === 'a-name' && empty.log === '' && empty.say === '9 fields to fix', JSON.stringify(empty));
+  const groups = await at(() => ({ days: document.querySelector('#days > .field-err')?.textContent, dayMarks: [...document.querySelectorAll('[name="days"]')].map((e) => e.getAttribute('aria-describedby')), plan: document.querySelector('#account .choices + .field-err')?.textContent, terms: document.querySelector('#terms + .field-err')?.textContent, inLabel: document.querySelectorAll('#account label.choice .field-err, #account label.checkline .field-err').length, all: document.querySelectorAll('#account .field-err').length }));
+  check('1.13 forms: a group has one message, outside its labels', groups.days === 'Choose a day.' && groups.dayMarks[0] && groups.dayMarks[0] === groups.dayMarks[1] && groups.plan === 'Choose one.' && groups.terms === 'Tick this to go on.' && groups.inLabel === 0 && groups.all === 3, JSON.stringify(groups));
+  await tab.click('#account [name="plan"][value="s"]');
+  await tab.click('#account [name="days"][value="mon"]');
+  await tab.selectOption('#a-region', 'eu');
+  const fixed = JSON.parse(await errs());
+  await tab.click('#account [name="days"][value="mon"]');
+  const unticked = JSON.parse(await errs()).days;
+  await tab.focus('#a-note');
+  await tick();
+  check('1.13 forms: choosing takes a message away; a group of checkboxes is judged once it is left', !fixed.plan && !fixed.days && !fixed.region && unticked === undefined && JSON.parse(await errs()).days === 'Choose a day.', JSON.stringify([fixed, unticked, await errs()]));
+  await tab.click('#a-reset');
+  await tick();
+  check('1.13 forms: a reset takes all messages away', (await errs()) === '{}' && (await at(() => document.querySelectorAll('#account [aria-invalid], #account .field.invalid, #account .field-err:not([hidden])').length)) === 0, await errs());
+  await tab.focus('#a-name');
+  await tab.keyboard.press('Enter');
+  await tick();
+  check('1.13 forms: Enter in a field submits, and is checked too', JSON.parse(await errs()).email === 'Fill this in.' && (await logged()) === '', await errs());
+
+  await good();
+  await tab.click('#a-save');
+  await tick();
+  const waiting = await at(() => ({ busy: document.getElementById('a-save').getAttribute('aria-busy'), off: document.getElementById('a-save').disabled, log: log.join('|') }));
+  await at(() => document.getElementById('account').requestSubmit());
+  await at(() => { answer.ada.ok(''); });
+  await tick();
+  const sent = await at(() => JSON.stringify(sent));
+  check('1.13 forms: while a rule is asked the button is busy, and a second submit does nothing', waiting.busy === 'true' && waiting.off && waiting.log === 'ask ada' && (await logged()) === 'ask ada|save save' && (await at(() => !document.getElementById('a-save').disabled)) && (await active()) === 'a-save', JSON.stringify(waiting));
+  check('1.13 forms: the values: numbers, true and false, lists, files; buttons left out', sent === '{"name":"Treasury","email":"a@example.com","password":"secret","again":"secret","handle":"ada","seats":2,"region":"eu","day":"2026-01-15","owner":"Ada","low":1,"high":9,"nick":"","limit":"10","plan":"l","days":["tue"],"terms":true,"alerts":false,"file":null,"note":"","version":"7"}', sent);
+  await tab.click('#a-save');
+  await tick();
+  check('1.13 forms: with nothing to wait for it is sent at once; with onSubmit the event ends there', (await logged()) === 'save save', '');
+  const list = await at(() => { const f = document.createElement('form'); f.innerHTML = '<input name="tag" value="a"><input name="tag" value="b"><input type="checkbox" name="one[]" value="x" checked><input name="solo[]" value="s"><select name="many" multiple><option selected>p</option><option selected>q</option></select><input name="n" type="number"><input id="noname" value="z"><input type="checkbox" name="__proto__" checked>'; document.body.append(f); const h = Dash.form(f); const v = h.values(); f.remove(); return JSON.stringify(v) + Object.keys(v).length; });
+  check('1.13 forms: a repeated name, name[] and a list of choices are lists; an empty number is null', list === '{"tag":["a","b"],"one[]":["x"],"solo[]":["s"],"many":["p","q"],"n":null,"__proto__":true}6', list);
+
+  // what comes back from the server
+  await good();
+  await at(() => { send = async () => { throw Object.assign(new Error('Not saved'), { errors: { handle: 'That name is taken.', other: ['No.', 'x'], days: '' } }); }; });
+  await save();
+  const back = { e: JSON.parse(await errs()), focus: await active(), line: await at(() => { const p = document.querySelector('#account .form-error'); return [p.textContent, p.getAttribute('role'), p.nextElementSibling.contains(document.getElementById('a-save')), getComputedStyle(p).display].join('|'); }) };
+  check('1.13 forms: errors by field land on the fields, the rest on a line above the buttons', back.e.handle === 'That name is taken.' && !back.e.days && back.focus === 'a-handle' && back.line === 'other: No.|alert|true|block', JSON.stringify(back));
+  await tab.keyboard.press('End');
+  await tab.keyboard.type('1');
+  const gone = JSON.parse(await errs()).handle;
+  await tab.keyboard.press('Backspace');
+  await at(() => { send = null; log.length = 0; });
+  await save();
+  const again = [await logged(), await errs(), await at(() => document.querySelector('#account .form-error').hidden)];
+  check('1.13 forms: changing the field takes it away, and it doesn\'t stop the next save', gone === undefined && again[0] === 'save save' && again[1] === '{}' && again[2], JSON.stringify([gone, again]));
+  await at(() => { send = async () => { throw Object.assign(new Error('HTTP 422'), { body: { errors: { email: ['Not known here.', 'x'] } } }); }; });
+  await save();
+  const body = JSON.parse(await errs());
+  check('1.13 forms: also from the body of Dash.api\'s error', body.email === 'Not known here.' && body[''] === undefined && (await active()) === 'a-email', JSON.stringify(body));
+  await at(() => { send = async () => { throw Object.assign(new Error('Server <b>down</b>'), { status: 503 }); }; });
+  await save();
+  const down = { e: JSON.parse(await errs()), focus: await active(), html: await at(() => document.querySelector('#account .form-error').innerHTML), lines: await at(() => document.querySelectorAll('#account .form-error').length) };
+  check('1.13 forms: any other error is the line, as text; the focus is back on the button', down.e[''] === 'Server <b>down</b>' && Object.keys(down.e).length === 1 && down.focus === 'a-save' && down.html === 'Server &lt;b&gt;down&lt;/b&gt;' && down.lines === 1, JSON.stringify(down));
+  await at(() => { send = null; });
+  await save();
+  check('1.13 forms: the next save takes the line away', (await errs()) === '{}', await errs());
+
+  // a rule that can't answer
+  await good();
+  await type('a-handle', 'zed');
+  await tab.keyboard.press('Tab');
+  await tick();
+  await at(() => { answer.zed.no(new Error('offline')); answer = {}; });
+  await tick();
+  const quiet = await errs();
+  await at(() => { log.length = 0; });
+  await tab.click('#a-save');
+  await tick();
+  await at(() => { answer.zed.no(new Error('offline')); answer = {}; });
+  await tick();
+  const cant = [JSON.parse(await errs()).handle, await logged()];
+  await save();
+  check('1.13 forms: a rule that can\'t answer is quiet when the field is left, stops a save, and is asked again', quiet === '{}' && cant[0] === 'Couldn’t check this: offline' && cant[1] === 'ask zed' && (await logged()) === 'ask zed|save save', JSON.stringify([quiet, cant]));
+  // the reader goes on typing while it is asked
+  await good();
+  await at(() => { document.getElementById('a-handle').value = 'max'; });
+  await tab.click('#a-save');
+  await tick();
+  await tab.focus('#a-handle');
+  await tab.keyboard.press('End');
+  await tab.keyboard.type('i');
+  await at(() => { answer.max.ok(''); });
+  await tick();
+  const second = await logged();
+  await at(() => { answer.maxi.ok('Not that.'); answer = {}; });
+  await tick();
+  check('1.13 forms: what the reader changed while a save waits is checked too, before anything is sent', second === 'ask max|ask maxi' && JSON.parse(await errs()).handle === 'Not that.' && (await logged()) === '', JSON.stringify([second, await errs()]));
+  const bug = await at(async () => { const f = document.createElement('form'); f.innerHTML = '<input name="x" value="1">'; document.body.append(f); let sent = 0; const h = Dash.form(f, { rules: { x: () => { throw new Error('made to fail'); } }, onSubmit: () => { sent++; } }); f.requestSubmit(); const out = [h.errors.x, sent]; f.remove(); return out; });
+  check('1.13 forms: a rule with a mistake in it lets nothing through', bug[0] === 'Couldn’t check this: made to fail' && bug[1] === 0, JSON.stringify(bug));
+
+  // about the form as a whole; a button that skips the checks
+  await good();
+  await at(() => { document.getElementById('a-count').value = '12'; });
+  await save();
+  const whole = [JSON.parse(await errs()), await logged()];
+  await tab.selectOption('#a-region', 'us');
+  check('1.13 forms: a rule about the whole form is the line, and goes when it is put right', whole[0][''] === 'Frankfurt has ten seats.' && whole[1] === 'ask ada' && (await errs()) === '{}', JSON.stringify([whole, await errs()]));
+  await at(() => { document.getElementById('a-name').value = ''; log.length = 0; });
+  await tab.click('#a-draft');
+  await tick();
+  check('1.13 forms: a button with formnovalidate skips the checks', (await logged()) === 'save ' && (await errs()) === '{}', await errs());
+
+  // the kinds of fields
+  await good();
+  const kinds = await at(async () => { const out = {}; const set = async (id, v, name) => { const e = document.getElementById(id) || document.querySelector(`#account [name="${id}"]`); const was = e.value; e.value = v; await account.check(name || id); out[`${name || id} ${v}`] = account.errors[name || id]; e.value = was; await account.check(name || id); };
+    await set('a-count', '0', 'seats'); await set('a-count', '21', 'seats'); await set('a-count', '2.5', 'seats'); await set('a-day', '2026-02-30', 'day'); await set('a-day', '2026-01-09', 'day'); await set('a-day', '2026/1/12', 'day'); await set('nick', 'far too long', 'nick'); await set('version', '8', 'version'); await set('high', '1', 'high'); await set('a-note', 'bad', 'note'); return out; });
+  check('1.13 forms: the words for each kind', JSON.stringify(kinds) === JSON.stringify({ 'seats 0': 'Use 1 or more.', 'seats 21': 'Use 20 or less.', 'seats 2.5': 'Use a whole number.', 'day 2026-02-30': 'Enter a date as YYYY-MM-DD.', 'day 2026-01-09': 'Choose a day from 2026-01-10 to 2026-01-20.', 'nick far too long': 'Use at most 8 characters.', 'version 8': 'Not this version.', 'high 1': 'High must be above low.', 'note bad': '<b>Not</b> that & this.' }), JSON.stringify(kinds));
+  const words = await at(() => { const t = Dash.form.text, e = (p) => ({ type: 'text', tagName: 'INPUT', min: '', max: '', step: '', title: '', value: '', ...p }); return [t.valueMissing(e({ type: 'file' })), t.valueMissing(e({ type: 'date' })), t.valueMissing(e({ type: 'time' })), t.badInput(e({ type: 'number' })), t.badInput(e({ type: 'date' })), t.typeMismatch(e({ type: 'url' })), t.tooShort(e({ minLength: 1 })), t.patternMismatch(e({})), t.rangeUnderflow(e({ min: '2026-01-01' })), t.rangeOverflow(e({ max: '2026-01-01' })), t.stepMismatch(e({ step: '5', min: '10', value: '12' })), t.stepMismatch(e({ step: '0.5', value: '0.2' })), t.stepMismatch(e({ step: '60', value: '10:00:30' })), t.dateRange('2026-01-01', null), t.dateRange(null, '2026-01-01')].join('|'); });
+  check('1.13 forms: and for the others', words === 'Choose a file.|Choose a date.|Choose a time.|Enter a number.|Enter a whole date.|Enter a whole address, like https://example.com.|Use at least 1 character.|That isn’t in the right form.|Choose 2026-01-01 or later.|Choose 2026-01-01 or earlier.|Use steps of 5 from 10.|Use steps of 0.5.|Choose another one.|Choose 2026-01-01 or later.|Choose 2026-01-01 or earlier.', words);
+  await type('a-count', 'e');
+  await tab.keyboard.press('Tab');
+  await tick();
+  check('1.13 forms: text in a number box is no empty number box', (await about('a-count')).text === 'Enter a number.', JSON.stringify(await about('a-count')));
+  const custom = await at(async () => { const e = document.getElementById('a-note'); e.setCustomValidity('Says the page.'); await account.check('note'); const a = account.errors.note; e.setCustomValidity(''); await account.check('note'); const was = Dash.form.text.valueMissing; Dash.form.text.valueMissing = 'Fehlt.'; document.getElementById('a-name').value = ''; await account.check('name'); const b = account.errors.name; Dash.form.text.valueMissing = was; return [a, b, account.errors.note]; });
+  check('1.13 forms: a page\'s setCustomValidity counts, and the kit\'s words can be changed', JSON.stringify(custom) === '["Says the page.","Fehlt.",null]', JSON.stringify(custom));
+  const marks = await at(async () => { const low = document.querySelector('[name="low"]'), high = document.querySelector('[name="high"]'); account.clear(); high.value = '1'; await account.check('high'); const color = (e) => getComputedStyle(e).borderTopColor; document.activeElement.blur(); const i = document.createElement('i'); i.style.color = 'var(--bad)'; document.body.append(i); const bad = getComputedStyle(i).color; i.remove(); const out = { low: color(low) === bad, high: color(high) === bad, text: document.querySelector('#span .err').textContent, lowMark: low.getAttribute('aria-invalid') }; high.focus(); out.focus = color(high) === bad; high.value = '9'; await account.check('high'); out.field = document.getElementById('span').className; return out; });
+  check('1.13 forms: two boxes in one field: only the wrong one is red, also while it has the focus', JSON.stringify(marks) === '{"low":false,"high":true,"text":"High must be above low.","lowMark":null,"focus":true,"field":"field"}', JSON.stringify(marks));
+  await at(async () => { document.querySelector('[name="nick"]').value = 'far too long'; await account.check('nick'); });
+  const nick = [await tab.getByRole('textbox', { name: 'Nickname', exact: true }).count(), await at(() => { const e = document.querySelector('#wrapped .err'); return [e.textContent, e.getAttribute('aria-hidden'), document.querySelector('[name="nick"]').getAttribute('aria-describedby') === e.id].join(); })];
+  check('1.13 forms: a message inside a label isn\'t part of the field\'s name', nick[0] === 1 && nick[1] === 'Use at most 8 characters.,true,true', JSON.stringify(nick));
+  await tab.fill('#account [name="limit"]', '');
+  await tab.keyboard.press('Tab');
+  await tick();
+  const forEl = await at(() => { const e = document.querySelector('#account [name="limit"]'); return [document.getElementById('limit-err').textContent, e.getAttribute('aria-describedby'), document.querySelectorAll('#group + .field-err').length, getComputedStyle(e).zIndex].join(); });
+  check('1.13 forms: data-error-for says where the words go; a wrong box in a group is above its neighbours', forEl === 'Fill this in.,limit-err,0,1', forEl);
+  const files = await at(async () => { const i = document.querySelector('#zone input'), dt = new DataTransfer(); dt.items.add(new File(['far too big'], 'x.txt')); i.files = dt.files; i.dispatchEvent(new Event('change', { bubbles: true })); await new Promise((ok) => setTimeout(ok, 20)); const a = [account.errors.file, document.querySelector('#zone + .field-err')?.textContent, account.values().file.name, getComputedStyle(document.getElementById('zone')).borderTopColor !== getComputedStyle(document.getElementById('group').querySelector('.affix')).borderTopColor]; i.value = ''; i.dispatchEvent(new Event('change', { bubbles: true })); a.push(account.errors.file); return JSON.stringify(a); });
+  check('1.13 forms: files', files === '["That file is too big.","That file is too big.","x.txt",true,null]', files);
+
+  // the kit's own fields
+  await good();
+  await at(() => { account.clear(); document.getElementById('a-owner').value = ''; });
+  await type('a-owner', 'zz');
+  await tab.keyboard.press('Enter');
+  await tick();
+  const listed = [JSON.parse(await errs()).owner, await logged()];
+  await tab.keyboard.press('Tab');
+  await tick(80);
+  const emptied = [JSON.parse(await errs()).owner, await at(() => document.getElementById('a-owner').value)];
+  check('1.13 forms: suggestions that must be picked: other text stops a save; leaving the box empties it', listed[0] === 'Choose one from the list.' && !listed[1].includes('save') && emptied[0] === 'Fill this in.' && emptied[1] === '', JSON.stringify([listed, emptied]));
+  await at(() => { account.clear(); window.heard = []; new MutationObserver(() => heard.push(document.querySelector('#account > [role="status"]').textContent)).observe(document.querySelector('#account > [role="status"]'), { childList: true }); });
+  await type('a-owner', 'ben');
+  await tab.keyboard.press('Tab');
+  await tick(80);
+  check('1.13 forms: text that is one is put right first, without a word', (await errs()) === '{}' && (await at(() => document.getElementById('a-owner').value)) === 'Ben' && !(await at(() => heard.join())).includes('Owner'), await at(() => JSON.stringify([heard, account.errors])));
+  await type('a-day', '2026-01-99');
+  await tab.keyboard.press('Tab');
+  await tick();
+  const day = await about('a-day');
+  await tab.click('#account .date-btn');
+  await tab.click('.calendar [data-date="2026-01-12"]');
+  await tick();
+  const picked = { ...(await about('a-day')), v: await at(() => document.getElementById('a-day').value) };
+  check('1.13 forms: a date: a wrong one says so, picking one in the calendar takes it away', day.text === 'Enter a date as YYYY-MM-DD.' && day.bad === 'true' && picked.bad === null && picked.text === '' && picked.v === '2026-01-12', JSON.stringify([day, picked]));
+
+  // the button doesn't jump away from under the click
+  await at(() => { document.getElementById('account').reset(); account.clear(); log.length = 0; const f = document.createElement('form'); f.id = 'jump'; f.className = 'panel'; f.innerHTML = '<div class="field"><label for="j">J</label><input class="input" id="j" name="j" minlength="4"></div><button class="btn" id="j-go">Go</button>'; document.querySelector('main').prepend(f); window.jump = Dash.form(f, { rules: { j: (v) => (log.push('rule'), '') }, onSubmit: () => { log.push('jump'); } }); scrollTo(0, 0); });
+  await type('j', 'ab');
+  const spot = await tab.locator('#j-go').boundingBox();
+  await tab.mouse.move(spot.x + 8, spot.y + 3);
+  await tab.mouse.down();
+  await tick(60);
+  const held = [await errs('jump'), (await tab.locator('#j-go').boundingBox()).y === spot.y];
+  await tab.mouse.up();
+  await tick();
+  check('1.13 forms: a message doesn\'t push the button away from under a click', held[0] === '{}' && held[1] && JSON.parse(await errs('jump')).j === 'Use at least 4 characters.' && (await active()) === 'j', JSON.stringify([held, await errs('jump'), await active()]));
+  await at(() => { jump.clear(); });
+  await type('j', 'abc');
+  await tab.mouse.move(spot.x + 300, spot.y - 4);
+  await tab.mouse.down();
+  await tick(60);
+  await tab.mouse.up();
+  await tick();
+  check('1.13 forms: it shows once the press is over', JSON.parse(await errs('jump')).j === 'Use at least 4 characters.', await errs('jump'));
+  await at(() => document.getElementById('jump').remove());
+
+  // no code
+  await at(() => { log.length = 0; });
+  await tab.click('#b-go');
+  await tick();
+  const auto = await at(() => ({ site: document.querySelector('#b-site').closest('.field').querySelector('.err')?.textContent, bare: document.querySelector('#b-bare + .field-err')?.textContent, focus: document.activeElement.id, log: log.join() }));
+  await tab.fill('#b-site', 'https://example.com');
+  await tab.fill('#b-bare', 'x');
+  await tab.click('#b-go');
+  await tick();
+  check('1.13 forms: data-validate needs no code: words under the fields (data-problem: its own), then it goes on as it would', auto.site === 'Give the site’s address.' && auto.bare === 'Fill this in.' && auto.focus === 'b-site' && auto.log === '' && (await logged()) === 'auto', JSON.stringify(auto));
+  const later = await at(async () => { const f = document.createElement('form'); f.setAttribute('data-validate', ''); f.innerHTML = '<input class="input" name="x" required aria-label="X"><input class="input" name="y" required aria-label="Y"><button class="btn">Go</button>'; document.querySelector('main').append(f); let bubbles = 0; f.addEventListener('invalid', (e) => { bubbles += e.defaultPrevented ? 0 : 1; }); document.addEventListener('invalid', (e) => { bubbles += e.defaultPrevented ? 0 : 1; }, { once: true }); f.requestSubmit(); await null; const out = [f.querySelectorAll('.field-err').length, bubbles, document.activeElement.name]; f.remove(); const g = document.createElement('form'); g.setAttribute('data-validate', ''); g.innerHTML = '<input class="input" name="x" required aria-label="X">'; document.querySelector('main').append(g); g.querySelector('input').focus(); out.push(g.noValidate); g.remove(); return JSON.stringify(out); });
+  check('1.13 forms: also in a form that comes later, before anyone touched it', later === '[2,0,"x",true]', later);
+
+  // fields that don't show
+  const hide = async (name) => { await at((n) => { away.clear(); for (const e of document.getElementById('away').elements) if (e.name) e.value = e.name === n ? 'x' : ''; log.length = 0; }, name); await tab.click('#c-go'); await tick(); return { e: JSON.parse(await errs('away')), focus: await active(), line: await at(() => { const p = document.querySelector('#away .form-error'); return p && !p.hidden ? p.textContent : ''; }), red: await at(() => { const i = document.createElement('i'); i.style.color = 'var(--bad)'; document.body.append(i); const c = getComputedStyle(i).color; i.remove(); return getComputedStyle(document.getElementById('c-out')).borderTopColor === c; }), log: await logged() }; };
+  const two = await hide('two'), more = await hide('more'), lost = await hide('gone'), out = await hide('out'), none = await hide('off');
+  check('1.13 forms: a wrong field in another tab or a closed part is brought into view', two.focus === 'c-two' && two.line === '' && two.log === '' && more.focus === 'c-more' && more.line === '' && (await at(() => document.getElementById('more').open)), JSON.stringify([two, more]));
+  check('1.13 forms: one that can\'t be shown is named above the buttons; a save never stops without a word', lost.line === 'Gone: Not x.' && lost.log === '', JSON.stringify(lost));
+  check('1.13 forms: a field outside the form\'s element counts too; a disabled one doesn\'t', out.focus === 'c-out' && out.red && (await at(() => document.querySelector('#c-out + .field-err')?.hidden)) === true && (await at(() => !document.getElementById('c-out').hasAttribute('data-dash-form'))) && out.e.out === 'Not x.' && none.log === 'away' && (await at(() => !('off' in away.values()))), JSON.stringify([out, none]));
+
+  const both = await at(async () => { away.clear(); for (const e of document.getElementById('away').elements) if (e.name) e.value = /^(one|two|more)$/.test(e.name) ? 'x' : ''; document.getElementById('more').open = false; document.querySelector('#steps [data-value="two"]').click(); await away.check(); const p = document.querySelector('#away .form-error'); const a = [document.activeElement.id, document.getElementById('c-one').getClientRects().length > 0, document.getElementById('more').open, !p || p.hidden].join(); document.getElementById('c-one').value = ''; await away.check(); const b = document.activeElement.id; return a + '|' + b; });
+  check('1.13 forms: several in different tabs: the first is shown, then the next one', both === 'c-one,true,true,true|c-two', both);
+  const twice = await at(async () => { const box = document.createElement('div'); box.innerHTML = '<div id="t-other"><button type="button" data-value="one">x</button><button type="button" data-value="two">y</button></div><form id="t-form"><div id="t-tabs"><button type="button" data-value="two">2</button><button type="button" data-value="one">1</button></div><div data-tab="two">2</div><div data-tab="one"><input class="input" id="t-x" name="x" required aria-label="X"></div></form>'; document.querySelector('main').prepend(box); Dash.tabs('t-other', { panels: 't-other' }); Dash.tabs('t-tabs', { panels: 't-form' }); const f = Dash.form('t-form'); await f.check(); const out = [document.activeElement.id, document.querySelector('#t-other [aria-selected="true"]').dataset.value].join(); box.remove(); return out; });
+  check('1.13 forms: the tab is the form\'s own, also when another has that name', twice === 't-x,one', twice);
+
+  // where the line and the messages go
+  const places = await at(async () => { const out = []; const make = (html, parent = document.querySelector('main')) => { const d = document.createElement('div'); d.innerHTML = html; parent.append(d); return d; };
+    const a = make('<form class="row" id="p-a"><input class="input" name="q" required aria-label="Q" style="width:200px"><button class="btn">Find</button></form>'); const fa = Dash.form('p-a'); await fa.check(); fa.error('', 'A line'); const y = (e) => e.getBoundingClientRect(); const i = a.querySelector('input'), b = a.querySelector('button'), m = a.querySelector('.field-err'), l = a.querySelector('.form-error'); out.push(Math.abs(y(i).top - y(b).top) < 8, y(m).top >= y(b).bottom - 1, l.parentElement.id, y(l).top >= y(b).bottom - 1);
+    const c = make('<div class="row"><form id="p-b"><input class="input" name="q" aria-label="Q"><button class="btn">Find</button></form></div>'); const fb = Dash.form('p-b'); fb.error('', 'One'); fb.error('', 'Two'); await null; out.push(c.querySelectorAll('.form-error').length, c.querySelector('.form-error').parentElement.id, c.querySelector('.form-error').nextElementSibling.tagName);
+    const d = make('<form id="p-c"><input class="input" name="q" aria-label="Q"></form>'); Dash.form('p-c').error('', 'At the end'); out.push(d.querySelector('form').lastElementChild.className);
+    const e = make('<form id="p-d"><input class="input" name="q" aria-label="Q"><div style="height:3000px"></div><button class="btn">Go</button></form>'); scrollTo(0, 0); const fe = Dash.form('p-d', { rules: { '': () => 'Not now.' } }); await fe.check(); await new Promise((ok) => setTimeout(ok, 50)); const r = e.querySelector('.form-error').getBoundingClientRect(); out.push(r.top > 0 && r.bottom < innerHeight);
+    out.push(Dash.form('steps'), Dash.form('no such'));
+    for (const x of [a, c, d, e]) x.remove(); return JSON.stringify(out); });
+  check('1.13 forms: a form in one row: words on a line of their own; the line is in the form, once, and brought into view', places === '[true,true,"p-a",true,1,"p-b","BUTTON","form-error",true,null,null]', places);
+  const zone = await at(async () => { const f = document.createElement('form'); f.innerHTML = '<label class="dropzone"><input type="file" name="file" required><b>Drop</b><span class="files"></span></label><label class="switch"><input type="checkbox" name="on" required><span class="track"></span>On</label>'; document.querySelector('main').append(f); const h = Dash.form(f); await h.check(); const a = [document.activeElement.name, f.querySelector('.dropzone + .field-err').textContent, f.querySelector('.switch + .field-err').textContent, getComputedStyle(f.querySelector('.track')).outlineStyle]; await h.check('on'); a.push(document.activeElement.name); f.remove(); return a.join(); });
+  check('1.13 forms: a dropzone and a switch: marked, named and gone to', zone === 'file,Choose a file.,Tick this to go on.,solid,on', zone);
+  const parts = await at(() => { const f = document.createElement('form'); f.innerHTML = '<input class="input" type="date" name="d" min="2026-01-01" aria-label="D"><button class="btn">Go</button>'; document.querySelector('main').append(f); window.parts = Dash.form(f); const i = f.querySelector('input'); i.focus(); i.value = '0002-01-01'; i.dispatchEvent(new Event('input', { bubbles: true })); i.dispatchEvent(new Event('change', { bubbles: true })); return JSON.stringify(parts.errors); });
+  await at(() => document.activeElement.blur());
+  await tick();
+  const whole2 = await at(() => { const e = JSON.stringify(parts.errors); parts.el.remove(); return e; });
+  check('1.13 forms: a date that is typed in parts is judged once it is left', parts === '{}' && whole2 === '{"d":"Choose 2026-01-01 or later."}', JSON.stringify([parts, whole2]));
+
+  // out of the page, and back
+  const taken2 = await at(async () => { const f = document.createElement('form'); f.innerHTML = '<input class="input" name="x" required aria-label="X"><div class="field"><label>Y<input class="input" name="y" required></label></div><button class="btn">Go</button>'; document.querySelector('main').append(f); const h = Dash.form(f); await h.check(); f.remove(); f.append(document.createElement('i')); await new Promise((ok) => setTimeout(ok, 20)); const a = f.querySelectorAll('.field-err, .err').length; document.querySelector('main').append(f); await h.check(); const b = f.querySelectorAll('.field-err, .err').length; f.remove(); return [a, b].join(); });
+  check('1.13 forms: a form that is taken out of the page, and put back', taken2 === '2,2', taken2);
+  const late = await at(async () => { const f = document.createElement('form'); f.innerHTML = '<div class="field"><input class="input" name="x" value="1" aria-label="X"></div><button class="btn">Go</button>'; document.querySelector('main').append(f); let say; const old = Dash.form(f, { rules: { x: () => new Promise((ok) => { say = ok; }) }, onSubmit: () => {} }); const waited = old.check(); const b = Dash.form(f, { rules: { x: () => 'New.' } }); await b.check(); say('Old.'); const ok = await waited; await new Promise((r) => setTimeout(r, 20)); const out = [f.querySelector('.err').textContent, ok]; old.error('x', 'Old.'); old.fail(new Error('Old')); out.push(f.querySelector('.err').textContent, f.querySelectorAll('.form-error').length); f.remove(); return JSON.stringify(out); });
+  check('1.13 forms: a late answer of a form that was made again changes nothing', late === '["New.",false,"New.",0]', late);
+  const cut = await at(async () => { const f = document.createElement('form'); f.innerHTML = '<input class="input" name="x" value="1" aria-label="X"><button class="btn">Go</button>'; document.querySelector('main').append(f); let say; const sent = []; const h = Dash.form(f, { rules: { x: () => new Promise((ok) => { say = ok; }) }, onSubmit: () => sent.push(1) }); f.requestSubmit(); h.clear(); say('Taken.'); await new Promise((r) => setTimeout(r, 20)); const a = [h.errors.x, sent.length]; h.error('x', 'Page.'); const c = h.check(); const s2 = say; h.error('x', 'From the page.'); s2(''); a.push(await c, h.errors.x); f.remove(); return JSON.stringify(a); });
+  check('1.13 forms: clear() and error() while an answer is on its way don\'t let a wrong field through', cut === '["Taken.",0,false,"From the page."]', cut);
+  const warn = []; tab.on('console', (m) => { if (m.type() === 'warning') warn.push(m.text()); });
+  const listens = await at(async () => { const f = document.createElement('form'); f.innerHTML = '<input class="input" name="x" aria-label="X"><button class="btn" name="go" value="1">Go</button>'; document.querySelector('main').append(f); const heard = []; let say; Dash.form(f, { rules: { x: (v) => (v === 'ask' ? new Promise((ok) => { say = ok; }) : !v && 'No.'), nosuch: () => '' } }); f.addEventListener('submit', (e) => { e.preventDefault(); heard.push(f.elements.x.value + ' ' + (e.submitter && e.submitter.value)); }); const b = f.querySelector('button'); b.click(); f.elements.x.value = 'y'; b.click(); f.elements.x.value = 'ask'; b.click(); const dis = b.disabled; say(''); await new Promise((r) => setTimeout(r, 20)); b.click(); f.remove(); return [heard.join('|'), dis].join(); });
+  check('1.13 forms: without onSubmit the page\'s listener hears it once it is right, with the button', listens === 'y 1|ask 1|ask 1,true', listens);
+  check('1.13 forms: a rule for no field says so, once', warn.filter((w) => w.includes('nosuch')).length === 1, warn.join());
+
+  // drawn again and again
+  await tab.click('#d-go');
+  await tick();
+  await at(() => { window.was = document.getElementById('d-x'); drawLive(2); });
+  await tick();
+  const drawn = { same: await at(() => was === document.getElementById('d-x')), x: await about('d-x'), y: await about('d-y'), focus: await active(), n: await at(() => document.querySelectorAll('#live .err').length) };
+  check('1.13 forms: fields that are drawn again keep their marks, messages and the focus', !drawn.same && drawn.x.bad === 'true' && drawn.x.text === 'A hint + Fill this in.' && drawn.x.field && drawn.y.text === 'Fill this in.' && drawn.focus === 'd-x' && drawn.n === 2, JSON.stringify(drawn));
+  await tab.keyboard.type('a');
+  const then = await about('d-x');
+  await at(() => { drawLive(3, 'now set'); });
+  await tick();
+  check('1.13 forms: and follow the new fields: one drawn with a value is no longer empty', then.bad === null && then.text === 'A hint' && (await about('d-y')).bad === null && (await at(() => document.querySelectorAll('#live .err:not([hidden])').length)) === 0, JSON.stringify([then, await about('d-y')]));
+
+  // a whole form drawn again
+  const redrawn = await at(async () => { const box = document.createElement('div'); document.querySelector('main').append(box); window.redraw = (n) => Dash.render(box, `<p>${n}</p><form id="again" class="panel"><div class="field"><label for="g-x">X</label><input class="input" id="g-x" name="x" required></div><div class="field"><label for="g-y">Y</label><input class="input" id="g-y" name="y" minlength="3"></div><button class="btn" id="g-go">Go</button></form>`); redraw(1); window.sentAgain = []; window.again = Dash.form('again', { rules: { y: (v) => v === 'bad' && 'Not that.' }, onSubmit: (v) => { sentAgain.push(JSON.stringify(v)); } }); await again.check(); window.wasForm = again.el; redraw(2); await null; await null; return [again.el !== wasForm, again.el === document.getElementById('again'), document.getElementById('again').noValidate].join(); });
+  const marksAgain = { x: await about('g-x'), focus: await active() };
+  await tab.keyboard.type('a');
+  await tab.keyboard.press('Tab');
+  await tab.keyboard.type('bad');
+  await at(() => redraw(3));
+  await tab.keyboard.press('Enter');
+  await tick();
+  const ruled = { x: await about('g-x'), y: await about('g-y'), sent: await at(() => sentAgain.length) };
+  await tab.fill('#g-x', 'a');
+  await tab.fill('#g-y', 'good');
+  await tab.click('#g-go');
+  await tick();
+  check('1.13 forms: a form that is drawn again as a whole is followed by its id', redrawn === 'true,true,true' && marksAgain.x.bad === 'true' && marksAgain.x.text === 'Fill this in.' && marksAgain.focus === 'g-x' && ruled.x.text === 'Fill this in.' && ruled.y.text === 'Not that.' && ruled.sent === 0 && (await at(() => sentAgain.join())) === '{"x":"a","y":"good"}', JSON.stringify([redrawn, marksAgain, ruled, await at(() => sentAgain.join())]));
+  const left2 = await at(async () => { const f = again.el; again.destroy(); redraw(4); await null; await null; const a = document.getElementById('again'); const out = [f !== a, a.noValidate, '__dashForm' in a]; a.parentElement.remove(); return out.join(); });
+  check('1.13 forms: until it is destroyed', left2 === 'true,false,false', left2);
+  const rows = await at(async () => { const box = document.createElement('div'); document.querySelector('main').append(box); const t = Dash.table(box, { columns: [{ key: 'n', label: 'N' }], rows: [{ id: 'a', n: 1 }], key: 'id', expand: (r) => `<p>${r.n}</p><form id="row-form"><div class="field"><label for="r-x">X</label><input class="input" id="r-x" name="x" minlength="3"></div><button class="btn">Go</button></form>` }); t.expand('a'); await null; const f = Dash.form('row-form'); const i = document.getElementById('r-x'); i.value = 'ab'; i.dispatchEvent(new Event('input', { bubbles: true })); await f.check('x'); t.update([{ id: 'a', n: 2 }]); await null; await null; const j = document.getElementById('r-x'); const out = [j !== i, j.value, j.getAttribute('aria-invalid'), document.querySelector('#row-form .err')?.textContent]; box.remove(); return JSON.stringify(out); }).catch((e) => String(e.message).split('\n')[0]);
+  check('1.13 forms: also in the details of a table row', rows === '[true,"ab","true","Use at least 3 characters."]', rows);
+
+  // drawn again just when it matters: between leaving a field and looking at it, and while a save waits
+  await at(() => { drawLive(5); live.clear(); document.getElementById('d-x').setAttribute('minlength', '3'); });
+  await type('d-x', 'ab');
+  await at(() => { const n = document.getElementById('live-fields'); document.addEventListener('pointerup', () => { n.innerHTML = n.innerHTML.replace(/ value="[^"]*"/, '').replace('id="d-x"', 'id="d-x" value="ab"'); }, { once: true, capture: true }); });
+  const spot2 = await tab.locator('#d-y').boundingBox();
+  await tab.mouse.move(spot2.x + 20, spot2.y + 10);
+  await tab.mouse.down();
+  await tick(20);
+  await tab.mouse.up();
+  await tick();
+  check('1.13 forms: a field that is drawn again just when it is left is checked all the same', (await about('d-x')).text === 'A hint + Use at least 3 characters.', JSON.stringify(await about('d-x')));
+  const saving = await at(async () => { const box = document.createElement('div'); document.querySelector('main').append(box); let say; const draw = (n) => Dash.render(box, `<p>${n}</p><form id="sv"><div class="field"><label for="sv-x">X</label><input class="input" id="sv-x" name="x" value="1"></div><button class="btn" id="sv-go">Go</button></form>`); draw(1); const f = Dash.form('sv', { rules: { x: () => new Promise((ok) => { say = ok; }) }, onSubmit: () => new Promise((ok) => { say = ok; }) }); const go = () => { document.getElementById('sv-go').focus(); document.getElementById('sv-go').click(); }; go(); draw(2); await null; say('Taken.'); await new Promise((r) => setTimeout(r, 30)); const out = [document.activeElement.id, document.querySelector('#sv .err')?.textContent, document.querySelectorAll('#sv .form-error').length, document.querySelector('#sv > [role="status"]')?.textContent ?? '']; const i = document.getElementById('sv-x'); i.value = '2'; i.dispatchEvent(new Event('input', { bubbles: true })); go(); say(''); await new Promise((r) => setTimeout(r, 30)); draw(3); say(); await new Promise((r) => setTimeout(r, 30)); out.push(document.activeElement.id); f.destroy(); box.remove(); return JSON.stringify(out); });
+  check('1.13 forms: also while a save waits: the first problem is gone to, and the focus is back on the button', saving === '["sv-x","Taken.",0,"","sv-go"]', saving);
+  const left3 = await at(async () => { const box = document.createElement('div'); document.querySelector('main').append(box); let say; box.innerHTML = '<form id="gn"><div class="field"><input class="input" name="x" value="1" aria-label="X"></div><div class="field"><input class="input" name="y" value="1" aria-label="Y"></div><button class="btn">Go</button></form>'; const f = Dash.form('gn', { rules: { x: () => new Promise((ok) => { say = ok; }) } }); const c = f.check('x'); box.querySelector('.field').remove(); await null; say('Wrong.'); const out = [await c, JSON.stringify(f.errors)]; f.destroy(); box.remove(); return out.join(); });
+  check('1.13 forms: a field that is gone stops nothing', left3 === 'true,{}', left3);
+
+  // what the server wrote
+  const wrote = { ...(await about('e-x')) };
+  await tab.click('#e-go');
+  await tick();
+  const through = await logged();
+  await at(() => { served.error('code', 'That code is used up.'); });
+  await tab.focus('#e-x');
+  await tab.keyboard.press('End');
+  await tab.keyboard.type('d');
+  const cleared = await about('e-x');
+  check('1.13 forms: words the server wrote stay until the field is changed, and don\'t stop a save', wrote.bad === 'true' && wrote.text === 'That code is used up.' && wrote.field && through === 'served' && cleared.bad === null && cleared.text === '' && !cleared.field, JSON.stringify([wrote, through, cleared]));
+
+  const wrote2 = await at(async () => { const f = document.createElement('form'); f.innerHTML = '<div class="field invalid"><input class="input" aria-label="No name"><div class="err">Wrong one.</div></div><div class="field invalid"><input class="input" name="a" aria-label="A"><input class="input" name="b" aria-label="B" aria-invalid="true"><div class="err">Wrong two.</div></div><div class="field invalid"><input class="input" name="c" aria-label="C"><input class="input" name="d" aria-label="D"><div class="err">Wrong three.</div></div><div class="field invalid"><input class="input" name="e" aria-label="E"><div class="err"></div></div>'; document.querySelector('main').append(f); const h = Dash.form(f); const i = [...f.querySelectorAll('input')]; const out = [i.map((e) => Number(e.getAttribute('aria-invalid') === 'true')).join(''), JSON.stringify(h.errors), f.querySelectorAll('.form-error').length]; for (const e of i) { e.value = 'x'; e.dispatchEvent(new Event('input', { bubbles: true })); } out.push(f.querySelectorAll('[aria-invalid]').length, [...f.querySelectorAll('.err')].map((e) => e.textContent).join(), f.querySelectorAll('.field.invalid').length); f.remove(); return out.join(' '); });
+  check('1.13 forms: the server\'s words on a box without a name, and in a field of several', wrote2 === '101100 {"b":"Wrong two.","c":"Wrong three."} 0 0 ,,, 1', wrote2);
+
+  // made again, taken away, asked from the page
+  const remade = await at(async () => { const f = document.getElementById('served'); f.elements.code.value = ''; const hits = []; Dash.form(f, { rules: { code: (v) => (hits.push('old'), !v && 'Old.') }, onSubmit: () => hits.push('old sent') }); const b = Dash.form(f, { rules: { code: (v) => (hits.push('new'), !v && 'New.') }, onSubmit: () => hits.push('new sent') }); f.requestSubmit(); const out = [b.errors.code, hits.join()]; f.elements.code.value = 'x'; f.requestSubmit(); await null; out.push(hits.join()); f.elements.code.value = ''; await b.check(); b.destroy(); out.push(f.noValidate, f.hasAttribute('data-dash-form'), document.getElementById('e-x').hasAttribute('aria-invalid'), f.querySelector('.err').textContent, f.querySelectorAll('[role="status"]').length); return JSON.stringify(out); });
+  check('1.13 forms: a form made again has only the new rules; destroy() leaves it as it was', remade === '["New.","new","new,new,new sent",false,false,false,"",0]', remade);
+  const asked = await at(async () => { account.clear(); document.getElementById('account').reset(); await new Promise((ok) => setTimeout(ok, 20)); const a = await account.check(['name', 'email']); const e1 = Object.keys(account.errors).join(); account.clear(); const b = await account.check(document.getElementById('days')); const e2 = Object.keys(account.errors).join(); account.clear(); const c = await account.check('seats'); account.error('', 'From the page'); const e3 = JSON.stringify(account.errors); const d = account.error('nosuch', 'x'); account.error(''); account.error('name', 'Said by the page.'); const e4 = JSON.stringify(account.errors); account.error('name'); return JSON.stringify([a, e1, b, e2, c, e3, d, e4, account.errors, account.el.id]); });
+  check('1.13 forms: check() of some fields, and error() from the page', asked === JSON.stringify([false, 'name,email', false, 'days', true, '{"":"From the page"}', false, '{"name":"Said by the page."}', {}, 'account']), asked);
+  const tip = await at(async () => { const e = document.getElementById('a-name'); e.setAttribute('data-tooltip', 'A tip'); await account.check('name'); e.blur(); e.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); const a = e.getAttribute('aria-describedby'); document.body.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); const b = e.getAttribute('aria-describedby'); e.removeAttribute('data-tooltip'); account.clear(); return [/^a-name-hint dash-err-\d+ dash-tooltip$/.test(a), /^a-name-hint dash-err-\d+$/.test(b), e.getAttribute('aria-describedby')].join(); });
+  check('1.13 forms: a tooltip adds its words and takes only its own away', tip === 'true,true,a-name-hint', tip);
+
+  // in a modal, a dialog and a question
+  await at(() => { log.length = 0; window.hit = 0; window.m = Dash.modal({ title: 'Server', rules: { name: (v) => v === 'bad' && 'Not that.' }, body: '<p id="m-n">1</p><div class="field"><label for="m-name">Name</label><input class="input" id="m-name" name="name" required></div><div class="field"><label for="m-size">Size</label><input class="input" id="m-size" name="size" type="number" max="5"></div>', cancel: 'Cancel', actions: [{ label: 'Delete', value: 'delete' }, { label: 'Save', value: 'save', primary: true }], onAction: async (v, h) => { log.push(v + ' ' + JSON.stringify(h.form.values())); if (window.hit++ === 0) throw Object.assign(new Error('x'), { errors: { size: 'Too large here.' } }); if (hit === 2) throw new Error('HTTP 500'); return false; } }); });
+  await tab.keyboard.press('Enter');
+  await tick();
+  const stop = { log: await logged(), ...(await about('m-name')), focus: await active(), open: await at(() => m.el.open) };
+  check('1.13 forms: in a modal, Enter on a wrong field keeps it open and runs nothing', stop.log === '' && stop.text === 'Fill this in.' && stop.focus === 'm-name' && stop.open, JSON.stringify(stop));
+  await at(() => { m.update({ body: m.body.innerHTML.replace('>1<', '>2<') }); });
+  await tick();
+  const updated = [await about('m-name'), await at(() => document.getElementById('m-n').textContent), await at(() => document.querySelectorAll('.modal .err:not([hidden])').length)];
+  check('1.13 forms: an update of its body keeps the words', updated[0].bad === 'true' && updated[0].text === 'Fill this in.' && updated[1] === '2' && updated[2] === 1, JSON.stringify(updated));
+  await tab.keyboard.type('web-1');
+  await tab.keyboard.press('Enter');
+  await tick();
+  const failed = { log: await logged(), ...(await about('m-size')), focus: await active(), line: await at(() => m.el.querySelector('.modal-error').textContent) };
+  await tab.keyboard.press('Enter');
+  await tick();
+  const http = [await logged(), await at(() => m.el.querySelector('.modal-error').textContent), await about('m-size')];
+  check('1.13 forms: what an action throws lands on the fields, or in the foot', failed.log === 'save {"name":"web-1","size":null}' && failed.text === 'Too large here.' && failed.focus === 'm-size' && failed.line === '' && http[0].startsWith('save') && http[1] === 'HTTP 500' && http[2].bad === null, JSON.stringify([failed, http]));
+  await tab.fill('#m-name', '');
+  await tab.click('.modal .btn:has-text("Delete")');
+  await tick();
+  check('1.13 forms: a button that isn\'t the primary one isn\'t checked', (await logged()).startsWith('delete') && (await at(() => m.el.querySelector('.modal-error').textContent)) === '', '');
+  await at(() => { m.error('From the page'); });
+  const own = await at(() => [m.el.querySelector('.modal-error').textContent, m.el.querySelectorAll('.form-error').length].join());
+  await at(() => m.close());
+  const plain = await at(() => { const x = Dash.modal({ title: 'x', body: '<input class="input" name="a" required>', actions: [{ label: 'OK', primary: true }] }); const out = [x.form, x.el.querySelector('form').noValidate]; x.close(); return JSON.stringify(out); });
+  check('1.13 forms: its own line; a modal without rules is as it was', own === 'From the page,0' && plain === '[null,false]', JSON.stringify([own, plain]));
+  await at(() => { window.asked = []; window.r = null; Dash.ask('New name', { value: 'taken', check: (v) => new Promise((ok) => { asked.push(v); window.reply = ok; }) }).then((x) => { window.r = x; }); });
+  await tab.keyboard.press('Enter');
+  await tick();
+  const q = await at(() => [document.querySelector('dialog .dialog-input').getAttribute('aria-label'), document.querySelector('dialog .dialog-actions .btn.primary').getAttribute('aria-busy'), document.querySelector('dialog .field-err').textContent].join());
+  await at(() => reply('That name is taken.'));
+  await tick();
+  const no = await at(() => [document.querySelector('dialog').open, document.querySelector('dialog .dialog-input + .field-err').textContent, document.activeElement.className, r].join());
+  await tab.fill('dialog .dialog-input', 'free');
+  await tab.keyboard.press('Enter');
+  await tick();
+  await at(() => reply(''));
+  await tick(80);
+  check('1.13 forms: Dash.ask with a check that asks: it stays open until the answer is good', q === 'New name,true,Checking…' && no === 'true,That name is taken.,input dialog-input,' && (await at(() => `${r}|${asked.join()}`)) === 'free|taken,free', JSON.stringify([q, no, await at(() => `${r}|${asked.join()}`)]));
+  await at(() => { window.r = undefined; Dash.dialog({ title: 'Two', rules: { b: (v, all) => v === all.a && 'The same.' }, body: '<input class="input" name="a" value="x"><input class="input" name="b" value="x">' }).then((x) => { window.r = x; }); });
+  await tab.click('dialog .btn.primary');
+  await tick();
+  const dlg = await at(() => [document.querySelector('dialog').open, document.querySelector('dialog .field-err').textContent].join());
+  await tab.fill('dialog [name="b"]', 'y');
+  await tab.click('dialog .btn.primary');
+  await tick(80);
+  check('1.13 forms: Dash.dialog with rules', dlg === 'true,The same.' && (await at(() => JSON.stringify(r))) === '{"value":"ok","fields":{"a":"x","b":"y"}}', JSON.stringify([dlg, await at(() => JSON.stringify(r))]));
+  await at(() => { window.r = undefined; Dash.dialog({ title: 'Cancel', rules: {}, body: '<input class="input" name="a" required>' }).then((x) => { window.r = x; }); });
+  await tab.keyboard.press('Enter');
+  await tick();
+  await tab.click('dialog [data-dismiss]');
+  await tick(80);
+  check('1.13 forms: Cancel closes it, wrong or not', (await at(() => r && r.value)) === null, await at(() => JSON.stringify(r)));
+  await tab.context().close();
+
+  // hidden values: the words never hold what was typed
+  const priv = await openForms();
+  const secret = await priv.evaluate(async () => { Dash.privacy.set(true); const e = document.getElementById('a-email'); e.dataset.private = ''; e.value = 'sekret'; await account.check('email'); const out = document.querySelector('main').innerText.includes('sekret') || document.querySelector('#account').innerHTML.includes('sekret'); Dash.privacy.set(false); return out; });
+  check('1.13 forms: what is typed in a hidden box isn\'t in the words about it', secret === false, '');
+  await priv.context().close();
+  // high contrast, and a phone
+  const hc = await openForms({ forcedColors: 'active' });
+  const dashed = await hc.evaluate(async () => { document.getElementById('a-count').value = '99'; await account.check(); document.activeElement.blur(); const s = (q) => getComputedStyle(document.querySelector(q)); return [s('#a-name').borderTopStyle, s('#account .choice').borderTopStyle, s('#terms input').outlineStyle, s('#a-again').borderTopStyle, s('#span .input').borderTopStyle].join(); });
+  check('1.13 forms: in high contrast a wrong field is dashed, not just another colour', dashed === 'dashed,dashed,dashed,solid,solid', dashed);
+  await hc.context().close();
+  const phone = await openForms({ width: 390, height: 780, hasTouch: true, isMobile: true });
+  const small2 = await phone.evaluate(async () => { scrollTo(0, 3000); await account.check(); account.error('', 'A line that is long enough to wrap on a phone, so that it has to fit the width of the form.'); await new Promise((ok) => setTimeout(ok, 60)); const f = document.getElementById('a-name').closest('.field').getBoundingClientRect(), bar = document.querySelector('.topbar').getBoundingClientRect(); return [document.documentElement.scrollWidth - innerWidth, f.top >= Math.min(bar.bottom, 84) - 1 && f.bottom <= innerHeight]; });
+  check('1.13 forms: on a phone it fits, and the first problem is in view', small2[0] <= 0 && small2[1], JSON.stringify(small2));
+  await phone.context().close();
+  // a strict style policy
+  const strict = await openForms({ page: 'csp-forms.html' });
+  const csp = await strict.evaluate(async () => { const a = await f.check(); return [a, f.errors.x, getComputedStyle(document.querySelector('.err')).color !== getComputedStyle(document.body).color, document.querySelectorAll('body [style]').length, violations.length].join(); });
+  check('1.13 forms: under a strict style policy too', csp === 'false,Fill this in.,true,0,0', csp);
+  await strict.context().close();
 }
 
 await browser.close();

@@ -159,7 +159,7 @@
           <select class="input" aria-label="Region"><option>All regions</option><option>eu-west</option><option>us-east</option></select>
         </div>
         <div class="field"><label for="f-name">Name</label><input class="input" id="f-name" value="Treasury"><div class="hint">Shown in the table; addresses stay as they are.</div></div>
-        <div class="field invalid"><label for="f-addr">Account ID</label><input class="input mono" id="f-addr" value="acct_bad"><div class="err">That isn’t a valid account ID.</div></div>
+        <form id="f-form"><div class="field invalid"><label for="f-addr">Account ID</label><input class="input mono" id="f-addr" name="id" value="acct_bad" required><div class="err">That isn’t a valid account ID.</div></div></form>
         <div class="row">
           <label class="switch"><input type="checkbox" checked><span class="track"></span>Count in the total</label>
           <label class="switch blue"><input type="checkbox"><span class="track"></span>Alerts</label>
@@ -427,8 +427,8 @@
   <form class="dialog-body" method="dialog">
     <h2>Add account</h2>
     <p class="hint">Its balance shows up with the next update.</p>
-    <div class="field"><label for="d-name">Name</label><input class="input" id="d-name" placeholder="Savings"></div>
-    <div class="field"><label for="d-addr">Account ID</label><input class="input mono" id="d-addr" placeholder="acct_…"><div class="err"></div></div>
+    <div class="field"><label class="req" for="d-name">Name</label><input class="input" id="d-name" name="name" placeholder="Savings" required></div>
+    <div class="field"><label class="req" for="d-addr">Account ID</label><input class="input mono" id="d-addr" name="id" placeholder="acct_…" required pattern="acct_[a-z0-9]{6,}" title="acct_ and at least 6 letters or digits."><div class="err"></div></div>
     <label class="checkline"><input type="checkbox" checked>Count in the total</label>
     <div class="dialog-actions"><button type="button" class="btn ghost" data-dismiss>Cancel</button><button class="btn primary" value="ok">Add</button></div>
   </form>
@@ -638,7 +638,9 @@
     n += 1;
     Dash.notify({ key: 'agent-' + n, title: `agent-${n}`, status: 'needs you', text: 'Approve: git push origin main', onClick: () => Dash.toast(`Open agent-${n}`) });
   });
-  $('b-dialog').addEventListener('click', () => $('dialog').showModal());
+  const adding = Dash.form(document.querySelector('#dialog form')); // what is wrong shows under the fields
+  $('b-dialog').addEventListener('click', () => { adding.clear(); $('dialog').showModal(); });
+  Dash.form('f-form', { rules: { id: (text) => !/^acct_[a-z0-9]{6,}$/.test(text) && 'That isn’t a valid account ID.' }, onSubmit: () => { Dash.toast('Saved'); } });
   $('b-drawer').addEventListener('click', () => $('drawer').showModal());
   $('b-flash').addEventListener('click', () => Dash.flash('flash-me'));
   $('ips').innerHTML = Dash.maskIps('api-eu-west on 203.0.113.10, its probe 198.51.100.7, and again 203.0.113.10');

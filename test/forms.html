@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Forms</title>
+<link rel="stylesheet" href="../dash.css">
+<script src="../dash.js"></script>
+</head>
+<body>
+<header class="topbar"><div class="title">Forms</div></header>
+<main class="page">
+  <!-- every kind of field in one form; made-up data -->
+  <form class="panel" id="account">
+    <div class="panel-head"><h3>Account</h3></div>
+    <div class="field"><label class="req" for="a-name">Name</label><input class="input" id="a-name" name="name" required minlength="3" aria-describedby="a-name-hint"><div class="hint" id="a-name-hint">Shown in the list.</div></div>
+    <div class="field"><label for="a-email">Email</label><input class="input" id="a-email" name="email" type="email" required><div class="err" id="a-email-err"></div></div>
+    <div class="field"><label for="a-pw">Password</label><input class="input" id="a-pw" name="password" type="password" required minlength="4" autocomplete="new-password"></div>
+    <div class="field"><label for="a-again">Password again</label><input class="input" id="a-again" name="again" type="password" autocomplete="new-password"></div>
+    <div class="field"><label for="a-handle">Handle</label><input class="input mono" id="a-handle" name="handle" required pattern="[a-z0-9]+" title="Use small letters and digits."></div>
+    <div class="field"><label for="a-count">Seats</label><input class="input" id="a-count" name="seats" type="number" min="1" max="20" value="2"></div>
+    <div class="field"><label for="a-region">Region</label><span class="select"><select class="input" id="a-region" name="region" required><option value="">Pick one</option><option value="eu">Frankfurt</option><option value="us">Virginia</option></select></span></div>
+    <div class="field"><label for="a-day">Start</label><input class="input" id="a-day" name="day"></div>
+    <div class="field"><label for="a-owner">Owner</label><input class="input" id="a-owner" name="owner" required></div>
+    <div class="field" id="span"><span class="field-label">Between</span><div class="row"><input class="input" name="low" type="number" aria-label="Low" value="1" style="width:120px"><input class="input" name="high" type="number" aria-label="High" value="9" style="width:120px"></div></div>
+    <label class="field" id="wrapped"><span>Nickname</span><input class="input" name="nick" maxlength="8"></label>
+    <div class="input-group" id="group"><span class="affix">$</span><input class="input" name="limit" aria-label="Limit" required inputmode="decimal" value="10"><span class="affix">a month</span></div>
+    <div class="choices" role="radiogroup" aria-label="Plan" style="margin-top:12px"><label class="choice"><input type="radio" name="plan" value="s" required><span class="choice-body"><b>Small</b></span></label><label class="choice"><input type="radio" name="plan" value="l" required><span class="choice-body"><b>Large</b></span></label></div>
+    <fieldset id="days"><legend>Days</legend><div class="checks across"><label class="checkline"><input type="checkbox" name="days" value="mon">Monday</label><label class="checkline"><input type="checkbox" name="days" value="tue">Tuesday</label></div></fieldset>
+    <label class="checkline" id="terms"><input type="checkbox" name="terms" required>I agree</label>
+    <label class="switch" id="alerts"><input type="checkbox" name="alerts"><span class="track"></span>Alerts</label>
+    <label class="dropzone" id="zone" style="margin:12px 0"><input type="file" name="file"><b>Drop a file</b><span class="files"></span></label>
+    <div class="field"><label for="a-note">Note</label><textarea class="input" id="a-note" name="note"></textarea></div>
+    <p>Where the words about the limit go: <b data-error-for="limit" id="limit-err"></b></p>
+    <input type="hidden" name="version" value="7">
+    <div class="row"><button type="submit" class="btn primary" id="a-save" name="how" value="save">Save</button><button type="submit" class="btn" id="a-draft" formnovalidate>Save as a draft</button><button type="reset" class="btn ghost" id="a-reset">Reset</button></div>
+  </form>
+
+  <!-- no code -->
+  <form class="panel" id="auto" data-validate><div class="field"><label for="b-site">Site</label><input class="input" id="b-site" name="site" type="url" required data-problem="Give the site’s address."></div>
+    <input class="input" id="b-bare" name="bare" required aria-label="Bare"><button class="btn" id="b-go">Go</button></form>
+
+  <!-- fields that don't show -->
+  <form class="panel" id="away">
+    <div class="tabs" id="steps"><button type="button" data-value="one">One</button><button type="button" data-value="two">Two</button></div>
+    <div data-tab="one"><div class="field"><label for="c-one">One</label><input class="input" id="c-one" name="one"></div></div>
+    <div data-tab="two"><div class="field"><label for="c-two">Two</label><input class="input" id="c-two" name="two"></div></div>
+    <details id="more"><summary>More</summary><div class="field"><label for="c-more">More</label><input class="input" id="c-more" name="more"></div></details>
+    <div hidden><div class="field"><label for="c-gone">Gone</label><input class="input" id="c-gone" name="gone"></div></div>
+    <fieldset disabled><div class="field"><label for="c-off">Off</label><input class="input" id="c-off" name="off" required></div></fieldset>
+    <div class="row"><button class="btn" id="c-go">Go</button></div>
+  </form>
+  <input class="input" form="away" id="c-out" name="out" aria-label="Outside" style="max-width:200px">
+
+  <!-- a form the page draws again and again -->
+  <form class="panel" id="live"><div id="live-fields"></div><button class="btn" id="d-go">Go</button></form>
+
+  <!-- what the server wrote -->
+  <form class="panel" id="served"><div class="field invalid"><label for="e-x">Code</label><input class="input" id="e-x" name="code" value="abc" aria-invalid="true" aria-describedby="e-x-err"><div class="err" id="e-x-err">That code is used up.</div></div><button class="btn" id="e-go">Go</button></form>
+
+  <!-- a form nobody asked to check -->
+  <form class="panel" id="old"><div class="field"><label for="o-x">Old</label><input class="input" id="o-x" name="x" required><div class="err">The page’s own words</div></div><button class="btn" id="o-go">Go</button></form>
+  <div style="height:600px"></div>
+</main>
+<script>
+  const log = window.log = [];
+  window.answer = {};
+  window.send = null; // what the next save does
+  Dash.datepicker('a-day', { min: '2026-01-10', max: '2026-01-20' });
+  Dash.combobox('a-owner', { options: ['Ada', 'Ben', 'Cleo'], strict: true });
+  const opts = window.opts = {
+    rules: {
+      name: [(v) => /\s/.test(v) && 'Leave out the spaces.', (v) => v === 'admin' && 'Not that one.'],
+      again: (v, all) => v !== all.password && 'The passwords differ.',
+      handle: async (v) => { log.push('ask ' + v); return new Promise((ok, no) => { answer[v] = { ok, no }; }); },
+      high: (v, all) => v <= all.low && 'High must be above low.',
+      days: (v) => !v.length && 'Choose a day.',
+      file: (v) => Boolean(v) && v.size > 4 && 'That file is too big.',
+      note: (v) => v === 'bad' && '<b>Not</b> that & this.',
+      version: (v) => v === '8' && 'Not this version.',
+      '': (all) => all.seats > 10 && all.region === 'eu' && 'Frankfurt has ten seats.',
+    },
+    onSubmit: async (values, f, by) => { log.push('save ' + (by && by.value)); window.sent = values; if (send) await send(); },
+  };
+  window.account = Dash.form('account', opts);
+  document.getElementById('account').addEventListener('submit', (e) => { log.push('page ' + e.defaultPrevented); });
+  document.getElementById('auto').addEventListener('submit', (e) => { e.preventDefault(); log.push('auto'); });
+  Dash.tabs('steps', { panels: 'away' });
+  window.away = Dash.form('away', { rules: { one: (v) => v === 'x' && 'Not x.', two: (v) => v === 'x' && 'Not x.', more: (v) => v === 'x' && 'Not x.', gone: (v) => v === 'x' && 'Not x.', out: (v) => v === 'x' && 'Not x.' }, onSubmit: () => { log.push('away'); } });
+  window.drawLive = (n, y = '') => Dash.render('live-fields', `<p>${n}</p><div class="field"><label for="d-x">X</label><input class="input" id="d-x" name="x" required aria-describedby="d-hint"><div class="hint" id="d-hint">A hint</div></div><div class="field"><label for="d-y">Y</label><input class="input" id="d-y" name="y" value="${y}" required></div>`);
+  drawLive(1);
+  window.live = Dash.form('live', { onSubmit: () => { log.push('live'); } });
+  window.served = Dash.form('served', { onSubmit: () => { log.push('served'); } });
+</script>
+</body>
+</html>

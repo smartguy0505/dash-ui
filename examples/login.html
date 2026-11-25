@@ -14,27 +14,24 @@
 <form class="login" id="form">
   <h1>Accounts</h1>
   <p class="lead">Sign in to see the account balances.</p>
-  <div class="callout bad solid" id="failed" role="alert" hidden style="margin-bottom:14px">That password didn’t work. Check it and try again.</div>
   <div class="field">
     <label for="password">Password</label>
-    <input class="input" type="password" id="password" autocomplete="current-password" required autofocus>
+    <input class="input" type="password" id="password" name="password" autocomplete="current-password" required autofocus>
   </div>
-  <button type="submit" class="btn primary block" id="submit">Sign in</button>
+  <button type="submit" class="btn primary block">Sign in</button>
   <p class="note">You stay signed in on this browser until the server restarts or you sign out.</p>
 </form>
 <script>
   const { $ } = Dash;
-  $('form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    $('failed').hidden = true;
-    $('submit').disabled = true;
-    await new Promise((r) => setTimeout(r, 400)); // stands in for: await Dash.api('api/login', { method: 'POST', json: { password } })
-    const ok = $('password').value.length >= 4 && $('password').value !== 'wrong';
-    $('submit').disabled = false;
-    if (ok) { Dash.toast('Signed in'); return; }
-    $('failed').hidden = false;
-    $('password').value = '';
-    $('password').focus();
+  // an empty box and a wrong password show under it; a server that doesn't answer shows above the button
+  Dash.form('form', {
+    onSubmit: async ({ password }) => {
+      await new Promise((r) => setTimeout(r, 400)); // stands in for: await Dash.api('api/login', { method: 'POST', json: { password } })
+      if (password === 'down') throw new Error('The server didn’t answer. Try again in a moment.');
+      if (password.length >= 4 && password !== 'wrong') { Dash.toast('Signed in'); return; }
+      $('password').value = '';
+      throw Object.assign(new Error('Wrong password'), { errors: { password: 'That password didn’t work. Check it and try again.' } });
+    },
   });
 </script>
 </body>

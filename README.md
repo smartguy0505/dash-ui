@@ -245,7 +245,8 @@ Surfaces and text: `--bg`, `--card`, `--soft` (a block inside a card, table head
 - `.select` around a `<select class="input">` gives it the kit's arrow (full width inside a `.field`).
 - `.input-group`: an input joined to `.affix` text and buttons (`$` · amount · `USD` · Set). It takes `.select` too.
 - `.search` wraps an `.input` with an icon `svg` and an optional `.count` (typed text stops 100 px from the right; `--count-w` for a longer count).
-- `.field`: a label, an `.input`, then `.hint` or `.err`. `.field.invalid` turns it red.
+- `.field`: a label, an `.input`, then `.hint` or `.err`. `.field.invalid` turns it red. `label.req` adds a star.
+- `.field-err` and `.form-error`: what `Dash.form` writes under a box that is in no `.field`, and above the buttons. `<form data-validate>` is checked without code.
 - `.switch`: `<label class="switch"><input type="checkbox"><span class="track"></span> Label</label>`.
 - `.checkline`, and `details > summary`. `.checks` stacks checklines (`.checks.across` puts them on one line); give a group of them `role="group"` and an `aria-label`, or put them in a `fieldset`.
 - `.choices` › `label.choice`: radios or checkboxes as cards, `<input>` then `.choice-body` (a `b` and a `.hint`). The checked one is outlined. `--choice-min` (200 px) sets how narrow a card can be before they stack.
@@ -370,10 +371,11 @@ Builders return HTML strings, with every value escaped. Put them in with `innerH
 | `Dash.search(input, { onChange, debounce, key, store })` | a search box: `onChange(query)` once typing pauses, Escape clears, `/` jumps to it; `.count(shown, total)` fills its `.count`. With `store`, a remembered query is put back and `onChange` runs with it right after (on the next tick) |
 | `Dash.key(combo, fn, { inInputs })` | a shortcut (`'/'`, `'g'`, `'mod+k'`, `'shift+?'`) that stays quiet while the reader types; returns a remover |
 | `Dash.hash.get(key)`, `.set({ key: value }, { push })`, `.on(fn)`, `.parse`, `.format` | the part of the address after `#` as settings (`#view=list&id=7`); `null` removes a key |
-| `Dash.dialog({ title, text, body, actions, cancel, drawer, focus })` | a dialog made on the spot; resolves `{ value, fields }` (`value` null when cancelled; `fields`: the named inputs in `body`) |
-| `Dash.confirm(text, { title, ok, cancel, tone, anchor })`, `Dash.ask(title, { value, placeholder, type, required })` | yes/no (Cancel has the focus; `tone: 'bad'` for a red button; `anchor`: ask in a popup beside that button instead); one line of text or null |
+| `Dash.form(form, { rules, onSubmit })` | says what is wrong under each field (below) |
+| `Dash.dialog({ title, text, body, actions, cancel, drawer, focus, rules })` | a dialog made on the spot; resolves `{ value, fields }` (`value` null when cancelled; `fields`: the named inputs in `body`). With `rules`, `Dash.form` checks it before it closes |
+| `Dash.confirm(text, { title, ok, cancel, tone, anchor })`, `Dash.ask(title, { value, placeholder, type, required, check })` | yes/no (Cancel has the focus; `tone: 'bad'` for a red button; `anchor`: ask in a popup beside that button instead); one line of text or null |
 | `Dash.alert(text, { title, ok, tone })` | a message with one button; resolves once it is read |
-| `Dash.modal({ title, text, body, actions, cancel, size, drawer, dismissable, focus, onAction, onClose })` | a modal you keep a handle on (below) |
+| `Dash.modal({ title, text, body, actions, cancel, size, drawer, dismissable, focus, rules, onAction, onClose })` | a modal you keep a handle on (below) |
 | `Dash.popup(anchor, content, { placement, align, width, cls, label, focus, onClose })` | a box beside an element or at a point (below); calling it again for the same element closes it |
 | `Dash.menu(anchor, items, { placement, align, label })` | a menu beside a button, or at the pointer for a right-click; resolves to the chosen value or null (below) |
 | `Dash.combobox(input, { options, onPick, strict, minChars, max, empty, debounce, label })` | suggestions for a text box: `options` are strings, `{ value, label, sub }`, or a function `(query) => list` (or a promise of one) for a server search, whose late answers are dropped. Arrows, Enter, a click; Escape closes only the list; `strict: true` allows only a suggestion (or an empty box). Returns `{ value, set(value), close(), destroy() }`; `value` is the pick while the box still shows it, else null |
@@ -416,6 +418,28 @@ Builders return HTML strings, with every value escaped. Put them in with `innerH
 - `expand: (row, box) => markup` (or an element, a promise of either, or nothing when it draws in `box`), or `{ draw, can, one }`: a button that opens a row's details. `box` is the same element until the row closes, so a chart or a table in it keeps its place; what the reader changed in markup stays when it is drawn anew (fields with an `id`, a `data-key` or a `name` of their own). A promise is asked for when the row opens, not on every update.
 - `rowLabel: (row) => text` names a row for a screen reader (the `main` column's text by default).
 
+**`Dash.form`.** What is wrong with a form shows under its fields, instead of in the browser's bubbles.
+
+```js
+const form = Dash.form('account', {
+  rules: {
+    name: (text) => /\s/.test(text) && 'Leave out the spaces.',                 // a text is the problem, anything else is fine
+    again: (text, all) => text !== all.password && 'The passwords differ.',      // all: the other fields' values
+    handle: async (text) => (await taken(text)) && 'That handle is taken.',      // asked once the reader leaves the field
+    '': (all) => all.from > all.to && 'The start is after the end.',             // the form as a whole
+  },
+  onSubmit: async (values) => { await Dash.api('/api/accounts', { method: 'POST', json: values }); },
+});
+```
+
+- The fields' own checks count first (`required`, `type`, `minlength`, `pattern` with its `title`, `min`, `max`, `step`, `setCustomValidity`; also the date picker's and a `strict` combobox's). A list of rules is run in order; rules run on empty fields too.
+- Nothing shows at the start. A field is checked once it is left changed; what it says goes as soon as it is put right. Submitting checks all, goes to the first problem (in a closed `details` or another tab too) and sends nothing.
+- `onSubmit(values, form, button)` runs with the button busy. An error it throws shows above the buttons; with `errors: { name: 'text' }` on it or on its `body` (as `Dash.api`'s have), on those fields until they are changed. Without `onSubmit` the form goes on as it would, and the page's own `submit` listener hears only of a right one.
+- `values()`: text as typed, numbers as numbers (`null` when empty), one checkbox as `true` or `false`, several of a name (or a name ending in `[]`) as a list, files as `File`s. Disabled fields are left out.
+- `check()` checks all, or a name, a list, or the fields in an element (a step); it resolves to `true` or `false`. `error(name, text)` puts a text on a field (`''`: the line above the buttons), `fail(err)` shows a thrown error as `onSubmit`'s are, `errors`, `clear()`, `destroy()`.
+- The words: `data-problem="…"` on a field, or `Dash.form.text` for all of them. Where they go: the field's `.err`, else a `.field-err` under the box, or an element with `data-error-for="name"`. `formnovalidate` on a button skips the checks.
+- Fields that are drawn again keep their marks, and a form that is drawn again as a whole is followed by its `id`.
+
 **`Dash.modal`.** For more than a question: a form that saves, details that keep updating, a long list.
 
 ```js
@@ -433,6 +457,7 @@ const { value, fields } = await m.closed; // value: the action's, or null after 
 
 - The action button is busy (disabled, with a spinner) while `onAction` runs.
 - Enter in a field presses the `primary` action, after the fields' own checks (`required`, `type="email"`). Give your own buttons in the body `type="button"`.
+- `rules`: `Dash.form` does the checking, so what is wrong shows under each field (`{}`: just the fields' own checks), and an error from `onAction` with `errors: { name: 'text' }` lands on the fields. `m.form` is its handle.
 - `m.update({ title, text, body, actions })` changes it while it is open; the body is redrawn like `Dash.render`, so what the reader is typing stays. `m.body` is the part that scrolls, `m.error(text)` shows a line in the foot, `m.close(value)` ends it.
 - `dismissable: false`: no ×, and Escape and clicks outside do nothing, for something that must finish. `drawer: true` slides it in from the right.
 

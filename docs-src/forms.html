@@ -11,9 +11,9 @@
       </example>
     </section>
 
-    <section id="fields" data-terms=".field .field-label .hint .err .invalid">
+    <section id="fields" data-terms=".field .field-label .hint .err .invalid .req">
       <h2>Fields</h2>
-      <p><code>.field</code> stacks a <code>label</code>, the input, then a <code>.hint</code> or an <code>.err</code>. <code>.field.invalid</code> turns it red; set <code>aria-invalid="true"</code> on the input as well, and point <code>aria-describedby</code> at the message. <code>.field-label</code> is the same label for a group that isn't one input (a row of choices).</p>
+      <p><code>.field</code> stacks a <code>label</code>, the input, then a <code>.hint</code> or an <code>.err</code>. <code>.field.invalid</code> turns it red; set <code>aria-invalid="true"</code> on the input as well, and point <code>aria-describedby</code> at the message. <a href="#validation">Dash.form</a> does all of that for you. <code>label.req</code> adds a star, for a field that must be filled in. <code>.field-label</code> is the same label for a group that isn't one input (a row of choices).</p>
       <example>
         <div style="max-width: 420px">
           <div class="field"><label for="f-name">Name</label><input class="input" id="f-name" value="Treasury" aria-describedby="f-name-hint"><div class="hint" id="f-name-hint">Shown in the table.</div></div>
@@ -160,4 +160,73 @@
         </script>
       </example>
       <p>It returns <code>{ value, set(day), open(), close(), destroy() }</code>; <code>value</code> is the box's date if it's a real one in range, or null.</p>
+    </section>
+
+    <section id="validation" data-terms="Dash.form data-validate .field-err .form-error .req data-error-for data-problem formnovalidate required pattern validation rules errors onSubmit">
+      <h2>Checking a form</h2>
+      <p><code>Dash.form(form, { rules, onSubmit })</code> says what is wrong under each field, instead of the browser’s bubbles. A field is checked once the reader leaves it changed, and what it says goes as soon as it is put right. Submitting checks all of them and goes to the first problem: in a closed part or another tab too.</p>
+      <example>
+        <form class="panel" id="join" style="max-width: 460px">
+          <div class="panel-head"><h3>New account</h3></div>
+          <div class="field"><label class="req" for="j-name">Name</label><input class="input" id="j-name" name="name" required minlength="3" aria-describedby="j-name-hint"><div class="hint" id="j-name-hint">At least 3 characters.</div></div>
+          <div class="field"><label class="req" for="j-email">Email</label><input class="input" id="j-email" name="email" type="email" required autocomplete="off"></div>
+          <div class="field"><label class="req" for="j-handle">Handle</label><input class="input mono" id="j-handle" name="handle" required pattern="[a-z0-9]+" title="Use small letters and digits." autocomplete="off"><div class="hint">“ada” is taken.</div></div>
+          <div class="field"><label class="req" for="j-region">Region</label><span class="select"><select class="input" id="j-region" name="region" required><option value="">Pick one</option><option value="eu">Frankfurt</option><option value="us">Virginia</option></select></span></div>
+          <div class="field"><label for="j-seats">Seats</label><input class="input" id="j-seats" name="seats" type="number" min="1" max="20" value="2"></div>
+          <label class="checkline"><input type="checkbox" name="terms" required>The invoice goes to this email</label>
+          <button class="btn primary">Create</button>
+        </form>
+        <script>
+          const wait = (ms) => new Promise((done) => setTimeout(done, ms)); // stands in for the server
+          Dash.form('join', {
+            rules: {
+              name: (text) => /^\d/.test(text) && 'Start with a letter.',
+              handle: async (text) => { await wait(500); return text === 'ada' && 'That handle is taken.'; },
+              '': (all) => all.region === 'eu' && all.seats > 10 && 'Frankfurt has ten seats left.',
+            },
+            onSubmit: async (values, form) => { // Dash.api('api/accounts', { method: 'POST', json: values })
+              await wait(600);
+              if (values.name === 'Broken') throw new Error('The server didn’t answer. Nothing was saved.');
+              if (values.email.endsWith('@example.org')) throw Object.assign(new Error('Not saved'), { errors: { email: 'That domain isn’t allowed.' } });
+              Dash.toast(`${values.name} created, with ${Dash.fmt.plural(values.seats, 'seat')}`);
+              form.el.reset();
+            },
+          });
+        </script>
+      </example>
+      <p>The fields’ own checks count first: <code>required</code> (spaces alone are no answer), <code>type</code>, <code>minlength</code>, <code>pattern</code> (its <code>title</code> is what it says), <code>min</code>, <code>max</code>, <code>step</code>, and <code>setCustomValidity</code>. <code>Dash.datepicker</code> and a <code>strict</code> <code>Dash.combobox</code> say what is wrong with their box. Then come your rules.</p>
+      <ul>
+        <li><b>Rules</b>: a function <code>(value, values, input)</code> per <code>name</code>, or a list of them. A text is the problem; anything else is fine. They run on empty fields too. A rule about another field (<code>(v, all) =&gt; v !== all.password &amp;&amp; …</code>) runs again when that one changes. <code>''</code> is the form as a whole.</li>
+        <li><b>Asking the server</b>: an <code>async</code> rule is asked once the field is left, with “Checking…” meanwhile; once per text, and late answers are dropped. One that can’t answer says nothing, until the form is sent: then it stops it, and says why.</li>
+        <li><b><code>onSubmit(values, form, button)</code></b> runs once all is fine, with the button busy; a second submit does nothing. What it throws shows above the buttons; with <code>errors: { name: 'text' }</code> on it, or in the answer’s body (as <code>Dash.api</code>’s errors carry), on those fields, until they are changed. Without <code>onSubmit</code> the form goes on as it would, and your own <code>submit</code> listener hears only of a right one.</li>
+        <li><b>Values</b>: text as typed, a number box as a number (<code>null</code> when empty), one checkbox as <code>true</code> or <code>false</code>, several of a name as a list, a file as a <code>File</code>. Disabled fields are left out, and not checked.</li>
+        <li><b>Where it shows</b>: in the field’s <code>.err</code> (made when there is none), as a <code>.field-err</code> under a box that is in no <code>.field</code>, or in an element with <code>data-error-for="name"</code>; a <code>.form-error</code> line is above the buttons. The boxes get <code>aria-invalid</code>, and <code>aria-describedby</code> with the hint kept. A field the server sent as <code>.field.invalid</code> keeps its words until it is changed.</li>
+        <li><b>Words</b>: <code>data-problem="Give the site’s address."</code> on a field, or <code>Dash.form.text</code> for all (to translate them). None of the kit’s hold what was typed. <code>label.req</code> adds the star.</li>
+        <li>A button with <code>formnovalidate</code> skips the checks. Fields that are drawn again keep their marks; a whole form drawn again is followed by its <code>id</code>.</li>
+      </ul>
+      <p>It returns <code>{ el, values(), errors, check(which), error(name, text), fail(err), clear(), destroy() }</code>. <code>check()</code> checks all, or a name, a list of names, or the fields in an element (a step of several), goes to the first problem and resolves to <code>true</code> or <code>false</code>. <code>error(name, text)</code> puts a text on a field until it is changed (<code>''</code>: the line). The same form made again has the new rules.</p>
+      <h3>Without code, and in a dialog</h3>
+      <p><code>&lt;form data-validate&gt;</code> does the fields’ own checks, with no code. <code>Dash.modal</code> and <code>Dash.dialog</code> take <code>rules</code> (<code>{}</code>: just the fields’ own checks) and <code>Dash.ask</code> a <code>check</code>; they stay open until it is right. In a modal <code>m.form</code> is the handle, and an error from <code>onAction</code> with <code>errors</code> lands on the fields.</p>
+      <example>
+        <form class="vstack" data-validate style="max-width: 460px" onsubmit="event.preventDefault(); Dash.toast('Sent')">
+          <div class="field"><label class="req" for="v-site">Site</label><input class="input" id="v-site" name="site" type="url" required placeholder="https://"></div>
+          <div class="row"><button class="btn">Send</button>
+            <button type="button" class="btn ghost" id="v-modal">In a modal…</button>
+            <button type="button" class="btn ghost" id="v-ask">In a question…</button></div>
+        </form>
+        <script>
+          Dash.$('v-modal').addEventListener('click', () => Dash.modal({
+            title: 'Add server', cancel: 'Cancel',
+            body: '<div class="field"><label for="vm-name">Name</label><input class="input" id="vm-name" name="name" required></div>'
+              + '<div class="field"><label for="vm-size">Disks</label><input class="input" id="vm-size" name="disks" type="number" min="1" max="8" value="12"></div>',
+            rules: { name: (text) => /\s/.test(text) && 'Leave out the spaces.' },
+            actions: [{ label: 'Add', value: 'add', primary: true }],
+            onAction: async (value, m) => { Dash.toast(`${m.form.values().name} added`); },
+          }));
+          Dash.$('v-ask').addEventListener('click', async () => {
+            const name = await Dash.ask('New name', { value: 'web-1', check: (text) => text === 'web-1' && 'That’s the name it has.' });
+            if (name) Dash.toast(`Renamed to ${name}`);
+          });
+        </script>
+      </example>
     </section>

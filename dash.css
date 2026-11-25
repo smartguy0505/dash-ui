@@ -1,4 +1,4 @@
-/* dash-ui 1.12.2: the look shared by my dashboards (agents, fleet, leaderboard, payouts, balances).
+/* dash-ui 1.13.0: the look shared by my dashboards (agents, fleet, leaderboard, payouts, balances).
    Warm neutral backgrounds, white panels, tinted status colours, light and dark from the system setting
    (or data-theme="light|dark" on <html>). No build step, no dependencies: link this file, or paste it into a page.
 
@@ -758,6 +758,24 @@ button.hbar:hover { background: var(--soft); }
 .dialog-input { width: 100%; margin-bottom: 16px; }
 .dialog h2 + .dialog-input { margin-top: 12px; }
 
+/* ---- forms that Dash.form checks (1.13): it puts aria-invalid on the field and the words into the field's .err, or into
+   a .field-err under a box with no .field; .form-error is the line above the buttons ---- */
+:where(.field-err, .form-error) { color: var(--bad); }
+.field-err { margin: 3px 0 12px; font-size: 12.5px; }
+:is(.dialog-input, .checks, .choices, .checkline) + .field-err { margin-top: -8px; }
+:where(.form-error) { margin: 0 0 12px; font-size: 13.5px; }
+.field .err[data-checking], .field-err[data-checking] { color: var(--muted); }
+.field > label.req::after { content: " *"; content: " *" / ""; color: var(--bad); } /* must be filled in (a screen reader hears that from the box) */
+:is([data-dash-form] .input, .input[data-dash-form])[aria-invalid="true"] { border-color: var(--bad); }
+:is([data-dash-form] .input, .input[data-dash-form])[aria-invalid="true"]:focus { box-shadow: 0 0 0 3px color-mix(in srgb, var(--bad) 18%, transparent); }
+[data-dash-form] .field.invalid .input:not([aria-invalid="true"], :focus) { border-color: var(--line); } /* two boxes in one field: only the wrong one */
+[data-dash-form] .input-group > :is(.input[aria-invalid="true"], .select:has(> [aria-invalid="true"])) { position: relative; z-index: 1; }
+[data-dash-form] .dropzone:has(> [aria-invalid="true"]), [data-dash-form] .choice:has(> [aria-invalid="true"]) { border-color: var(--bad); }
+[data-dash-form] .checkline > input[aria-invalid="true"]:not(:focus-visible) { outline: 1px solid var(--bad); outline-offset: 2px; }
+[data-dash-form] .switch > input[aria-invalid="true"]:not(:focus-visible) + .track { outline: 1px solid var(--bad); outline-offset: 2px; }
+[data-dash-form] :is(.field, .form-error, [aria-invalid="true"]) { scroll-margin-block: calc(var(--topbar-h) + 24px) 24px; } /* going to it, clear of a sticky top bar */
+.row > :is(.field-err, .form-error) { flex-basis: 100%; order: 1; margin: 0; }
+
 /* ---- sign-in page: <body class="login-page"><form class="login">… ---- */
 .login-page { min-height: 100vh; display: grid; place-items: center; padding: 24px 16px; }
 .login { width: min(390px, 100%); padding: 24px 22px 20px; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
@@ -1182,4 +1200,7 @@ textarea.input.autosize { min-height: 62px; max-height: var(--max-h, 320px); fie
   /* text boxes: the focus ring was a shadow, and wrong was a colour */
   .input:focus { outline: 2px solid Highlight; outline-offset: -1px; }
   .field.invalid .input, .input[aria-invalid="true"] { border: 2px dashed CanvasText; }
+  [data-dash-form] .field.invalid .input:not([aria-invalid="true"]) { border: 1px solid CanvasText; }
+  [data-dash-form] :is(.dropzone, .choice):has(> [aria-invalid="true"]) { border: 2px dashed CanvasText; }
+  [data-dash-form] .checkline > input[aria-invalid="true"]:not(:focus-visible), [data-dash-form] .switch > input[aria-invalid="true"]:not(:focus-visible) + .track { outline: 2px dashed CanvasText; outline-offset: 2px; }
 }
