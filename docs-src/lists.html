@@ -65,7 +65,7 @@
 
     <section id="reorder" data-terms=".entry-grip .drag-ghost .drag-from .drop-line .dragging reorder onMove drag sort">
       <h2>Lists to put in order</h2>
-      <p><code>reorder: true</code> gives each row a grip. Drag it with a mouse or a finger (Escape calls it off), press the arrow keys on it, or click it for Move up, Move down and the ends. <code>onMove(rows, { row, from, to })</code> gets the rows in the new order. Return a promise while it is saved: if it rejects, or gives <code>false</code>, the row is put back and a toast says why. An update that comes during a drag or a save waits until it is over.</p>
+      <p><code>reorder: true</code> gives each row a grip. Drag it with a mouse or a finger (Escape calls it off), press the arrow keys on it, or click it for Move up, Move down and the ends. <code>onMove(rows, { row, from, to })</code> gets the rows in the new order. Return a promise while it is saved: if it rejects, or gives <code>false</code>, the row is put back and a toast says why. An update that comes during a drag or a save waits until it is over; one from before the move doesn't undo it.</p>
       <example>
         <div class="panel" id="rules"></div>
         <script>

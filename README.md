@@ -19,7 +19,7 @@ It's plain CSS and one plain script: no build step, no dependencies, no framewor
   </tr>
   <tr>
     <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="screenshots/board-dark.webp"><img src="screenshots/board-light.webp" alt="A kanban board with a card being dragged into another column"></picture><br><sub>A board: <code>Dash.board</code></sub></td>
-    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="screenshots/charts-dark.webp"><img src="screenshots/charts-light.webp" alt="Column charts and lines over time"></picture><br><sub>Charts: columns, lines with a crosshair, donuts, gauges</sub></td>
+    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="screenshots/charts-dark.webp"><img src="screenshots/charts-light.webp" alt="Column charts and lines over time"></picture><br><sub>Charts: columns, lines with a crosshair</sub></td>
   </tr>
   <tr>
     <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="screenshots/tables-dark.webp"><img src="screenshots/tables-light.webp" alt="A table with sorting, filters, shares and a pager"></picture><br><sub>Tables: sorted, filtered, cards on a phone</sub></td>
@@ -31,7 +31,7 @@ It's plain CSS and one plain script: no build step, no dependencies, no framewor
   </tr>
   <tr>
     <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="screenshots/docs-dark.webp"><img src="screenshots/docs-light.webp" alt="The docs: a component, live, with its code under it"></picture><br><sub>The docs: every piece live, with its code</sub></td>
-    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="screenshots/heatmap-dark.webp"><img src="screenshots/heatmap-light.webp" alt="A heatmap of hours by day, and a year of days"></picture><br><sub>Heatmaps and days</sub></td>
+    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="screenshots/heatmap-dark.webp"><img src="screenshots/heatmap-light.webp" alt="A heatmap of a week by the hour, in the docs"></picture><br><sub>Heatmaps: <code>Dash.heatmap</code></sub></td>
   </tr>
 </table>
 
