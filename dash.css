@@ -1,4 +1,4 @@
-/* dash-ui 1.16.0: the look shared by my dashboards (agents, fleet, leaderboard, payouts, balances).
+/* dash-ui 1.16.1: the look shared by my dashboards (agents, fleet, leaderboard, payouts, balances).
    Warm neutral backgrounds, white panels, tinted status colours, light and dark from the system setting
    (or data-theme="light|dark" on <html>). No build step, no dependencies: link this file, or paste it into a page.
 
@@ -1305,7 +1305,7 @@ button.entry-grip { width: 30px; height: 30px; }
 .heat-scroll { position: relative; overflow-x: auto; scrollbar-width: thin; }
 .heatmap { width: 100%; border-collapse: separate; border-spacing: 2px; font-size: 12px; }
 .heatmap th { padding: 0 6px 0 0; color: var(--muted); font-weight: 500; text-align: right; white-space: nowrap; }
-.heatmap tbody th { position: sticky; left: 0; width: 1%; background: var(--card); }
+.heatmap tbody th { width: 1%; }
 .heatmap thead th { position: relative; padding: 0 0 3px; text-align: center; }
 .heatmap thead td { padding: 0; }
 .heatmap tbody td { min-width: 14px; height: 24px; padding: 0; border-radius: 3px; text-align: center; font-variant-numeric: tabular-nums; }
@@ -1326,12 +1326,14 @@ button.entry-grip { width: 30px; height: 30px; }
 .heat-legend > i:hover { outline: 0; }
 .heat-scroll:has(> .days) { direction: rtl; text-align: left; } /* where there is no room for all of them, the last ones show first */
 .days { display: inline-grid; grid-template-columns: auto 1fr; row-gap: 3px; padding: 1px; direction: ltr; }
-.days-side { position: sticky; left: 0; display: grid; grid-row: 2; background: var(--card); grid-template-rows: repeat(7, 13px); gap: 3px; padding-right: 6px; color: var(--muted); font-size: 11px; line-height: 13px; }
+.days-side { display: grid; grid-row: 2; grid-template-rows: repeat(7, 13px); gap: 3px; padding-right: 6px; color: var(--muted); font-size: 11px; line-height: 13px; }
 .days-months { display: grid; grid-auto-columns: 13px; grid-auto-flow: column; grid-column: 2; gap: 3px; height: 15px; color: var(--muted); font-size: 11px; line-height: 13px; }
 .days-months > span { width: 0; white-space: nowrap; }
 .days-grid { display: grid; grid-template-rows: repeat(7, 13px); grid-auto-columns: 13px; grid-auto-flow: column; grid-column: 2; gap: 3px; }
 .days-grid > i { border-radius: 3px; }
 .heat:has(.days) > .heat-legend { justify-content: flex-start; }
+/* on a panel the names stay in view while the rest scrolls under them (elsewhere there is no telling what to paint behind them) */
+:is(.panel, .card, .dialog, .drawer, .modal, .popup) :is(.heatmap tbody th, .days-side) { position: sticky; left: 0; background: var(--card); }
 
 /* ---- smaller screens ---- */
 @media (max-width: 900px) {

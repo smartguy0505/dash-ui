@@ -2,6 +2,11 @@
 
 Dashboards keep a copy of `dash.css` and `dash.js`; the first line of each file says which version it is. Versions only add things: a page that worked with an older copy works the same with a newer one.
 
+## 1.16.1 (2026-11-25)
+
+- Heatmaps and days that aren't on a panel: no panel-coloured box behind their names (on one, the names go on staying in view).
+- Docs: the parts of a page's layout, panes among them, are in the list of all components; what works under a strict style policy says the dashboard tools do.
+
 ## 1.16.0 (2026-11-25)
 
 Dashboard tools, each in the class a reader would look in.

@@ -11,10 +11,10 @@
 <script src="../dash.js"></script>
 </head>
 <body>
-<!-- dash-ui 1.16.0 docs, written by tools/docs.mjs from docs-src/components.html: edit that, not this -->
+<!-- dash-ui 1.16.1 docs, written by tools/docs.mjs from docs-src/components.html: edit that, not this -->
 <header class="topbar">
   <button type="button" class="icon-btn docs-menu" data-toggle-side aria-label="Pages"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3 5h12M3 9h12M3 13h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
-  <a class="brand" href="./"><span class="mark">d</span><h1>dash-ui</h1></a><span class="tag plain docs-version">1.16.0</span>
+  <a class="brand" href="./"><span class="mark">d</span><h1>dash-ui</h1></a><span class="tag plain docs-version">1.16.1</span>
   <div class="top-right">
     <label class="search docs-search"><span class="sr-only">Search the docs</span><svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.6"/><path d="m11 11 3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><input class="input" type="search" id="docs-search" placeholder="Search" aria-keyshortcuts="/"><kbd class="docs-key">/</kbd></label>
     <div class="seg" role="group" aria-label="Theme"><button type="button" data-theme-set="system">Auto</button><button type="button" data-theme-set="light">Light</button><button type="button" data-theme-set="dark">Dark</button></div>
@@ -31,6 +31,15 @@
       <label class="search"><span class="sr-only">Find a component</span><svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.6"/><path d="m11 11 3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><input class="input" id="docs-find" type="search" placeholder="Find a component, a class or a function" autocomplete="off"></label>
       <span class="muted" id="docs-found" role="status"></span>
     </div>
+    <section class="docs-class" id="layout">
+      <h2><a class="docs-class-name" href="layout.html">Page layout</a> <span class="count-badge">5</span></h2>
+      <p>The top bar, the page, grids, rows, the phone navigation, and panes that can be resized.</p>
+      <div class="cards"><a class="card" href="layout.html#topbar" data-find=".topbar .brand .mark .brand-name .sub .top-right .top-link .topstat .v .side-toggle .static-md"><div class="card-title">The top bar</div><div class="card-sub">.topbar stays at the top while the page scrolls.</div></a>
+<a class="card" href="layout.html#page" data-find=".page .wide .narrow .page-head .page-title .page-note .section .section-head .section-title .kicker .footer --page-max"><div class="card-title">The page</div><div class="card-sub">.page holds the content, centred, up to --page-max wide (1320 px; .page.wide 1480, .page.narrow 1000).</div></a>
+<a class="card" href="layout.html#grids" data-find=".grid .span-2 --cols .cards --card-min .vstack .row .toolbar .push .grow"><div class="card-title">Grids, stacks and rows</div><div class="card-sub">For anything else, the layout utilities give flex and grid with widths: grid grid-cols-1 md:grid-cols-3 gap-4.</div></a>
+<a class="card" href="layout.html#phone" data-find=".bottom-nav .fab .extended .hide-sm .show-sm"><div class="card-title">On a phone</div><div class="card-sub">.bottom-nav is a row of links along the bottom of a phone (640 px down; hidden wider).</div></a>
+<a class="card" href="layout.html#panes" data-find="Dash.panes .panes .pane-bar .sizing --panes-h --pane data-panes data-sizes data-min data-vertical splitter resize resizable"><div class="card-title">Panes</div><div class="card-sub">Parts side by side with a bar between them that can be moved. data-panes is enough (its value is where the sizes are remembered); data-sizes are the sizes to start from, data-min the least a pane can be, in pixels, and data-vertical puts one above the other.</div></a></div>
+    </section>
     <section class="docs-class" id="buttons">
       <h2><a class="docs-class-name" href="buttons.html">Buttons</a> <span class="count-badge">7</span></h2>
       <p>Buttons, icon buttons, links, segmented controls, menus, the floating button and spinners.</p>

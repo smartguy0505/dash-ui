@@ -11,10 +11,10 @@
 <script src="../dash.js"></script>
 </head>
 <body>
-<!-- dash-ui 1.16.0 docs, written by tools/docs.mjs from docs-src/charts.html: edit that, not this -->
+<!-- dash-ui 1.16.1 docs, written by tools/docs.mjs from docs-src/charts.html: edit that, not this -->
 <header class="topbar">
   <button type="button" class="icon-btn docs-menu" data-toggle-side aria-label="Pages"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3 5h12M3 9h12M3 13h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
-  <a class="brand" href="./"><span class="mark">d</span><h1>dash-ui</h1></a><span class="tag plain docs-version">1.16.0</span>
+  <a class="brand" href="./"><span class="mark">d</span><h1>dash-ui</h1></a><span class="tag plain docs-version">1.16.1</span>
   <div class="top-right">
     <label class="search docs-search"><span class="sr-only">Search the docs</span><svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.6"/><path d="m11 11 3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><input class="input" type="search" id="docs-search" placeholder="Search" aria-keyshortcuts="/"><kbd class="docs-key">/</kbd></label>
     <div class="seg" role="group" aria-label="Theme"><button type="button" data-theme-set="system">Auto</button><button type="button" data-theme-set="light">Light</button><button type="button" data-theme-set="dark">Dark</button></div>
@@ -294,7 +294,7 @@
   <span class="c-key">const</span> load = weekdays.map((_, d) =&gt; clock.map((_, h) =&gt; (d === <span class="c-num">2</span> &amp;&amp; h === <span class="c-num">4</span> ? <span class="c-key">null</span> : h &lt; <span class="c-num">6</span> ? <span class="c-num">0</span> : Math.round((Math.sin(((h - <span class="c-num">6</span>) / <span class="c-num">18</span>) * Math.PI) * <span class="c-num">120</span> + ((d * <span class="c-num">37</span> + h * <span class="c-num">11</span>) % <span class="c-num">23</span>)) * (d &gt; <span class="c-num">4</span> ? <span class="c-num">0.4</span> : <span class="c-num">1</span>)))));
   <span class="c-fn">Dash</span>.render(<span class="c-str">&#39;week&#39;</span>, <span class="c-fn">Dash</span>.heatmap({ rows: weekdays, cols: clock, values: load, label: <span class="c-str">&#39;Requests by day and hour&#39;</span>, every: <span class="c-num">3</span> }));
 &lt;/<span class="c-tag">script</span>&gt;</code></pre></figure>
-      <p><code>show: true</code> writes the values into the cells, on paler shades they can be read on. <code>every: 3</code> names every third column (a screen reader gets all of them). <code>min</code> and <code>max</code> fix the ends, so that several have the same shades; <code>legend: false</code> leaves the legend out. The steps are the tokens <code>--heat-1</code> to <code>--heat-5</code>: how much of the tone is in each.</p>
+      <p><code>show: true</code> writes the values into the cells, on paler shades they can be read on. <code>every: 3</code> names every third column (a screen reader gets all of them). On a panel the names stay in view where the rest has to scroll. <code>min</code> and <code>max</code> fix the ends, so that several have the same shades; <code>legend: false</code> leaves the legend out. The steps are the tokens <code>--heat-1</code> to <code>--heat-5</code>: how much of the tone is in each.</p>
       <figure class="example" id="ex-12"><figcaption>With the numbers in it</figcaption><div class="example-view">
 <div class="panel" id="incidents"></div>
 <script>
@@ -357,7 +357,7 @@
 
     <section id="strict" data-terms="Dash.config.csp Dash.applyStyles data-css-w Content-Security-Policy">
       <h2>Under a strict style policy</h2>
-      <p>A page served with <code>Content-Security-Policy: style-src 'self'</code> drops every <code>style=""</code> in its markup, and the builders that size things (<code>Dash.bar</code>, <code>meter</code>, <code>split</code>, <code>hbars</code>, <code>bars</code>, <code>lines</code>, <code>spark</code>, <code>progress</code>) write sizes that way. On such a page, set <code>Dash.config.csp = true</code> before drawing anything: they then write their numbers as <code>data-css-*</code> attributes, and the kit sets them through the CSSOM, which the policy allows. It does so at once wherever the kit puts markup in (<code>Dash.render</code>, popups, modals) and before the next paint for markup the page puts in itself; <code>Dash.applyStyles(el)</code> does it at once. Only numbers are set, and only on the kit's own pieces.</p>
+      <p>A page served with <code>Content-Security-Policy: style-src 'self'</code> drops every <code>style=""</code> in its markup, and the builders that size things (<code>Dash.bar</code>, <code>meter</code>, <code>split</code>, <code>hbars</code>, <code>bars</code>, <code>lines</code>, <code>spark</code>, <code>progress</code>) write sizes that way. On such a page, set <code>Dash.config.csp = true</code> before drawing anything: they then write their numbers as <code>data-css-*</code> attributes, and the kit sets them through the CSSOM, which the policy allows. It does so at once wherever the kit puts markup in (<code>Dash.render</code>, popups, modals) and before the next paint for markup the page puts in itself; <code>Dash.applyStyles(el)</code> does it at once. Only numbers are set, and only on the kit's own pieces. Lanes, heatmaps, days, logs, JSON, panes and the command palette work either way.</p>
     </section>
     <nav class="docs-steps" aria-label="More pages"><a class="docs-step prev" href="logs.html"><span class="faint">Previous</span><b>Logs and data</b></a><a class="docs-step next" href="surfaces.html"><span class="faint">Next</span><b>Panels and cards</b></a></nav>
   </main>

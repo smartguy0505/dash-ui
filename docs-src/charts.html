@@ -147,7 +147,7 @@
           Dash.render('week', Dash.heatmap({ rows: weekdays, cols: clock, values: load, label: 'Requests by day and hour', every: 3 }));
         </script>
       </example>
-      <p><code>show: true</code> writes the values into the cells, on paler shades they can be read on. <code>every: 3</code> names every third column (a screen reader gets all of them). <code>min</code> and <code>max</code> fix the ends, so that several have the same shades; <code>legend: false</code> leaves the legend out. The steps are the tokens <code>--heat-1</code> to <code>--heat-5</code>: how much of the tone is in each.</p>
+      <p><code>show: true</code> writes the values into the cells, on paler shades they can be read on. <code>every: 3</code> names every third column (a screen reader gets all of them). On a panel the names stay in view where the rest has to scroll. <code>min</code> and <code>max</code> fix the ends, so that several have the same shades; <code>legend: false</code> leaves the legend out. The steps are the tokens <code>--heat-1</code> to <code>--heat-5</code>: how much of the tone is in each.</p>
       <example title="With the numbers in it">
         <div class="panel" id="incidents"></div>
         <script>
@@ -184,5 +184,5 @@
 
     <section id="strict" data-terms="Dash.config.csp Dash.applyStyles data-css-w Content-Security-Policy">
       <h2>Under a strict style policy</h2>
-      <p>A page served with <code>Content-Security-Policy: style-src 'self'</code> drops every <code>style=""</code> in its markup, and the builders that size things (<code>Dash.bar</code>, <code>meter</code>, <code>split</code>, <code>hbars</code>, <code>bars</code>, <code>lines</code>, <code>spark</code>, <code>progress</code>) write sizes that way. On such a page, set <code>Dash.config.csp = true</code> before drawing anything: they then write their numbers as <code>data-css-*</code> attributes, and the kit sets them through the CSSOM, which the policy allows. It does so at once wherever the kit puts markup in (<code>Dash.render</code>, popups, modals) and before the next paint for markup the page puts in itself; <code>Dash.applyStyles(el)</code> does it at once. Only numbers are set, and only on the kit's own pieces.</p>
+      <p>A page served with <code>Content-Security-Policy: style-src 'self'</code> drops every <code>style=""</code> in its markup, and the builders that size things (<code>Dash.bar</code>, <code>meter</code>, <code>split</code>, <code>hbars</code>, <code>bars</code>, <code>lines</code>, <code>spark</code>, <code>progress</code>) write sizes that way. On such a page, set <code>Dash.config.csp = true</code> before drawing anything: they then write their numbers as <code>data-css-*</code> attributes, and the kit sets them through the CSSOM, which the policy allows. It does so at once wherever the kit puts markup in (<code>Dash.render</code>, popups, modals) and before the next paint for markup the page puts in itself; <code>Dash.applyStyles(el)</code> does it at once. Only numbers are set, and only on the kit's own pieces. Lanes, heatmaps, days, logs, JSON, panes and the command palette work either way.</p>
     </section>

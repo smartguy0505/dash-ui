@@ -436,7 +436,7 @@ Builders return HTML strings, with every value escaped. Put them in with `innerH
 - The builders then write their numbers as `data-css-*` attributes instead. The kit sets them through the CSSOM, which the policy allows. It does this at once wherever the kit puts markup in (`Dash.render`, popups, modals, dialogs), and before the next paint for markup the page puts in itself.
 - Only numbers are set, only on the kit's own pieces (a `.bar`'s fill, a chart's columns, and so on), so other markup can't use it to style anything.
 - `Dash.applyStyles(el)` sets them at once, for a page that measures right after putting markup in.
-- `Dash.lanes` works under the policy either way. The kit's own tooltips and popups always do.
+- `Dash.lanes`, `Dash.log`, `Dash.json`, `Dash.panes`, `Dash.palette`, `Dash.heatmap` and `Dash.days` work under the policy either way. The kit's own tooltips and popups always do.
 - With `csp` off (the default), the builders write `style=""` exactly as before.
 
 **`Dash.table` columns.** Each column is `{ key, label }` plus what it needs:

@@ -767,6 +767,13 @@ test('docs: every dash.css class and every Dash function is named on some page',
   assert.deepEqual([...classes, ...fns].filter((n) => !named.has(n)), []);
 });
 
+test('docs: the list of all components has every Dash function that isn’t one of the helpers', () => {
+  const { terms, pages } = docsGen.build(), listed = new Set([...pages['components.html'].matchAll(/data-find="([^"]*)"/g)].flatMap((m) => m[1].split(' ')));
+  const shown = terms.filter((t) => /^Dash\.\w+$/.test(t.name) && !/^(helpers|colours|text|index|utilities)/.test(t.page)).map((t) => t.name);
+  assert.ok(shown.length > 60 && shown.includes('Dash.panes') && shown.includes('Dash.tree'), String(shown.length));
+  assert.deepEqual([...new Set(shown)].filter((name) => !listed.has(name)), []);
+});
+
 test('docs: every class the pages use is in dash.css, dash-utils.css or docs.css', () => {
   const docsCss = readFileSync(new URL('docs.css', docsDir), 'utf8');
   const defined = new Set([css, docsCss].flatMap((t) => [...t.matchAll(/\.([a-zA-Z][\w-]*)/g)].map((m) => m[1])).concat([...utilNames]));

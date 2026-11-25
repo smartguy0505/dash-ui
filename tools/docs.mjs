@@ -111,8 +111,8 @@ const sideNav = (current, all) => {
   }
   return Dash.nav.html(items, { current: href(current) });
 };
-// every section of the pages under "Components", as cards by class
-const componentCards = (all) => PAGES.filter((p) => p[2] === 'Components').map(([file, title, , blurb]) => {
+// every section of the pages under "Components" (and the layout's parts), as cards by class
+const componentCards = (all) => PAGES.filter((p) => p[2] === 'Components' || p[0] === 'layout').map(([file, title, , blurb]) => {
   const src = read(`docs-src/${file}.html`);
   const cards = all[file].map((p) => {
     const at = src.indexOf(`<section id="${p.id}"`);
