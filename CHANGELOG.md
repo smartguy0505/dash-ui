@@ -2,6 +2,13 @@
 
 Dashboards keep a copy of `dash.css` and `dash.js`; the first line of each file says which version it is. Versions only add things: a page that worked with an older copy works the same with a newer one.
 
+## 1.13.1 (2026-11-25)
+
+- What a screen reader is told about a form comes from a line that is on the page before it speaks (one for the page, one in a dialog); 1.13.0 made it and filled it in one go, which some readers skip.
+- `destroy()` takes the line above the buttons away too.
+- A box that is in no `.field` is brought into view with room to spare, as a field is.
+- The portfolio example no longer stops when it shows an account that was just added.
+
 ## 1.13.0 (2026-11-25)
 
 Forms that say what is wrong, under each field.

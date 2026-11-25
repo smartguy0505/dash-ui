@@ -205,7 +205,7 @@
   $('editor-form').addEventListener('submit', () => { // once it is right; the dialog closes by itself
     const { name, id, total } = editor.values();
     if (editing) Object.assign(editing, { name: name.trim(), id: id.trim(), total });
-    else accounts.push({ name: name.trim(), id: id.trim(), total, hidden: false, cash: 0, invested: 0, chg: 0 });
+    else accounts.push({ name: name.trim(), id: id.trim(), total, hidden: false, cash: 0, invested: 0, chg: 0, holdings: [] });
     render();
     Dash.toast('Saved');
   });

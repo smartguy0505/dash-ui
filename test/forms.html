@@ -11,7 +11,7 @@
 <header class="topbar"><div class="title">Forms</div></header>
 <main class="page">
   <!-- every kind of field in one form; made-up data -->
-  <form class="panel" id="account">
+  <form class="panel" id="account" method="dialog">
     <div class="panel-head"><h3>Account</h3></div>
     <div class="field"><label class="req" for="a-name">Name</label><input class="input" id="a-name" name="name" required minlength="3" aria-describedby="a-name-hint"><div class="hint" id="a-name-hint">Shown in the list.</div></div>
     <div class="field"><label for="a-email">Email</label><input class="input" id="a-email" name="email" type="email" required><div class="err" id="a-email-err"></div></div>
@@ -40,6 +40,8 @@
   <form class="panel" id="auto" data-validate><div class="field"><label for="b-site">Site</label><input class="input" id="b-site" name="site" type="url" required data-problem="Give the site’s address."></div>
     <input class="input" id="b-bare" name="bare" required aria-label="Bare"><button class="btn" id="b-go">Go</button></form>
 
+  <form class="panel" id="auto2" data-validate><div class="field invalid"><label for="h-x">H</label><input class="input" id="h-x" name="x" value="1"><div class="err">From the server.</div></div><button class="btn">Go</button></form>
+
   <!-- fields that don't show -->
   <form class="panel" id="away">
     <div class="tabs" id="steps"><button type="button" data-value="one">One</button><button type="button" data-value="two">Two</button></div>
@@ -64,6 +66,7 @@
 </main>
 <script>
   const log = window.log = [];
+  addEventListener('submit', (e) => { window.lastSubmit = e; }, true); // (before the kit hears of it)
   window.answer = {};
   window.send = null; // what the next save does
   Dash.datepicker('a-day', { min: '2026-01-10', max: '2026-01-20' });

@@ -1,4 +1,4 @@
-/* dash-ui 1.13.0 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
+/* dash-ui 1.13.1 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
    A plain script with no dependencies: a script tag for dash.js in <head> gives window.Dash, and puts the
    saved light/dark choice on the page before it paints. In Node, require('./dash.js') returns the same object
    (the parts that need a page are skipped).
@@ -8,7 +8,7 @@
 (function (root) {
   'use strict';
   const hasDom = typeof document !== 'undefined';
-  const Dash = { version: '1.13.0', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side', privacyKey: 'dash.private', csp: false } };
+  const Dash = { version: '1.13.1', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side', privacyKey: 'dash.private', csp: false } };
 
   // ---- basics
 
@@ -2770,7 +2770,7 @@
     const ours = new WeakSet(); // messages and .field boxes we wrote to
     const made = new Map(), added = new Set(); // messages we added: by key where there is no .field; all of them
     const line = { page: '', rule: '', lost: '' }, warned = new Set();
-    let lineShown = false, busy = false, pass = false, status = null;
+    let lineShown = false, busy = false, pass = false;
     const words = (x) => (typeof x === 'string' ? x : '');
     const told = (x) => (x && x.message ? x.message : String(x));
     const at = (u) => { if (!state.has(u.key)) state.set(u.key, {}); return state.get(u.key); };
@@ -2896,11 +2896,21 @@
         lineShown = Boolean(say);
       }
     };
-    const announce = (text) => { // for a screen reader whose reader has already moved on
-      if (!status) { status = document.createElement('span'); status.className = 'sr-only'; status.setAttribute('role', 'status'); }
-      if (status.parentNode !== form) form.append(status);
-      status.textContent = text;
+    // for a screen reader whose reader has already moved on: a line that is there before it speaks, outside the form (which
+    // may be drawn again), in its dialog if it is in one (from outside a modal one nothing is heard)
+    const voice = () => {
+      const root = form.closest('dialog') || document.body;
+      let v = [...root.children].find((x) => 'dashVoice' in x.dataset);
+      if (!v) {
+        v = document.createElement('div');
+        v.className = 'sr-only';
+        v.dataset.dashVoice = '';
+        v.setAttribute('role', 'status');
+        root.append(v);
+      }
+      return v;
     };
+    const announce = (text) => { voice().textContent = text; };
 
     // what is wrong with a field: text, or a promise of it when a rule has to ask. mayAsk: false uses only answers that are in.
     const problem = (u, s, v, all, mayAsk) => {
@@ -3039,7 +3049,7 @@
       error('', rest.length || !list.length ? rest.join(' ') || told(x) : '');
       goTo(units().filter((u) => at(u).text));
     };
-    const clear = () => { state.clear(); Object.assign(line, { page: '', rule: '', lost: '' }); if (status) status.textContent = ''; paint(); };
+    const clear = () => { state.clear(); Object.assign(line, { page: '', rule: '', lost: '' }); announce(''); paint(); };
     const handle = {
       get el() { return form; },
       values, error, fail, clear,
@@ -3052,7 +3062,6 @@
       destroy() {
         clear();
         for (const x of added) x.remove();
-        if (status) status.remove();
         watch.disconnect();
         form.noValidate = !bubbles;
         delete form.dataset.dashForm;
@@ -3125,6 +3134,7 @@
       },
     };
     me.move(form);
+    voice();
     if (form.id) {
       followed.add(me);
       if (!follower) { follower = new MutationObserver(followForms); follower.observe(document.documentElement, { childList: true, subtree: true }); }
@@ -3367,8 +3377,10 @@
     });
     document.addEventListener('focusout', (e) => { const f = formOf(e); if (f) left(f, e.target); });
     document.addEventListener('reset', (e) => { const f = e.target.__dashForm; if (f) setTimeout(() => { if (!e.defaultPrevented) f.clear(); }); });
-    // <form data-validate>: once it is first used, so also one that comes later
+    // <form data-validate>: at load (what the server wrote into it is marked then), or once one that comes later is used
     const validated = (f) => { if (f && f.matches && f.matches('form[data-validate]') && !f.__dashForm) Dash.form(f); };
+    const wireForms = () => { for (const f of document.querySelectorAll('form[data-validate]')) validated(f); };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wireForms); else wireForms();
     for (const type of ['focusin', 'input']) document.addEventListener(type, (e) => validated(e.target.form), true);
     document.addEventListener('submit', (e) => { validated(e.target); const f = e.target.__dashForm; if (f) f.submit(e); }, true);
     document.addEventListener('invalid', (e) => { // (submitted by a script before anyone touched it)
