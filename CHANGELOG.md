@@ -2,6 +2,10 @@
 
 Dashboards keep a copy of `dash.css` and `dash.js`; the first line of each file says which version it is. Versions only add things: a page that worked with an older copy works the same with a newer one.
 
+## 1.17.2 (2026-11-25)
+
+- `.seg.solid`: the number in a part chosen with `aria-current="page"` or `aria-selected="true"` is as readable as in one that is pressed. It was faint on the dark fill: 4.7:1 in light and 3.3:1 in dark, and 3.0 and 2.5 with 1.17.1's colours.
+
 ## 1.17.1 (2026-11-25)
 
 Two colours are not what they were, so a page looks a little different with this version:

@@ -4912,6 +4912,46 @@ let reference;
   }
 }
 
+// ---- 1.17.2 the number in a part of a .seg (test/tools.html), read off the screen
+{
+  for (const colorScheme of ['light', 'dark']) {
+    const ctx = await browser.newContext({ viewport: { width: 900, height: 700 }, deviceScaleFactor: 4, colorScheme, locale: 'en-US', reducedMotion: 'reduce' });
+    const tab = await ctx.newPage();
+    tab.setDefaultTimeout(5000);
+    tab.on('pageerror', (e) => errors.push(e.message));
+    await tab.goto(url.replace('behaviour.html', 'tools.html'), { waitUntil: 'load' });
+    await tab.evaluate(() => {
+      const box = document.createElement('div');
+      box.style.cssText = 'position:fixed;z-index:999;inset:0 0 auto;display:grid;justify-items:start;gap:10px;padding:20px;background:var(--bg)';
+      box.innerHTML = ['seg', 'seg solid'].map((c) => `<div class="${c}"><button type="button" aria-pressed="true">All <span>88</span></button><button type="button" aria-pressed="false">Mine <span>88</span></button></div>`
+        + `<nav class="${c}" aria-label="Views"><a href="#" aria-current="page">All <span>88</span></a><a href="#">Mine <span>88</span></a></nav>`
+        + `<div class="${c}" role="tablist"><button type="button" role="tab" aria-selected="true">All <span>88</span></button><button type="button" role="tab" aria-selected="false">Mine <span>88</span></button></div>`).join('');
+      box.querySelectorAll('span').forEach((e, i) => { e.id = 'n' + i; });
+      document.body.append(box);
+    });
+    // how far the number's letters stand out from the ground in its picture, 1 to 21
+    const ratio = async (q) => {
+      const png = (await tab.locator(q).screenshot()).toString('base64');
+      return tab.evaluate(async (b64) => {
+        const img = new Image();
+        img.src = 'data:image/png;base64,' + b64;
+        await img.decode();
+        const g = Object.assign(document.createElement('canvas'), { width: img.width, height: img.height }).getContext('2d');
+        g.drawImage(img, 0, 0);
+        const d = g.getImageData(0, 0, img.width, img.height).data;
+        const lum = (i) => [0.2126, 0.7152, 0.0722].reduce((sum, w, n) => { const v = d[i + n] / 255; return sum + w * (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4); }, 0);
+        let low = 1, high = 0;
+        for (let i = 0; i < d.length; i += 4) { const l = lum(i); low = Math.min(low, l); high = Math.max(high, l); }
+        return Math.round((high + 0.05) / (low + 0.05) * 100) / 100;
+      }, png);
+    };
+    const got = [];
+    for (let i = 0; i < 12; i++) got.push(await ratio('#n' + i));
+    check(`1.17.2 seg: the number in a part can be read, chosen by pressed, current or selected, and in the others, ${colorScheme}`, got.every((r) => r >= 4.5 && r < 12), got.join());
+    await ctx.close();
+  }
+}
+
 await browser.close();
 server.close();
 for (const e of errors) results.push({ name: 'page error', ok: false, detail: e });
