@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard tools</title>
+<link rel="stylesheet" href="../dash.css">
+<script src="../dash.js"></script>
+</head>
+<body>
+<header class="topbar"><div class="brand"><span class="mark">T</span><h1>Dashboard tools</h1></div><div class="top-right"><button type="button" class="btn sm" id="find">Find <span id="find-keys"></span></button></div></header>
+<main class="page">
+  <section class="panel"><div class="panel-head"><h3>Log</h3></div><div id="out"></div></section>
+  <section class="panel"><div class="panel-head"><h3>Plain log</h3></div><div id="plain"></div></section>
+  <section class="panel"><div class="panel-head"><h3>JSON</h3></div><div id="data"></div></section>
+  <section class="panel"><div class="panel-head"><h3>Panes</h3></div>
+    <div class="panes" id="side" data-panes="test.panes" data-sizes="30 70" data-min="100"><div id="left">Left <p>One</p></div><div>Right <p>Two</p></div></div>
+    <div id="three"><div>A</div><div>B</div><div>C</div></div>
+  </section>
+  <section class="panel"><div class="panel-head"><h3>Heatmap</h3></div><div id="heat"></div><div id="heat2"></div></section>
+  <section class="panel"><div class="panel-head"><h3>Days</h3></div><div id="cal"></div></section>
+</main>
+<script>
+  const did = [];
+  const items = [
+    { label: 'Overview', group: 'Pages', href: '#overview', words: 'home start' },
+    { label: 'Servers', sub: 'All 24 of them', group: 'Pages', href: '#servers', keys: 'g then s' },
+    { label: 'Open settings', group: 'Actions', run: (it) => did.push(it.label), keys: 'mod+,' },
+    { label: 'Server report', group: 'Actions', run: () => did.push('report') },
+    { label: 'Restart <all>', group: 'Actions', tone: 'bad', disabled: true, run: () => did.push('restart') },
+    { label: 'Invite', group: 'People', key: 'invite' },
+    { label: 'Search in people', group: 'People', run: () => people.open() },
+  ];
+  const palette = Dash.palette({ items, recent: 'test.recent', onPick: (it) => did.push('picked ' + it.label) });
+  let answer = async (q) => ['Ada', 'Grace', 'Edsger'].filter((n) => n.toLowerCase().includes(q.toLowerCase())).map((label) => ({ label, run: () => did.push(label) }));
+  const people = Dash.palette({ items: (q) => answer(q), key: 'mod+shift+p', label: 'People', placeholder: 'Find someone' });
+  document.getElementById('find').addEventListener('click', () => palette.open());
+  Dash.render('find-keys', Dash.keys('mod+k'));
+  const out = Dash.log('out', { tools: true, height: 180, lines: [
+    { time: '2026-11-25T10:00:00Z', level: 'info', source: 'web-1', text: 'started on port 8080' },
+    { time: 1795600801000, level: 'warn', source: 'db-1', text: 'slow query: 1.4 s' },
+    { time: 1795600802000, level: 'error', source: 'web-2', text: 'connection refused <b>by</b> db-1' },
+    { time: '2026-11-25T10:00:03Z', level: 'debug', source: 'web-1', text: 'cache miss' },
+  ] });
+  const plain = Dash.log('plain', { height: 120, time: false, max: 50, lines: ['\u001b[32mok\u001b[0m 12 tests', '\u001b[1;31mFAIL\u001b[0m one of them', '\u001b[38;5;31mcolour of 256\u001b[0m and \u001b[90mdim\u001b[39m'] });
+  const json = Dash.json('data', { name: 'web-1', up: true, load: 0.42, tags: ['a', 'b'], notes: null, empty: {}, deep: { er: { est: ['<i>x</i>'] } }, big: Array.from({ length: 250 }, (_, i) => i) }, { copy: true });
+  const three = Dash.panes('three', { vertical: true, height: 300, min: 40, sizes: [1, 1, 2], onChange: (l) => did.push('panes ' + l.map(Math.round).join()) });
+  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'], hours = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
+  const values = days.map((_, d) => hours.map((_, h) => (d === 2 && h === 5 ? null : h < 6 ? 0 : Math.round((Math.sin((h - 6) / 18 * Math.PI) * 120 + ((d * 37 + h * 11) % 23)) * (d > 4 ? 0.4 : 1)))));
+  Dash.render('heat', Dash.heatmap({ rows: days, cols: hours, values, label: 'Requests by day and hour', every: 3 }));
+  Dash.render('heat2', Dash.heatmap({ rows: ['web', 'db'], cols: ['Jan', 'Feb', 'Mar'], values: [[1, 2, 3], [4, null, 10]], label: 'Incidents', show: true, tone: 'accent' }));
+  const points = Array.from({ length: 180 }, (_, i) => ({ date: new Date(Date.UTC(2026, 10, 25 - i, 12)), value: i % 7 > 4 ? 0 : (i * 13) % 9 }));
+  Dash.render('cal', Dash.days(points, { to: '2026-11-25', weeks: 26, label: 'Deploys', noun: 'deploy', tone: 'ok' }));
+</script>
+</body>
+</html>

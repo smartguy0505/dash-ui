@@ -86,6 +86,29 @@
       <p><code>offset</code> is how many pixels under the top bar a part has to reach to count (24). <code>.current</code> is its id, <code>.update()</code> looks again after the page changed, and <code>.stop()</code> ends it.</p>
     </section>
 
+    <section id="palette" data-nav="Command palette" data-terms="Dash.palette Dash.keys .palette .palette-head .palette-list .palette-item .palette-group .palette-text .palette-name .palette-sub .palette-empty .palette-foot .keys command menu quick search jump spotlight">
+      <h2>Command palette</h2>
+      <p><code>Dash.palette({ items, key, recent, placeholder, onPick })</code> is a box to find anything and do it, from anywhere on the page: <code>key</code> opens it (<code>'mod+k'</code>: Ctrl+K, or ⌘K on a Mac). An item is <code>{ label, sub, group, icon, keys, words }</code> with <code>href</code> or <code>run(item)</code>; the ones with neither are told to <code>onPick</code>. Every word typed has to be in the label, the note under it, the group or <code>words</code>; those whose label starts with it come first. With <code>recent</code> (where to remember it) what was picked last comes first while nothing is typed. Press <kbd>Ctrl</kbd> <kbd>K</kbd> here: these docs have one.</p>
+      <example>
+        <div class="row"><button type="button" class="btn" id="find">Find or do… <span id="find-keys"></span></button></div>
+        <script>
+          const commands = Dash.palette({
+            key: null, // (these docs have Ctrl+K already)
+            items: [
+              { label: 'Overview', group: 'Pages', run: () => Dash.toast('Overview') },
+              { label: 'Servers', sub: 'All 24 of them', group: 'Pages', keys: 'g then s', run: () => Dash.toast('Servers') },
+              { label: 'Invite someone', group: 'Actions', words: 'user member add', run: () => Dash.toast('Invite') },
+              { label: 'Change the theme', group: 'Actions', words: 'dark light', keys: 'mod+shift+d', run: () => Dash.theme.set(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark') },
+              { label: 'Delete everything', group: 'Actions', tone: 'bad', disabled: true },
+            ],
+          });
+          Dash.render('find-keys', Dash.keys('mod+k'));
+          Dash.$('find').addEventListener('click', () => commands.open());
+        </script>
+      </example>
+      <p><code>items</code> can be a function <code>(query) =&gt; list</code>, or a promise of one, to look things up: a slow answer says so, a late one is dropped. An item can open another palette. <code>.open(query)</code>, <code>.close()</code>, <code>.isOpen</code>, <code>.update(items)</code>, <code>.stop()</code>. <code>Dash.keys('mod+shift+k')</code> draws a shortcut as key caps (<code>'g then s'</code>: one after the other), as the reader's system has them.</p>
+    </section>
+
     <section id="tabs" data-terms=".tabs data-tab Dash.tabs .count-badge">
       <h2>Tabs</h2>
       <p><code>.tabs</code> is a row of buttons with <code>data-value</code> over panels with a matching <code>data-tab</code>. <code>Dash.tabs(el, { value, store, hash, panels, onChange })</code> shows the chosen panel and hides the others; arrow keys move between tabs. <code>store</code> remembers the tab, <code>hash: 'view'</code> keeps it in the address (<code>#view=list</code>) so a link or a reload opens it, and <code>panels</code> says where the panels are when a page has two sets. It returns <code>{ value, set(v) }</code>. A <code>.count-badge</code> in a tab holds a count.</p>

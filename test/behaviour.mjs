@@ -11,7 +11,7 @@
 // (test/contrast.html), narrow pages, targets and times to come; from 1.10 values the reader hides (test/private.html);
 // from 1.11 line charts (test/lines.html); from 1.12 table rows to pick and to open (test/rows.html); from 1.13 forms that
 // say what is wrong (test/forms.html); from 1.14 trees, lists, the sidebar (test/lists.html) and the docs' own; from 1.15
-// more fields (test/fields.html).
+// more fields (test/fields.html); from 1.16 dashboard tools (test/tools.html).
 //
 //   npm i --no-save playwright-core && npx playwright-core install --only-shell chromium
 //   node test/behaviour.mjs          (KIT=<dir> serves dash.css, dash.js and dash-utils.css from <dir> instead: to check a change)
@@ -39,7 +39,7 @@ const server = createServer(async (req, res) => {
   const base = ['/dash.css', '/dash.js', '/dash-utils.css'].includes(path) ? kit : root;
   try {
     // test/csp.html: under a strict style policy, as some dashboards are
-    const csp = ['/test/csp.html', '/test/csp-forms.html', '/test/csp-lists.html', '/test/csp-fields.html'].includes(path) ? { 'Content-Security-Policy': "style-src 'self'" } : {};
+    const csp = ['/test/csp.html', '/test/csp-forms.html', '/test/csp-lists.html', '/test/csp-fields.html', '/test/csp-tools.html'].includes(path) ? { 'Content-Security-Policy': "style-src 'self'" } : {};
     const body = await readFile(join(base, path)); // first: a missing file is a 404
     res.writeHead(200, { 'Content-Type': TYPES[extname(path)] || 'application/octet-stream', ...csp }).end(body);
   } catch {
@@ -3250,7 +3250,7 @@ let reference;
   await tab.goto(url.replace('test/behaviour.html', 'docs/components.html'), { waitUntil: 'load' });
   const cards = () => tab.evaluate(() => [[...document.querySelectorAll('.docs-class')].filter((x) => !x.hidden).map((x) => x.id).join(), [...document.querySelectorAll('.docs-class .card')].filter((x) => x.checkVisibility()).length, document.getElementById('docs-found').textContent, [...document.querySelectorAll('#docs-nav [aria-current="page"]')].map((x) => x.textContent).join()].join(' / '));
   const all = await cards();
-  check('1.14 docs: all components, by their class', /^buttons,forms,fields,labels,lists,tables,charts,surfaces,navigation,overlays,feedback,privacy \/ (\d+) \/ \1 components \/ All components$/.test(all), all);
+  check('1.14 docs: all components, by their class', /^buttons,forms,fields,labels,lists,tables,logs,charts,surfaces,navigation,overlays,feedback,privacy \/ (\d+) \/ \1 components \/ All components$/.test(all), all);
   await tab.fill('#docs-find', 'Dash.tree');
   await tab.waitForTimeout(250);
   const trees = await cards();
@@ -3647,6 +3647,355 @@ let reference;
   const csp = await strict.evaluate(() => { const t = document.querySelector('.range-track'), s = getComputedStyle(t, '::after'), r = document.querySelector('.rating'); return [Math.round((parseFloat(s.left) / t.clientWidth) * 100), Math.round((1 - parseFloat(s.right) / t.clientWidth) * 100), Math.round((r.querySelector('.rating-on').getBoundingClientRect().width / r.getBoundingClientRect().width) * 100), violations.length].join(); });
   check('1.15 under a strict style policy: a range and a rating', csp === '20,60,50,0', csp);
   await strict.context().close();
+}
+
+// ---- 1.16 dashboard tools (test/tools.html)
+{
+  const openTools = async ({ width = 1000, height = 900, page = 'tools.html', ...more } = {}) => {
+    const ctx = await browser.newContext({ viewport: { width, height }, locale: 'en-US', timezoneId: 'UTC', reducedMotion: 'reduce', ...more });
+    const tab = await ctx.newPage();
+    tab.setDefaultTimeout(5000);
+    tab.on('pageerror', (e) => errors.push(e.message));
+    await tab.goto(url.replace('behaviour.html', page), { waitUntil: 'load' });
+    return tab;
+  };
+  const tab = await openTools();
+  const at = async (f, a) => { let t; try { return await Promise.race([tab.evaluate(f, a), new Promise((_, no) => { t = setTimeout(() => no(new Error('the page hangs')), 10000); })]); } finally { clearTimeout(t); } };
+  const tick = (ms = 50) => tab.waitForTimeout(ms);
+  const press = async (...keys) => { for (const k of keys) await tab.keyboard.press(k); };
+  const did = () => at(() => window.eval('did').splice(0).join(' | '));
+
+  // ---- the command palette
+  const pal = () => at(() => { const d = document.querySelector('dialog.palette'); return d ? [...d.querySelectorAll('.palette-group, .palette-item, .palette-empty')].map((x) => (x.classList.contains('palette-group') ? `[${x.textContent}]` : (x.getAttribute('aria-selected') === 'true' ? '>' : '') + (x.querySelector('.palette-name') || x).textContent)).join(' ') : 'closed'; });
+  await tab.focus('#find');
+  await press('Control+k');
+  const k1 = await at(() => { const d = document.querySelector('dialog.palette'), i = document.activeElement; return [d.matches(':modal'), d.getAttribute('aria-label'), i.getAttribute('role'), i.getAttribute('aria-controls') === d.querySelector('[role="listbox"]').id, document.getElementById(i.getAttribute('aria-activedescendant')).querySelector('.palette-name').textContent, d.querySelectorAll('[role="group"][aria-labelledby]').length, window.eval('palette').isOpen].join(); });
+  check('1.16 palette: its key opens it, with the box in focus and the first one chosen', k1 === 'true,Commands,combobox,true,Overview,3,true' && (await pal()) === '[Pages] >Overview Servers [Actions] Open settings Server report Restart <all> [People] Invite Search in people', k1 + ' ' + await pal());
+  check('1.16 palette: names are escaped, keys are caps', (await at(() => [document.querySelectorAll('.palette all').length, [...document.querySelectorAll('.palette-item .keys')].map((x) => [...x.children].map((c) => c.textContent).join('+')).join()].join(' '))) === '0 G+then+S,Ctrl+,', await at(() => [...document.querySelectorAll('.palette-item .keys')].map((x) => x.innerHTML).join()));
+  await tab.keyboard.type('ser');
+  const k2 = await pal();
+  await tab.fill('.palette input', 'home');
+  const k3 = await pal();
+  await tab.fill('.palette input', 'settings open');
+  const k4 = [await pal(), await at(() => [...document.querySelectorAll('.palette mark')].map((x) => x.textContent).join())].join(' ');
+  await tab.fill('.palette input', 'report');
+  const k5 = await pal();
+  await tab.fill('.palette input', 'all 24');
+  const k5b = await pal();
+  await tab.fill('.palette input', 'people');
+  const k5c = await pal();
+  await tab.fill('.palette input', 'zzz');
+  const k6 = [await pal(), await at(() => document.querySelector('.palette [data-dash-voice]').textContent), await at(() => document.querySelector('.palette input').hasAttribute('aria-activedescendant'))].join(' ');
+  await press('Enter');
+  check('1.16 palette: finds by the words of a name, a note, a group and other words; the best first', k2 === '[Pages] >Servers [Actions] Server report' && k3 === '[Pages] >Overview' && k4 === '[Actions] >Open settings Open,settings' && k5 === '[Actions] >Server report' && k5b === '[Pages] >Servers' && k5c === '[People] >Search in people Invite' && k6 === 'Nothing by that name Nothing by that name false' && (await pal()) !== 'closed', [k2, k3, k4, k5, k5b, k5c, k6].join(' ; '));
+  await tab.fill('.palette input', 's');
+  const k7 = [await pal(), await at(() => document.querySelector('.palette [data-dash-voice]').textContent)].join(' ');
+  check('1.16 palette: those whose name starts with it come first, and it says how many there are', k7 === '[Pages] >Servers Overview [Actions] Server report Open settings Restart <all> [People] Search in people 6 results', k7);
+  await tab.fill('.palette input', '');
+  await press('ArrowUp');
+  const k8 = await pal();
+  await press('ArrowDown', 'ArrowDown', 'ArrowDown', 'ArrowDown', 'ArrowDown');
+  const k9 = await pal();
+  await press('PageUp');
+  const k10 = await pal();
+  await press('PageDown');
+  check('1.16 palette: arrows go round and leave out what is off; pages stop at the ends', [[k8, 'Search in people'], [k9, 'Invite'], [k10, 'Overview'], [await pal(), 'Search in people']].every(([got, n]) => got === '[Pages] Overview Servers [Actions] Open settings Server report Restart <all> [People] Invite Search in people'.replace(n, '>' + n)), [k8, k9, k10, await pal()].join(' ; '));
+  await tab.fill('.palette input', 'settings');
+  await at(() => document.querySelector('.palette input').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true, isComposing: true })));
+  const k11 = await did();
+  const printed = await at(() => { const e = new KeyboardEvent('keydown', { key: 'p', ctrlKey: true, bubbles: true, cancelable: true }); document.querySelector('.palette input').dispatchEvent(e); return e.defaultPrevented; });
+  await press('Enter');
+  await tick();
+  check('1.16 palette: Enter does it, closes, and the focus goes back', k11 === '' && printed === false && (await did()) === 'Open settings' && (await pal()) === 'closed' && (await at(() => document.activeElement.id)) === 'find', k11 + printed + await pal());
+  await press('Control+k');
+  const k12 = await pal();
+  await press('Escape');
+  await tick();
+  const k13 = await pal();
+  await press('Control+k', 'Control+k');
+  await tick();
+  check('1.16 palette: what was picked last comes first; Escape or its key closes it', k12.startsWith('[Recent] >Open settings [Pages] Overview Servers [Actions] Server report') && k13 === 'closed' && (await pal()) === 'closed', k12 + k13 + await pal());
+  await tab.click('#find');
+  await tab.fill('.palette input', 'servers');
+  await press('Enter');
+  await tick();
+  check('1.16 palette: a link goes there', (await at(() => location.hash)) === '#servers', '');
+  await press('Control+k');
+  await tab.fill('.palette input', 'invite');
+  await press('Enter');
+  check('1.16 palette: one with nothing of its own is told to the page', (await did()) === 'picked Invite', '');
+  await press('Control+k');
+  await tab.keyboard.type('in people');
+  await press('Enter');
+  await tick();
+  const k14 = [await pal(), await at(() => [document.querySelectorAll('dialog').length, document.querySelector('dialog').getAttribute('aria-label'), document.activeElement.placeholder].join())].join(' ');
+  await tab.keyboard.type('gra');
+  await tick(250);
+  const k15 = await pal();
+  await press('Enter');
+  check('1.16 palette: one that opens another; items that are looked up', k14 === '>Ada Grace Edsger 1,People,Find someone' && k15 === '>Grace' && (await did()) === 'Grace', k14 + k15);
+  const late = await at(async () => {
+    const wait = (ms) => new Promise((ok) => setTimeout(ok, ms)), out = [];
+    window.eval('answer = (q) => new Promise((ok, no) => setTimeout(() => (q === "bad" ? no(new Error("no <net>")) : ok([{ label: "for " + (q || "all") }])), q === "a" ? 500 : 260))');
+    window.eval('people').open();
+    const i = document.querySelector('.palette input'), list = () => document.querySelector('.palette-list').textContent, type = (v) => { i.value = v; i.dispatchEvent(new Event('input', { bubbles: true })); };
+    await wait(230); out.push(list());
+    await wait(120); out.push(list());
+    type('a'); await wait(200); type('ab'); await wait(340); out.push(document.querySelector('.palette-list').getAttribute('aria-busy')); await wait(120); out.push(list()); await wait(350); out.push(list());
+    type('bad'); await wait(480); out.push(list(), document.querySelectorAll('.palette net').length, document.querySelector('.palette-list').hasAttribute('aria-busy'));
+    window.eval('people').close(); out.push(window.eval('people').isOpen, document.querySelectorAll('dialog').length);
+    return out.join(' / ');
+  });
+  check('1.16 palette: a slow search says so, a late answer is dropped, and one that fails says why', late === 'Searching… / for all / true / for ab / for ab / Couldn’t search: no <net> / 0 / false / false / 1', late);
+  await tab.click('#find');
+  await tab.hover('.palette-item:has-text("Server report")');
+  const k16 = (await pal()).includes('>Server report');
+  await tab.click('.palette-item:has-text("Restart")', { force: true });
+  const k17 = await pal() !== 'closed';
+  const box = await tab.locator('.palette-head').boundingBox();
+  await tab.mouse.move(box.x + 60, box.y + 20);
+  await tab.mouse.down();
+  await tab.mouse.move(20, 600);
+  await tab.mouse.up();
+  const k18 = await pal() !== 'closed';
+  await tab.locator('.palette-group').first().click();
+  const keeps = await at(() => document.activeElement.tagName);
+  await tab.click('.palette-item:has-text("Server report")');
+  const k19 = [await did(), await pal()].join();
+  await tab.click('#find');
+  await tab.mouse.click(20, 700);
+  await tick();
+  check('1.16 palette: by mouse: pointing chooses, a click does it, one beside it closes; what is off does nothing', k16 && k17 && k18 && keeps === 'INPUT' && k19 === 'report,closed' && (await pal()) === 'closed', [k16, k17, k18, keeps, k19, await pal()].join());
+  const more = await at(async () => {
+    const p = window.eval('palette'), out = [];
+    p.open('rep'); out.push(document.querySelector('.palette input').value, document.querySelectorAll('.palette-item').length);
+    Dash.toast('Saved'); const inside = document.querySelector('.palette .toast') != null; p.close(); await new Promise((ok) => setTimeout(ok, 60)); out.push(inside, document.querySelector('body > .toast')?.textContent);
+    p.update([{ label: 'New one' }]); p.open(); out.push(document.querySelector('.palette-item .palette-name').textContent); p.update([{ label: 'Newer' }]); out.push(document.querySelector('.palette-item .palette-name').textContent);
+    p.update(Array.from({ length: 80 }, (_, i) => ({ label: 'n' + i }))); out.push(document.querySelectorAll('.palette-item').length);
+    p.stop(); out.push(p.isOpen); document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true })); out.push(p.isOpen);
+    return out.join();
+  });
+  check('1.16 palette: open(query), update(), at most so many, stop(); a toast comes out of it when it closes', more === 'rep,1,true,Saved,New one,Newer,50,false,false', more);
+  const order = await at(async () => {
+    const out = [], names = () => [...document.querySelectorAll('.palette-group, .palette-name')].map((x) => (x.closest('[aria-selected="true"]') ? '>' : '') + x.textContent).join('+');
+    const gone = () => new Promise((ok) => setTimeout(ok, 40)); // (a closed one leaves the page a moment later)
+    const key = (k) => document.querySelector('.palette input').dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));
+    const p = Dash.palette({ key: null, items: [{ label: 'Other', words: 'set' }, { label: 'Unset' }, { label: 'Big set' }, { label: 'Set up' }] });
+    p.open('set'); out.push(names());
+    p.open(''); p.update([{ label: 'Off', disabled: true }, { label: 'On' }]); out.push(names()); p.stop(); await gone();
+    const two = Dash.palette({ key: null, recent: 'test.two', items: [{ label: 'Same', key: 'a', group: 'A' }, { label: 'Same', key: 'b', group: 'B' }], onPick: (it) => out.push(it.key) });
+    two.open(); out.push([...document.querySelectorAll('.palette [role="group"]')].map((g) => document.getElementById(g.getAttribute('aria-labelledby'))?.textContent).join('+')); key('ArrowDown'); key('Enter'); await gone();
+    two.open(); out.push(names()); two.stop(); await gone();
+    document.getElementById('find').focus();
+    const go = Dash.palette({ key: null, items: [{ label: 'Go', run: () => document.querySelector('#out .log-lines').focus() }] });
+    go.open(); key('Enter'); await gone(); out.push(document.activeElement.className);
+    return out.join(' ; ');
+  });
+  check('1.16 palette: from the start, a word, inside, elsewhere; the first that can be picked; two of one name; the focus goes where it is put', order === '>Set up+Big set+Unset+Other ; Off+>On ; A+B ; b ; Recent+>Same+A+Same ; log-lines', order);
+  const caps = await at(() => { const d = document.createElement('div'); const t = (k) => { d.innerHTML = Dash.keys(k); return [...d.querySelectorAll('kbd, .keys > span')].map((x) => (x.tagName === 'KBD' ? '' : '~') + x.textContent).join('|'); }; return [t('mod+shift+k'), t('g then s'), t('+'), t('enter'), t('<b>'), t('')].join(' '); });
+  check('1.16 keys: as caps', caps === 'Ctrl|Shift|K G|~then|S + ↵ <b> ', caps);
+
+  // ---- a log
+  const lines = (id = 'out') => at((k) => [...document.querySelectorAll(`#${k} .log-line`)].map((x) => x.textContent).join(' / '), id);
+  const l1 = await lines();
+  const l2 = await at(() => [[...document.querySelectorAll('#out .log-line')].map((x) => x.className.replace('log-line', '').trim()).join(), document.querySelectorAll('#out b').length, document.querySelector('#out .log-lines').getAttribute('role'), document.querySelector('#out .log-lines').getAttribute('aria-live'), document.querySelector('#out time').getAttribute('datetime')].join(' '));
+  check('1.16 log: times, levels, where from and the text, escaped', l1 === '10:00:00infoweb-1started on port 8080 / 10:00:01warndb-1slow query: 1.4 s / 10:00:02errorweb-2connection refused <b>by</b> db-1 / 10:00:03debugweb-1cache miss' && l2 === ',warn,bad,muted 0 log off 2026-11-25T10:00:00.000Z', l1 + ' ' + l2);
+  const ansi = await at(() => [...document.querySelectorAll('#plain .log-line')].map((x) => x.querySelector('.log-text').innerHTML).join(' / '));
+  check('1.16 log: the colours of a terminal; what it can\'t show is left out', ansi === '<span class="tone ok">ok</span> 12 tests / <span class="tone bad log-b">FAIL</span> one of them / colour of 256 and <span class="muted">dim</span>', ansi);
+  const codes = await at(() => { const d = document.createElement('div'); document.body.append(d); const l = Dash.log(d, { time: false, lines: ['\u001b[1mb\u001b[22mn', '\u001b[48;2;31;32;33mx\u001b[35mp\u001b[39mq', '\u001b]0;title\u0007t\u001b[2K', '\u001b[33mw\u001b[my', '\u001b[34mz\u001b[37mv'] }); const a = [...d.querySelectorAll('.log-text')].map((x) => x.innerHTML).join(' / '); const t = l.text; l.destroy(); d.remove(); return a + ' ' + t.replace(/\n/g, '|'); });
+  check('1.16 log: bold, other colours, resets and titles', codes === '<span class="log-b">b</span>n / x<span class="tone purple">p</span>q / t / <span class="tone warn">w</span>y / <span class="tone blue">z</span>v bn|xpq|t|wy|zv', codes);
+  const added = await at(async () => { const f = () => new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(ok))); const o = window.eval('out'), box = document.querySelector('#out .log-lines'), a = []; o.add('one\ntwo\r\nthree\n'); o.add([{ text: 'four', level: 'ok' }, 'five']); a.push(box.querySelectorAll('.log-line').length); await f(); a.push(box.querySelectorAll('.log-line').length, box.querySelector('.log-line:last-child').textContent, box.querySelectorAll('.log-line.ok').length, Math.round(box.scrollHeight - box.scrollTop - box.clientHeight)); return a.join(); });
+  check('1.16 log: what is added shows at the next frame, a line each, and it stays at the end', added === '4,9,five,1,0', added);
+  await at(() => { const o = window.eval('out'); for (let i = 0; i < 20; i++) o.add('more ' + i); });
+  await tick();
+  const l3 = await at(() => { const b = document.querySelector('#out .log-lines'); return Math.round(b.scrollHeight - b.scrollTop - b.clientHeight); });
+  await at(() => { document.querySelector('#out .log-lines').scrollTop = 40; });
+  await tick();
+  const l4 = await at(async () => { const o = window.eval('out'), box = document.querySelector('#out .log-lines'), b = document.querySelector('#out .log-new'); const a = [b.hidden, box.scrollTop]; o.add('late'); await new Promise((ok) => setTimeout(ok, 60)); a.push(b.hidden, b.textContent, box.scrollTop); o.add(['later', 'latest']); await new Promise((ok) => setTimeout(ok, 60)); a.push(b.textContent); const r = b.getBoundingClientRect(), q = box.getBoundingClientRect(); a.push(r.top > q.top && r.bottom <= q.bottom && r.left >= q.left && r.right <= q.right); return a.join(); });
+  await tab.click('#out .log-new');
+  await tick();
+  const l5 = await at(() => { const box = document.querySelector('#out .log-lines'); return [document.querySelector('#out .log-new').hidden, Math.round(box.scrollHeight - box.scrollTop - box.clientHeight), document.activeElement === box].join(); });
+  check('1.16 log: scrolled up it stays where it is and says how many are new; the button goes to the end', l3 === 0 && l4 === 'true,40,false,1 new line ↓,40,3 new lines ↓,true' && l5 === 'true,0,true', l3 + ' ' + l4 + ' ' + l5);
+  const cutOff = await at(async () => { const p = window.eval('plain'), box = document.querySelector('#plain .log-lines'), f = () => new Promise((ok) => setTimeout(ok, 60)); for (let i = 0; i < 60; i++) p.add('n' + i); await f(); const a = [box.querySelectorAll('.log-line').length, box.querySelector('.log-line').textContent, p.lines.length, p.count.total]; box.scrollTop = 300; await f(); const row = [...box.querySelectorAll('.log-line')].find((x) => x.getBoundingClientRect().top >= box.getBoundingClientRect().top), was = row.getBoundingClientRect().top; p.add(['x', 'y', 'z']); await f(); a.push(Math.round(Math.abs(row.getBoundingClientRect().top - was)) <= 1, box.querySelectorAll('.log-line').length, box.querySelector('.log-line').textContent); for (let i = 0; i < 500; i++) p.add('q' + i); a.push(p.lines.length); await f(); a.push(box.querySelectorAll('.log-line').length, box.querySelector('.log-line').textContent); p.end(); return a.join(); });
+  check('1.16 log: the oldest go, and what is being read stays where it is', cutOff === '50,n10,50,50,true,50,n13,50,50,q450', cutOff);
+  await tab.fill('#out .log-tools input', 'db');
+  await tick();
+  const l6 = [await lines(), await at(() => [document.querySelector('#out .log-count').textContent, [...document.querySelectorAll('#out mark')].map((x) => x.textContent).join()].join(' '))].join(' ; ');
+  const l7 = await at(async () => { const o = window.eval('out'); o.add(['not this', 'db again']); await new Promise((ok) => setTimeout(ok, 60)); const a = [document.querySelectorAll('#out .log-line').length, JSON.stringify(o.count), o.text.split('\n').length]; a.push(o.filter((l) => l.level === 'error'), o.filter('zzz'), document.querySelector('#out .empty').textContent, document.querySelector('#out .log-tools input').value, o.filter('') === o.count.total, document.querySelector('#out .log-count').textContent); return a.join(' / '); });
+  check('1.16 log: a filter, by words or a test; new lines that don\'t fit stay out', l6 === '10:00:01warndb-1slow query: 1.4 s / 10:00:02errorweb-2connection refused <b>by</b> db-1 ; 2 / 32 db,db' && l7 === '3 / {"shown":3,"total":34} / 3 / 1 / 0 / Nothing by that name / zzz / true / ', l6 + ' ' + l7);
+  await tab.click('#out [data-log="wrap"]');
+  const l8 = await at(() => [document.querySelector('#out [data-log="wrap"]').getAttribute('aria-pressed'), getComputedStyle(document.querySelector('#out .log-text')).whiteSpace].join());
+  await tab.click('#out [data-log="copy"]');
+  await tick();
+  const l9 = await at(() => { const b = document.querySelector('#out [data-log="copy"]'); return [b.textContent, b.dataset.copy.split('\n')[0]].join(); });
+  await tab.click('#out [data-log="clear"]');
+  const l10 = await at(async () => { const o = window.eval('out'), a = [document.querySelector('#out .log-lines').textContent, o.count.total]; o.add('gone'); o.clear(); o.add([]); await new Promise((ok) => setTimeout(ok, 60)); a.push(document.querySelector('#out .log-lines').textContent); o.add('back'); await new Promise((ok) => setTimeout(ok, 60)); a.push(document.querySelector('#out .log-lines').textContent); return a.join(); });
+  check('1.16 log: Wrap, Copy, Clear', l8 === 'false,pre' && l9 === 'Copied ✓,2026-11-25T10:00:00.000Z info web-1 started on port 8080' && l10 === 'Nothing yet,0,Nothing yet,back', [l8, l9, l10].join(' ; '));
+  const narrow = await at(async () => { const d = document.createElement('div'); d.style.width = '600px'; document.body.append(d); const l = Dash.log(d, { height: 80, lines: Array.from({ length: 12 }, (_, i) => 'a line that is as long as this one is, so that it wraps ' + i) }); await new Promise((ok) => setTimeout(ok, 60)); d.style.width = '200px'; const b = d.querySelector('.log-lines'); for (let i = 0; i < 20 && (b.scrollHeight < 400 || b.scrollHeight - b.scrollTop - b.clientHeight > 1); i++) await new Promise((ok) => setTimeout(ok, 50)); const a = [Math.round(b.scrollHeight - b.scrollTop - b.clientHeight) <= 1, Math.round(b.getBoundingClientRect().height)]; Dash.log(d, { lines: ['again'] }); a.push(d.querySelectorAll('.log-lines').length, d.textContent); Dash.log(d, { tools: true }); Dash.log(d, { tools: true }); d.querySelector('[data-log="wrap"]').click(); a.push(d.querySelector('[data-log="wrap"]').getAttribute('aria-pressed')); d.__dashLog.destroy(); a.push(d.innerHTML, d.className, d.__dashLog); l.add('late'); d.remove(); return a.join(); });
+  check('1.16 log: at the end it stays there when it gets narrower; made again, and undone', narrow === 'true,80,1,again,false,,,', narrow);
+  const told = await at(() => { const d = document.createElement('div'); document.body.append(d); Dash.log(d, { live: true, wrap: false, filter: 'b', tools: true, lines: ['a', 'b'] }); const b = d.querySelector('.log-lines'); const a = [b.getAttribute('aria-live'), b.hasAttribute('data-nowrap'), d.querySelectorAll('.log-line').length, d.querySelector('input').value, d.querySelector('[data-log="wrap"]').getAttribute('aria-pressed')]; Dash.log(d, { lines: ['x'.repeat(600)] }); const c = d.querySelector('.log-lines'); a.push(c.scrollWidth <= c.clientWidth); d.__dashLog.wrap(false); a.push(c.scrollWidth > c.clientWidth); d.remove(); return a.join(); });
+  check('1.16 log: live, wrap and a filter from the start', told === 'polite,true,1,b,false,true,true', told);
+
+  // ---- a value
+  const open1 = await at(() => { const d = document.getElementById('data'); return [[...d.querySelectorAll(':scope > details > .json-in > *')].map((x) => (x.querySelector('summary') || x).textContent).join(' / '), [...d.querySelectorAll('.json-str, .json-num, .json-bool, .json-null')].map((x) => x.className.slice(5)).join(), d.querySelectorAll('details').length, d.getAttribute('role')].join(' ; '); });
+  const jsonTall = await at(() => Math.min(...[...document.querySelectorAll('#data summary')].map((x) => x.getBoundingClientRect().height)));
+  const levels = await at(() => { const rgb = (c) => { const x = document.createElement('canvas').getContext('2d', { willReadFrequently: true }); x.fillStyle = getComputedStyle(document.querySelector('#out .log-lines')).backgroundColor; x.fillRect(0, 0, 1, 1); x.fillStyle = c; x.fillRect(0, 0, 1, 1); return [...x.getImageData(0, 0, 1, 1).data].slice(0, 3); }; const lum = (c) => { const f = c.map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }); return 0.2126 * f[0] + 0.7152 * f[1] + 0.0722 * f[2]; }; return ['warn', 'bad'].map((t) => { const l = document.createElement('div'); l.className = 'log-line ' + t; l.innerHTML = '<span class="log-level">x</span>'; document.querySelector('#out .log-lines').append(l); const a = lum(rgb(getComputedStyle(l).backgroundColor)), b = lum(rgb(getComputedStyle(l.firstChild).color)); l.remove(); return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05) >= 4.5; }).join(); });
+  check('1.16 log, json: a level can be read on its line, an arrow is big enough to hit', levels === 'true,true' && jsonTall >= 24, levels + jsonTall);
+  check('1.16 json: what it is made of, one level open', open1 === 'name: "web-1" / up: true / load: 0.42 / tags: [2 items] / notes: null / empty: {} / deep: {1 key} / big: [250 items] ; str,bool,num,null ; 4 ; group', open1);
+  await tab.click('#data summary:has-text("deep")');
+  await tick();
+  const j1 = await at(() => { const p = [...document.querySelectorAll('#data details')].find((x) => x.querySelector('summary').textContent.startsWith('deep')); return [p.open, p.querySelector('.json-in').textContent].join(); });
+  await tab.click('#data summary:has-text("er:")');
+  await tick();
+  await tab.click('#data summary:has-text("est:")');
+  await tick();
+  const j2 = await at(() => [document.querySelectorAll('#data i').length, [...document.querySelectorAll('#data .json-str')].pop().textContent].join());
+  const j2b = await at(async () => { const wait = () => new Promise((ok) => setTimeout(ok, 50)), p = [...document.querySelectorAll('#data details')].find((x) => x.querySelector('summary').textContent.startsWith('deep')); p.open = false; await wait(); p.open = true; await wait(); const d = document.createElement('div'); document.body.append(d); Dash.json(d, { a: { b: 1 } }); Dash.json(d, { a: { b: 2 } }); d.querySelectorAll('details')[1].open = true; await wait(); const t = d.querySelectorAll('.json-num').length + d.querySelector('.json-num').textContent; d.remove(); return [p.querySelectorAll('details[open]').length, t].join(); });
+  await tab.click('#data summary:has-text("big")');
+  await tick();
+  const j3 = await at(() => [...[...document.querySelectorAll('#data details')].find((x) => x.querySelector('summary').textContent.startsWith('big')).querySelectorAll(':scope > .json-in > details > summary')].map((x) => x.textContent).join());
+  await tab.click('#data summary:has-text("200…249")');
+  await tick();
+  const j4 = await at(() => { const r = [...document.querySelectorAll('#data .json-row')].map((x) => x.textContent); return [r.filter((x) => /^2\d\d: /.test(x)).length, r.includes('200: 200'), r.includes('100: 100')].join(); });
+  check('1.16 json: a branch is drawn when it opens, escaped; a long list in hundreds', j1 === 'true,er: {1 key}' && j2 === '0,"<i>x</i>"' && j2b === '2,12' && j3 === '0…99,100…199,200…249' && j4 === '50,true,false', [j1, j2, j2b, j3, j4].join(' ; '));
+  const odd = await at(() => { const a = { n: 1n, f() {}, u: undefined, d: new Date(0), s: new Set([1]), m: new Map([['k', 2]]), t: 'x'.repeat(2010), no: NaN }; a.me = a; const loop = new Map(); loop.set('in', loop); a.loop = loop; const d = document.createElement('div'); document.body.append(d); Dash.json(d, a, { open: true }); const t = [...d.querySelectorAll('.json-row')].map((x) => x.textContent.slice(0, 14)).join(' / '), more = d.textContent.includes('… 10 more'); const one = (v) => { d.__dashJson.set(v); return d.textContent; }; const s = [one('<b>'), one(null), one([]), one(undefined), d.querySelectorAll('b').length, d.__dashJson.value === undefined].join(); d.__dashJson.destroy(); const gone = [d.innerHTML, d.className, d.getAttribute('role')].join(); d.remove(); return [t, more, s, gone].join(' ; '); });
+  check('1.16 json: other kinds of values, long text, what holds itself', odd === 'n: 1n / f: function / u: undefined / d: "1970-01-01 / 0: 1 / k: 2 / t: "xxxxxxxxxx / no: NaN / me: (itself) / in: (itself) ; true ; "<b>",null,[],undefined,0,true ; ,,', odd);
+  await tab.click('#data .json-copy');
+  await tick();
+  const j5 = await at(() => { const b = document.querySelector('#data .json-copy'); const v = JSON.parse(b.dataset.copy); const r = b.getBoundingClientRect(), q = document.getElementById('data').getBoundingClientRect(), clear = ['summary', '.json-in > .json-row'].every((s) => { const w = document.createRange(); w.selectNodeContents(document.querySelector('#data ' + s)); const x = w.getBoundingClientRect(); return x.right <= r.left || x.top >= r.bottom; }); return [b.textContent, v.name, v.big.length, b.dataset.copy.includes('\n  "up"'), r.top >= q.top && r.right <= q.right + 1 && clear].join(); });
+  const j6 = await at(() => { const j = window.eval('json'); j.open(true); const all = document.querySelectorAll('#data details[open]').length; j.open(0); return [all >= 5, document.querySelectorAll('#data details[open]').length, document.querySelectorAll('#data .json-row').length].join(); });
+  const j7 = await at(async () => { const t0 = performance.now(), d = document.createElement('div'); document.body.append(d); Dash.json(d, Array.from({ length: 100000 }, (_, i) => ({ i })), { open: true }); const rows = d.querySelectorAll('.json-row, details').length; const ms = performance.now() - t0; d.querySelector('details:not([open])').open = true; await new Promise((ok) => setTimeout(ok, 50)); const later = d.querySelectorAll('.json-row, details').length; d.innerHTML = Dash.json.html(Array.from({ length: 5000 }, (_, i) => i), { open: 2, max: 300 }); const eager = [d.querySelectorAll('.json-row').length < 305, d.textContent.includes('…'), d.querySelectorAll('[data-part]').length].join(); d.innerHTML = Dash.json.html({ a: { b: 1 } }); const small = d.querySelector('.json').textContent; d.remove(); return [rows < 3500, ms < 4000, later > rows, eager, small].join(' '); });
+  const j8 = await at(async () => { const d = document.createElement('div'); document.body.append(d); Dash.json(d, Array.from({ length: 90 }, () => Array.from({ length: 90 }, (_, i) => ({ i }))), { open: true }); const n = d.querySelectorAll('.json-row, details').length, shut = [...d.querySelectorAll('details:not([open])')].filter((x) => x.checkVisibility()); const a = [n > 2800 && n < 3500, d.querySelectorAll(':scope > details > .json-in > details').length, [...d.querySelectorAll('details[open] > .json-in')].filter((x) => !x.childElementCount).length]; const last = shut[shut.length - 1]; if (!last) { d.remove(); return a.join() + ' all open ' + n; } last.open = true; await new Promise((ok) => setTimeout(ok, 50)); a.push(last.querySelector('.json-in').childElementCount); const in1 = last.querySelector('.json-in details'); in1.open = true; await new Promise((ok) => setTimeout(ok, 50)); a.push(in1.querySelector('.json-in').textContent); d.remove(); return a.join(); });
+  check('1.16 json: all of it open, up to so many rows; the rest is there to open', j8 === 'true,90,0,90,i: 0', j8);
+  check('1.16 json: copy, open(), a great many rows, and as HTML', j5 === 'Copied ✓,web-1,250,true,true' && j6 === 'true,0,0' && j7 === 'true true true true,true,0 {1 key}a: {1 key}b: 1', [j5, j6, j7].join(' ; '));
+
+  // ---- panes
+  const pane = async () => { await tick(); return at(() => { const s = document.getElementById('side'), b = s.querySelector('.pane-bar'); return [...[...s.children].filter((x) => x !== b).map((x) => Math.round(x.getBoundingClientRect().width / (s.getBoundingClientRect().width - 13) * 100)), b.getAttribute('aria-valuenow')].join(); }); };
+  const p0 = await at(() => { const b = document.querySelector('#side .pane-bar'); return [b.getAttribute('role'), b.getAttribute('aria-orientation'), b.getAttribute('aria-controls') === 'left', b.tabIndex, b.getAttribute('aria-label')].join(); });
+  check('1.16 panes: from the markup, with a bar that says where it is', (await pane()) === '30,70,30' && p0 === 'separator,vertical,true,0,Resize', await pane() + ' ' + p0);
+  await tab.focus('#side .pane-bar');
+  await press('ArrowRight', 'ArrowRight');
+  const p1 = await pane();
+  await press('Shift+ArrowLeft');
+  const p2 = await pane();
+  await press('Home');
+  await tick();
+  const p3 = await at(() => Math.round(document.getElementById('left').getBoundingClientRect().width));
+  await press('End');
+  await tick();
+  const p4 = await at(() => Math.round(document.querySelector('#side > :last-child').getBoundingClientRect().width));
+  check('1.16 panes: the arrow keys, Home and End, down to the least', p1 === '34,66,34' && p2 === '24,76,24' && p3 === 100 && p4 === 100, [p1, p2, p3, p4].join(' '));
+  await tab.locator('#side').scrollIntoViewIfNeeded();
+  await at(() => document.activeElement.blur());
+  const bar = await tab.locator('#side .pane-bar').boundingBox(), host = await tab.locator('#side').boundingBox();
+  await tab.mouse.move(bar.x + 6, bar.y + 20);
+  await tab.mouse.down();
+  const sizing = await at(() => document.getElementById('side').classList.contains('sizing') || 'not yet');
+  await tab.mouse.move(host.x + host.width / 2, bar.y + 25, { steps: 5 });
+  const p5 = await pane();
+  await tab.mouse.up();
+  await at(() => document.querySelector('#side .pane-bar').dispatchEvent(new PointerEvent('pointermove', { clientX: 90, bubbles: true })));
+  const p6b = await pane();
+  const p6 = await at(() => [document.getElementById('side').classList.contains('sizing'), Dash.store.get('test.panes').map(Math.round).join('+'), document.activeElement.className].join());
+  await tab.reload({ waitUntil: 'load' });
+  const p7 = await pane();
+  check('1.16 panes: by mouse; the sizes are remembered', sizing === true && p5 === '50,50,50' && p6b === p5 && p6 === 'false,50+50,pane-bar' && p7 === p5, [sizing, p5, p6, p6b, p7].join(' '));
+  await tab.dblclick('#side .pane-bar');
+  check('1.16 panes: a double click puts the sizes back', (await pane()) === '30,70,30', await pane());
+  const tall = async () => { await tick(); return at(() => [...document.querySelectorAll('#three > :not(.pane-bar)')].map((x) => Math.round(x.getBoundingClientRect().height)).join()); };
+  const v1 = [await tall(), await at(() => [document.querySelector('#three .pane-bar').getAttribute('aria-orientation'), document.getElementById('three').getBoundingClientRect().height, [...document.querySelectorAll('#three .pane-bar')].map((x) => x.getAttribute('aria-valuenow')).join('+')].join())].join(' ');
+  await tab.focus('#three .pane-bar >> nth=1');
+  await press('ArrowUp');
+  const v2 = await did();
+  await press('ArrowLeft');
+  const v2b = await did();
+  await press('Home', 'Home');
+  const v3 = await did();
+  check('1.16 panes: one above the other; three of them; told once a move is done', v1 === '69,69,137 horizontal,300,25+50' && v2 === 'panes 25,23,52' && v2b === '' && v3 === 'panes 25,15,60' && (await tall()) === '69,40,166', [v1, v2, v2b, v3, await tall()].join(' ; '));
+  const rest = await at(async () => { const t = window.eval('three'); t.set([1, 2]); const a = [t.sizes.map(Math.round).join('+')]; t.set([2, 1, 1]); a.push(t.sizes.join('+')); t.reset(); a.push(t.sizes.join('+')); t.destroy(); a.push(document.querySelectorAll('#three .pane-bar').length, document.querySelector('#three > div').style.getPropertyValue('--pane'), document.getElementById('three').hasAttribute('data-vertical')); const d = document.createElement('div'); d.dir = 'rtl'; d.style.width = '613px'; d.innerHTML = '<div></div><div></div>'; document.body.append(d); const r = Dash.panes(d, { min: 50 }); d.querySelector('.pane-bar').dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true })); a.push(r.sizes.join('+')); a.push(String(Dash.panes(document.createElement('div')))); Dash.panes(d); a.push(d.querySelectorAll('.pane-bar').length); d.remove(); const o = document.createElement('div'); o.style.width = '627px'; o.innerHTML = '<div></div><div></div><div></div>'; document.body.append(o); let told = 0; Dash.panes(o, { min: 50, onChange: () => { told++; } }); for (let i = 0; i < 3; i++) { o.querySelector('.pane-bar').dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true })); await new Promise((ok) => setTimeout(ok, 60)); } a.push(told); o.remove(); return a.join(' '); });
+  check('1.16 panes: set(), reset(), destroy(), right to left', rest === '25+15+60 50+25+25 25+25+50 0  false 52+48 null 1 1', rest);
+
+  // ---- how much, in a grid
+  const heat = await at(() => { const t = document.querySelector('#heat table'); return [t.caption.textContent, t.querySelectorAll('thead th[scope="col"]').length, [...t.querySelectorAll('thead th')].filter((x) => !x.querySelector('.sr-only')).map((x) => x.textContent).join('+'), t.querySelectorAll('tbody th[scope="row"]').length, t.querySelectorAll('tbody td').length, t.querySelectorAll('td[data-l=""]').length, t.querySelector('td[data-l=""]').textContent, t.querySelector('td[data-l=""]').dataset.tooltip, [...new Set([...t.querySelectorAll('tbody td')].map((x) => x.dataset.l))].sort().join(''), t.querySelector('tbody td').dataset.tooltip, document.querySelector('#heat .heat-legend').textContent].join(' ; '); });
+  check('1.16 heatmap: a table, with names and values for all of it', heat === 'Requests by day and hour ; 24 ; 00+03+06+09+12+15+18+21 ; 7 ; 168 ; 1 ; no data ; Wed, 05: no data ; 012345 ; Mon, 00: 0 ; 0139', heat);
+  const lv = await at(() => { const l = (o) => { const d = document.createElement('div'); d.innerHTML = Dash.heatmap({ rows: ['a'], cols: ['1', '2', '3', '4', '5', '6', '7'], ...o }); return [...d.querySelectorAll('tbody td')].map((x) => x.dataset.l || '-').join(''); }; return [l({ values: [[0, 1, 20, 21, 80, 81, 100]] }), l({ values: [[0, 5, 10, 20, 'x', null, -3]], max: 10 }), l({ values: [[50, 60, 100, 40]], min: 50 }), l({ values: [[0, 0]] }), l({ values: [] })].join(); });
+  check('1.16 heatmap: five steps from the least to the most; nothing is a gap', lv === '0112455,0355--0,0150---,00-----,-------', lv);
+  const sh = await at(() => { const t = document.querySelector('#heat2'); return [[...t.querySelectorAll('tbody td')].map((x) => x.textContent).join('+'), t.querySelector('.heat').className, t.querySelectorAll('tbody .sr-only').length].join(); });
+  check('1.16 heatmap: with the values in it', sh === '1+2+3+4+no data+10,heat shown accent,1', sh);
+  for (const scheme of ['light', 'dark']) {
+    const in1 = await openTools({ colorScheme: scheme });
+    await in1.waitForTimeout(120);
+    const ramp = await in1.evaluate(() => { const rgb = (c) => { const x = document.createElement('canvas').getContext('2d', { willReadFrequently: true }); x.fillStyle = c; x.fillRect(0, 0, 1, 1); return [...x.getImageData(0, 0, 1, 1).data].slice(0, 3); }; const lum = (c) => { const f = c.map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }); return 0.2126 * f[0] + 0.7152 * f[1] + 0.0722 * f[2]; }; const con = (a, b) => { const [p, q] = [lum(a), lum(b)].sort((m, n) => n - m); return (p + 0.05) / (q + 0.05); }; const card = rgb(getComputedStyle(document.querySelector('.panel')).backgroundColor); const steps = [1, 2, 3, 4, 5].map((l) => rgb(getComputedStyle(document.querySelector(`#heat .heat-legend [data-l="${l}"]`)).backgroundColor)), k = steps.map((c) => con(c, card)); const text = rgb(getComputedStyle(document.querySelector('#heat2 td:not([data-l=""])')).color), on = [...document.querySelectorAll('#heat2 tbody td[data-l="5"], #heat2 tbody td[data-l="1"]')].map((x) => con(rgb(getComputedStyle(x).backgroundColor), text)); return [lum(card) < 0.2 ? 'dark' : 'light', k[0] >= 2, k.every((x, i) => !i || x > k[i - 1] * 1.15), on.length > 1 && on.every((x) => x >= 4.5), k.map((x) => x.toFixed(1)).join('+')].join(); });
+    check(`1.16 heatmap: each step stands out from the one before and from the panel, and numbers are readable (${scheme})`, ramp.startsWith(scheme + ',true,true,true'), ramp);
+    await in1.context().close();
+  }
+  const cal = await at(() => { const d = document.querySelector('#cal .days'); const s = [...d.querySelectorAll('.days-grid > i')]; return [s.length, s[0].dataset.tooltip, s[s.length - 1].dataset.tooltip, d.getAttribute('aria-label'), [...d.querySelectorAll('.days-side span')].map((x) => x.textContent || '.').join(''), [...d.querySelectorAll('.days-months span')].map((x) => x.textContent).filter(Boolean).join('+')].join(' ; '); });
+  check('1.16 days: a square a day, a column a week, and what it adds up to', /^178 ; Mon, 1 Jun 2026: \d deploys? ; /.test(cal) && cal.split(' ; ')[2] === 'Wed, 25 Nov 2026: 0 deploys' && /^Deploys: \d+ deploys in 178 days, the most on .+ \(8 deploys\)$/.test(cal.split(' ; ')[3]) && cal.endsWith('Mon.Wed.Fri.Sun ; Jun+Jul+Aug+Sept+Oct+Nov'), cal);
+  const dd = await at(() => { const f = (p, o) => { const d = document.createElement('div'); d.innerHTML = Dash.days(p, { to: '2026-11-25', weeks: 1, ...o }); return [...d.querySelectorAll('.days-grid > i')].map((x) => x.dataset.l + x.dataset.tooltip.replace(/.*: /, ':')).join(' ') + '|' + d.querySelector('.days').getAttribute('aria-label') + '|' + d.querySelector('.days-side').textContent + d.querySelectorAll('.heat-legend').length; }; return [f([{ date: '2026-11-23', value: 1 }, { date: '2026-11-23', value: 1.5 }, { date: '2026-11-26', value: 9 }, { t: Date.UTC(2026, 10, 25, 12), value: 1 }, { date: 'x', value: 3 }], { noun: 'run' }), f([], { first: 0 }), f([{ date: '2026-11-25', value: 5 }], { max: 10, legend: false })].join(' ; '); });
+  check('1.16 days: several of a day add up, others are left out; weeks from Sunday; max', dd === '5:2.5 runs 0:0 runs 2:1 run|Days: 3.5 runs in 3 days, the most on Mon, 23 Nov 2026 (2.5 runs)|MonWedFriSun1 ; 0:0 0:0 0:0 0:0|Days: 0 in 4 days|SunTueThuSat1 ; 0:0 0:0 3:5|Days: 5 in 3 days, the most on Wed, 25 Nov 2026 (5)|MonWedFriSun0', dd);
+  const room = await at(() => { const s = document.querySelector('#cal .heat-scroll').getBoundingClientRect(), d = document.querySelector('#cal .days').getBoundingClientRect(), g = [...document.querySelectorAll('#cal .days-grid > i')].map((x) => x.getBoundingClientRect().left); return [Math.round(d.left - s.left), d.right < s.right, g[0] < g[g.length - 1]].join(); });
+  check('1.16 days: with room for all of them they start at the left, the oldest first', room === '0,true,true', room);
+  await tab.context().close();
+
+  // ---- on a phone, in high contrast, under a strict style policy
+  const phone = await openTools({ width: 390, height: 800, hasTouch: true, isMobile: true });
+  const fits = await phone.evaluate(() => [document.documentElement.scrollWidth, innerWidth, getComputedStyle(document.querySelector('#side .pane-bar')).display, Math.round(document.getElementById('left').getBoundingClientRect().width) === Math.round(document.getElementById('side').getBoundingClientRect().width), getComputedStyle(document.querySelector('#three .pane-bar')).display, document.querySelector('#heat .heat-scroll').scrollWidth > document.querySelector('#heat .heat-scroll').clientWidth, (() => { const s = document.querySelector('#cal .heat-scroll'), r = s.getBoundingClientRect(), seen = (x) => { const q = x.getBoundingClientRect(); return q.left >= r.left - 1 && q.right <= r.right + 1; }, all = [...s.querySelectorAll('.days-grid > i')]; return [s.scrollWidth > s.clientWidth, seen(all[0]), seen(all[all.length - 1]), seen(s.querySelector('.days-side'))].join('-'); })(), (() => { const s = document.querySelector('#heat .heat-scroll'); s.scrollIntoView(); s.scrollLeft = 60; const h = s.querySelector('tbody tr:nth-child(6) th').getBoundingClientRect(), r = s.getBoundingClientRect(), over = document.elementFromPoint(r.left + 8, h.top + 8); s.scrollLeft = 0; return [Math.round(h.left - r.left), over && over.tagName].join('-'); })()].join());
+  await phone.tap('#find');
+  await phone.waitForTimeout(80);
+  const tip = await phone.evaluate(() => { const r = document.querySelector('.palette').getBoundingClientRect(); return [r.left >= 8, r.right <= 382, getComputedStyle(document.querySelector('.palette-foot')).display, document.querySelector('.palette-item').getBoundingClientRect().height >= 44].join(); });
+  check('1.16 on a phone: all of it fits; panes stack; the palette is for fingers', fits === '390,390,none,true,block,true,true-false-true-true,0-TH' && tip === 'true,true,none,true', fits + ' ' + tip);
+  await phone.context().close();
+  const hc = await openTools({ forcedColors: 'active' });
+  await hc.keyboard.press('Control+k');
+  await hc.waitForTimeout(60);
+  const seen = await hc.evaluate(() => { const sys = (n) => { const i = document.createElement('i'); i.style.color = n; document.body.append(i); const c = getComputedStyle(i).color; i.remove(); return c; }; const s = getComputedStyle(document.querySelector('.palette-item[aria-selected="true"]')), cell = [...document.querySelectorAll('#heat tbody td')].map((x) => getComputedStyle(x)), bar = getComputedStyle(document.querySelector('.pane-bar'), '::after'); return [s.backgroundColor === sys('Highlight'), s.color === sys('HighlightText'), new Set(cell.map((x) => x.backgroundColor)).size >= 6, cell[0].outlineStyle, bar.backgroundColor === sys('CanvasText'), getComputedStyle(document.querySelector('.json-part > summary'), '::before').borderLeftColor === sys('CanvasText'), getComputedStyle(document.querySelector('[data-log="wrap"]')).backgroundColor === sys('Highlight')].join(); });
+  check('1.16 in high contrast: what is chosen, the shades, the bars and the arrows are seen', seen === 'true,true,true,solid,true,true,true', seen);
+  await hc.context().close();
+  const strict = await openTools({ page: 'csp-tools.html' });
+  await strict.waitForTimeout(60);
+  const csp = await strict.evaluate(() => [violations.length, Math.round(document.querySelector('#panes > div').getBoundingClientRect().width / (document.getElementById('panes').getBoundingClientRect().width - 13) * 100), Math.round(document.querySelector('.log-lines').getBoundingClientRect().height), Math.round(document.getElementById('panes').getBoundingClientRect().height)].join());
+  check('1.16 under a strict style policy: sizes and heights', csp === '0,25,60,90', csp);
+  await strict.context().close();
+  // the docs and the gallery have one
+  const book = await openTools({ width: 1280, page: '../docs/buttons.html' });
+  const found = () => book.evaluate(() => { const d = document.querySelector('dialog.palette'); return d ? [...d.querySelectorAll('.palette-group, .palette-name')].slice(0, 3).map((x) => x.textContent).join() : 'closed'; });
+  await book.keyboard.press('Control+k');
+  await book.keyboard.type('tre');
+  const b1 = await found();
+  await book.keyboard.press('Enter');
+  await book.waitForURL(/lists\.html#tree$/);
+  await book.waitForTimeout(100);
+  await book.keyboard.press('Control+k');
+  const b2 = await found();
+  await book.goto(url.replace('behaviour.html', '../docs/navigation.html'), { waitUntil: 'load' });
+  await book.click('#find');
+  const b4 = await found();
+  await book.context().close();
+  const show = await openTools({ width: 1280, page: '../index.html' });
+  await show.click('#find-btn');
+  await show.fill('.palette input', 'heatmap');
+  await show.keyboard.press('Enter');
+  await show.waitForTimeout(100);
+  const b3 = await show.evaluate(() => [location.hash, document.querySelector(location.hash).textContent.includes('Dash.heatmap'), document.querySelector('dialog.palette')].join());
+  await show.context().close();
+  check('1.16 docs: Ctrl+K goes to a component, from any page, the last one first; the gallery has it too', b1 === 'Lists and trees,Trees,Trees to pick from' && b2.startsWith('Recent,Trees,') && b3 === '#charts-heatmap,true,' && b4 === 'Pages,Overview,Servers', [b1, b2, b3, b4].join(' ; '));
+  // every button of every example can be pressed
+  const threw = [];
+  let presses = 0;
+  for (const page of ['../index.html', ...['buttons', 'charts', 'colours', 'components', 'feedback', 'fields', 'forms', 'helpers', 'index', 'labels', 'layout', 'lists', 'logs', 'navigation', 'overlays', 'privacy', 'surfaces', 'tables', 'text'].map((p) => `../docs/${p}.html`)]) {
+    const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, reducedMotion: 'reduce' });
+    const p = await ctx.newPage();
+    p.on('pageerror', (e) => threw.push(`${page}: ${e.message}`));
+    await p.goto(url.replace('behaviour.html', page), { waitUntil: 'load' });
+    presses += await p.evaluate(async () => {
+      const all = [...document.querySelectorAll('main button, main summary')].filter((x) => !x.disabled && !x.closest('.docs-code'));
+      for (const x of all) { if (x.isConnected) x.click(); await new Promise((ok) => setTimeout(ok, 4)); for (const d of document.querySelectorAll('dialog[open]')) d.close(); }
+      await new Promise((ok) => setTimeout(ok, 60));
+      return all.length;
+    });
+    await ctx.close();
+  }
+  check('1.16 docs: every button of every example can be pressed', presses > 500 && !threw.length, presses + ' ' + threw.slice(0, 3).join(' ; '));
 }
 
 await browser.close();

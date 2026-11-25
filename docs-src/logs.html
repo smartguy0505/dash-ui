@@ -1,0 +1,38 @@
+    <section id="log" data-nav="Logs" data-terms="Dash.log .log .log-box .log-lines .log-line .log-time .log-level .log-source .log-text .log-new .log-b .log-tools .log-count --log-h console terminal ansi tail">
+      <h2>Logs</h2>
+      <p><code>Dash.log(el, { lines, height, max, time, wrap, label })</code> shows lines as they come. <code>.add(x)</code> takes a text (several lines are several), a line <code>{ time, level, source, text }</code>, or a list of them. It stays at the end until the reader scrolls up; then it stays where it is, and a button says how many lines are new. <code>max</code> (2000) is how many it keeps: the oldest go, without moving what is being read. A <code>warn</code> or an <code>error</code> has its colour; the colours a terminal shows (ANSI) are kept, and the rest of its codes left out.</p>
+      <example title="Lines as they come">
+        <div class="panel" id="app-log"></div>
+        <script>
+          const log = Dash.log('app-log', { height: 200, tools: true, label: 'Server log', lines: [
+            { time: Date.now() - 9000, level: 'info', source: 'web-1', text: 'listening on port 8080' },
+            { time: Date.now() - 7000, level: 'warn', source: 'db-1', text: 'slow query: 1.4 s' },
+            { time: Date.now() - 4000, level: 'error', source: 'web-2', text: 'connection refused' },
+            { time: Date.now() - 1000, level: 'info', source: 'web-2', text: '\u001b[32mconnected again\u001b[0m after 3 s' },
+          ] });
+          const WHAT = [['info', 'GET /api/servers 200'], ['info', 'GET /api/events 200'], ['debug', 'cache miss'], ['warn', 'retrying']];
+          let n = 0;
+          setInterval(() => { const [level, text] = WHAT[n++ % 4]; if (n < 200) log.add({ time: Date.now(), level, source: `web-${(n % 3) + 1}`, text }); }, 2000);
+        </script>
+      </example>
+      <p><code>tools: true</code> (<code>.log-tools</code>) puts a filter, Wrap, Copy and Clear above it. From code: <code>.filter(text or test)</code>, <code>.wrap(on)</code>, <code>.clear()</code>, <code>.end()</code>, <code>.text</code> (what the filter leaves, to copy), <code>.lines</code>, <code>.count</code> (<code>{ shown, total }</code>). It isn't read out as it comes, unless <code>live: true</code> says so.</p>
+      <example title="Output of a command">
+        <div class="panel" id="build-log"></div>
+        <script>
+          Dash.log('build-log', { time: false, wrap: false, height: 150, label: 'Build', lines: '\u001b[1m$ make test\u001b[0m\ncompiling 48 files\n\u001b[32m✓\u001b[0m 212 passed\n\u001b[31m✗\u001b[0m 1 failed: \u001b[1mtest_login_with_a_very_long_name_that_goes_on_past_the_end_of_the_box_so_that_it_scrolls\u001b[0m\n\u001b[90mdone in 12.4 s\u001b[0m' });
+        </script>
+      </example>
+    </section>
+
+    <section id="json" data-nav="JSON" data-terms="Dash.json Dash.json.html .json .json-part .json-in .json-row .json-key .json-at .json-sum .json-n .json-str .json-num .json-bool .json-null .json-copy object response api viewer">
+      <h2>JSON</h2>
+      <p><code>Dash.json(el, value, { open, copy, label })</code> shows what a value is made of, to open and close. <code>open</code> is how many levels are open at first (1; <code>true</code> is all of them, up to a few thousand rows). A branch is drawn when it opens and a long list comes in hundreds, so a big answer costs nothing until it is looked at. Maps, sets, dates and what holds itself are fine. <code>.set(value)</code> shows another, <code>.open(levels)</code> opens or closes.</p>
+      <example>
+        <div class="panel" id="answer"></div>
+        <script>
+          Dash.json('answer', { name: 'web-1', up: true, load: 0.42, tags: ['frankfurt', 'blue'], owner: null,
+            disk: { total: 512, used: 318 }, checks: Array.from({ length: 240 }, (_, i) => ({ at: 1764000000 + i * 60, ms: 20 + (i * 7) % 30 })) }, { open: 2, copy: true, label: 'Server' });
+        </script>
+      </example>
+      <p><code>Dash.json.html(value, { open, max })</code> is the same as HTML, all of it, at most <code>max</code> rows (1000): for a page a server writes, or a row that opens.</p>
+    </section>

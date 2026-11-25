@@ -56,6 +56,12 @@
     const nav = Dash.nav(side, null, { current: side.querySelector('[aria-current="page"]')?.getAttribute('href'), store: 'dash-docs-nav' });
     Dash.spy(side);
     Dash.search('docs-filter', { key: null, onChange: (text) => nav.filter(text) });
+    // Ctrl+K: every section and page, by name
+    if (Dash.palette) {
+      const name = (x) => x.querySelector('.nav-name').textContent;
+      const items = [...side.querySelectorAll('a.nav-item')].map((a) => { const g = a.closest('details'); return { key: a.href.split('/').pop(), label: name(a), href: a.getAttribute('href'), group: g ? name(g) : 'Pages', words: a.getAttribute('href') }; });
+      Dash.palette({ items, recent: 'dash-docs-recent', label: 'Go to a component', placeholder: 'Go to a component…' });
+    }
   }
 
   // all components: the box shows the ones with the words in their name, their text, or their classes and functions

@@ -65,3 +65,21 @@
       </example>
       <p><code>.hide-sm</code> hides something on a phone, <code>.show-sm</code> shows it only there.</p>
     </section>
+
+    <section id="panes" data-nav="Panes" data-terms="Dash.panes .panes .pane-bar .sizing --panes-h --pane data-panes data-sizes data-min data-vertical splitter resize resizable">
+      <h2>Panes</h2>
+      <p>Parts side by side with a bar between them that can be moved. <code>data-panes</code> is enough (its value is where the sizes are remembered); <code>data-sizes</code> are the sizes to start from, <code>data-min</code> the least a pane can be, in pixels, and <code>data-vertical</code> puts one above the other. The bar is dragged with mouse or finger, or takes the arrow keys (Shift: more), Home and End; a double click puts the sizes back. On a phone, panes side by side are put one below the other.</p>
+      <example title="A list and what is in it">
+        <div class="panes" data-panes="docs.panes" data-sizes="30 70" data-min="90">
+          <div class="panel"><h3>Servers</h3><p class="muted">web-1, web-2, db-1</p></div>
+          <div class="panel"><h3>web-1</h3><p class="muted">Frankfurt, up for 12 days</p></div>
+        </div>
+      </example>
+      <p>From code: <code>Dash.panes(el, { sizes, min, vertical, height, store, label, onChange })</code>, with <code>.sizes</code> (shares that add up to 100), <code>.set(list)</code>, <code>.reset()</code> and <code>.destroy()</code>. Three or more are fine. <code>height</code> is the height of all of it, which panes one above the other need.</p>
+      <example title="Three, one above the other">
+        <div class="panel"><div id="stack"><div>Code</div><div>Output</div><div>Errors</div></div></div>
+        <script>
+          Dash.panes('stack', { vertical: true, height: 240, sizes: [50, 30, 20], min: 36 });
+        </script>
+      </example>
+    </section>

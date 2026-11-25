@@ -31,6 +31,7 @@
   <div class="brand"><span class="mark">D</span><h1>dash-ui</h1></div>
   <span class="sub">One look for all my dashboards</span>
   <div class="top-right">
+    <button type="button" class="btn sm" id="find-btn">Find <span class="hide-sm" id="find-keys"></span></button>
     <div class="seg" role="group" aria-label="Theme">
       <button type="button" data-theme-set="system">Auto</button><button type="button" data-theme-set="light">Light</button><button type="button" data-theme-set="dark">Dark</button>
     </div>
@@ -292,6 +293,15 @@
     </div>
   </section>
 
+  <!-- logs and data -->
+  <section class="section" id="logs">
+    <div class="section-head"><h2 class="section-title">Logs and data</h2><span class="sub">Dash.log · Dash.json</span></div>
+    <div class="grid">
+      <div class="panel"><div class="panel-head"><h3>Log</h3></div><div id="log-demo"></div></div>
+      <div class="panel"><div class="panel-head"><h3>JSON</h3></div><div id="json-demo"></div></div>
+    </div>
+  </section>
+
   <!-- charts -->
   <section class="section" id="charts">
     <h2 class="section-title">Charts</h2>
@@ -331,6 +341,14 @@
           <div id="bars-demo" class="vstack" style="gap:8px"></div>
         </div>
       </div>
+    </div>
+    <div class="panel" style="margin-top:14px">
+      <div class="panel-head"><h3>Heatmap</h3><span class="read">Dash.heatmap · requests by day and hour</span></div>
+      <div id="heat-demo"></div>
+    </div>
+    <div class="panel" style="margin-top:14px">
+      <div class="panel-head"><h3>Days</h3><span class="read">Dash.days · deploys</span></div>
+      <div id="days-demo"></div>
     </div>
     <div class="panel" style="margin-top:14px">
       <div class="panel-head"><h3>Timeline</h3><span class="read">Dash.lanes · incidents (marks) during load tests (spans), last 72 h</span></div>
@@ -406,6 +424,15 @@
       <div class="demo"><p class="demo-label">Times that keep themselves current</p>
         <span>Updated <span id="more-ago"></span> · next check <span id="more-until"></span></span>
       </div>
+    </div>
+  </section>
+
+  <!-- panes -->
+  <section class="section" id="panes">
+    <div class="section-head"><h2 class="section-title">Panes</h2><span class="sub">data-panes · Dash.panes · drag the bar, or use the arrow keys on it</span></div>
+    <div class="panes" data-panes="gallery.panes" data-sizes="32 68" data-min="140">
+      <div class="panel"><h3>Servers</h3><p class="muted">web-1, web-2, db-1</p></div>
+      <div class="panel"><h3>web-1</h3><p class="muted">Frankfurt, up for 12 days. The sizes are remembered; on a phone the panes are one below the other.</p></div>
     </div>
   </section>
 
@@ -826,7 +853,7 @@
   }).selected);
 
   // the sidebar: every section by its class, with its panels
-  const CLASSES = [['Foundations', ['colours', 'numbers']], ['Components', ['controls', 'forms', 'labels', 'lists', 'tables', 'charts', 'surfaces', 'more', 'popups', 'feedback']]];
+  const CLASSES = [['Foundations', ['colours', 'numbers']], ['Components', ['controls', 'forms', 'labels', 'lists', 'tables', 'logs', 'charts', 'surfaces', 'panes', 'more', 'popups', 'feedback']]];
   const slug = (t) => t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   const side = Dash.nav('side', CLASSES.flatMap(([heading, ids]) => [{ heading }, ...ids.map((id) => {
     const section = $(id), label = section.querySelector('.section-title').textContent;
@@ -839,6 +866,26 @@
     return parts.length > 1 ? { label, key: id, items: [...parts] } : { label, href: '#' + id };
   })]), { store: 'gallery.side' });
   Dash.spy('side');
+
+  // Ctrl+K: the sections again, and a few things to do
+  const find = Dash.palette({ recent: 'gallery.find', placeholder: 'Go to a component, or do something…', items: [
+    ...[...document.querySelectorAll('#side a.nav-item')].map((a) => ({ label: a.querySelector('.nav-name').textContent, href: a.getAttribute('href'), group: a.closest('details')?.querySelector('summary .nav-name').textContent || 'Sections' })),
+    { label: 'Dark theme', group: 'Actions', words: 'colours night', run: () => Dash.theme.set('dark') }, { label: 'Light theme', group: 'Actions', words: 'colours day', run: () => Dash.theme.set('light') },
+    { label: 'Say hello', sub: 'A toast at the bottom', group: 'Actions', run: () => Dash.toast('Hello') },
+  ] });
+  Dash.render('find-keys', Dash.keys('mod+k'));
+  Dash.$('find-btn').addEventListener('click', () => find.open());
+
+  // logs and data, heatmap, days
+  const logDemo = Dash.log('log-demo', { tools: true, height: 190, label: 'Server log', lines: [
+    { time: Date.now() - 9000, level: 'info', source: 'web-1', text: 'listening on port 8080' }, { time: Date.now() - 7000, level: 'warn', source: 'db-1', text: 'slow query: 1.4 s' },
+    { time: Date.now() - 4000, level: 'error', source: 'web-2', text: 'connection refused' }, { time: Date.now() - 1000, level: 'info', source: 'web-2', text: '\u001b[32mconnected again\u001b[0m after 3 s' }] });
+  let logged = 0;
+  setInterval(() => { if (logged++ < 300) logDemo.add({ time: Date.now(), level: ['info', 'info', 'debug', 'warn'][logged % 4], source: `web-${(logged % 3) + 1}`, text: ['GET /api/servers 200', 'GET /api/events 200', 'cache miss', 'retrying'][logged % 4] }); }, 2500);
+  Dash.json('json-demo', { name: 'web-1', up: true, load: 0.42, tags: ['frankfurt', 'blue'], owner: null, disk: { total: 512, used: 318 }, checks: Array.from({ length: 240 }, (_, i) => ({ at: i, ms: 20 + (i * 7) % 30 })) }, { open: 1, copy: true, label: 'Server' });
+  const week = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'], clock = Array.from({ length: 24 }, (_, h) => String(h).padStart(2, '0'));
+  Dash.render('heat-demo', Dash.heatmap({ rows: week, cols: clock, every: 3, label: 'Requests by day and hour', values: week.map((_, d) => clock.map((_, h) => (d === 2 && h === 4 ? null : h < 6 ? 0 : Math.round((Math.sin(((h - 6) / 18) * Math.PI) * 120 + ((d * 37 + h * 11) % 23)) * (d > 4 ? 0.4 : 1))))) }));
+  Dash.render('days-demo', Dash.days(Array.from({ length: 365 }, (_, i) => ({ t: Date.now() - i * 864e5, value: new Date(Date.now() - i * 864e5).getDay() % 6 ? (i * 13) % 9 : 0 })), { weeks: 52, label: 'Deploys', noun: 'deploy', tone: 'ok' }));
   Dash.search('side-find', { key: null, onChange: (q) => side.filter(q) });
 
   Dash.render('entries-demo', Dash.entries(people, { title: 'name', sub: 'role', key: 'id', button: true, lead: (p) => Dash.avatar(p.name), end: (p) => Dash.ago(p.seen) }));

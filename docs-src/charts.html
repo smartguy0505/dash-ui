@@ -136,6 +136,39 @@
       </example>
     </section>
 
+    <section id="heatmap" data-nav="Heatmaps" data-terms="Dash.heatmap .heat .heatmap .heat-scroll .heat-legend .shown --heat-1 --heat-2 --heat-3 --heat-4 --heat-5 --heat-end grid matrix hours">
+      <h2>Heatmaps</h2>
+      <p><code>Dash.heatmap({ rows, cols, values, label, min, max, format, show, every, tone })</code> shows how much there is in a grid: a real table, with a shade per cell. One hue says how much: the least is close to the panel, the most is the furthest from it, in five steps that stand out from each other in light and in dark. <code>null</code> is a gap, which is drawn differently from nothing. Pointing at a cell says its row, its column and its value.</p>
+      <example title="A week by the hour">
+        <div class="panel" id="week"></div>
+        <script>
+          const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'], clock = Array.from({ length: 24 }, (_, h) => String(h).padStart(2, '0'));
+          const load = weekdays.map((_, d) => clock.map((_, h) => (d === 2 && h === 4 ? null : h < 6 ? 0 : Math.round((Math.sin(((h - 6) / 18) * Math.PI) * 120 + ((d * 37 + h * 11) % 23)) * (d > 4 ? 0.4 : 1)))));
+          Dash.render('week', Dash.heatmap({ rows: weekdays, cols: clock, values: load, label: 'Requests by day and hour', every: 3 }));
+        </script>
+      </example>
+      <p><code>show: true</code> writes the values into the cells, on paler shades they can be read on. <code>every: 3</code> names every third column (a screen reader gets all of them). <code>min</code> and <code>max</code> fix the ends, so that several have the same shades; <code>legend: false</code> leaves the legend out. The steps are the tokens <code>--heat-1</code> to <code>--heat-5</code>: how much of the tone is in each.</p>
+      <example title="With the numbers in it">
+        <div class="panel" id="incidents"></div>
+        <script>
+          Dash.render('incidents', Dash.heatmap({ rows: ['web', 'db', 'queue'], cols: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'], label: 'Incidents', show: true, tone: 'accent',
+            values: [[2, 0, 1, 4, 3, 1], [0, 1, 0, 2, 7, 5], [null, null, 3, 1, 0, 0]] }));
+        </script>
+      </example>
+    </section>
+
+    <section id="days" data-nav="Days" data-terms="Dash.days .days .days-grid .days-months .days-side calendar contributions activity">
+      <h2>Days</h2>
+      <p><code>Dash.days(points, { weeks, to, label, noun, tone, max, first })</code> is a square per day and a column per week, for the last 26 weeks unless <code>weeks</code> and <code>to</code> say otherwise. A point is <code>{ date: '2026-11-25', value }</code> or <code>{ t, value }</code>; several of one day add up, and a day without one is 0. Weeks start on Monday (<code>first: 0</code>: Sunday). What it adds up to and the busiest day are said to a screen reader.</p>
+      <example>
+        <div class="panel" id="deploys"></div>
+        <script>
+          const runs = Array.from({ length: 180 }, (_, i) => ({ t: Date.now() - i * 864e5, value: new Date(Date.now() - i * 864e5).getDay() % 6 ? ((i * 13) % 9) : 0 }));
+          Dash.render('deploys', Dash.days(runs, { label: 'Deploys', noun: 'deploy', tone: 'ok' }));
+        </script>
+      </example>
+    </section>
+
     <section id="progress" data-terms=".progress .indeterminate .progress-head .progress-circle .fill Dash.progress Dash.progressCircle progressbar">
       <h2>Progress</h2>
       <p><code>Dash.progress(frac, { tone, label, value, lg, title })</code> is a progress bar with <code>role="progressbar"</code> and its value. <code>label</code> puts a line above it (<code>.progress-head</code>) with the share on the right, or <code>value</code> in its place ("6.2 of 10 GB"); <code>lg: true</code> is thicker. <code>Dash.progress(null)</code> is one that runs until the amount is known (<code>.indeterminate</code>; a steady bar for readers who turn motion off). <code>Dash.progressCircle(frac, { tone, size, text, label })</code> is the round one, an SVG.</p>

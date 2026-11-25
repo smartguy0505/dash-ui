@@ -1,4 +1,4 @@
-/* dash-ui 1.15.0 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
+/* dash-ui 1.16.0 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
    A plain script with no dependencies: a script tag for dash.js in <head> gives window.Dash, and puts the
    saved light/dark choice on the page before it paints. In Node, require('./dash.js') returns the same object
    (the parts that need a page are skipped).
@@ -8,7 +8,7 @@
 (function (root) {
   'use strict';
   const hasDom = typeof document !== 'undefined';
-  const Dash = { version: '1.15.0', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side', privacyKey: 'dash.private', csp: false } };
+  const Dash = { version: '1.16.0', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side', privacyKey: 'dash.private', csp: false } };
 
   // ---- basics
 
@@ -4160,6 +4160,460 @@
     if ('submit' in input.dataset && input.form) input.form.requestSubmit();
   };
 
+  // ---- dashboard tools (1.16)
+
+  // A box to find and do anything: Dash.palette({ items, key: 'mod+k' }). An item: { label, sub, group, icon (HTML), keys (its
+  // shortcut, shown), words (more to find it by), href | run(item), tone, disabled }. items: a list, or (query) => list or a
+  // promise of one. recent: a store key: what was picked last comes first while nothing is typed. onPick(item): the others.
+  // .open(query), .close(), .isOpen, .update(items), .stop()
+  const FIND = '<svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5"/><path d="m11 11 3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
+  const onMac = () => hasDom && /Mac|iPhone|iPad/.test(navigator.platform || '');
+  // 'mod+shift+k' as key caps: Ctrl Shift K, or ⌘ ⇧ K on a Mac; 'g then s' as two presses
+  Dash.keys = (keys) => {
+    const mac = onMac(), name = { mod: mac ? '⌘' : 'Ctrl', ctrl: mac ? '⌃' : 'Ctrl', cmd: '⌘', meta: mac ? '⌘' : 'Meta', shift: mac ? '⇧' : 'Shift', alt: mac ? '⌥' : 'Alt', enter: '↵', escape: 'Esc', up: '↑', down: '↓', left: '←', right: '→' };
+    return `<span class="keys">${String(keys ?? '').trim().split(/\s+/).filter(Boolean).map((k) => (k === 'then' ? '<span>then</span>'
+      : (k === '+' ? ['+'] : k.split('+')).map((x) => `<kbd>${esc(name[x.toLowerCase()] || (x.length === 1 ? x.toUpperCase() : x))}</kbd>`).join(''))).join(' ')}</span>`;
+  };
+  Dash.palette = ({ items = [], key = 'mod+k', placeholder = 'Search or jump to…', label = 'Commands', empty = 'Nothing by that name', recent, max = 50, onPick } = {}) => {
+    if (!hasDom) return null;
+    const uid = 'dash-palette-' + ++ids;
+    let list = items, d = null, shown = [], at = -1, seq = 0, timer = 0;
+    const keyOf = (it) => String(it.key ?? it.href ?? it.label);
+    const lately = () => { const r = recent ? Dash.store.get(recent) : null; return Array.isArray(r) ? r.map(String) : []; };
+    const rank = (it, q) => { // how well an item fits: its name from the start, its words from theirs, anywhere in it, elsewhere (its group …); 9: not at all
+      if (!q) return 0;
+      if (!Dash.match(it, q, ['label', 'sub', 'group', 'words'])) return 9;
+      const name = String(it.label ?? '').toLowerCase(), all = q.toLowerCase(), words = all.split(/\s+/), parts = name.split(/[\s\-_/.:]+/);
+      return name.startsWith(all) ? 0 : words.every((w) => parts.some((x) => x.startsWith(w))) ? 1 : words.every((w) => name.includes(w)) ? 2 : 3;
+    };
+    const go = (i) => {
+      const input = d.querySelector('input'), was = d.querySelector('[aria-selected="true"]'), o = d.querySelector(`[data-i="${i}"]`);
+      if (was) was.setAttribute('aria-selected', 'false');
+      at = o ? i : -1;
+      if (!o) { input.removeAttribute('aria-activedescendant'); return; }
+      o.setAttribute('aria-selected', 'true');
+      input.setAttribute('aria-activedescendant', o.id);
+    };
+    const toAt = () => { const o = d.querySelector('[aria-selected="true"]'); if (at === 0) d.querySelector('.palette-list').scrollTop = 0; else if (o) o.scrollIntoView({ block: 'nearest' }); };
+    const step = (by) => { // to the next one that can be picked, around the ends
+      for (let k = 1, n = shown.length; k <= n; k++) { const i = (((at + by * k) % n) + n) % n; if (!shown[i].disabled) { go(i); toAt(); return; } }
+    };
+    const draw = (found, q, note) => {
+      const groups = new Map(), was = q ? [] : lately(); // groups, in the order their first item has
+      const put = (g, it) => { if (!groups.has(g)) groups.set(g, []); groups.get(g).push(it); };
+      for (const k of was) { const it = found.find((x) => keyOf(x) === k); if (it) put('Recent', it); }
+      const ranked = found.map((it, i) => ({ it, i, r: typeof list === 'function' ? 0 : rank(it, q) })).filter((x) => x.r < 9).sort((a, b) => a.r - b.r || a.i - b.i);
+      for (const { it } of ranked) if (!was.includes(keyOf(it))) put(it.group || '', it);
+      shown = [];
+      const row = (it) => {
+        const i = shown.push(it) - 1;
+        return `<div class="palette-item${toneClass(it.tone)}" role="option" id="${uid}-${i}" data-i="${i}" aria-selected="false"${it.disabled ? ' aria-disabled="true"' : ''}>${it.icon ? `<span class="nav-icon">${it.icon}</span>` : ''}`
+          + `<span class="palette-text"><span class="palette-name">${markWords(String(it.label ?? ''), q)}</span>${it.sub ? `<span class="palette-sub">${markWords(String(it.sub), q)}</span>` : ''}</span>${it.keys ? Dash.keys(it.keys) : ''}</div>`;
+      };
+      let html = '', n = 0;
+      for (const [g, rows] of groups) {
+        const some = rows.slice(0, Math.max(0, max - n));
+        if (some.length) html += g ? `<div role="group" aria-labelledby="${uid}-g${n}"><div class="palette-group" id="${uid}-g${n}">${esc(g)}</div>${some.map(row).join('')}</div>` : some.map(row).join('');
+        n += some.length;
+      }
+      const box = d.querySelector('.palette-list');
+      box.innerHTML = html || `<div class="palette-empty" role="option" aria-disabled="true" aria-selected="false">${esc(note || empty)}</div>`;
+      box.scrollTop = 0;
+      go(shown.findIndex((it) => !it.disabled));
+      voiceOf(box).textContent = q ? note || (shown.length ? fmt.plural(shown.length, 'result') : empty) : '';
+    };
+    const ask = () => {
+      const q = d.querySelector('input').value.trim(), my = ++seq;
+      clearTimeout(timer);
+      if (typeof list !== 'function') { draw(list, q); return; }
+      const run = async () => {
+        let got = [], why = '', done = false;
+        setTimeout(() => { if (d && my === seq && !done) { if (shown.length) d.querySelector('.palette-list').setAttribute('aria-busy', 'true'); else draw([], q, 'Searching…'); } }, 200);
+        try { got = await list(q); } catch (e) { why = `Couldn’t search: ${(e && e.message) || e}`; }
+        done = true;
+        if (!d || my !== seq) return;
+        d.querySelector('.palette-list').removeAttribute('aria-busy');
+        draw(Array.isArray(got) ? got : [], q, why);
+      };
+      if (q) timer = setTimeout(run, 120); else run();
+    };
+    const gone = (x) => { // closed, by us or by Escape: at once, so that what is picked can open another one
+      if (d !== x) return;
+      d = null;
+      shown = [];
+      seq++;
+      clearTimeout(timer);
+    };
+    const close = () => { const x = d; if (!x) return; gone(x); x.close(); };
+    const pick = (i, e) => {
+      const it = shown[i];
+      if (!it || it.disabled) return;
+      if (recent) Dash.store.set(recent, [keyOf(it), ...lately().filter((k) => k !== keyOf(it))].slice(0, 5));
+      close();
+      if (it.run) it.run(it);
+      else if (it.href == null) { if (onPick) onPick(it); } else if (e && (e.ctrlKey || e.metaKey)) window.open(safeHref(it.href), '_blank', 'noopener');
+      else location.href = safeHref(it.href);
+    };
+    const open = (q = '') => {
+      if (!d) {
+        const x = document.createElement('dialog');
+        d = x;
+        x.className = 'palette';
+        x.setAttribute('aria-label', label);
+        x.innerHTML = `<label class="palette-head">${FIND}<input type="text" role="combobox" aria-expanded="true" aria-autocomplete="list" aria-controls="${uid}" aria-label="${esc(label)}" placeholder="${esc(placeholder)}" autocomplete="off" spellcheck="false" enterkeyhint="go"></label>`
+          + `<div class="palette-list" role="listbox" id="${uid}" aria-label="${esc(label)}"></div><div class="palette-foot" aria-hidden="true"><span><kbd>↑</kbd><kbd>↓</kbd> move</span><span><kbd>↵</kbd> pick</span><span><kbd>Esc</kbd> close</span></div>`;
+        const input = x.querySelector('input');
+        let outside = false;
+        input.addEventListener('input', ask);
+        input.addEventListener('keydown', (e) => {
+          if (e.isComposing || e.altKey) return;
+          const mac = e.ctrlKey && onMac();
+          if (e.key === 'ArrowDown' || (mac && e.key === 'n')) step(1);
+          else if (e.key === 'ArrowUp' || (mac && e.key === 'p')) step(-1);
+          else if (e.key === 'PageDown' || e.key === 'PageUp') { const by = e.key === 'PageDown' ? 1 : -1; for (let k = 0; k < 8 && (by > 0 ? at < shown.length - 1 : at > 0); k++) step(by); } else if (e.key === 'Enter') pick(at, e);
+          else return;
+          e.preventDefault();
+        });
+        x.addEventListener('mousemove', (e) => { const o = e.target.closest('[data-i]'); if (o && Number(o.dataset.i) !== at && !o.hasAttribute('aria-disabled')) go(Number(o.dataset.i)); });
+        x.addEventListener('mousedown', (e) => { outside = e.target === x; if (!e.target.closest('input')) e.preventDefault(); }); // the box keeps the focus
+        x.addEventListener('click', (e) => { if (e.target === x && outside) { close(); return; } const o = e.target.closest('[data-i]'); if (o) pick(Number(o.dataset.i), e); });
+        x.addEventListener('close', () => { gone(x); x.remove(); });
+        document.body.append(x);
+        openModal(x);
+      }
+      const input = d.querySelector('input');
+      input.value = q;
+      input.focus();
+      ask();
+    };
+    const off = key ? Dash.key(key, () => { if (d) close(); else open(); }, { inInputs: /\b(mod|ctrl|meta|cmd)\b/i.test(key) }) : () => {};
+    return {
+      open, close,
+      get isOpen() { return Boolean(d); },
+      update(next) { list = next || []; if (d) ask(); },
+      stop() { off(); close(); },
+    };
+  };
+
+  // Lines as they come: Dash.log('out', { height: 320 }), then .add('text'), .add({ time, level: 'warn', source, text }) or a list.
+  // It stays at the end until the reader scrolls up; then a button says how many are new. max: the oldest go. tools: true puts
+  // a filter, Wrap, Copy and Clear above it. time: false leaves the times out, wrap: false scrolls sideways. The colours a
+  // terminal shows (ANSI) are kept. .add(), .clear(), .filter(text or test), .wrap(on), .end(), .lines, .text, .count, .destroy()
+  const ANSI = { 31: 'bad', 32: 'ok', 33: 'warn', 34: 'blue', 35: 'purple', 36: 'teal', 90: 'muted', 91: 'bad', 92: 'ok', 93: 'warn', 94: 'blue', 95: 'purple', 96: 'teal' };
+  const plainText = (s) => String(s ?? '').replace(/\x1b\[[0-?]*[ -/]*[@-~]|\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)|\x1b[@-Z\\-_]/g, '');
+  const ansiHtml = (s, q) => {
+    const parts = String(s ?? '').split(/\x1b\[([0-9;]*)m/);
+    let out = '', bold = false, tone = '';
+    parts.forEach((part, i) => {
+      if (i % 2) {
+        const codes = part === '' ? [0] : part.split(';').map(Number);
+        for (let k = 0; k < codes.length; k++) {
+          const n = codes[k];
+          if (n === 38 || n === 48) k += codes[k + 1] === 5 ? 2 : codes[k + 1] === 2 ? 4 : 0; // one of 256 colours, or any: left out
+          else if (n === 0) { bold = false; tone = ''; } else if (n === 1) bold = true; else if (n === 22) bold = false; else if (n === 39 || (n >= 30 && n <= 37 && !ANSI[n]) || n === 97) tone = ''; else if (ANSI[n]) tone = ANSI[n];
+        }
+        return;
+      }
+      const text = plainText(part);
+      const cls = [tone && (tone === 'muted' ? tone : `tone ${tone}`), bold && 'log-b'].filter(Boolean).join(' ');
+      if (text) out += cls ? `<span class="${cls}">${markWords(text, q)}</span>` : markWords(text, q);
+    });
+    return out;
+  };
+  Dash.log = (target, { lines = [], max = 2000, time = true, wrap = true, height = 320, filter, tools = false, live = false, label = 'Log', noun = 'line', empty = 'Nothing yet' } = {}) => {
+    const node = el(target);
+    if (!node || !hasDom) return null;
+    node.__dashLog?.destroy();
+    const control = new AbortController(), { signal } = control;
+    let data = [], test = null, words = '', due = 0, fresh = [], unread = 0, at = true, seq = 0;
+    node.classList.add('log');
+    node.innerHTML = `${tools ? `<div class="log-tools"><input class="input sm" type="search" placeholder="Filter" aria-label="Filter the ${esc(noun)}s" autocomplete="off"><span class="log-count muted" role="status"></span>`
+      + `<button type="button" class="btn sm ghost" data-log="wrap" aria-pressed="${Boolean(wrap)}">Wrap</button><button type="button" class="btn sm ghost" data-log="copy" data-label="Copy">Copy</button><button type="button" class="btn sm ghost" data-log="clear">Clear</button></div>` : ''}`
+      + `<div class="log-box"><div class="log-lines"${wrap ? '' : ' data-nowrap'} role="log" aria-live="${live ? 'polite' : 'off'}" aria-label="${esc(label)}" tabindex="0"></div><button type="button" class="btn sm log-new" hidden></button></div>`;
+    const box = node.querySelector('.log-lines'), more = node.querySelector('.log-new'), search = node.querySelector('.log-tools input');
+    if (height) box.style.setProperty('--log-h', typeof height === 'number' ? height + 'px' : String(height));
+    const norm = (l) => (l && typeof l === 'object' ? { ...l, text: String(l.text ?? '') } : { text: String(l ?? '') });
+    const cut = () => { if (data.length > max) data = data.slice(-max); return data; };
+    const fits = (l) => !test || test(l);
+    const setTest = (q) => {
+      test = typeof q === 'function' ? q : String(q ?? '').trim() ? (l) => Dash.match({ t: plainText(l.text), l: l.level, s: l.source }, q) : null;
+      words = test && typeof q === 'string' ? q.trim() : '';
+    };
+    const LEVEL = { error: 'bad', err: 'bad', fatal: 'bad', critical: 'bad', warn: 'warn', warning: 'warn', debug: 'muted', trace: 'muted', ok: 'ok', success: 'ok' };
+    const html = (l) => {
+      const lv = String(l.level ?? '').toLowerCase(), d = time && l.time != null ? new Date(Dash.time(l.time)) : null, when = d && valid(d);
+      return `<div class="log-line${toneClass(LEVEL[lv])}" data-n="${l.n}">${when ? `<time class="log-time" datetime="${d.toISOString()}" title="${esc(fmt.time(l.time))}">${esc(d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }))}</time>` : ''}`
+        + `${lv ? `<span class="log-level">${esc(lv)}</span>` : ''}${l.source ? `<span class="log-source">${markWords(String(l.source), words)}</span>` : ''}<span class="log-text">${ansiHtml(l.text, words)}</span></div>`;
+    };
+    const atEnd = () => box.scrollHeight - box.scrollTop - box.clientHeight < 24;
+    const note = () => {
+      more.hidden = at || !unread;
+      if (!more.hidden) more.textContent = `${fmt.int(unread)} new ${unread === 1 ? noun : noun + 's'} ↓`;
+      const c = node.querySelector('.log-count');
+      if (c) c.textContent = test ? `${fmt.int(data.filter(fits).length)} / ${fmt.int(data.length)}` : '';
+    };
+    const toEnd = () => { box.scrollTop = box.scrollHeight; };
+    const end = () => { at = true; unread = 0; toEnd(); note(); };
+    const all = () => { // drawn anew
+      cancelAnimationFrame(due);
+      due = 0;
+      fresh = [];
+      const list = cut().filter(fits);
+      box.innerHTML = list.length ? list.map(html).join('') : `<p class="empty">${esc(test ? 'Nothing by that name' : empty)}</p>`;
+      if (at) toEnd();
+      note();
+    };
+    const flush = () => { // what came since the last frame, at once
+      due = 0;
+      const list = fresh.slice(-max).filter(fits), oldest = cut()[0]?.n ?? Infinity, gone = [...box.querySelectorAll(':scope > .log-line')].filter((x) => Number(x.dataset.n) < oldest);
+      fresh = [];
+      if (gone.length) {
+        const top = box.scrollTop, tall = box.scrollHeight;
+        for (const x of gone) x.remove();
+        if (!at) box.scrollTop = Math.max(0, top - (tall - box.scrollHeight)); // what the reader looks at stays where it is
+      }
+      if (list.length) {
+        box.querySelector(':scope > .empty')?.remove();
+        box.insertAdjacentHTML('beforeend', list.map(html).join(''));
+        if (!at) unread += list.length;
+      }
+      if (at) toEnd();
+      note();
+    };
+    const put = (x, out) => { for (const l of [].concat(x)) { const line = norm(l); for (const text of line.text.replace(/\r?\n$/, '').split(/\r?\n/)) { const one = { ...line, text, n: ++seq }; data.push(one); if (out) out.push(one); } } };
+    const add = (x) => {
+      put(x, fresh);
+      if (!seq) return;
+      if (data.length > max * 2) cut();
+      if (fresh.length > max * 2) fresh = fresh.slice(-max);
+      if (!due) due = requestAnimationFrame(flush);
+    };
+    const handle = {
+      el: node, add, end,
+      get lines() { return cut().map(({ n, ...l }) => l); },
+      get text() { return cut().filter(fits).map((l) => [time && l.time != null && Number.isFinite(Dash.time(l.time)) ? new Date(Dash.time(l.time)).toISOString() : '', l.level, l.source, plainText(l.text)].filter((x) => x != null && x !== '').join(' ')).join('\n'); },
+      get count() { return { shown: cut().filter(fits).length, total: data.length }; },
+      clear() { data = []; unread = 0; at = true; all(); },
+      filter(q) { setTest(q); if (search && typeof q !== 'function' && search.value.trim() !== String(q ?? '').trim()) search.value = q ?? ''; all(); return handle.count.shown; },
+      wrap(on = true) { box.toggleAttribute('data-nowrap', !on); const b = node.querySelector('[data-log="wrap"]'); if (b) b.setAttribute('aria-pressed', String(Boolean(on))); if (at) toEnd(); },
+      destroy() { if (signal.aborted) return; control.abort(); if (watch) watch.disconnect(); cancelAnimationFrame(due); node.textContent = ''; node.classList.remove('log'); node.__dashLog = undefined; },
+    };
+    box.addEventListener('scroll', () => { at = atEnd(); if (at) unread = 0; note(); }, { passive: true, signal });
+    more.addEventListener('click', () => { end(); box.focus({ preventScroll: true }); }, { signal });
+    if (search) search.addEventListener('input', () => handle.filter(search.value), { signal });
+    node.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-log]');
+      if (!b) return;
+      if (b.dataset.log === 'wrap') handle.wrap(b.getAttribute('aria-pressed') !== 'true');
+      else if (b.dataset.log === 'clear') handle.clear();
+      else b.dataset.copy = handle.text; // (the click goes on to the page, which copies it)
+    }, { signal });
+    const watch = typeof ResizeObserver === 'function' ? new ResizeObserver(() => { if (at) toEnd(); }) : null; // narrower: lines wrap
+    if (watch) watch.observe(box);
+    if (filter != null) { setTest(filter); if (search && typeof filter === 'string') search.value = filter; }
+    put(lines);
+    all();
+    node.__dashLog = handle;
+    return handle;
+  };
+
+  // What a value is made of, to open and close: Dash.json('out', value, { open: 1 }). open: how many levels are open (true: all of
+  // them, up to a few thousand rows); the rest is drawn once it is opened, long lists in hundreds. copy: true adds a button.
+  // .set(value), .open(levels), .value, .destroy(). Dash.json.html(value, { open, max }) is the same as HTML, at most max rows.
+  const jsonPlain = (v) => (v instanceof Map ? Object.fromEntries(v) : v instanceof Set ? [...v] : v && typeof v === 'object' && typeof v.toJSON === 'function' ? v.toJSON() : v);
+  const jsonText = (v) => { try { return JSON.stringify(v, (_, x) => (typeof x === 'bigint' ? String(x) : jsonPlain(x)), 2) ?? String(v); } catch (e) { return String((e && e.message) || e); } };
+  const jsonDraw = (root, { open = 1, chunk = 100, maxText = 2000, budget = Infinity, lazy = null } = {}) => {
+    let left = budget;
+    const leaf = (v) => {
+      if (v === null) return '<span class="json-null">null</span>';
+      if (typeof v === 'string') return `<span class="json-str">${esc(JSON.stringify(v.length > maxText ? v.slice(0, maxText) : v))}</span>${v.length > maxText ? `<span class="muted"> … ${fmt.int(v.length - maxText)} more</span>` : ''}`;
+      if (typeof v === 'number' || typeof v === 'bigint') return `<span class="json-num">${esc(String(v))}${typeof v === 'bigint' ? 'n' : ''}</span>`;
+      if (typeof v === 'boolean') return `<span class="json-bool">${v}</span>`;
+      return `<span class="json-null">${esc(typeof v === 'function' ? 'function' : String(v))}</span>`;
+    };
+    const name = (k) => (k == null ? '' : `<span class="json-key">${esc(k)}</span><span class="json-at">: </span>`);
+    // entries a to b of a list or an object: each one, or parts of a hundred
+    const inside = (entries, depth, above, a = 0, b = entries.length) => {
+      if (b - a <= chunk) return entries.slice(a, b).map(([k, v]) => draw(k, v, depth, above)).join('');
+      let out = '';
+      for (let i = a; i < b; i += chunk) out += part(`<span class="json-sum">${i}…${Math.min(b, i + chunk) - 1}</span>`, false, () => inside(entries, depth, above, i, Math.min(b, i + chunk)));
+      return out;
+    };
+    const part = (head, isOpen, body) => {
+      const now = isOpen && left > 0, n = now || !lazy ? null : lazy(body);
+      return `<details class="json-part"${now ? ' open' : ''}${n != null ? ` data-part="${n}"` : ''}><summary>${head}</summary><div class="json-in">${n == null ? body() : ''}</div></details>`;
+    };
+    const draw = (k, raw, depth, above) => {
+      if (left-- <= 0 && !lazy) return left === -1 ? '<div class="json-row muted">…</div>' : '';
+      const v = jsonPlain(raw);
+      if (!v || typeof v !== 'object') return `<div class="json-row">${name(k)}${leaf(v)}</div>`;
+      if (above.includes(raw)) return `<div class="json-row">${name(k)}<span class="json-null">(itself)</span></div>`;
+      if (above.length > 100) return `<div class="json-row">${name(k)}<span class="json-null">…</span></div>`;
+      const list = Array.isArray(v), entries = list ? v.map((x, i) => [i, x]) : Object.entries(v), [l, r] = list ? '[]' : '{}';
+      if (!entries.length) return `<div class="json-row">${name(k)}<span class="json-sum">${l}${r}</span></div>`;
+      return part(`${name(k)}<span class="json-sum">${l}<span class="json-n">${list ? fmt.plural(entries.length, 'item') : fmt.plural(entries.length, 'key')}</span>${r}</span>`, open === true || depth < open, () => inside(entries, depth + 1, [...above, raw]));
+    };
+    return draw(null, root, 0, []);
+  };
+  Dash.json = (target, value, { open = 1, copy = false, label = 'Data', chunk = 100, maxText = 2000 } = {}) => {
+    const node = el(target);
+    if (!node || !hasDom) return null;
+    node.__dashJson?.destroy();
+    const control = new AbortController(), { signal } = control;
+    let now = value, parts = [], levels = open;
+    const draw = () => {
+      parts = [];
+      node.classList.add('json');
+      node.setAttribute('role', 'group');
+      node.setAttribute('aria-label', label);
+      node.innerHTML = (copy ? '<button type="button" class="btn sm ghost json-copy" data-label="Copy">Copy</button>' : '') + jsonDraw(now, { open: levels, chunk, maxText, budget: levels === true ? 3000 : Infinity, lazy: (body) => parts.push(body) - 1 });
+    };
+    node.addEventListener('toggle', (e) => { // (toggle doesn't bubble)
+      const d = e.target, n = d.dataset && d.dataset.part;
+      if (n == null || !d.open) return;
+      delete d.dataset.part;
+      d.lastElementChild.innerHTML = parts[n]();
+    }, { capture: true, signal });
+    node.addEventListener('click', (e) => { const b = e.target.closest('.json-copy'); if (b) b.dataset.copy = jsonText(now); }, { signal }); // (the click goes on to the page, which copies it)
+    const handle = {
+      el: node,
+      get value() { return now; },
+      set(v) { now = v; draw(); },
+      open(n = true) { levels = n; draw(); },
+      destroy() { if (signal.aborted) return; control.abort(); node.textContent = ''; node.classList.remove('json'); node.removeAttribute('role'); node.removeAttribute('aria-label'); node.__dashJson = undefined; },
+    };
+    draw();
+    node.__dashJson = handle;
+    return handle;
+  };
+  Dash.json.html = (value, { open = 1, label = 'Data', max = 1000, chunk = 100, maxText = 2000 } = {}) => `<div class="json" role="group" aria-label="${esc(label)}">${jsonDraw(value, { open, chunk, maxText, budget: max })}</div>`;
+
+  // Panes with a bar between them that can be moved: <div class="panes" data-panes="files" data-sizes="30 70">…</div> at load, or
+  // Dash.panes(el, { sizes: [30, 70], min: 160, vertical, height, store, onChange }). The bar takes the arrow keys (Shift: more),
+  // Home and End; a double click puts the sizes back. store (or data-panes) remembers them. On a phone they stack.
+  // .sizes, .set(list), .reset(), .destroy()
+  Dash.panes = (target, { sizes, min, vertical, height, store, label = 'Resize', onChange } = {}) => {
+    const node = el(target);
+    if (!node || !hasDom) return null;
+    node.__dashPanes?.destroy();
+    const control = new AbortController(), { signal } = control;
+    const panes = [...node.children].filter((x) => !x.classList.contains('pane-bar'));
+    if (panes.length < 2) return null;
+    const up = vertical ?? 'vertical' in node.dataset, least = min ?? (Number(node.dataset.min) || (up ? 60 : 120)), keep = store ?? (node.dataset.panes || '');
+    const even = (l) => { const t = l.reduce((a, b) => a + b, 0); return l.map((x) => (x / t) * 100); };
+    const ok = (l) => Array.isArray(l) && l.length === panes.length && l.every((x) => Number.isFinite(x) && x > 0);
+    const given = sizes || (node.dataset.sizes || '').split(/[\s,]+/).filter(Boolean).map(Number), saved = keep ? Dash.store.get(keep) : null;
+    const first = even(ok(given) ? given : panes.map(() => 1));
+    let now = ok(saved) ? even(saved) : first.slice();
+    node.classList.add('panes');
+    const wasUp = 'vertical' in node.dataset;
+    node.toggleAttribute('data-vertical', up);
+    if (height) node.style.setProperty('--panes-h', typeof height === 'number' ? height + 'px' : String(height));
+    const bars = panes.slice(1).map((p, i) => {
+      const b = document.createElement('div');
+      b.className = 'pane-bar';
+      b.tabIndex = 0;
+      if (!panes[i].id) panes[i].id = 'dash-pane-' + ++ids;
+      for (const [k, v] of Object.entries({ role: 'separator', 'aria-orientation': up ? 'horizontal' : 'vertical', 'aria-label': label, 'aria-controls': panes[i].id, 'aria-valuemin': '0', 'aria-valuemax': '100' })) b.setAttribute(k, v);
+      p.before(b);
+      return b;
+    });
+    const room = () => Math.max(1, panes.reduce((n, p) => n + p.getBoundingClientRect()[up ? 'height' : 'width'], 0));
+    const rtl = () => (!up && getComputedStyle(node).direction === 'rtl' ? -1 : 1);
+    const draw = () => {
+      panes.forEach((p, i) => p.style.setProperty('--pane', now[i].toFixed(4)));
+      bars.forEach((b, i) => b.setAttribute('aria-valuenow', String(Math.round(now.slice(0, i + 1).reduce((x, y) => x + y, 0)))));
+    };
+    const done = () => { if (keep) Dash.store.set(keep, now.map((x) => +x.toFixed(2))); if (onChange) onChange(handle.sizes); };
+    const shift = (i, by, from = now) => { // the bar after pane i, by so many percent of the room; a pane that is under the least already only grows
+      const floor = (least / room()) * 100, pair = from[i] + from[i + 1], low = Math.min(floor, pair / 2), a = clamp(from[i] + by, Math.min(low, from[i]), pair - Math.min(low, from[i + 1]));
+      const moved = Math.abs(a - now[i]) > 0.01;
+      now = now.slice();
+      now[i] = a;
+      now[i + 1] = pair - a;
+      draw();
+      return moved;
+    };
+    bars.forEach((b, i) => {
+      b.addEventListener('pointerdown', (e) => {
+        if (e.button) return;
+        e.preventDefault();
+        b.focus({ preventScroll: true });
+        try { b.setPointerCapture(e.pointerId); } catch { /* a press a page made */ }
+        const x0 = up ? e.clientY : e.clientX, from = now.slice(), all = room(), way = rtl(), drag = new AbortController();
+        let moved = false;
+        node.classList.add('sizing');
+        const stop = () => { drag.abort(); node.classList.remove('sizing'); if (moved) done(); };
+        b.addEventListener('pointermove', (m) => { if (shift(i, ((((up ? m.clientY : m.clientX) - x0) * way) / all) * 100, from)) moved = true; }, { signal: drag.signal });
+        for (const t of ['pointerup', 'pointercancel', 'lostpointercapture']) b.addEventListener(t, stop, { signal: drag.signal });
+        signal.addEventListener('abort', () => { drag.abort(); node.classList.remove('sizing'); }, { once: true });
+      }, { signal });
+      b.addEventListener('dblclick', () => handle.reset(), { signal });
+      b.addEventListener('keydown', (e) => {
+        if (e.altKey || e.ctrlKey || e.metaKey) return;
+        const n = (e.shiftKey ? 10 : 2) * rtl();
+        const by = { [up ? 'ArrowUp' : 'ArrowLeft']: -n, [up ? 'ArrowDown' : 'ArrowRight']: n, Home: -100, End: 100 }[e.key];
+        if (!by) return;
+        e.preventDefault();
+        if (shift(i, by)) done();
+      }, { signal });
+    });
+    const handle = {
+      el: node,
+      get sizes() { return now.map((x) => +x.toFixed(2)); },
+      set(l) { if (ok(l)) { now = even(l); draw(); done(); } },
+      reset() { handle.set(first); },
+      destroy() {
+        if (signal.aborted) return;
+        control.abort();
+        for (const b of bars) b.remove();
+        for (const p of panes) p.style.removeProperty('--pane');
+        node.toggleAttribute('data-vertical', wasUp);
+        node.__dashPanes = undefined;
+      },
+    };
+    draw();
+    node.__dashPanes = handle;
+    return handle;
+  };
+
+  // How much, in a grid: Dash.heatmap({ rows: ['Mon', …], cols: ['00', …], values: [[3, 8, …], …], label: 'Requests' }) is a table with a shade
+  // per cell, darker for more (one hue: tone), and a legend. The largest value is the darkest (or max), min the palest; null is a
+  // gap. format writes a value; show: true puts it in the cell; every: 3 names every third column. Pointing at a cell says all of it.
+  const shadeOf = (v, lo, hi) => (v == null || !Number.isFinite(Number(v)) ? '' : Number(v) <= lo ? 0 : clamp(Math.ceil(((Number(v) - lo) / (hi - lo || 1)) * 5), 1, 5));
+  const heatLegend = (lo, hi, format) => `<div class="heat-legend"><span>${esc(format(lo))}</span>${[0, 1, 2, 3, 4, 5].map((l) => `<i data-l="${l}"></i>`).join('')}<span>${esc(format(hi))}</span></div>`;
+  Dash.heatmap = ({ rows = [], cols = [], values = [], label = 'Values', tone, min = 0, max, format = (v) => fmt.compact(v), show = false, legend = true, every = 1, gap = 'no data' } = {}) => {
+    const all = values.flat().filter((v) => v != null && Number.isFinite(Number(v))).map(Number), lo = Number(min), hi = Math.max(max ?? (all.length ? Math.max(...all) : lo + 1), lo);
+    const cell = (r, c, v) => {
+      const l = shadeOf(v, lo, hi), say = l === '' ? gap : format(v);
+      return `<td data-l="${l}" data-tooltip="${esc(`${r}, ${c}: ${say}`)}">${show && l !== '' ? esc(say) : `<span class="sr-only">${esc(say)}</span>`}</td>`;
+    };
+    return `<div class="heat${show ? ' shown' : ''}${toneClass(tone)}"><div class="heat-scroll" tabindex="0" role="group" aria-label="${esc(label)}"><table class="heatmap"><caption class="sr-only">${esc(label)}</caption>`
+      + `<thead><tr><td></td>${cols.map((c, i) => `<th scope="col">${i % every ? `<span class="sr-only">${esc(c)}</span>` : `<span>${esc(c)}</span>`}</th>`).join('')}</tr></thead>`
+      + `<tbody>${rows.map((r, y) => `<tr><th scope="row">${esc(r)}</th>${cols.map((c, x) => cell(r, c, values[y]?.[x])).join('')}</tr>`).join('')}</tbody></table></div>`
+      + `${legend ? heatLegend(lo, hi, format) : ''}</div>`;
+  };
+  // Days as squares, a column per week: Dash.days([{ date: '2026-11-25', value: 7 }, …], { weeks: 26, label: 'Deploys', noun: 'deploy' }).
+  // Days that aren't given are 0; several of one day add up; to: the last day (today). first: the day weeks start on (1: Monday).
+  Dash.days = (points, { weeks = 26, to, label = 'Days', tone, max, format = (v) => fmt.num(v, Number.isInteger(v) ? 0 : 1), noun = '', first = 1, legend = true } = {}) => {
+    const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const dayOf = (x) => { const m = typeof x === 'string' && x.match(/^(\d{4})-(\d\d)-(\d\d)$/); return m ? new Date(+m[1], m[2] - 1, +m[3], 12) : dateOf(x); };
+    const by = new Map(), last = dayOf(to ?? Date.now()), days = [];
+    for (const p of points || []) { const d = dayOf(p.date ?? p.t); if (valid(d)) by.set(iso(d), (by.get(iso(d)) ?? 0) + (Number(p.value) || 0)); }
+    const d0 = new Date(last.getFullYear(), last.getMonth(), last.getDate(), 12);
+    for (let i = (weeks - 1) * 7 + ((d0.getDay() - first + 7) % 7); i >= 0; i--) days.push(new Date(d0.getFullYear(), d0.getMonth(), d0.getDate() - i, 12));
+    const vals = days.map((d) => by.get(iso(d)) ?? 0), top = Math.max(...vals), hi = Math.max(max ?? top, 1), total = vals.reduce((a, b) => a + b, 0);
+    const word = (v) => `${format(v)}${noun ? ` ${v === 1 ? noun : noun + 's'}` : ''}`, full = (d) => d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+    const month = (w) => days[w * 7].toLocaleDateString('en-GB', { month: 'short' }), starts = [];
+    for (let w = 0; w * 7 < days.length; w++) if (!w || month(w) !== month(w - 1)) starts.push(w);
+    // a month's name above the first week that starts in it, unless the next name would run into it
+    const heads = Array.from({ length: Math.ceil(days.length / 7) }, (_, w) => { const i = starts.indexOf(w); return `<span>${i >= 0 && (i === starts.length - 1 || starts[i + 1] - w > 2) ? esc(month(w)) : ''}</span>`; }).join('');
+    const side = Array.from({ length: 7 }, (_, i) => `<span>${i % 2 ? '' : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][(first + i) % 7]}</span>`).join('');
+    const say = `${label}: ${word(total)} in ${fmt.plural(days.length, 'day')}${total ? `, the most on ${full(days[vals.indexOf(top)])} (${word(top)})` : ''}`;
+    return `<div class="heat${toneClass(tone)}"><div class="heat-scroll" tabindex="0" role="group" aria-label="${esc(label)}"><div class="days" role="img" aria-label="${esc(say)}"><div class="days-side">${side}</div><div class="days-months">${heads}</div>`
+      + `<div class="days-grid">${days.map((d, i) => `<i data-l="${shadeOf(vals[i], 0, hi)}" data-tooltip="${esc(`${full(d)}: ${word(vals[i])}`)}"></i>`).join('')}</div></div></div>${legend ? heatLegend(0, hi, format) : ''}</div>`;
+  };
+
   // ---- forms that say what is wrong (1.13)
   // Dash.form(form, { rules, onSubmit }): checks a form's fields and puts what is wrong under each, instead of the
   // browser's bubbles. The fields' own checks count (required, type="email", minlength, pattern, min, max, step), and
@@ -4907,6 +5361,8 @@
     const validated = (f) => { if (f && f.matches && f.matches('form[data-validate]') && !f.__dashForm) Dash.form(f); };
     const wireForms = () => { for (const f of document.querySelectorAll('form[data-validate]')) validated(f); };
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wireForms); else wireForms();
+    const wirePanes = () => { for (const x of document.querySelectorAll('[data-panes]')) if (!x.__dashPanes) Dash.panes(x); };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wirePanes); else wirePanes();
     for (const type of ['focusin', 'input']) document.addEventListener(type, (e) => validated(e.target.form), true);
     document.addEventListener('submit', (e) => { validated(e.target); const f = e.target.__dashForm; if (f) f.submit(e); }, true);
     document.addEventListener('invalid', (e) => { // (submitted by a script before anyone touched it)

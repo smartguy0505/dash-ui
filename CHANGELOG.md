@@ -2,6 +2,17 @@
 
 Dashboards keep a copy of `dash.css` and `dash.js`; the first line of each file says which version it is. Versions only add things: a page that worked with an older copy works the same with a newer one.
 
+## 1.16.0 (2026-11-25)
+
+Dashboard tools, each in the class a reader would look in.
+
+- `Dash.palette`: a box to find anything and do it (Ctrl+K, or ⌘K). Items in groups, with notes, icons and shortcuts; what was picked last first; looked up as you type; one can open another. The docs have one. `Dash.keys`: a shortcut as key caps.
+- `Dash.log`: lines as they come. Stays at the end until the reader scrolls up, then says how many are new; keeps so many; levels, sources, a terminal's colours; a filter, Wrap, Copy and Clear.
+- `Dash.json` (and `.html`): what a value is made of, to open and close; a branch is drawn when it opens, so a big answer costs nothing.
+- `Dash.panes` (or `data-panes`): parts with a bar between them that can be moved by mouse, finger or keys; the sizes are remembered; on a phone they stack.
+- `Dash.heatmap` and `Dash.days`: how much, in a grid or a square per day. One hue in five steps that stand out from each other and from the panel, for every tone, in light and in dark (tokens `--heat-1` to `--heat-5` and `--heat-end`). Where there is no room, the names stay in view and the last days show first.
+- Docs: a page for logs and data; the gallery has all of it. A test presses every button of every example.
+
 ## 1.15.0 (2026-11-25)
 
 Richer fields, with a class of their own in the docs (suggestions and dates moved there; old links go on working).
