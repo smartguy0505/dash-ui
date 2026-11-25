@@ -2863,7 +2863,8 @@
       p.className = 'form-error';
       p.setAttribute('role', 'alert');
       const b = [...form.elements].find((x) => x.type === 'submit' && form.contains(x)), box = b && b.closest('.dialog-actions, .row, .input-group, .field, form');
-      if (!b || (box === form && form.matches('.row'))) form.append(p); else (box === form ? b : box).before(p);
+      if (b) (box === form ? b : box).before(p); else form.append(p);
+      added.add(p);
       return p;
     };
     // put what is known on the page; nothing is written that is there already, so it can run as often as it likes
@@ -3068,7 +3069,6 @@
     const me = { // what the page wiring calls
       get form() { return form; },
       move(f) {
-        watch.disconnect();
         form = f;
         bubbles = !f.noValidate;
         f.noValidate = true;
@@ -3367,10 +3367,9 @@
     });
     document.addEventListener('focusout', (e) => { const f = formOf(e); if (f) left(f, e.target); });
     document.addEventListener('reset', (e) => { const f = e.target.__dashForm; if (f) setTimeout(() => { if (!e.defaultPrevented) f.clear(); }); });
-    // <form data-validate>, also one that comes later
+    // <form data-validate>: once it is first used, so also one that comes later
     const validated = (f) => { if (f && f.matches && f.matches('form[data-validate]') && !f.__dashForm) Dash.form(f); };
-    const wireForms = () => { for (const f of document.querySelectorAll('form[data-validate]')) validated(f); };
-    for (const type of ['focusin', 'pointerdown']) document.addEventListener(type, (e) => validated((e.target && e.target.form) || (e.target.closest && e.target.closest('form'))), true);
+    for (const type of ['focusin', 'input']) document.addEventListener(type, (e) => validated(e.target.form), true);
     document.addEventListener('submit', (e) => { validated(e.target); const f = e.target.__dashForm; if (f) f.submit(e); }, true);
     document.addEventListener('invalid', (e) => { // (submitted by a script before anyone touched it)
       const f = e.target.form;
@@ -3378,7 +3377,6 @@
       e.preventDefault();
       if (!f.__dashForm) { validated(f); f.__dashForm.check(); }
     }, true);
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wireForms); else wireForms();
     // ---- 1.8: sliders show their value; drop zones take dropped files; the sidebar as a drawer on smaller screens
     document.addEventListener('input', (e) => {
       const r = e.target;

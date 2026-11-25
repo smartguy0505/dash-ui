@@ -773,7 +773,7 @@ button.hbar:hover { background: var(--soft); }
 [data-dash-form] .dropzone:has(> [aria-invalid="true"]), [data-dash-form] .choice:has(> [aria-invalid="true"]) { border-color: var(--bad); }
 [data-dash-form] .checkline > input[aria-invalid="true"]:not(:focus-visible) { outline: 1px solid var(--bad); outline-offset: 2px; }
 [data-dash-form] .switch > input[aria-invalid="true"]:not(:focus-visible) + .track { outline: 1px solid var(--bad); outline-offset: 2px; }
-[data-dash-form] :is(.field, .form-error, [aria-invalid="true"]) { scroll-margin-block: calc(var(--topbar-h) + 24px) 24px; } /* going to it, clear of a sticky top bar */
+[data-dash-form] :is(.field, .input-group, .date-field, .select, .search, .slider, label, .form-error, [aria-invalid="true"]) { scroll-margin-block: calc(var(--topbar-h) + 24px) 24px; } /* going to it, clear of a sticky top bar */
 .row > :is(.field-err, .form-error) { flex-basis: 100%; order: 1; margin: 0; }
 
 /* ---- sign-in page: <body class="login-page"><form class="login">… ---- */

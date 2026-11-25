@@ -78,6 +78,7 @@
       file: (v) => Boolean(v) && v.size > 4 && 'That file is too big.',
       note: (v) => v === 'bad' && '<b>Not</b> that & this.',
       version: (v) => v === '8' && 'Not this version.',
+      day: (v) => v === '2026-01-18' && 'Not on a Sunday.',
       '': (all) => all.seats > 10 && all.region === 'eu' && 'Frankfurt has ten seats.',
     },
     onSubmit: async (values, f, by) => { log.push('save ' + (by && by.value)); window.sent = values; if (send) await send(); },
