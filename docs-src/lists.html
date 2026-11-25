@@ -195,6 +195,57 @@
       </example>
     </section>
 
+    <section id="board" data-terms="Dash.board .board .board-col .board-add .no-drop .movable .toned .board-head .board-name .board-zone .board-cards .board-card .board-lead .board-open .board-sub .board-end .board-tools .board-none .board-tall --board-h --board-col kanban columns cards drag onMove limit">
+      <h2>Boards</h2>
+      <p><code>Dash.board(el, { columns, cards, column })</code> is cards in columns (a kanban board): <code>column</code> is the field of a card that says which one it is in. A card is moved with the mouse, anywhere on it, or with a finger by its grip; with the arrow keys on its grip; or from the menu its grip opens. <code>onMove(cards, { card, from, to, index })</code> has the cards in their new order. Return a promise while it is saved: if it rejects, or gives <code>false</code>, the card is put back and a toast says why.</p>
+      <ul>
+        <li>A column: <code>{ id, title, tone, limit, empty, add }</code>. One with more cards than its <code>limit</code> is marked. <code>onAdd(column)</code> puts a + in each head (<code>add: false</code> leaves it out).</li>
+        <li>A card: <code>title</code>, <code>sub</code>, <code>tone</code> and <code>key</code> are fields or functions (escaped); <code>lead(card)</code>, above the title, and <code>end(card)</code>, below, are HTML; <code>href</code> makes it a link, <code>onPick(card, event)</code> a button. <code>menu(card)</code> and <code>onMenu(value, card)</code> are its own menu.</li>
+        <li><code>can(card, column)</code> says which columns a card may go to; the others fade while it is dragged. <code>move: false</code>, or a function, is a board, or a card, that stays where it is.</li>
+        <li><code>height</code> is how tall it gets; its columns then scroll. A column is at least <code>--board-col</code> wide (220 px); where they don't fit, the board scrolls sideways in itself, also while a card is held near its edge.</li>
+      </ul>
+      <example title="Work, saved as it moves">
+        <div class="panel">
+          <div class="panel-head"><h3>This week</h3><label class="search"><input class="input sm" id="card-find" type="search" placeholder="Find a card" aria-label="Find a card"></label></div>
+          <div id="week-board"></div>
+        </div>
+        <script>
+          const weekBoard = Dash.board('week-board', {
+            label: 'This week', column: 'state',
+            columns: [
+              { id: 'todo', title: 'To do' },
+              { id: 'doing', title: 'Doing', tone: 'blue', limit: 2 },
+              { id: 'done', title: 'Done', tone: 'ok', empty: 'Nothing yet', add: false },
+            ],
+            cards: [
+              { id: 1, state: 'todo', title: 'Renew the certificate', sub: 'It ends on Friday', tag: 'web', tone: 'warn' },
+              { id: 2, state: 'todo', title: 'Write the guide', who: 'Ada Lovelace' },
+              { id: 3, state: 'todo', title: 'Test the backup', tag: 'data' },
+              { id: 4, state: 'doing', title: 'Move the pictures', sub: 'To the new disk', who: 'Alan Turing' },
+            ],
+            lead: (c) => (c.tag ? Dash.tag(c.tag) : ''), end: (c) => (c.who ? Dash.avatar(c.who, { size: 'sm' }) + Dash.esc(c.who) : ''),
+            onMove: (cards, { card, to }) => new Promise((ok) => setTimeout(ok, 400)), // this would be Dash.api('/api/cards/' + card.id, { json: { state: to } })
+            onPick: (c) => Dash.toast(`Open “${c.title}”`),
+            onAdd: (k) => Dash.toast(`A new card in ${k.title}`),
+            menu: () => ['Rename', { label: 'Delete', tone: 'bad' }], onMenu: (v, c) => Dash.toast(`${v}: ${c.title}`),
+          });
+          Dash.search('card-find', { key: null, onChange: (text) => weekBoard.filter(text) });
+        </script>
+      </example>
+      <p>Moves show at once and are saved one after another; if one can't be, it goes back, and so does what was moved after it. An update that comes while a card is dragged or saved waits, and one from before the move doesn't undo it. <code>.update(cards)</code>, <code>.cards</code>, <code>.columns(list)</code>, <code>.filter(text or test)</code>, <code>.count</code>, <code>.move(key, column, index)</code> (a promise of whether it stays there), <code>.redraw()</code>, <code>.destroy()</code>.</p>
+      <example title="To look at, and no taller than 220 px">
+        <div id="look-board"></div>
+        <script>
+          Dash.board('look-board', {
+            label: 'Releases', height: 220, move: false, href: (c) => '#board',
+            columns: [{ id: 'next', title: 'Next' }, { id: 'test', title: 'In test', tone: 'purple' }, { id: 'live', title: 'Live', tone: 'ok' }],
+            cards: ['1.9', '1.8', '1.7', '1.6', '1.5', '1.4'].map((v, i) => ({ id: v, title: 'Release ' + v, sub: i ? `${i * 3} days ago` : 'today', column: i < 1 ? 'next' : i < 2 ? 'test' : 'live' })),
+          });
+        </script>
+      </example>
+      <p>By hand: <code>.board</code> › <code>.board-col</code> › <code>.board-head</code> (a <code>.board-name</code>, a <code>.count-badge</code>) and <code>.board-zone</code> › <code>ul.board-cards</code> › <code>li.board-card</code>, with a <code>.board-open</code> for its title, and <code>.board-lead</code>, <code>.board-sub</code> and <code>.board-end</code>. <code>.board-add</code> is the + in a head; a <code>.board-card</code> is <code>.movable</code>, and <code>.toned</code> with a tone (<code>class="board-card toned warn"</code>); a column is <code>.no-drop</code> while a card is dragged that can't go there.</p>
+    </section>
+
     <section id="facts" data-terms=".kv .facts dl dt dd">
       <h2>Facts</h2>
       <p><code>.kv</code> is a <code>dl</code> of names and values in columns (<code>--cols</code>, 2). <code>.facts</code> is a line of facts with dots between them, wrapping as it needs.</p>

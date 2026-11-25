@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Boards</title>
+<link rel="stylesheet" href="../dash.css">
+<script src="../dash.js"></script>
+</head>
+<body>
+<header class="topbar"><div class="brand"><span class="mark">B</span><h1>Boards</h1></div></header>
+<main class="page">
+  <div class="panel">
+    <div class="panel-head"><h2>Work</h2><label class="search"><input class="input sm" id="find" type="search" aria-label="Find a card"></label></div>
+    <div id="work"></div>
+  </div>
+  <div id="plain" class="section"></div>
+  <div id="tall" class="section"></div>
+  <div id="six" class="section"></div>
+  <div style="height: 900px"></div>
+</main>
+<script>
+  const log = window.log = [];
+  window.answer = null;
+  const COLS = [{ id: 'todo', title: 'To do' }, { id: 'doing', title: 'Doing', limit: 2, tone: 'blue' }, { id: 'review', title: 'Review', empty: 'Nothing to read' }, { id: 'done', title: 'Done', tone: 'ok', add: false }];
+  const CARDS = [
+    { id: 'a', status: 'todo', name: 'Fix the login page', note: 'It asks twice', tag: 'bug' },
+    { id: 'b', status: 'todo', name: 'Write the guide', who: 'Ada Lovelace' },
+    { id: 'c', status: 'doing', name: 'Move the pictures', note: 'To the new disk', tone: 'warn', due: 'Fri' },
+    { id: 'd', status: 'todo', name: 'Test the backup' },
+    { id: 'e', status: 'done', name: 'New icons' },
+    { id: 'f', status: 'doing', name: 'Renew the certificate', tag: 'ops' },
+  ];
+  window.work = Dash.board('work', {
+    label: 'Work', columns: COLS, cards: CARDS, column: 'status', title: 'name', sub: 'note',
+    lead: (c) => (c.tag ? Dash.tag(c.tag) : ''),
+    end: (c) => (c.who ? Dash.avatar(c.who, { size: 'sm' }) : '') + (c.due ? `<button type="button" class="btn sm" data-due>${Dash.esc(c.due)}</button>` : ''),
+    can: (c, to) => !(to === 'done' && c.id === 'a'),
+    onMove: (cards, m) => { log.push(`move ${m.card.id} ${m.from}>${m.to} ${m.index} ${cards.map((c) => c.id + c.status[0]).join('')}`); return window.answer ? window.answer(cards, m) : undefined; },
+    onPick: (c) => log.push('pick ' + c.id),
+    onAdd: (k) => log.push('add ' + k.id),
+    menu: (c) => [{ label: 'Rename', value: 'rename' }, { label: 'Delete', value: 'delete', tone: 'bad' }],
+    onMenu: (v, c) => log.push(`${v} ${c.id}`),
+  });
+  document.getElementById('work').addEventListener('click', (e) => { if (e.target.closest('[data-due]')) log.push('due'); });
+  Dash.search('find', { key: null, onChange: (t) => log.push('found ' + work.filter(t)) });
+  window.plain = Dash.board('plain', { columns: COLS.slice(0, 3), cards: CARDS.map((c) => ({ ...c })), column: 'status', title: 'name', move: (c) => c.id !== 'b', href: (c) => '#card-' + c.id, onMove: (_, m) => { log.push(`plain ${m.card.id} ${m.to} ${m.index}`); } });
+  window.tall = Dash.board('tall', { height: 260, columns: COLS.slice(0, 2), cards: Array.from({ length: 24 }, (_, i) => ({ id: 't' + i, column: i % 8 ? 'todo' : 'doing', title: 'Card ' + i })), move: true, onMove: (_, m) => { log.push(`tall ${m.card.id} ${m.to} ${m.index}`); } });
+  window.six = Dash.board('six', { columns: ['one', 'two', 'three', 'four', 'five', 'six'].map((id) => ({ id })), cards: [{ id: 'x', column: 'one', title: 'From the first' }, { id: 'y', column: 'six', title: 'In the last' }], onMove: (_, m) => { log.push(`six ${m.card.id} ${m.to} ${m.index}`); } });
+</script>
+</body>
+</html>

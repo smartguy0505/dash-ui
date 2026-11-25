@@ -9,7 +9,7 @@
 </head>
 <!-- test/behaviour.mjs serves this page with Content-Security-Policy: style-src 'self' -->
 <body>
-<main class="page"><div class="panel" id="log"></div><div class="panel" id="json"></div><div class="panel"><div id="panes"><div>A</div><div>B</div></div></div><div class="panel" id="heat"></div></main>
+<main class="page"><div class="panel" id="log"></div><div class="panel" id="json"></div><div class="panel"><div id="panes"><div>A</div><div>B</div></div></div><div class="panel" id="heat"></div><div class="panel" id="tasks"></div></main>
 <script>
   Dash.config.csp = true;
   window.violations = [];
@@ -18,6 +18,7 @@
   Dash.json('json', { a: [1, 2] });
   Dash.panes('panes', { sizes: [25, 75], height: 90 });
   Dash.render('heat', Dash.heatmap({ rows: ['a'], cols: ['b', 'c'], values: [[1, 2]] }) + Dash.days([], { weeks: 4 }));
+  Dash.board('tasks', { height: 200, columns: [{ id: 'l', title: 'Left' }, { id: 'r', title: 'Right' }], cards: [{ id: 'q', column: 'l', title: 'Q' }, ...[1, 2, 3, 4, 5].map((n) => ({ id: 'r' + n, column: 'r', title: 'R' + n }))] });
   window.palette = Dash.palette({ items: [{ label: 'One', keys: 'mod+o' }] });
   palette.open();
 </script>

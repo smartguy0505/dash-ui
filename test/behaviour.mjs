@@ -11,7 +11,7 @@
 // (test/contrast.html), narrow pages, targets and times to come; from 1.10 values the reader hides (test/private.html);
 // from 1.11 line charts (test/lines.html); from 1.12 table rows to pick and to open (test/rows.html); from 1.13 forms that
 // say what is wrong (test/forms.html); from 1.14 trees, lists, the sidebar (test/lists.html) and the docs' own; from 1.15
-// more fields (test/fields.html); from 1.16 dashboard tools (test/tools.html).
+// more fields (test/fields.html); from 1.16 dashboard tools (test/tools.html); from 1.17 boards (test/board.html).
 //
 //   npm i --no-save playwright-core && npx playwright-core install --only-shell chromium
 //   node test/behaviour.mjs          (KIT=<dir> serves dash.css, dash.js and dash-utils.css from <dir> instead: to check a change)
@@ -4232,6 +4232,637 @@ let reference;
     check(`1.16.2 code: on a phone ${width} px wide, up to ten fit; a finger's press goes into its box`, out.join('|') === '6 in fits 8808,4|8 in fits 8808,4|10 in fits 8808,4', out.join('|'));
     await phone.context().close();
   }
+}
+
+// ---- 1.17 boards (test/board.html)
+{
+  const openBoard = async ({ width = 1300, height = 900, page = 'board.html', ...more } = {}) => {
+    const ctx = await browser.newContext({ viewport: { width, height }, locale: 'en-US', reducedMotion: 'reduce', ...more });
+    const tab = await ctx.newPage();
+    tab.setDefaultTimeout(4000);
+    tab.on('pageerror', (e) => errors.push(e.message));
+    await tab.goto(url.replace('behaviour.html', page), { waitUntil: 'load' });
+    return tab;
+  };
+  // one that throws has failed, and the next one starts afresh
+  const test = async (name, opt, fn) => {
+    const tab = await openBoard(opt);
+    let t;
+    try {
+      const [ok, detail] = await Promise.race([fn(tab), new Promise((_, no) => { t = setTimeout(() => no(new Error('it takes too long')), 25000); })]);
+      check('1.17 board: ' + name, ok, detail);
+    } catch (e) { check('1.17 board: ' + name, false, 'threw ' + String(e && e.message).split('\n')[0]); }
+    clearTimeout(t);
+    await tab.context().close();
+  };
+  const is = (got, want) => [JSON.stringify(got) === JSON.stringify(want), JSON.stringify(got)];
+  const logged = (tab) => tab.evaluate(() => log.splice(0).join(' | '));
+  const order = (tab, id = 'work') => tab.evaluate((k) => [...document.querySelectorAll(`#${k} .board-zone`)].map((z) => [...z.querySelectorAll('.board-card')].map((x) => x.dataset.key).join('')).join('/'), id);
+  const spoken = (tab) => tab.evaluate(() => document.querySelector('[data-dash-voice]').textContent);
+  const focus = (tab) => tab.evaluate(() => document.activeElement.dataset.key ?? document.activeElement.tagName);
+  const wait = (tab, ms = 50) => tab.waitForTimeout(ms);
+  const box = async (tab, q) => { const b = await tab.locator(q).first().boundingBox(); if (!b) throw new Error('no ' + q); return b; };
+  const at = async (tab, q, fx = 0.4, fy = 0.5) => { const b = await box(tab, q); return [b.x + b.width * fx, b.y + b.height * fy]; };
+  const card = (k, id = 'work') => `#${id} li[data-key="${k}"]`, zone = (k, id = 'work') => `#${id} [data-zone="${k}"]`, grip = (k, id = 'work') => `${card(k, id)} [data-grip]`;
+  const lift = async (tab, from, to) => { // as a hand does: it starts slowly, and stops before it lets go
+    const [x, y] = from;
+    await tab.mouse.move(x, y);
+    await tab.mouse.down();
+    await tab.mouse.move(x + 4, y + 2);
+    await tab.mouse.move(x + 8, y + 5);
+    await tab.mouse.move(...to, { steps: 6 });
+    await wait(tab, 30);
+  };
+  const drag = async (tab, from, to) => { await lift(tab, from, to); await tab.mouse.up(); await wait(tab); };
+  const keys = async (tab, ...list) => { for (const k of list) await tab.keyboard.press(k); await wait(tab); };
+
+  // a save that is over when the check says so
+  const hold = (tab) => tab.evaluate(() => { window.answer = () => new Promise((ok) => { window.over = ok; }); });
+  const answer = async (tab, v) => { await tab.evaluate((x) => { const f = window.over; window.over = null; if (f) f(x); }, v); await wait(tab); };
+
+  await test('columns of cards, named and counted', {}, async (tab) => is(await tab.evaluate(() => ({
+    cols: [...document.querySelectorAll('#work .board-col')].map((c) => [document.getElementById(c.getAttribute('aria-labelledby'))?.textContent, c.getAttribute('role'), c.querySelector('.count-badge').innerText.replace(/\s+/g, ' ').trim(), c.querySelector('.count-badge .sr-only').textContent, c.querySelector('.count-badge [aria-hidden]').textContent, Boolean(c.querySelector('[data-add]')), c.querySelector('.board-zone').textContent.slice(0, 15)].slice(0, 1).concat([c.querySelector('.count-badge .sr-only').textContent, c.querySelector('.count-badge [aria-hidden]').textContent, c.querySelector('[data-add]')?.getAttribute('aria-label') ?? '-', c.querySelector('.board-none')?.textContent ?? c.querySelectorAll('li').length, c.querySelector('.board-head .dot') ? 'dot' : '-', c.getAttribute('role')]).join()),
+    card: ['[data-grip]', '[data-dots]'].map((q) => { const b = document.querySelector('#work li[data-key="c"] ' + q); return [b.tagName, b.getAttribute('aria-label'), b.getAttribute('aria-haspopup')].join(); }),
+    open: [document.querySelector('#work .board-open').tagName, document.querySelector('#plain .board-open').getAttribute('href'), document.querySelector('#six .board-open').tagName].join(),
+    toned: document.querySelector('#work li[data-key="c"]').className, whole: document.querySelector('#work .board').getAttribute('aria-label'), plus: document.querySelectorAll('#plain [data-add]').length,
+    dots: new Set([...document.querySelectorAll('#work .board-head .dot')].map((d) => getComputedStyle(d).backgroundColor)).size,
+  })), {
+    cols: ['To do,3 cards,3,Add to To do,3,-,group', 'Doing,2 cards, at most 2,2 / 2,Add to Doing,2,dot,group', 'Review,0 cards,0,Add to Review,Nothing to read,-,group', 'Done,1 card,1,-,1,dot,group'],
+    card: ['BUTTON,Move Move the pictures,menu', 'BUTTON,More for Move the pictures,menu'], open: 'BUTTON,#card-a,SPAN', toned: 'board-card movable toned warn', whole: 'Work', plus: 0, dots: 2,
+  }));
+  await test('its columns are as tall as the tallest, and the page doesn\'t scroll sideways', {}, async (tab) => {
+    const r = await tab.evaluate(() => [...document.querySelectorAll('#work .board-zone')].map((z) => { const b = z.getBoundingClientRect(); return [Math.round(b.height), Math.round(b.bottom)]; }));
+    const wide = await tab.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+    return [new Set(r.map(String)).size === 1 && r[0][0] > 150 && wide === 0, r.join(' ') + ' ' + wide];
+  });
+  await test('a card is dragged by mouse, anywhere on it, low into an empty column', {}, async (tab) => {
+    const z = await box(tab, zone('review'));
+    await lift(tab, await at(tab, card('a'), 0.3, 0.8), [z.x + 100, z.y + z.height - 12]);
+    const mid = await tab.evaluate(() => [(() => { const l = document.querySelector('[data-zone="review"] > .drop-line'), q = l && l.getBoundingClientRect(), z = l && l.parentElement.getBoundingClientRect(); return l && q.top >= z.top && q.bottom < z.top + 30 && q.left === z.left + 8 && q.right === z.right - 8 ? 'line' : ''; })(), getComputedStyle(document.querySelector('[data-zone="review"] .board-none')).visibility, document.querySelector('.drag-ghost .board-card') ? 'ghost' : '', document.querySelector('#work .drag-from').dataset.key, document.documentElement.className, document.querySelectorAll('#work .board-col.no-drop').length, getSelection().toString()].join());
+    await tab.mouse.up();
+    await wait(tab);
+    const end = await tab.evaluate(() => [document.querySelectorAll('.drop-line, .drag-ghost, .drag-from, .no-drop').length, document.documentElement.className].join());
+    return is([mid, await order(tab), await logged(tab), await spoken(tab), end], ['line,hidden,ghost,a,dragging,1,', 'bd/cf/a/e', 'move a todo>review 0 btcddtedfdar', 'Fix the login page: Review, 1 of 1', '0,']);
+  });
+  await test('between two cards, above the first, below the last, and within its column', {}, async (tab) => {
+    const out = [];
+    await drag(tab, await at(tab, card('b')), await at(tab, card('c'), 0.4, 0.9));
+    out.push(await order(tab));
+    await drag(tab, await at(tab, card('b')), await at(tab, card('c'), 0.4, 0.1));
+    out.push(await order(tab));
+    const z = await box(tab, zone('doing'));
+    await drag(tab, await at(tab, card('a'), 0.3, 0.8), [z.x + 80, z.y + z.height - 6]);
+    out.push(await order(tab));
+    await drag(tab, await at(tab, card('f'), 0.5, 0.8), await at(tab, card('b'), 0.5, 0.2));
+    out.push(await order(tab));
+    return is([...out, (await logged(tab)).split(' | ').map((x) => x.split(' ').slice(1).join(' '))], ['ad/cbf//e', 'ad/bcf//e', 'd/bcfa//e', 'd/fbca//e', ['b todo>doing 1 atcddtedbdfd', 'b doing>doing 0 atbdcddtedfd', 'a todo>doing 3 bdcddtedfdad', 'f doing>doing 0 fdbdcddtedad']]);
+  });
+  await test('dropped where it was, nothing is told', {}, async (tab) => {
+    await drag(tab, await at(tab, card('b')), await at(tab, card('b'), 0.6, 0.7));
+    return is([await order(tab), await logged(tab)], ['abd/cf//e', '']);
+  });
+  await test('not into a column it can\'t go to: it stays, and isn\'t put next door', {}, async (tab) => {
+    const z = await box(tab, zone('done'));
+    await lift(tab, await at(tab, card('a'), 0.3, 0.8), [z.x + 90, z.y + 60]);
+    const mid = await tab.evaluate(() => [document.documentElement.className, document.querySelectorAll('.drop-line').length, getComputedStyle(document.querySelector('#work [data-zone="done"]').parentElement).opacity, getComputedStyle(document.body).cursor].join());
+    await tab.mouse.up();
+    await wait(tab);
+    const end = await tab.evaluate(() => [document.documentElement.className, document.querySelectorAll('.no-drop, .drag-ghost').length].join());
+    await drag(tab, await at(tab, card('b')), await at(tab, zone('done'), 0.4, 0.9));
+    return is([mid, end, await order(tab), (await logged(tab)).split(' ').slice(0, 4).join(' ')], ['dragging no-drop,0,0.5,not-allowed', ',0', 'ad/cf//eb', 'move b todo>done 1']);
+  });
+  await test('out of it and back over one it may: dropped there', {}, async (tab) => {
+    const z = await box(tab, zone('done')), r = await box(tab, zone('review'));
+    await lift(tab, await at(tab, card('a'), 0.3, 0.8), [z.x + 90, z.y + 60]);
+    await tab.mouse.move(r.x + 60, r.y + 60, { steps: 4 });
+    await tab.mouse.up();
+    await wait(tab);
+    return is(await order(tab), 'bd/cf/a/e');
+  });
+  await test('Escape calls it off, and so does leaving the window', {}, async (tab) => {
+    const z = await at(tab, zone('review'));
+    await lift(tab, await at(tab, card('a'), 0.3, 0.8), z);
+    await keys(tab, 'Escape');
+    await tab.mouse.up();
+    await lift(tab, await at(tab, card('b')), z);
+    await tab.evaluate(() => window.dispatchEvent(new Event('blur')));
+    await tab.mouse.up();
+    await wait(tab);
+    return is([await order(tab), await logged(tab), await tab.evaluate(() => document.querySelectorAll('.drop-line, .drag-ghost, .drag-from, .no-drop').length)], ['abd/cf//e', '', 0]);
+  });
+  await test('a press that doesn\'t move picks it, a drag doesn\'t; a button in it is its own', {}, async (tab) => {
+    const out = [];
+    await tab.mouse.click(...await at(tab, `${card('a')} .board-open`));
+    out.push(await logged(tab));
+    await tab.mouse.click(...await at(tab, `${card('a')} .board-sub`));
+    out.push(await logged(tab));
+    await tab.mouse.click(...await at(tab, `${card('a')} .tag`));
+    out.push(await logged(tab));
+    await tab.mouse.click(...await at(tab, '[data-due]'));
+    out.push(await logged(tab));
+    await drag(tab, await at(tab, '[data-due]'), await at(tab, zone('review')));
+    out.push(await order(tab));
+    await logged(tab);
+    await drag(tab, await at(tab, `${card('a')} .board-open`), await at(tab, zone('review')));
+    out.push((await logged(tab)).split(' ').slice(0, 2).join(' '));
+    await tab.mouse.click(...await at(tab, card('d')), { button: 'right' });
+    await keys(tab, 'Escape');
+    out.push(await logged(tab));
+    await tab.mouse.move(...await at(tab, card('d')));
+    await tab.mouse.down({ button: 'right' });
+    await tab.mouse.move(...await at(tab, zone('review'), 0.4, 0.9), { steps: 5 });
+    out.push(await tab.evaluate(() => document.querySelectorAll('.drag-ghost').length));
+    await tab.mouse.up({ button: 'right' });
+    return is(out, ['pick a', 'pick a', 'pick a', 'due', 'abd/cf//e', 'move a', '', 0]);
+  });
+  await test('what a pick opens gives the focus back to the card; a press on a card closes a menu', {}, async (tab) => {
+    await tab.evaluate(() => { document.getElementById('work').addEventListener('click', (e) => { if (window.ask && e.target.closest('.board-card')) Dash.modal({ title: 'Card', body: 'x' }); }); window.ask = true; });
+    const out = [];
+    for (const q of ['.board-open', '.board-sub', '.tag']) {
+      await tab.evaluate(() => document.activeElement.blur());
+      await tab.mouse.click(...await at(tab, `${card('a')} ${q}`));
+      await wait(tab);
+      await keys(tab, 'Escape');
+      await wait(tab, 100);
+      out.push(await focus(tab));
+    }
+    await tab.evaluate(() => { window.ask = false; Dash.menu(document.querySelector('#work [data-add]'), ['One', 'Two']); });
+    await wait(tab);
+    const open = await tab.evaluate(() => document.querySelectorAll('[role="menu"]').length);
+    await tab.mouse.click(...await at(tab, `${card('b')} .board-open`));
+    await wait(tab, 80);
+    return is([...out, open, await tab.evaluate(() => document.querySelectorAll('[role="menu"]').length)], ['dash-open a', 'dash-open a', 'dash-open a', 1, 0]);
+  });
+  await test('its menu: the dots, a right click, Shift+F10; + in a head', {}, async (tab) => {
+    const out = [];
+    const choose = async (name) => { await tab.locator('[role="menuitem"]', { hasText: name }).click({ timeout: 700 }).catch(() => out.push('no ' + name)); await wait(tab); };
+    const place = async () => { const b = await tab.locator('[role="menu"]').first().boundingBox({ timeout: 700 }).catch(() => null); return b ? [Math.round(b.x), Math.round(b.y)].join() : 'none'; };
+    await tab.evaluate(() => { window.natives = 0; addEventListener('contextmenu', (e) => { if (!e.defaultPrevented) natives++; }); });
+    await tab.click(`${card('b')} [data-dots]`);
+    await choose('Rename');
+    out.push(await logged(tab), await focus(tab));
+    await tab.mouse.click(...await at(tab, card('d')), { button: 'right' });
+    await wait(tab, 80);
+    await choose('Delete');
+    out.push(await logged(tab), await tab.evaluate(() => natives));
+    await tab.click(`${card('f')} [data-dots]`);
+    await wait(tab);
+    const there = await place();
+    await keys(tab, 'Escape');
+    await tab.focus(grip('f'));
+    await keys(tab, 'Shift+F10');
+    out.push(await place() === there);
+    await choose('Rename');
+    out.push(await logged(tab));
+    await tab.click('#work [data-add="doing"]');
+    out.push(await logged(tab));
+    return is(out, ['rename b', 'dash-dots b', 'delete d', 0, true, 'rename f', 'add doing']);
+  });
+  await test('arrow keys on its grip: up, down, and from column to column, past those it can\'t go to', {}, async (tab) => {
+    const out = [];
+    const go = async (...k) => { await keys(tab, ...k); out.push(`${await order(tab)} ${await focus(tab)}`); };
+    await tab.focus(grip('b'));
+    await go('ArrowDown');
+    await go('ArrowDown');
+    await go('ArrowUp', 'ArrowUp', 'ArrowUp');
+    await go('ArrowRight');
+    await go('ArrowRight');
+    await go('ArrowRight', 'ArrowRight');
+    const said = await spoken(tab);
+    await go('ArrowLeft', 'ArrowLeft', 'ArrowLeft', 'ArrowLeft');
+    await tab.focus(grip('a'));
+    await go('ArrowRight', 'ArrowRight', 'ArrowRight');
+    await go('Control+ArrowLeft', 'Shift+ArrowLeft', 'Alt+ArrowUp');
+    await tab.focus(`${card('b')} .board-open`);
+    await go('ArrowDown', 'ArrowRight');
+    await tab.focus(grip('b'));
+    await go('ArrowLeft');
+    await wait(tab, 250);
+    await tab.evaluate(() => { work.update(CARDS); scrollTo(0, 0); });
+    await tab.focus(grip('a'));
+    await go('ArrowDown');
+    await wait(tab, 250);
+    out.push(await tab.evaluate(() => scrollY));
+    return is([...out, said], ['adb/cf//e dash-grip b', 'adb/cf//e dash-grip b', 'bad/cf//e dash-grip b', 'ad/bcf//e dash-grip b', 'ad/cf/b/e dash-grip b', 'ad/cf//be dash-grip b', 'bad/cf//e dash-grip b', 'bd/cf/a/e dash-grip a', 'bd/cf/a/e dash-grip a', 'bd/cf/a/e dash-open b', 'bd/cf/a/e dash-grip b', 'bad/cf//e dash-grip a', 0, 'Write the guide: Done, 1 of 2']);
+  });
+  await test('on a page that reads from the right, the arrows go where they point', {}, async (tab) => {
+    await tab.evaluate(() => { document.documentElement.dir = 'rtl'; });
+    await tab.focus(grip('c'));
+    await keys(tab, 'ArrowRight');
+    const a = await order(tab);
+    await keys(tab, 'ArrowLeft', 'ArrowLeft');
+    return is([a, await order(tab)], ['cabd/f//e', 'abd/f/c/e']);
+  });
+  await test('the grip\'s menu: every column, what can\'t be is off; by mouse and by key', {}, async (tab) => {
+    const items = () => tab.evaluate(() => [...document.querySelectorAll('[role="menuitem"]')].map((x) => x.textContent + (x.disabled ? '-' : '')).join());
+    const out = [];
+    const choose = async (name) => { await tab.locator('[role="menuitem"]', { hasText: name }).click({ timeout: 700 }).catch(() => out.push('no ' + name)); await wait(tab); };
+    await tab.click(grip('a'));
+    out.push(await items());
+    await choose('Move to Doing');
+    out.push(await order(tab), await focus(tab));
+    await tab.focus(grip('c'));
+    await keys(tab, 'Enter');
+    out.push(await items());
+    await choose('Move to the end');
+    out.push(await order(tab), await focus(tab));
+    await tab.focus(grip('f'));
+    for (const n of ['Move up', 'Move down', 'Move to the top']) { await keys(tab, 'Enter'); await choose(n); out.push(await order(tab)); }
+    await tab.focus(grip('c'));
+    await keys(tab, 'Enter');
+    out.push(await items());
+    await keys(tab, 'Escape');
+    return is([...out, await focus(tab)], ['Move to Doing,Move to Review,Move to Done-,Move to the top-,Move up-,Move down,Move to the end', 'bd/acf//e', 'dash-grip a', 'Move to To do,Move to Review,Move to Done,Move to the top,Move up,Move down,Move to the end', 'bd/afc//e', 'dash-grip c', 'bd/fac//e', 'bd/afc//e', 'bd/fac//e', 'Move to To do,Move to Review,Move to Done,Move to the top,Move up,Move down-,Move to the end-', 'dash-grip c']);
+  });
+  await test('moves show at once, and are saved one after another', {}, async (tab) => {
+    await hold(tab);
+    await tab.focus(grip('c'));
+    await tab.keyboard.press('ArrowRight');
+    await tab.keyboard.press('ArrowRight');
+    const now = await order(tab), three = async () => (await logged(tab)).split(' | ').map((x) => x.split(' ').slice(0, 3).join(' ')).join(' | ');
+    const first = await three();
+    await answer(tab);
+    const second = await three();
+    await answer(tab);
+    return is([now, first, second, await three(), await order(tab), await spoken(tab)], ['abd/f//ce', 'move c doing>review', 'move c review>done', '', 'abd/f//ce', 'Move the pictures: Done, 1 of 2']);
+  });
+  await test('one that can\'t be saved goes back, and what was moved after it; a promise says so', {}, async (tab) => {
+    const out = [];
+    await tab.evaluate(() => { window.n = 0; window.answer = () => new Promise((ok) => setTimeout(() => ok(++n !== 2), 80)); });
+    const said = await tab.evaluate(async () => { const r = [work.move('a', 'review'), work.move('b', 'review'), work.move('d', 'review', 9)]; return Promise.race([Promise.all(r).then(String), new Promise((ok) => setTimeout(ok, 2000, 'never said'))]); });
+    out.push(said, await order(tab), await spoken(tab));
+    await tab.evaluate(() => { window.answer = () => { throw new Error('The disk is full'); }; });
+    await tab.focus(grip('e'));
+    await keys(tab, 'ArrowLeft');
+    out.push(await order(tab), await spoken(tab), await tab.evaluate(() => [...document.querySelectorAll('.toast')].map((x) => x.textContent).join()), await focus(tab));
+    return is(out, ['true,false,false', 'bd/cf/a/e', '2 moves undone', 'bd/cf/a/e', 'New icons was put back', 'The disk is full', 'dash-grip e']);
+  });
+  await test('an update while a card is dragged waits, and what is dropped is put on top of it', {}, async (tab) => {
+    await lift(tab, await at(tab, card('b')), await at(tab, zone('review')));
+    await tab.evaluate(() => work.update([...work.cards.filter((c) => c.id !== 'd'), { id: 'g', status: 'review', name: 'New one' }]));
+    const mid = await order(tab);
+    await tab.mouse.up();
+    await wait(tab);
+    const a = [await order(tab), await logged(tab)].join(' ');
+    await lift(tab, await at(tab, card('e')), await at(tab, zone('todo')));
+    await tab.evaluate(() => work.update(work.cards.filter((c) => c.id !== 'a')));
+    await keys(tab, 'Escape');
+    await tab.mouse.up();
+    const b = await order(tab);
+    await lift(tab, await at(tab, card('e')), await at(tab, zone('todo')));
+    await tab.evaluate(() => work.update(work.cards.filter((c) => c.id !== 'e')));
+    await tab.mouse.up();
+    await wait(tab);
+    return is([mid, a, b, await order(tab)], ['abd/cf//e', 'a/cf/gb/e move b todo>review 1 atcdedfdgrbr', '/cf/gb/e', '/cf/gb/']);
+  });
+  await test('an update while a move is saved waits; one from before the move doesn\'t undo it', {}, async (tab) => {
+    const out = [];
+    await hold(tab);
+    await tab.evaluate(() => { window.old = work.cards; });
+    await tab.focus(grip('a'));
+    await keys(tab, 'ArrowRight');
+    await tab.evaluate(() => work.update([...old, { id: 'h', status: 'done', name: 'From before' }]));
+    out.push(await order(tab));
+    await answer(tab);
+    out.push(await order(tab));
+    await tab.evaluate(() => { window.old = work.cards; });
+    await tab.focus(grip('d'));
+    await keys(tab, 'ArrowUp');
+    await tab.evaluate(() => work.update(old));
+    await answer(tab);
+    out.push(await order(tab));
+    // the page's own answer: it wins
+    await tab.evaluate(() => { window.answer = async (cards, m) => { await new Promise((ok) => setTimeout(ok, 60)); work.update(cards.filter((c) => c.id !== m.card.id).concat({ ...m.card, status: 'done' })); }; });
+    await tab.focus(grip('f'));
+    await keys(tab, 'ArrowRight');
+    await tab.waitForFunction(() => document.querySelector('#work [data-zone="done"] li[data-key="f"]')).catch(() => {});
+    await wait(tab);
+    out.push(await order(tab));
+    // two moves, and an update from before both
+    await hold(tab);
+    await tab.evaluate(() => { window.old = work.cards; work.move('b', 'review'); work.move('b', 'done'); work.update(old); });
+    await answer(tab);
+    await answer(tab);
+    out.push(await order(tab));
+    return is(out, ['bd/acf//e', 'bd/acf//eh', 'db/acf//eh', 'db/ac//ehf', 'd/ac//behf']);
+  });
+  await test('a save that fails while another card is dragged, or an update waits', {}, async (tab) => {
+    await hold(tab);
+    await tab.evaluate(() => { work.move('b', 'review'); work.update([...work.cards.filter((c) => c.id !== 'b'), { id: 'b', status: 'todo', name: 'Write the guide' }, { id: 'h', status: 'done', name: 'Late' }]); });
+    await answer(tab, false);
+    const a = await order(tab);
+    await tab.evaluate(() => { work.move('d', 'review'); });
+    await lift(tab, await at(tab, card('c')), await at(tab, zone('todo'), 0.4, 0.95));
+    await answer(tab, false);
+    const mid = [await order(tab), await tab.evaluate(() => document.querySelectorAll('.drag-ghost').length)].join();
+    await tab.evaluate(() => { window.answer = null; });
+    await tab.mouse.up();
+    await wait(tab);
+    return is([a, mid, await order(tab)], ['adb/cf//eh', 'ab/cf/d/eh,1', 'adbc/f//eh']);
+  });
+  await test('an update between the press on a card and its first step, or its click, waits', {}, async (tab) => {
+    const out = [], [x, y] = await at(tab, card('b')), z = await at(tab, zone('review'));
+    const more = () => tab.evaluate(() => { window.n = (window.n || 0) + 1; work.update([...work.cards, { id: 'h' + n, status: 'done', name: 'H' }]); });
+    await tab.mouse.move(x, y);
+    await tab.mouse.down();
+    await more();
+    out.push(await order(tab));
+    await tab.mouse.move(x + 8, y + 5);
+    await tab.mouse.move(...z, { steps: 5 });
+    await tab.mouse.up();
+    await wait(tab);
+    out.push(await order(tab));
+    await logged(tab);
+    await tab.mouse.move(...await at(tab, `${card('a')} .board-open`));
+    await tab.mouse.down();
+    await more();
+    await tab.mouse.up();
+    await wait(tab);
+    out.push(await logged(tab), await order(tab));
+    // what a pick does shows at once
+    await tab.evaluate(() => { document.getElementById('work').addEventListener('click', () => { work.update(work.cards.filter((c) => c.id !== 'h1')); log.push(work.cards.length); }); });
+    await tab.mouse.click(...await at(tab, `${card('a')} .board-sub`));
+    out.push(await logged(tab));
+    // also over an update that waited for it
+    await tab.mouse.move(...await at(tab, `${card('a')} .board-open`));
+    await tab.mouse.down();
+    await more();
+    await tab.mouse.up();
+    await wait(tab);
+    out.push(await order(tab));
+    await logged(tab);
+    // let go where the page didn't hear of it: the next move of the mouse ends it
+    const unheard = (first) => tab.evaluate((moves) => {
+      const z = document.querySelector('#work [data-zone="review"]').getBoundingClientRect(), li = document.querySelector('#work li[data-key="d"]'), q = li.getBoundingClientRect();
+      const fire = (on, type, x, y, more) => on.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerType: 'mouse', pointerId: 1, clientX: x, clientY: y, ...more }));
+      fire(li, 'pointerdown', q.left + 20, q.top + 20, { button: 0, buttons: 1 });
+      if (moves) fire(window, 'pointermove', z.left + 50, z.top + 20, { buttons: 1 });
+      const n = document.querySelectorAll('.drag-ghost').length;
+      fire(window, 'pointermove', z.left + 60, z.top + 30, { buttons: 0 });
+      return [n, document.querySelectorAll('.drag-ghost').length].join();
+    }, first);
+    out.push(await unheard(false), await unheard(true), await order(tab), await logged(tab));
+    return is(out, ['abd/cf//e', 'ad/cf/b/eh1', 'pick a', 'ad/cf/b/eh1h2', 'pick a | 7', 'ad/cf/b/eh2', '0,0', '1,0', 'ad/cf/b/eh2', '']);
+  });
+  await test('a list too: an update between the press on a grip and its first step waits', {}, async (tab) => {
+    await tab.evaluate(() => { const d = document.createElement('div'); d.id = 'li'; document.querySelector('main').prepend(d); window.put = []; window.rows = Dash.list('li', { reorder: true, rows: ['p', 'q', 's'].map((id) => ({ id, title: id })), onMove: (all) => { put.push(all.map((x) => x.id).join('')); } }); });
+    const [x, y] = await at(tab, '#li li[data-key="p"] [data-grip]'), [, yy] = await at(tab, '#li li[data-key="s"]', 0.5, 0.9);
+    await tab.mouse.move(x, y);
+    await tab.mouse.down();
+    await tab.evaluate(() => rows.update(['p', 'q', 's', 'v'].map((id) => ({ id, title: id }))));
+    await tab.mouse.move(x + 2, y + 8);
+    await tab.mouse.move(x + 2, yy, { steps: 5 });
+    await tab.mouse.up();
+    await wait(tab, 80);
+    const a = await tab.evaluate(() => [put.join(), [...document.querySelectorAll('#li li')].map((l) => l.dataset.key).join('')].join(' '));
+    await tab.mouse.move(x, y);
+    await tab.mouse.down();
+    await tab.evaluate(() => rows.update(['q', 's'].map((id) => ({ id, title: id }))));
+    await tab.mouse.up();
+    await wait(tab, 80);
+    const menu = await tab.evaluate(() => document.querySelectorAll('[role="menu"]').length);
+    await keys(tab, 'Escape');
+    return is([a, menu, await tab.evaluate(() => [...document.querySelectorAll('#li li')].map((l) => l.dataset.key).join(''))], ['qsp qsvp', 1, 'qs']);
+  });
+  await test('a list too: an update from before a move doesn\'t undo it', {}, async (tab) => is(await tab.evaluate(async () => {
+    const d = document.createElement('div'); document.querySelector('main').prepend(d);
+    let ok; const R = (t) => [...t].map((id) => ({ id, title: id })), out = [], o = () => [...d.querySelectorAll('li')].map((l) => l.dataset.key).join('');
+    const rows = Dash.list(d, { reorder: true, rows: R('abcd'), onMove: () => new Promise((y) => { ok = y; }) });
+    const go = async (id, to, next, v) => { rows.move(id, to); rows.update(R(next)); ok(v); await new Promise((y) => setTimeout(y, 20)); out.push(o()); };
+    await go('d', 1, 'abcde');
+    rows.update(R('abcd')); await go('d', 1, 'abcd');
+    rows.update(R('abcd')); await go('a', 2, 'abcde');
+    rows.update(R('abcd')); await go('a', 3, 'eabcd');
+    rows.update(R('abcd')); await go('a', 2, 'bacd'); // (in another order: that one counts)
+    rows.update(R('abcd')); await go('a', 2, 'bcaed');
+    rows.update(R('abcd')); await go('a', 2, 'abdc');
+    rows.update(R('abcd')); await go('a', 3, 'abd');
+    rows.update(R('abcd')); await go('a', 2, 'bcd');
+    rows.update(R('abcd')); await go('a', 2, 'abc');  // (the one it was put before is gone)
+    rows.update(R('abcd')); await go('a', 2, 'abcd', false);
+    return out;
+  }), ['adbce', 'adbc', 'bcade', 'ebcda', 'bacd', 'bcaed', 'abdc', 'bda', 'bcd', 'abc', 'abcd']));
+  await test('the card with the focus is taken away: on to the next', {}, async (tab) => {
+    const out = [];
+    await tab.focus(grip('d'));
+    await tab.evaluate(() => work.update(work.cards.filter((c) => c.id !== 'd')));
+    out.push(await focus(tab));
+    await tab.evaluate(() => { work.update(CARDS); document.querySelector('#work li[data-key="b"] [data-grip]').focus(); work.update(CARDS.filter((c) => c.id !== 'b')); });
+    out.push(await focus(tab));
+    await tab.evaluate(() => work.update(work.cards.filter((c) => c.id !== 'd')));
+    out.push(await focus(tab));
+    await tab.evaluate(() => work.update(work.cards.filter((c) => c.id !== 'a')));
+    out.push(await focus(tab));
+    return is(out, ['dash-grip b', 'dash-grip d', 'dash-grip a', 'dash-add todo']);
+  });
+  await test('a filter: the words are marked, the counts say how many of them, and hidden cards keep their places', {}, async (tab) => {
+    await tab.evaluate(() => { work.update([['a', 'todo', 'Red one'], ['b', 'todo', 'Blue one'], ['c', 'todo', 'Red two'], ['d', 'todo', 'Blue two'], ['e', 'doing', 'Red three'], ['f', 'doing', 'Blue three'], ['g', 'doing', 'Blue four']].map(([id, status, name]) => ({ id, status, name }))); });
+    await tab.fill('#find', 'red');
+    await wait(tab, 250);
+    const counts = await tab.evaluate(() => [...document.querySelectorAll('#work .count-badge')].map((x) => [x.querySelector('[aria-hidden]').textContent, x.querySelector('.sr-only').textContent, x.classList.contains('bad')].join(':')).join('; '));
+    const out = [await tab.evaluate(() => [...document.querySelectorAll('#work mark')].map((x) => x.textContent).join()), await order(tab), await tab.evaluate(() => [...document.querySelectorAll('#work .board-none')].map((x) => x.textContent).join()), await logged(tab)];
+    if (out[1] !== 'ac/e//') return [false, out.join(' ; ')];
+    await tab.focus(grip('a'));
+    await keys(tab, 'ArrowDown');
+    out.push(await logged(tab), await spoken(tab));
+    await drag(tab, await at(tab, card('e')), await at(tab, zone('todo'), 0.4, 0.97));
+    out.push(await logged(tab), await order(tab));
+    await tab.fill('#find', 'blue');
+    await wait(tab, 250);
+    out.push(await order(tab), await tab.evaluate(() => JSON.stringify(work.count)));
+    await tab.focus(grip('d'));
+    await keys(tab, 'ArrowUp');
+    out.push((await logged(tab)).split(' | ').pop());
+    out.push(await tab.evaluate(() => [work.filter((c) => c.status === 'doing' || c.status === 'nope'), document.querySelector('#work .board-none').textContent, work.filter((c) => c.id === 'b' && c.status !== 'done')].join()));
+    await keys(tab, 'ArrowRight');
+    await tab.evaluate(() => { work.filter((c) => c.status === 'todo'); document.querySelector('#work li[data-key="b"] [data-grip]').focus(); });
+    await keys(tab, 'ArrowRight');
+    out.push(await spoken(tab), await tab.evaluate(() => [work.filter(''), work.filter(null)].join()));
+    return is([counts, ...out], ['2 of 4:2 of 4 cards:false; 1 of 3:1 of 3 cards, more than 2:true; 0:0 cards:false; 0:0 cards:false', 'Red,Red,Red', 'ac/e//', 'Nothing to read,Nothing here', 'found 3',
+      'move a todo>todo 2 btctatdtedfdgd', 'Red one: To do, 2 of 2', 'move e doing>todo 3 btctatetdtfdgd', 'cae///', 'bd/fg//', '{"shown":4,"total":7}', 'move d todo>todo 0 dtbtctatetfdgd', '2,None to show,1', 'Blue one: Doing', '7,7']);
+  });
+  await test('a filter from the start, and by the line under a title', {}, async (tab) => is(await tab.evaluate(() => {
+    const b = Dash.board('work', { columns: COLS, cards: CARDS, column: 'status', title: 'name', sub: 'note', filter: 'twice' });
+    const t = [[...document.querySelectorAll('#work li')].map((x) => x.dataset.key).join(), JSON.stringify(b.count), document.querySelector('#work .board-sub mark')?.textContent];
+    b.filter('');
+    return t.concat(document.querySelectorAll('#work li').length);
+  }), ['a', '{"shown":1,"total":6}', 'twice', 6]));
+  await test('past a column in the middle it can\'t go to; in a column it can\'t go to, it can be put in order', {}, async (tab) => {
+    await tab.evaluate(() => { window.mid = Dash.board('work', { label: 'Mid', columns: [{ id: 'l', title: 'Left' }, { id: 'm', title: 'Middle' }, { id: 'r', title: 'Right' }], cards: [['p', 'l'], ['q', 'm'], ['s', 'm']].map(([id, column]) => ({ id, column, title: id })), can: (c, to) => to !== 'm' }); });
+    const out = [];
+    await tab.focus(grip('p'));
+    await keys(tab, 'ArrowRight');
+    out.push(await order(tab), await spoken(tab));
+    await drag(tab, await at(tab, card('s')), await at(tab, card('q'), 0.4, 0.1));
+    out.push(await order(tab));
+    return is(out, ['/qs/p', 'p: Right, 1 of 1', '/sq/p']);
+  });
+  await test('moves and updates that cross', {}, async (tab) => is(await tab.evaluate(async () => {
+    const out = [], o = () => [...document.querySelectorAll('#work .board-zone')].map((z) => [...z.querySelectorAll('.board-card')].map((x) => x.dataset.key).join('')).join('/');
+    const soon = () => new Promise((ok) => setTimeout(ok, 120));
+    const C = (text) => text.split(' ').map((x) => ({ id: x[0], status: { t: 'todo', d: 'doing', r: 'review', f: 'done' }[x[1]], name: x[0] }));
+    window.answer = () => new Promise((ok) => setTimeout(ok, 40));
+    // the card it was put before has gone elsewhere: it goes last
+    work.move('e', 'todo', 1); work.update(C('at br dt cd fd ef'));
+    await soon(); out.push(o());
+    // the update has its column in another order already: that one counts
+    work.update(C('at bt dt')); work.move('d', 'todo', 1); work.update(C('dt at bt'));
+    await soon(); out.push(o());
+    // an update that has waited is not used a second time
+    work.update(C('at bt dt')); work.move('a', 'doing'); work.update(C('at bt dt zf'));
+    await soon(); await work.move('b', 'review'); await work.move('d', 'review');
+    out.push(o());
+    // a move that was saved long ago is not made again
+    work.update(C('at bt dt')); await work.move('a', 'doing'); await work.move('b', 'doing'); work.update(C('at bt dt')); work.move('d', 'review'); work.update(C('at bt dt'));
+    await soon(); out.push(o());
+    // nor one from before another card was dragged
+    return out;
+  }), ['ade/cf/b/', 'dab///', '/a/db/z', 'ab//d/']));
+  await test('a drawing keeps where it is scrolled to', {}, async (tab) => is(await tab.evaluate(() => {
+    const b = document.querySelector('#six .board'); b.scrollLeft = 100;
+    six.update([...six.cards, { id: 'z', column: 'two', title: 'Z' }]);
+    const q = document.querySelector('#six .board');
+    return [q !== b, q.scrollLeft];
+  }), [true, 100]));
+  await test('with a height and more columns than fit, it scrolls sideways under a held card', {}, async (tab) => {
+    await tab.evaluate(() => { Dash.board('work', { height: 200, columns: [1, 2, 3, 4, 5, 6, 7].map((id) => ({ id, title: 'C' + id })), cards: [{ id: 'x', column: 1, title: 'X' }, ...[1, 2, 3, 4, 5].map((n) => ({ id: 'y' + n, column: 7, title: 'Y' + n }))] }); });
+    const b = await box(tab, '#work .board');
+    await lift(tab, await at(tab, card('x')), [b.x + b.width - 14, b.y + 100]);
+    await wait(tab, 1200);
+    const there = await tab.evaluate(() => { const q = document.querySelector('#work .board'); return q.scrollLeft + q.clientWidth >= q.scrollWidth - 2; });
+    await tab.mouse.up();
+    await wait(tab);
+    return is([there, (await order(tab)).slice(0, 6)], [true, '//////']);
+  });
+  await test('what a page can do: move, columns, cards, count, redraw, destroy', {}, async (tab) => is(await tab.evaluate(async () => {
+    const out = [], o = () => [...document.querySelectorAll('#work .board-zone')].map((z) => [...z.querySelectorAll('.board-card')].map((x) => x.dataset.key).join('')).join('/');
+    out.push(await work.move('e', 'todo'), o(), await work.move('e', 'todo', 2), o(), await work.move('e', 'todo', 99), o(), work.cards.map((c) => c.id).join(''), await work.move('e', 'todo', 99));
+    out.push(await work.move('a', 'done'), document.querySelector('[data-dash-voice]').textContent, await work.move('nope', 'todo'), await work.move('a', 'nope'));
+    const list = work.cards; list.pop();
+    out.push(work.cards.length, JSON.stringify(work.count), work.cards.find((c) => c.id === 'e').status, CARDS.find((c) => c.id === 'e').status);
+    work.columns([{ id: 'doing', title: 'Now' }, { id: 'todo', title: 'Later' }]);
+    out.push(o(), JSON.stringify(work.count), [...document.querySelectorAll('#work .board-name')].map((x) => x.textContent).join());
+    work.columns([{ id: 'doing' }]);
+    out.push(JSON.stringify(work.count));
+    let n = 0; const again = Dash.board('work', { columns: COLS, cards: CARDS, column: 'status', title: 'name', onMove: (cards) => { n++; cards.length = 0; }, onAdd: (k) => log.push('new add ' + k.id), end: () => String(window.word || 'one') });
+    log.length = 0; document.querySelector('#work [data-add="doing"]').click();
+    out.push(log.join(), document.querySelectorAll('#work .board').length, await again.move('b', 'done'), n, again.cards.length, CARDS.length, document.querySelector('#work .board-end')?.textContent);
+    window.word = 'two'; again.redraw(); out.push(document.querySelector('#work .board-end')?.textContent);
+    again.destroy(); again.destroy();
+    out.push(document.getElementById('work').innerHTML, document.getElementById('work').__dashBoard === undefined, Dash.board('no such thing', {}));
+    return out.map(String);
+  }), ['true', 'eabd/cf//', 'true', 'abed/cf//', 'true', 'abde/cf//', 'abcdef', 'true', 'false', 'Fix the login page can’t go to Done', 'false', 'false', '6', '{"shown":6,"total":6}', 'todo', 'done', 'cf/abde', '{"shown":6,"total":6}', 'Now,Later', '{"shown":2,"total":2}', 'new add doing', '1', 'true', '1', '6', '6', 'one', 'two', '', 'true', 'null']));
+  await test('once it is gone nothing of it answers', {}, async (tab) => {
+    await tab.evaluate(() => { window.kept = document.getElementById('work').innerHTML; work.destroy(); document.getElementById('work').innerHTML = kept; });
+    await logged(tab);
+    await tab.mouse.click(...await at(tab, `${card('a')} .board-open`));
+    await drag(tab, await at(tab, card('b')), await at(tab, zone('review')));
+    await tab.click('#work [data-add="todo"]');
+    await tab.evaluate(() => { work.update(CARDS.slice(1)); work.redraw(); work.filter('x'); });
+    return is([await logged(tab), await order(tab)], ['', 'abd/cf//e']);
+  });
+  await test('a card that stays has no grip and isn\'t dragged; a link is followed by a press, not by a drag', {}, async (tab) => {
+    const out = [await tab.evaluate(() => [...document.querySelectorAll('#plain li')].map((x) => x.dataset.key + (x.querySelector('[data-grip]') ? '+' : '-')).join(''))];
+    await drag(tab, await at(tab, card('b', 'plain')), await at(tab, zone('review', 'plain')));
+    out.push(await order(tab, 'plain'));
+    await drag(tab, await at(tab, `${card('a', 'plain')} .board-open`), await at(tab, zone('review', 'plain')));
+    out.push(await order(tab, 'plain'), await logged(tab), await tab.evaluate(() => location.hash));
+    await tab.evaluate(() => { window.started = 0; document.addEventListener('dragstart', (e) => { if (!e.defaultPrevented) started++; }); });
+    await drag(tab, await at(tab, `${card('b', 'plain')} .board-open`), await at(tab, zone('review', 'plain')));
+    out.push(await tab.evaluate(() => started));
+    await tab.mouse.click(...await at(tab, card('d', 'plain'), 0.6, 0.8));
+    out.push(await tab.evaluate(() => location.hash));
+    out.push(await tab.evaluate(() => { const i = new Image(); document.querySelector('#plain li[data-key="c"]').append(i); const e = new DragEvent('dragstart', { bubbles: true, cancelable: true }); i.dispatchEvent(e); const f = new DragEvent('dragstart', { bubbles: true, cancelable: true }); document.querySelector('#plain li[data-key="b"]').dispatchEvent(f); return [e.defaultPrevented, f.defaultPrevented, getComputedStyle(document.querySelector('#plain li[data-key="c"]')).userSelect, getComputedStyle(document.querySelector('#plain li[data-key="b"]')).userSelect].join(); }));
+    return is(out, ['a+b-d+c+f+', 'abd/cf/', 'bd/cf/a', 'plain a review 0', '', 0, '#card-d', 'true,false,none,auto']);
+  });
+  await test('with a height its columns scroll, stay where they are, and scroll on near an edge', {}, async (tab) => {
+    await tab.evaluate(() => { document.getElementById('tall').scrollIntoView({ block: 'center' }); });
+    const h = await tab.evaluate(() => [document.querySelector('#tall .board').offsetHeight, ...[...document.querySelectorAll('#tall .board-zone')].map((z) => z.scrollHeight > z.clientHeight)].join());
+    await tab.evaluate(() => { document.querySelector('#tall [data-zone="todo"]').scrollTop = 300; });
+    await drag(tab, await at(tab, card('t8', 'tall')), await at(tab, card('t0', 'tall'), 0.4, 0.1));
+    const kept = await tab.evaluate(() => document.querySelector('#tall [data-zone="todo"]').scrollTop);
+    const z = await box(tab, zone('todo', 'tall')), y0 = await tab.evaluate(() => scrollY);
+    await lift(tab, await at(tab, card('t0', 'tall')), [z.x + 100, z.y + z.height - 8]);
+    await wait(tab, 1600);
+    const far = await tab.evaluate(() => { const q = document.querySelector('#tall [data-zone="todo"]'); return [q.scrollTop > 500, q.scrollTop + q.clientHeight >= q.scrollHeight - 2, scrollY].join(); });
+    await tab.mouse.up();
+    await wait(tab);
+    return is([h, kept, far, await logged(tab)], ['260,true,false', 300, `true,true,${y0}`, 'tall t8 doing 0 | tall t0 todo 21']);
+  });
+  await test('more columns than fit: it scrolls sideways in itself, near its edges too, and stays there', {}, async (tab) => {
+    await tab.evaluate(() => { document.getElementById('six').scrollIntoView({ block: 'center' }); });
+    const b = await box(tab, '#six .board');
+    const y0 = await tab.evaluate(() => scrollY);
+    await lift(tab, await at(tab, card('x', 'six')), [b.x + b.width - 12, b.y + 90]);
+    await wait(tab, 1200);
+    const there = await tab.evaluate(() => { const q = document.querySelector('#six .board'); return [q.scrollLeft > 100, q.scrollLeft + q.clientWidth >= q.scrollWidth - 2, scrollX, scrollY].join(); });
+    await tab.mouse.up();
+    await wait(tab);
+    const o = await order(tab, 'six');
+    const l = await tab.evaluate(() => document.querySelector('#six .board').scrollLeft > 100);
+    await lift(tab, await at(tab, card('y', 'six')), [b.x + 12, b.y + 90]);
+    await wait(tab, 1200);
+    const back = await tab.evaluate(() => document.querySelector('#six .board').scrollLeft);
+    await tab.mouse.up();
+    await wait(tab);
+    const first = await order(tab, 'six');
+    await tab.focus(grip('y', 'six'));
+    await keys(tab, 'ArrowRight', 'ArrowRight', 'ArrowRight', 'ArrowRight', 'ArrowRight');
+    const seen = await tab.evaluate(() => { const r = document.querySelector('#six li[data-key="y"]').getBoundingClientRect(), q = document.querySelector('#six .board').getBoundingClientRect(); return r.right <= q.right + 1 && r.left >= q.left - 1; });
+    return is([there, o, l, back, first, await order(tab, 'six'), seen], [`true,true,0,${y0}`, '/////yx', true, 0, 'y/////x', '/////yx', true]);
+  });
+  await test('in a dialog: dragged there, spoken there', {}, async (tab) => {
+    await tab.evaluate(() => { const d = document.createElement('div'); d.id = 'in'; window.inside = null; Dash.modal({ title: 'Board', body: d, size: 'lg' }); window.inside = Dash.board('in', { columns: [{ id: 'l', title: 'Left' }, { id: 'r', title: 'Right' }], cards: [{ id: 'q', column: 'l', title: 'Q' }] }); });
+    await wait(tab, 100);
+    await lift(tab, await at(tab, card('q', 'in')), await at(tab, zone('r', 'in')));
+    const mid = await tab.evaluate(() => Boolean(document.querySelector('dialog .drag-ghost')));
+    await tab.mouse.up();
+    await wait(tab);
+    return is([mid, await order(tab, 'in'), await tab.evaluate(() => document.querySelector('dialog [data-dash-voice]').textContent)], [true, '/q', 'Q: Right, 1 of 1']);
+  });
+  await test('what a page\'s data says is text', {}, async (tab) => is(await tab.evaluate(async () => {
+    const d = document.createElement('div'); document.body.append(d);
+    const b = Dash.board(d, { label: '<i>"', columns: [{ id: 'a"<b>', title: '<b>x</b>', limit: 1, tone: 'bad"><i>' }, { id: 2, title: 'Two', empty: '<u>', limit: 0 }], cards: [{ id: 'k"\'<', column: 'a"<b>', title: '<img src=x onerror="window.bad=1">', sub: '<b>', tone: '"><s>' }, { id: 5, column: '2', title: 'Five' }], onPick() {}, menu: () => ['x'], onAdd() {}, href: () => 'javascript:alert(1)' });
+    const t = [d.querySelectorAll('img, b, i, u, s').length, d.querySelector('.board-name').textContent, d.querySelector('.board-open').textContent, d.querySelector('a.board-open').getAttribute('href')];
+    t.push(d.querySelector('li').dataset.key, d.querySelector('[data-grip]').getAttribute('aria-label'), d.querySelector('[data-dots]').getAttribute('aria-label'), d.querySelector('.board').getAttribute('aria-label'));
+    t.push(await b.move('k"\'<', 2), d.querySelectorAll('.board-zone')[1].querySelectorAll('li').length, b.cards.map((c) => typeof c.column).join(), await b.move(5, 'a"<b>'), b.cards.map((c) => c.column).join(), window.bad ?? 'fine', [...d.querySelectorAll('.count-badge')].map((x) => x.textContent + x.classList.contains('bad')).join());
+    return t.map(String);
+  }), ['0', '<b>x</b>', '<img src=x onerror="window.bad=1">', '#', 'k"\'<', 'Move <img src=x onerror="window.bad=1">', 'More for <img src=x onerror="window.bad=1">', '<i>"', 'true', '2', 'number,string', 'true', '2,a"<b>', 'fine', '1 / 11 card, at most 1false,1 / 01 card, more than 0true']));
+  await test('on a phone: by the grip it is dragged, over the edge too; elsewhere a finger scrolls, and a tap picks', { width: 390, height: 780, hasTouch: true, isMobile: true }, async (tab) => {
+    const cdp = await tab.context().newCDPSession(tab);
+    const touch = async (type, x, y) => { await cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y }] }); };
+    const out = [await tab.evaluate(() => document.documentElement.scrollWidth - innerWidth)];
+    const [gx, gy] = await at(tab, grip('b'), 0.5, 0.5);
+    await touch('touchStart', gx, gy);
+    for (let i = 1; i <= 8; i++) { await touch('touchMove', gx + ((370 - gx) * i) / 8, gy + 3 * i); await wait(tab, 16); }
+    await wait(tab, 1300);
+    out.push(await tab.evaluate(() => { const b = document.querySelector('#work .board'); return [b.scrollLeft + b.clientWidth >= b.scrollWidth - 2, scrollY, scrollX].join(); }));
+    await touch('touchEnd');
+    await wait(tab, 80);
+    out.push(await order(tab));
+    await tab.evaluate(() => { document.querySelector('#work .board').scrollLeft = 0; });
+    await tab.evaluate(() => { window.lifted = 0; new MutationObserver((m) => { for (const x of m) for (const n of x.addedNodes) if (n.classList?.contains('drag-ghost')) lifted++; }).observe(document.body, { childList: true, subtree: true }); });
+    const [cx, cy] = await at(tab, `${card('d')} .board-open`, 0.2, 0.5);
+    await touch('touchStart', cx, cy);
+    for (let i = 1; i <= 8; i++) { await touch('touchMove', cx, cy - 25 * i); await wait(tab, 16); }
+    await wait(tab, 200);
+    await touch('touchEnd');
+    await wait(tab, 250);
+    out.push(await tab.evaluate(() => [scrollY > 60, lifted].join()), await order(tab));
+    await tab.evaluate(() => scrollTo(0, 0));
+    await wait(tab, 80);
+    await logged(tab);
+    await tab.touchscreen.tap(...await at(tab, `${card('d')} .board-open`, 0.2, 0.5));
+    await wait(tab);
+    out.push(await logged(tab));
+    return is(out, [0, 'true,0,0', 'ad/cf//eb', 'true,0', 'ad/cf//eb', 'pick d']);
+  });
+  await test('under a strict style policy: heights, and dragging', { page: 'csp-tools.html' }, async (tab) => {
+    await tab.evaluate(() => { palette.close(); document.getElementById('tasks').scrollIntoView({ block: 'center' }); });
+    await wait(tab, 80);
+    await drag(tab, await at(tab, card('q', 'tasks')), await at(tab, zone('r', 'tasks'), 0.5, 0.9));
+    return is(await tab.evaluate(() => [violations.length, document.querySelector('#tasks .board').offsetHeight, [...document.querySelectorAll('#tasks .board-zone')].map((z) => z.querySelectorAll('li').length).join()].join()), '0,200,0,6');
+  });
 }
 
 await browser.close();

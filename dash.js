@@ -1,4 +1,4 @@
-/* dash-ui 1.16.2 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
+/* dash-ui 1.17.0 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
    A plain script with no dependencies: a script tag for dash.js in <head> gives window.Dash, and puts the
    saved light/dark choice on the page before it paints. In Node, require('./dash.js') returns the same object
    (the parts that need a page are skipped).
@@ -8,7 +8,7 @@
 (function (root) {
   'use strict';
   const hasDom = typeof document !== 'undefined';
-  const Dash = { version: '1.16.2', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side', privacyKey: 'dash.private', csp: false } };
+  const Dash = { version: '1.17.0', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side', privacyKey: 'dash.private', csp: false } };
 
   // ---- basics
 
@@ -3309,20 +3309,29 @@
 
   // Dragging a row by its grip: a copy follows the pointer, a line shows where it would go. zones() are the boxes it may be
   // dropped in, rowsIn(zone) their rows; onDrop(zone, index) once it is let go, index among the zone's other rows. Escape calls
-  // it off. → a promise of whether it was dragged (a press that didn't move is a click).
-  const dragRow = (e, row, { zones, rowsIn, onStart, onDrop, onEnd }) => {
+  // it off. can(zone) says whether a zone takes it (none: let go over it, it stays where it was); sideways: what scrolls sideways
+  // does so near its edges too. → a promise of whether it was dragged (a press that didn't move is a click).
+  const dragRow = (e, row, { zones, rowsIn, onStart, onDrop, onEnd, can, sideways = false }) => {
     const x0 = e.clientX, y0 = e.clientY, id = e.pointerId, box = row.getBoundingClientRect();
-    let ghost = null, spot = null, x = x0, y = y0, frame = 0;
+    let ghost = null, spot = null, near = null, x = x0, y = y0, frame = 0;
     const line = document.createElement('i');
     line.className = 'drop-line';
     const scroller = (z) => {
       for (let p = z; p && p !== document.body; p = p.parentElement) if (p.scrollHeight > p.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(p).overflowY)) return p;
       return document.scrollingElement;
     };
+    const wideOne = (z) => {
+      for (let p = z; p && p !== document.body; p = p.parentElement) if (p.scrollWidth > p.clientWidth + 1 && /auto|scroll/.test(getComputedStyle(p).overflowX)) return p;
+      return null;
+    };
     const find = () => {
       const all = zones().map((z) => ({ z, r: z.getBoundingClientRect() }));
       const far = (v, a, b) => Math.max(a - v, 0, v - b);
       const { z } = all.reduce((a, b) => (far(x, b.r.left, b.r.right) * 2 + far(y, b.r.top, b.r.bottom) < far(x, a.r.left, a.r.right) * 2 + far(y, a.r.top, a.r.bottom) ? b : a));
+      near = z;
+      const takes = !can || can(z);
+      document.documentElement.classList.toggle('no-drop', !takes);
+      if (!takes) { spot = null; line.remove(); return; }
       const list = rowsIn(z).filter((r) => r !== row), rects = list.map((r) => r.getBoundingClientRect());
       let i = rects.findIndex((r) => y < r.top + r.height / 2);
       if (i < 0) i = list.length;
@@ -3333,9 +3342,13 @@
       line.style.top = Math.round(at - zr.top - z.clientTop + z.scrollTop) + 'px';
     };
     const step = () => { // near an edge of what scrolls: it scrolls on
-      const s = scroller(spot.z), view = s === document.scrollingElement ? { top: 0, bottom: innerHeight } : s.getBoundingClientRect();
+      const s = scroller(near), view = s === document.scrollingElement ? { top: 0, bottom: innerHeight } : s.getBoundingClientRect();
       const d = y < view.top + 48 ? y - view.top - 48 : y > view.bottom - 48 ? y - view.bottom + 48 : 0;
-      if (d) { s.scrollTop += clamp(d / 4, -14, 14); find(); }
+      if (d) s.scrollTop += clamp(d / 4, -14, 14);
+      const w = sideways ? wideOne(near) : null, r = w && w.getBoundingClientRect();
+      const dx = !w ? 0 : x < r.left + 48 ? x - r.left - 48 : x > r.right - 48 ? x - r.right + 48 : 0;
+      if (dx) w.scrollLeft += clamp(dx / 4, -14, 14);
+      if (d || dx) find();
       frame = requestAnimationFrame(step);
     };
     const begin = () => {
@@ -3365,7 +3378,7 @@
           ghost.remove();
           line.remove();
           row.classList.remove('drag-from');
-          document.documentElement.classList.remove('dragging');
+          document.documentElement.classList.remove('dragging', 'no-drop');
           // the click that ends a drag isn't one
           const stop = (c) => { c.stopPropagation(); c.preventDefault(); };
           window.addEventListener('click', stop, { capture: true, once: true });
@@ -3377,6 +3390,7 @@
       };
       window.addEventListener('pointermove', (m) => {
         if (m.pointerId !== id) return;
+        if (m.pointerType === 'mouse' && !m.buttons) { finish(false); return; } // (it was let go where the page didn't hear of it)
         x = m.clientX;
         y = m.clientY;
         if (!ghost) { if (Math.hypot(x - x0, y - y0) < 5) return; begin(); }
@@ -3534,7 +3548,15 @@
       if (!r) return;
       if (one) pick([r], true); else if (e.shiftKey && anchor != null) pick(range(id), true); else { pick([r], !picked.has(id)); anchor = id; }
     };
-    // a row to another place: before the row with the key `before` (null: the last)
+    // an update that waited while a row was moved: if its rows are in the order they had then, it is from before the move,
+    // and the move is made in it too; in another order it counts as it is
+    const redo = (list, was, id, before) => {
+      const now = list.map(idOf), then = was.map(idOf), has = new Set(now), had = new Set(then), i = now.indexOf(id);
+      if (i < 0 || then.filter((x) => has.has(x)).join('\n') !== now.filter((x) => had.has(x)).join('\n')) return list;
+      const rest = list.filter((_, n) => n !== i), to = before == null ? rest.length : rest.findIndex((x) => idOf(x) === before);
+      return to < 0 ? list : [...rest.slice(0, to), list[i], ...rest.slice(to)];
+    };
+    // a row to another place: before another one (null: the last)
     const place = async (r, before) => {
       if (moving) return;
       const was = data.slice(), from = was.indexOf(r);
@@ -3554,7 +3576,11 @@
       try { no = (await onMove(next.slice(), { row: r, from, to })) === false; } catch (e) { no = true; why = e; }
       moving--;
       if (control.signal.aborted) return;
-      if (held) { data = held; held = null; afterUpdate(); } else if (no) { data = was; draw(true); }
+      if (held) {
+        data = no ? held : redo(held, was, idOf(r), before == null ? null : idOf(before));
+        held = null;
+        afterUpdate();
+      } else if (no) { data = was; draw(true); }
       if (no) {
         voiceOf(node).textContent = `${titleOf(r)} was put back`;
         if (why) Dash.toast((why && why.message) || String(why), { tone: 'bad' });
@@ -3662,16 +3688,17 @@
       if (!r || e.button || dragging || moving) return;
       if (e.pointerType !== 'touch') e.preventDefault(); // (no text selected on the way; the grip still gets its click)
       const zone = li.parentElement;
+      const over = () => {
+        dragging = false;
+        if (held && !moving) { data = held; held = null; afterUpdate(); }
+      };
+      dragging = true; // (from the press on: an update would take the row away from under it)
       dragRow(e, li, {
         zones: () => [zone],
         rowsIn: (z) => [...z.children].filter((x) => x.matches('li[data-key]')),
-        onStart: () => { dragging = true; },
         onDrop: (z, i) => among(r, [...z.children].filter((x) => x.matches('li[data-key]') && x !== li).map((x) => rowOf(x.dataset.key)), i),
-        onEnd: () => {
-          dragging = false;
-          if (held && !moving) { data = held; held = null; afterUpdate(); }
-        },
-      });
+        onEnd: over,
+      }).then((was) => { if (!was) setTimeout(over); }); // (a click: after it)
     });
     let typed = '', typing = 0;
     on('keydown', (e) => {
@@ -4628,6 +4655,256 @@
     const say = `${label}: ${word(total)} in ${fmt.plural(days.length, 'day')}${total ? `, the most on ${full(days[vals.indexOf(top)])} (${word(top)})` : ''}`;
     return `<div class="heat${toneClass(tone)}"><div class="heat-scroll" tabindex="0" role="group" aria-label="${esc(label)}"><div class="days" role="img" aria-label="${esc(say)}"><div class="days-side">${side}</div><div class="days-months">${heads}</div>`
       + `<div class="days-grid">${days.map((d, i) => `<i data-l="${shadeOf(vals[i], 0, hi)}" data-tooltip="${esc(`${full(d)}: ${word(vals[i])}`)}"></i>`).join('')}</div></div></div>${legend ? heatLegend(0, hi, format) : ''}</div>`;
+  };
+
+  // ---- boards (1.17)
+
+  // Cards in columns: Dash.board('tasks', { columns: [{ id: 'todo', title: 'To do' }, { id: 'doing', title: 'Doing', limit: 3 }], cards,
+  // column: 'status' }). column is the field of a card that says which column it is in. title and sub are fields or functions,
+  // lead(card) (above the title) and end(card) (below) HTML, href a link, tone a card's colour.
+  // A card is moved by mouse (anywhere on it) or finger (its grip), with the arrow keys on its grip, or from the grip's menu.
+  // onMove(cards, { card, from, to, index }) has them in the new order; false or an error puts it back. move: false (or a
+  // function) is a board, or a card, that stays; can(card, column) says which columns a card may go to.
+  // A column: { id, title, tone, limit (more than that many is marked), empty, add: false }. onAdd(column): a + in each head.
+  // onPick(card, event), menu(card) and onMenu(value, card), filter, height: as in Dash.list.
+  // .update(cards) .cards .columns(list) .filter(text or test) .count .move(key, column, index) .redraw() .destroy()
+  Dash.board = (target, { columns = [], cards = [], key = 'id', column = 'column', title = 'title', sub = 'sub', lead, end, href, tone = 'tone', move = true, can = () => true, onMove, onPick,
+    menu, onMenu, onAdd, filter, height, noun = 'card', label = 'Board', empty = 'Nothing here' } = {}) => {
+    const node = el(target);
+    if (!node || !hasDom) return null;
+    node.__dashBoard?.destroy();
+    const control = new AbortController(), { signal } = control;
+    const uid = 'dash-board-' + ++ids;
+    const get = (f, c) => (typeof f === 'function' ? f(c) : f != null && c ? c[f] : null);
+    const same = (a, b) => String(a ?? '') === String(b ?? '');
+    const idOf = (c) => String(get(key, c)), titleOf = (c) => String(get(title, c) ?? ''), nameOf = (k) => String(k.title ?? k.id);
+    let data = cards || [], cols = columns || [];
+    let test = null, words = '';
+    let dragging = false, late = false; // from the press on a card until it is let go nothing is drawn
+    let held = null; // an update that came meanwhile, or while a move is being saved
+    let queue = [], saved = []; // moves that are shown but not saved yet, and those saved since the first of them
+    const setTest = (q) => {
+      test = typeof q === 'function' ? q : String(q ?? '').trim() ? (c) => Dash.match({ t: get(title, c), s: get(sub, c) }, q, ['t', 's']) : null;
+      words = test && typeof q === 'string' ? q.trim() : '';
+    };
+    if (filter != null) setTest(filter);
+    const colOf = (c) => cols.find((k) => same(k.id, c[column]));
+    const inCol = (id, list = data) => list.filter((c) => same(c[column], id));
+    const seenIn = (id) => (test ? inCol(id).filter(test) : inCol(id));
+    const cardOf = (id, list = data) => list.find((c) => idOf(c) === id) || null;
+    const movable = (c) => (typeof move === 'function' ? move(c) : move) !== false;
+    const say = (text) => { voiceOf(node).textContent = text; };
+
+    const cardHtml = (c) => {
+      const id = esc(idOf(c)), name = esc(titleOf(c)), h = href ? get(href, c) : null, s = get(sub, c), l = lead ? lead(c) : '', e = end ? end(c) : '', t = get(tone, c);
+      const text = markWords(titleOf(c), words);
+      const open = h != null ? `<a class="board-open" href="${esc(safeHref(h))}" draggable="false" data-key="dash-open ${id}">${text}</a>`
+        : onPick ? `<button type="button" class="board-open" data-key="dash-open ${id}">${text}</button>` : `<span class="board-open">${text}</span>`;
+      const grip = movable(c) ? `<button type="button" class="icon-btn entry-grip" data-grip data-key="dash-grip ${id}" aria-haspopup="menu" aria-label="Move ${name}" aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight">${GRIP}</button>` : '';
+      const dots = menu ? `<button type="button" class="icon-btn row-dots" data-dots data-key="dash-dots ${id}" aria-haspopup="menu" aria-label="More for ${name}">⋯</button>` : '';
+      return `<li class="board-card${grip ? ' movable' : ''}${t ? ' toned' + toneClass(t) : ''}" data-key="${id}">${l ? `<div class="board-lead">${l}</div>` : ''}${open}`
+        + `${s != null && s !== '' ? `<div class="board-sub">${markWords(String(s), words)}</div>` : ''}${e ? `<div class="board-end">${e}</div>` : ''}${grip || dots ? `<div class="board-tools">${grip}${dots}</div>` : ''}</li>`;
+    };
+    const colHtml = (k, n) => {
+      const all = inCol(k.id), list = test ? all.filter(test) : all, some = list.length !== all.length, over = k.limit != null && all.length > k.limit, id = esc(k.id);
+      const count = some ? `${fmt.int(list.length)} of ${fmt.int(all.length)}` : k.limit != null ? `${fmt.int(all.length)} / ${fmt.int(k.limit)}` : fmt.int(all.length);
+      const read = (some ? `${fmt.int(list.length)} of ` : '') + fmt.plural(all.length, noun) + (k.limit == null ? '' : `, ${over ? 'more than' : 'at most'} ${fmt.int(k.limit)}`);
+      return `<div class="board-col" role="group" aria-labelledby="${uid}-${n}"><div class="board-head${toneClass(k.tone)}">${k.tone ? '<span class="dot"></span>' : ''}<h3 class="board-name" id="${uid}-${n}">${esc(nameOf(k))}</h3>`
+        + `<span class="count-badge${over ? ' bad' : ''}"><span aria-hidden="true">${count}</span><span class="sr-only">${esc(read)}</span></span>`
+        + `${onAdd && k.add !== false ? `<button type="button" class="icon-btn board-add" data-add="${id}" data-key="dash-add ${id}" aria-label="Add to ${esc(nameOf(k))}"><span aria-hidden="true">+</span></button>` : ''}</div>`
+        + `<div class="board-zone" data-zone="${id}" data-key="dash-zone ${id}">${list.length ? `<ul class="board-cards" aria-labelledby="${uid}-${n}">${list.map(cardHtml).join('')}</ul>` : `<p class="board-none">${esc(!some ? k.empty ?? empty : words ? 'None by that name' : 'None to show')}</p>`}</div></div>`;
+    };
+    const liOf = (id) => node.querySelector(`li[data-key="${CSS.escape(id)}"]`);
+    const draw = (force = false) => {
+      if (signal.aborted) return;
+      if (dragging) { late = true; return; }
+      const had = document.activeElement, inside = had && had !== node && node.contains(had), li = inside ? had.closest('.board-card') : null;
+      const peers = li ? [...li.parentElement.children].map((x) => x.dataset.key) : [], i = li ? peers.indexOf(li.dataset.key) : -1;
+      const markup = `<div class="board" role="group" aria-label="${esc(label)}" data-key="dash-board">${cols.map(colHtml).join('')}</div>`;
+      Dash.render(node, markup, { force: force && node.__dashHtml !== markup });
+      if (inside && !node.contains(document.activeElement)) { // the card with the focus is gone: the next one
+        const next = liOf([...peers.slice(i + 1), ...peers.slice(0, Math.max(i, 0)).reverse()].find((k) => liOf(k)) ?? '');
+        ((next && (next.querySelector('[data-grip]') || next.querySelector('button, a'))) || node.querySelector('button, a'))?.focus({ preventScroll: true });
+      }
+    };
+
+    // a list of the cards with one of them in a column, before another (null: the column's last); cards of other columns stay
+    const put = (list, id, to, before) => {
+      const c = cardOf(id, list), rest = list.filter((x) => x !== c);
+      let j = before == null ? -1 : rest.findIndex((x) => idOf(x) === before && same(x[column], to));
+      if (j < 0) { j = rest.length; while (j && !same(rest[j - 1][column], to)) j--; if (!j) j = rest.length; }
+      const there = same(c[column], to) ? c : { ...c, [column]: to };
+      return [...rest.slice(0, j), there, ...rest.slice(j)];
+    };
+    const orderIn = (id, list) => inCol(id, list).map(idOf).join('\n');
+    const afterOf = (c, list) => { const all = inCol(c[column], list), next = all[all.indexOf(c) + 1]; return next ? idOf(next) : null; };
+    // place i among the cards that show in a column, as the key of the card it is before
+    const beforeAt = (c, to, i) => {
+      const all = inCol(to).filter((x) => x !== c), list = test ? all.filter(test) : all;
+      if (i < list.length) return idOf(list[Math.max(i, 0)]);
+      const next = list.length ? all[all.indexOf(list[list.length - 1]) + 1] : null; // (after the last that shows, before hidden ones)
+      return next ? idOf(next) : null;
+    };
+    // an update that waited: a card that it still has where a move took it from is from before that move
+    const settle = (moves) => {
+      let list = held;
+      held = null;
+      for (const m of moves) {
+        const c = cardOf(m.id, list);
+        if (c && same(c[column], m.from) && (!same(m.from, m.to) || afterOf(c, list) === m.after)) list = put(list, m.id, m.to, m.before);
+      }
+      data = list;
+    };
+    const save = async () => {
+      while (queue.length) {
+        const m = queue[0];
+        let no = false, why = null;
+        try { no = (await onMove(m.next.slice(), { card: m.card, from: m.from, to: m.to, index: m.index })) === false; } catch (e) { no = true; why = e; }
+        if (signal.aborted) { for (const x of queue.splice(0)) x.resolve(false); return; }
+        if (!no) { saved.push(queue.shift()); m.resolve(true); continue; }
+        const lost = queue.splice(0); // it goes back, and what was moved after it
+        data = m.was; // (an update that waits comes below)
+        draw(true);
+        say(lost.length > 1 ? `${fmt.plural(lost.length, 'move')} undone` : `${m.title} was put back`);
+        if (why) Dash.toast((why && why.message) || String(why), { tone: 'bad' });
+        for (const x of lost) x.resolve(false);
+      }
+      if (held) { settle(saved); draw(); }
+      saved = [];
+    };
+    // a card into a column, before another → a promise of whether it stays there
+    const place = (c, k, before) => {
+      const id = idOf(c), from = c[column], here = same(from, k.id);
+      if (!here && can(c, k.id) === false) { say(`${titleOf(c)} can’t go to ${nameOf(k)}`); return Promise.resolve(false); }
+      const was = data, next = put(was, id, k.id, before);
+      if (here && orderIn(k.id, was) === orderIn(k.id, next)) return Promise.resolve(true);
+      const after = afterOf(c, was), card = cardOf(id, next);
+      data = next;
+      draw(true);
+      const li = liOf(id), list = seenIn(k.id), at = list.indexOf(card);
+      if (li) li.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      say(`${titleOf(c)}: ${nameOf(k)}${at < 0 ? '' : `, ${at + 1} of ${list.length}`}`);
+      if (!onMove) return Promise.resolve(true);
+      return new Promise((resolve) => {
+        queue.push({ id, card, title: titleOf(c), from, to: k.id, before, after, was, next, index: inCol(k.id).indexOf(card), resolve });
+        if (queue.length === 1) save();
+      });
+    };
+    const step = (c, i) => place(c, colOf(c), beforeAt(c, c[column], i));
+    const backTo = (id, part) => { if (document.activeElement === document.body || !document.activeElement) liOf(id)?.querySelector(part)?.focus({ preventScroll: true }); };
+    const moveMenu = async (c, at) => {
+      const id = idOf(c), k = colOf(c), list = seenIn(k.id), i = list.indexOf(c), n = list.length - 1;
+      const v = await Dash.menu(at, [...cols.filter((x) => x !== k).map((x) => ({ label: `Move to ${nameOf(x)}`, value: { to: x.id }, disabled: can(c, x.id) === false })), ...(cols.length > 1 ? ['-'] : []),
+        { label: 'Move to the top', value: { at: 0 }, disabled: i <= 0 }, { label: 'Move up', value: { at: i - 1 }, disabled: i <= 0 },
+        { label: 'Move down', value: { at: i + 1 }, disabled: i >= n }, { label: 'Move to the end', value: { at: n }, disabled: i >= n }], { label: `Move ${titleOf(c)}` });
+      const now = cardOf(id), to = v && v.to !== undefined ? cols.find((x) => same(x.id, v.to)) : null;
+      backTo(id, '[data-grip]');
+      if (!now || !v) return;
+      if (to) place(now, to, beforeAt(now, to.id, 0)); else if (v.at != null && colOf(now)) step(now, v.at);
+    };
+    const openMenu = async (c, at) => {
+      const list = menu(c), id = idOf(c);
+      if (!list || !list.length) return;
+      const v = await Dash.menu(at, list);
+      backTo(id, '[data-dots]');
+      if (v != null && onMenu) onMenu(v, cardOf(id) || c);
+    };
+    // something of the page's own in a card (a link, a button, a box): a press there is not the card's
+    const own = (t, li) => { const x = t.closest('a, button, input, select, textarea, label, summary'); return Boolean(x) && li.contains(x) && !x.matches('.board-open'); };
+    const hit = (e) => { const li = e.target.closest && e.target.closest('.board-card'), c = li && node.contains(li) ? cardOf(li.dataset.key) : null; return c ? { li, c } : {}; };
+    const on = (type, fn) => node.addEventListener(type, fn, { signal });
+    on('pointerdown', (e) => {
+      const { li, c } = hit(e);
+      if (!c || e.button || dragging || !movable(c)) return;
+      if (!e.target.closest('[data-grip]') && (e.pointerType !== 'mouse' || e.ctrlKey || own(e.target, li))) return;
+      const id = idOf(c), may = new Map();
+      const over = () => {
+        dragging = false;
+        if (held && !queue.length) { settle(saved); saved = []; late = true; }
+        if (late) { late = false; draw(true); }
+      };
+      dragging = true;
+      dragRow(e, li, {
+        zones: () => [...node.querySelectorAll('.board-zone')],
+        rowsIn: (z) => [...z.querySelectorAll('.board-card')],
+        can: (z) => may.get(z) !== false,
+        sideways: true,
+        onStart() {
+          for (const z of node.querySelectorAll('.board-zone')) {
+            const k = cols.find((x) => same(x.id, z.dataset.zone));
+            may.set(z, Boolean(k) && (same(k.id, c[column]) || can(c, k.id) !== false));
+            z.parentElement.classList.toggle('no-drop', !may.get(z));
+          }
+        },
+        onDrop(z, i) {
+          dragging = false;
+          if (held && !queue.length) { settle(saved); saved = []; late = true; }
+          const now = cardOf(id), k = cols.find((x) => same(x.id, z.dataset.zone)), row = [...z.querySelectorAll('.board-card')].filter((x) => x !== li)[i];
+          if (!now || !k) return;
+          const there = row && cardOf(row.dataset.key);
+          place(now, k, there ? idOf(there) : beforeAt(now, k.id, Infinity));
+        },
+        onEnd() {
+          for (const x of node.querySelectorAll('.no-drop')) x.classList.remove('no-drop');
+          over();
+        },
+      }).then((was) => { if (!was) setTimeout(over); }); // (a click: after it)
+    });
+    on('dragstart', (e) => { const { c } = hit(e); if (c && movable(c)) e.preventDefault(); }); // (a picture or a link in a card: the card is dragged)
+    on('click', (e) => {
+      if (dragging && !held && !late) dragging = false; // (a press that was a click: what comes of it shows at once)
+      const add = e.target.closest('[data-add]');
+      if (add) { const k = cols.find((x) => same(x.id, add.dataset.add)); if (k && onAdd) onAdd(k); return; }
+      const { li, c } = hit(e);
+      if (!c) return;
+      const b = e.target.closest('[data-grip], [data-dots]');
+      if (b) { if (b.hasAttribute('data-grip')) moveMenu(c, b); else openMenu(c, b); return; }
+      if (!onPick || own(e.target, li)) return;
+      if (!li.contains(document.activeElement)) li.querySelector('.board-open').focus({ preventScroll: true }); // (what it opens gives the focus back there)
+      onPick(c, e);
+    });
+    if (menu) on('contextmenu', (e) => {
+      const { li, c } = hit(e);
+      if (!c || e.target.closest('input, textarea')) return;
+      e.preventDefault();
+      openMenu(c, e.clientX || e.clientY ? e : li.querySelector('[data-dots]'));
+    });
+    on('keydown', (e) => {
+      const { li, c } = hit(e);
+      if (!c || e.altKey || e.ctrlKey || e.metaKey || e.target.closest('input, textarea, select')) return;
+      if (menu && ((e.shiftKey && e.key === 'F10') || e.key === 'ContextMenu')) { e.preventDefault(); openMenu(c, li.querySelector('[data-dots]')); return; }
+      if (e.shiftKey || !e.target.closest('[data-grip]') || !/^Arrow/.test(e.key)) return;
+      e.preventDefault();
+      const i = seenIn(c[column]).indexOf(c);
+      if (e.key === 'ArrowUp') { if (i > 0) step(c, i - 1); return; }
+      if (e.key === 'ArrowDown') { step(c, i + 1); return; }
+      const by = (e.key === 'ArrowRight') === (getComputedStyle(node).direction !== 'rtl') ? 1 : -1;
+      for (let n = cols.indexOf(colOf(c)) + by; n >= 0 && n < cols.length; n += by) if (can(c, cols[n].id) !== false) { place(c, cols[n], beforeAt(c, cols[n].id, i)); return; }
+    });
+    const handle = {
+      el: node,
+      get cards() { return data.slice(); },
+      get count() { const all = cols.flatMap((k) => inCol(k.id)); return { shown: test ? all.filter(test).length : all.length, total: all.length }; },
+      update(next) { if (dragging || queue.length) { held = next || []; return; } data = next || []; draw(); },
+      columns(next) { cols = next || []; draw(true); },
+      filter(q) { setTest(q); draw(true); return handle.count.shown; },
+      move(k, to, i = 0) { const c = cardOf(String(k)), there = cols.find((x) => same(x.id, to)); return c && there ? place(c, there, beforeAt(c, there.id, i)) : Promise.resolve(false); },
+      redraw() { draw(true); },
+      destroy() {
+        if (signal.aborted) return;
+        control.abort();
+        node.textContent = '';
+        node.classList.remove('board-tall');
+        node.style.removeProperty('--board-h');
+        node.__dashHtml = undefined;
+        node.__dashBoard = undefined;
+      },
+    };
+    node.__dashBoard = handle;
+    if (height) { node.classList.add('board-tall'); node.style.setProperty('--board-h', Number(height) + 'px'); }
+    voiceOf(node);
+    draw();
+    return handle;
   };
 
   // ---- forms that say what is wrong (1.13)

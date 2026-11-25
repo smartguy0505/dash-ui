@@ -2,6 +2,12 @@
 
 Dashboards keep a copy of `dash.css` and `dash.js`; the first line of each file says which version it is. Versions only add things: a page that worked with an older copy works the same with a newer one.
 
+## 1.17.0 (2026-11-25)
+
+- `Dash.board`: a kanban board. Cards in columns, moved by mouse (anywhere on a card), by finger (its grip), with the arrow keys on its grip, or from the grip's menu. Columns with a limit, a tone, a + to add; `can(card, column)` says where a card may go, and the other columns fade while it is dragged. Moves show at once and are saved one after another: one that can't be goes back, with what was moved after it, and a refresh from before a move doesn't undo it. A filter, a menu per card, links, a height its columns scroll in; it scrolls sideways in itself, also while a card is held near its edge.
+- `Dash.list`: a refresh that came while a row was dragged or its move was saved put the row back where it was until the next refresh. One from before the move now gets the move too. A refresh between the press on a grip and the first step of the drag no longer loses the drop.
+- Dragging, in lists and boards: a button let go where the page doesn't hear of it ends the drag at the next move of the mouse.
+
 ## 1.16.2 (2026-11-25)
 
 Fixed: the code box (`Dash.code`), and a press on a range's track.

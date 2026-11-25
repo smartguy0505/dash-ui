@@ -1,4 +1,4 @@
-/* dash-ui 1.16.2: the look shared by my dashboards (agents, fleet, leaderboard, payouts, balances).
+/* dash-ui 1.17.0: the look shared by my dashboards (agents, fleet, leaderboard, payouts, balances).
    Warm neutral backgrounds, white panels, tinted status colours, light and dark from the system setting
    (or data-theme="light|dark" on <html>). No build step, no dependencies: link this file, or paste it into a page.
 
@@ -1338,6 +1338,50 @@ button.entry-grip { width: 30px; height: 30px; }
 /* on a panel the names stay in view while the rest scrolls under them (elsewhere there is no telling what to paint behind them) */
 :is(.panel, .card, .dialog, .drawer, .modal, .popup) :is(.heatmap tbody th, .days-side) { position: sticky; left: 0; background: var(--card); }
 
+/* ---- boards (1.17) ---- */
+/* cards in columns (Dash.board): .board > .board-col > .board-head + .board-zone > ul.board-cards > li.board-card. The columns
+   share the width, each at least --board-col (220 px); where there is too little of it the board scrolls sideways in itself. A column's zone is as tall as the board,
+   so a card can be let go anywhere in it. .board-tall: no taller than --board-h, the columns scroll. */
+.board { position: relative; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(var(--board-col, 220px), 1fr); gap: 12px; margin: -4px; padding: 4px; overflow-x: auto; scrollbar-width: thin; }
+.board-col { display: flex; flex-direction: column; min-width: 0; min-height: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--soft); }
+.board-head { flex: none; display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 8px 4px; padding-inline-start: 12px; }
+:where(.board-head, .board-card) { --c: initial; }
+.board-name { min-width: 0; margin: 0; overflow-wrap: anywhere; font-size: 14px; font-weight: 700; }
+.board-head .count-badge { background: var(--card); white-space: nowrap; }
+.board-head .count-badge.bad { background: color-mix(in srgb, var(--bad) 12%, var(--card)); color: var(--bad); }
+.board-add { margin-inline-start: auto; font-size: 18px; line-height: 1; }
+.board-add:hover { background: color-mix(in srgb, var(--text) 8%, transparent); }
+.board-zone { position: relative; flex: 1; min-height: 64px; padding: 4px 8px 8px; border-radius: 0 0 11px 11px; }
+.board-zone:has(> .drop-line) { background: color-mix(in srgb, var(--blue) 7%, transparent); }
+.board-zone > .drop-line { right: 8px; left: 8px; }
+.board-zone:has(> .drop-line) > .board-none { visibility: hidden; }
+.board-col.no-drop { opacity: .5; }
+.board-none { margin: 0; padding: 14px 8px; color: var(--muted); font-size: 13px; text-align: center; }
+.board-cards { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.board-card { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 8px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); box-shadow: var(--shadow);
+  scroll-margin: calc(var(--topbar-h) + 10px) 10px 10px; }
+.board-card.movable { cursor: grab; user-select: none; -webkit-user-select: none; }
+.board-card.toned { border-inline-start: 3px solid var(--c); padding-inline-start: 10px; }
+.board-card:hover:has(> .board-open:is(a, button)) { border-color: color-mix(in srgb, var(--text) 28%, var(--line)); }
+.board-card.toned:hover:has(> .board-open:is(a, button)) { border-inline-start-color: var(--c); }
+.board-lead, .board-open { grid-column: 1; min-width: 0; }
+.board-lead ~ .board-open { grid-column: 1 / -1; }
+.board-lead, .board-end { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.board-open { justify-self: start; max-width: 100%; padding: 0; border: 0; background: none; color: var(--text); font-weight: 600; text-align: start; text-decoration: none; overflow-wrap: anywhere; cursor: inherit; }
+.board-open:is(a, button) { cursor: pointer; }
+.board-open:is(a, button)::after { content: ""; position: absolute; inset: 0; border-radius: 9px; } /* the whole card */
+.board-open:focus-visible { outline: 0; }
+.board-open:focus-visible::after { outline: 2px solid var(--blue); outline-offset: 2px; }
+.board-sub { grid-column: 1 / -1; min-width: 0; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+.board-end { grid-column: 1 / -1; min-width: 0; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.board-lead > *, .board-end > * { position: relative; z-index: 1; } /* (what is pressed or pointed at there is its own) */
+.board-tools { grid-area: 1 / 2; align-self: start; z-index: 1; display: flex; margin-block: -4px; margin-inline-end: -8px; }
+.board-card mark { background: none; color: inherit; font-weight: 700; text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 3px; }
+.drag-ghost > .board-card { padding: 10px 12px; rotate: 1.5deg; }
+.dragging.no-drop, .dragging.no-drop * { cursor: not-allowed !important; }
+.board-tall .board { max-height: var(--board-h); grid-template-rows: minmax(0, 1fr); }
+.board-tall .board-zone { overflow-y: auto; scrollbar-width: thin; }
+
 /* ---- smaller screens ---- */
 @media (max-width: 900px) {
   .shell { display: block; }
@@ -1396,6 +1440,7 @@ button.entry-grip { width: 30px; height: 30px; }
   .topstat { flex-wrap: wrap; max-width: 100%; }
   .top-right { margin-left: 0; }
   .page { padding: 16px 16px 40px; }
+  .board { grid-auto-columns: minmax(var(--board-col, 250px), 1fr); }
   .code-field { --cell: 38px; --gap: 6px; }
   .code-field:has(> i:nth-of-type(7)) { --cell: 31px; --gap: 5px; }
   .code-field:has(> i:nth-of-type(9)) { --cell: 25px; --gap: 4px; }

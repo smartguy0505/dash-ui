@@ -244,7 +244,7 @@
 
   <!-- lists and trees -->
   <section class="section" id="lists">
-    <div class="section-head"><h2 class="section-title">Lists and trees</h2><span class="sub">Dash.list · Dash.tree · drag, pick, filter, load as they open</span></div>
+    <div class="section-head"><h2 class="section-title">Lists and trees</h2><span class="sub">Dash.list · Dash.tree · Dash.board · drag, pick, filter, load as they open</span></div>
     <div class="grid">
       <div class="panel">
         <div class="panel-head"><h3>Tree</h3><label class="search"><input class="input sm" id="tree-find" type="search" placeholder="Filter files" aria-label="Filter files"></label></div>
@@ -262,6 +262,10 @@
         <div class="panel-head"><h3>List to pick from</h3><span class="read" id="list-read"></span></div>
         <div id="list-pick"></div>
       </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h3>Board</h3><span class="read">drag a card, or press its grip's arrow keys</span></div>
+      <div id="board-demo"></div>
     </div>
   </section>
 
@@ -840,6 +844,13 @@
     items: [{ id: 'servers', title: 'Servers', items: [{ id: 'see', title: 'See them' }, { id: 'restart', title: 'Restart them' }, { id: 'remove', title: 'Remove them', sub: 'owners only', owner: true }] },
       { id: 'billing', title: 'Billing', items: [{ id: 'invoices', title: 'See invoices' }, { id: 'pay', title: 'Pay them' }] }],
   }).selected);
+  Dash.board('board-demo', {
+    label: 'Work', column: 'state', columns: [{ id: 'todo', title: 'To do' }, { id: 'doing', title: 'Doing', tone: 'blue', limit: 2 }, { id: 'check', title: 'To check', tone: 'purple' }, { id: 'done', title: 'Done', tone: 'ok', add: false }],
+    cards: [{ id: 1, state: 'todo', title: 'Renew the certificate', sub: 'It ends on Friday', tag: 'web', tone: 'warn' }, { id: 2, state: 'todo', title: 'Write the guide', who: 'Ada Lovelace' }, { id: 3, state: 'doing', title: 'Move the pictures', sub: 'To the new disk', who: 'Alan Turing' },
+      { id: 4, state: 'doing', title: 'Test the backup', tag: 'data' }, { id: 5, state: 'done', title: 'New icons', who: 'Grace Hopper' }],
+    lead: (c) => (c.tag ? Dash.tag(c.tag) : ''), end: (c) => (c.who ? Dash.avatar(c.who, { size: 'sm' }) + Dash.esc(c.who) : ''), can: (c, to) => to !== 'done' || c.id !== 2,
+    onMove: (_, { card, to }) => Dash.toast(`${card.title}: ${to}`), onPick: (c) => Dash.toast(`Open “${c.title}”`), onAdd: (k) => Dash.toast(`A new card in ${k.title}`), menu: () => ['Rename', { label: 'Delete', tone: 'bad' }], onMenu: (v, c) => Dash.toast(`${v}: ${c.title}`),
+  });
   Dash.list('list-order', {
     label: 'Rules, the first that fits counts', reorder: true, menu: () => ['Edit', 'Copy'], onMenu: (v, r) => Dash.toast(`${v}: ${r.title}`),
     rows: [{ id: 1, title: 'Block bots', sub: 'All pages' }, { id: 2, title: 'Keep pictures for a day', sub: '/img/*' }, { id: 3, title: 'Ask for a login', sub: '/admin/*' }, { id: 4, title: 'Let the rest through', sub: 'All pages' }],
