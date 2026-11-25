@@ -1,6 +1,7 @@
-/* dash-ui 1.17.0: the look shared by my dashboards (agents, fleet, leaderboard, payouts, balances).
+/* dash-ui 1.17.1: the look shared by my dashboards (agents, fleet, leaderboard, payouts, balances).
    Warm neutral backgrounds, white panels, tinted status colours, light and dark from the system setting
    (or data-theme="light|dark" on <html>). No build step, no dependencies: link this file, or paste it into a page.
+   MIT licence, (c) 2026 Smart Guy, https://github.com/smartguy0505/dash-ui
 
    Colour on a component comes from one variable, --c. A component sets its own default with :where() (no weight),
    and the tone classes at the end of this file (.ok, .warn, .bad, .blue, ...) set --c, so <span class="pill ok"> is green.
@@ -8,8 +9,8 @@
 
 /* ---- tokens ---- */
 :root {
-  --bg: #f5f4ef; --card: #ffffff; --text: #1f1e1b; --muted: #5c5a54; --faint: #8b887f; --line: #e4e1d9; --soft: #f3f1eb;
-  --accent: #c96442; --blue: #2158d4; --ok: #157838; --warn: #a84e08; --bad: #c81e1e; --teal: #0f766e; --purple: #6d3fd1;
+  --bg: #f5f4ef; --card: #ffffff; --text: #1f1e1b; --muted: #5c5a54; --faint: #6c6960; --line: #e4e1d9; --soft: #f3f1eb;
+  --accent: #a7493d; --blue: #2158d4; --ok: #157838; --warn: #a84e08; --bad: #c81e1e; --teal: #0f766e; --purple: #6d3fd1;
   /* the line charts' own colours: told apart in both themes by every pair, colour-blind readers included; not for states */
   --series-1: #2158d4; --series-2: #d9650c; --series-3: #2a9a88; --series-4: #a13283;
   --orange: #b83e0b; --pink: #b5179e; --gold: #965b07; --silver: #636976; --bronze: #97592d; --idle: #6b6862;
@@ -27,7 +28,7 @@
 /* the dark palette is written twice: for the system setting, and for data-theme="dark". Keep the two blocks the same. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #151514; --card: #1f1f1d; --text: #efeee9; --muted: #b0aea6; --faint: #85837c; --line: #363531; --soft: #2a2a28;
+    --bg: #151514; --card: #1f1f1d; --text: #efeee9; --muted: #b0aea6; --faint: #9c9990; --line: #363531; --soft: #2a2a28;
     --accent: #e08a68; --blue: #7ba7ff; --ok: #4ade80; --warn: #f0b04a; --bad: #ff7d7d; --teal: #42d3bf; --purple: #b79dff;
     --series-1: #1967ee; --series-2: #d96623; --series-3: #26aa96; --series-4: #a4469e;
     --orange: #ff9b55; --pink: #f28fd8; --gold: #f0c04a; --silver: #c4c7cc; --bronze: #e0a36a; --idle: #a7a59e;
@@ -37,7 +38,7 @@
   }
 }
 :root[data-theme="dark"] {
-    --bg: #151514; --card: #1f1f1d; --text: #efeee9; --muted: #b0aea6; --faint: #85837c; --line: #363531; --soft: #2a2a28;
+    --bg: #151514; --card: #1f1f1d; --text: #efeee9; --muted: #b0aea6; --faint: #9c9990; --line: #363531; --soft: #2a2a28;
     --accent: #e08a68; --blue: #7ba7ff; --ok: #4ade80; --warn: #f0b04a; --bad: #ff7d7d; --teal: #42d3bf; --purple: #b79dff;
     --series-1: #1967ee; --series-2: #d96623; --series-3: #26aa96; --series-4: #a4469e;
     --orange: #ff9b55; --pink: #f28fd8; --gold: #f0c04a; --silver: #c4c7cc; --bronze: #e0a36a; --idle: #a7a59e;
@@ -346,7 +347,7 @@ button.chip[aria-pressed="true"] span { color: inherit; opacity: .75; }
 
 /* text inputs */
 .input { width: 100%; min-width: 0; padding: 7px 11px; border: 1px solid var(--line); border-radius: 9px; background: var(--card); color: var(--text); font-size: 14px; }
-.input::placeholder { color: var(--faint); }
+.input::placeholder, .tag-box-in::placeholder, .palette-head input::placeholder { color: var(--faint); opacity: 1; } /* (Firefox draws them half through) */
 .input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue) 18%, transparent); }
 .input.mono { font-family: var(--mono); font-size: 13.5px; }
 .input.mono::placeholder { font-family: var(--font); }

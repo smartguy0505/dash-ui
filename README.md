@@ -180,7 +180,7 @@ Surfaces and text: `--bg`, `--card`, `--soft` (a block inside a card, table head
 
 | tone | light | dark | used for |
 |---|---|---|---|
-| `accent` | `#c96442` | `#e08a68` | Claude's colour, shares |
+| `accent` | `#a7493d` | `#e08a68` | the brand's colour, shares |
 | `blue` | `#2158d4` | `#7ba7ff` | working, links, focus, selection, default bars |
 | `ok` | `#157838` | `#4ade80` | healthy, paid, up |
 | `warn` | `#a84e08` | `#f0b04a` | stale, probation, outside the cut |
@@ -195,7 +195,7 @@ Surfaces and text: `--bg`, `--card`, `--soft` (a block inside a card, table head
 
 **Lines in a chart** have four colours of their own, `series-1` to `series-4` (`--series-1`…): light `#2158d4` `#d9650c` `#2a9a88` `#a13283`, dark `#1967ee` `#d96623` `#26aa96` `#a4469e`. Every pair can be told apart in both themes, by colour-blind readers too, which isn't so of the tones. They are for lines, dots and keys, not for text.
 
-**Contrast:** every tone clears WCAG AA (4.5:1) as text on a card and inside its own tinted pill, tag or rank (10–14 % tints), light and dark. `accent` (3.9:1) and `faint` (3.5:1) are not meant for body text. A test keeps it that way.
+**Contrast:** every tone clears WCAG AA (4.5:1) as text on a card and inside its own tinted pill, tag or rank (10–14 % tints), light and dark. `--muted` and `--faint` clear it on everything text stands on: a card, the page, a block, the track of a `.seg`, rows that are selected, marked or pointed at, callouts. `accent` clears it on a card, the page and a block too, and inside an avatar (16 %); in an avatar `teal`, `gold`, `bronze` and `pink` are just below (4.4–4.5). Tests keep it that way: on the tokens, and on the text of every page as it is drawn.
 
 **How colour reaches a component:** every coloured component draws with one variable, `--c`, and a tone class sets it. So `<span class="pill ok">`, `<span class="tag teal">`, `<div class="panel ring bad">`, `<span class="bar warn">` and `<span class="dot orange">` all work the same way.
 

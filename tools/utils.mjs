@@ -264,7 +264,8 @@ export function generate() {
   const names = new Set();
   const add = (n) => { names.add(n); return n; };
   out.push(`/* dash-ui ${version}: utility classes (optional, after dash.css). Written by tools/utils.mjs from the kit's tokens: edit that, not this. */`,
-    '/* Every rule is .name:not(#\\#): the :not() counts as an id, so a utility beats the kit\'s own rules without !important. */', '');
+    '/* Every rule is .name:not(#\\#): the :not() counts as an id, so a utility beats the kit\'s own rules without !important. */',
+    '/* MIT licence, (c) 2026 Smart Guy, https://github.com/smartguy0505/dash-ui */', '');
   const section = (t) => out.push('', `/* ---- ${t} ---- */`);
   for (const g of groups) {
     if (g.title === 'visibility on hover' || g.title === 'underline on hover') continue; // only their variants

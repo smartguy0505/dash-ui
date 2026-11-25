@@ -4865,6 +4865,53 @@ let reference;
   });
 }
 
+// ---- 1.17.1 the hint in an empty box (test/tools.html), read off the screen
+{
+  for (const colorScheme of ['light', 'dark']) {
+    const ctx = await browser.newContext({ viewport: { width: 900, height: 700 }, deviceScaleFactor: 3, colorScheme, locale: 'en-US', reducedMotion: 'reduce' });
+    const tab = await ctx.newPage();
+    tab.setDefaultTimeout(5000);
+    tab.on('pageerror', (e) => errors.push(e.message));
+    await tab.goto(url.replace('behaviour.html', 'tools.html'), { waitUntil: 'load' });
+    await tab.evaluate(() => {
+      const box = document.createElement('div');
+      box.style.cssText = 'position:fixed;z-index:999;inset:0 0 auto;padding:20px;background:var(--bg)';
+      box.innerHTML = '<input class="input" id="a-box" placeholder="MMMMMM"><input class="input" id="a-tagbox" placeholder="MMMMMM" aria-label="Tags">';
+      document.body.append(box);
+      Dash.tagbox('a-tagbox');
+    });
+    // the colour in a box's picture that is the furthest from its background: that of the letters' middle
+    const letters = async (q) => {
+      const png = (await tab.locator(q).screenshot()).toString('base64');
+      return tab.evaluate(async (b64) => {
+        const img = new Image();
+        img.src = 'data:image/png;base64,' + b64;
+        await img.decode();
+        const g = Object.assign(document.createElement('canvas'), { width: img.width, height: img.height }).getContext('2d');
+        g.drawImage(img, 0, 0);
+        const W = img.width - 60, H = img.height - 30, d = g.getImageData(30, 15, W, H).data;
+        const ground = [...d.slice((W * H - 1) * 4, (W * H - 1) * 4 + 3)];
+        let far = ground, most = 0;
+        for (let i = 0; i < W * H * 4; i += 4) {
+          const by = Math.abs(d[i] - ground[0]) + Math.abs(d[i + 1] - ground[1]) + Math.abs(d[i + 2] - ground[2]);
+          if (by > most) { most = by; far = [d[i], d[i + 1], d[i + 2]]; }
+        }
+        return far;
+      }, png);
+    };
+    const got = [await letters('#a-box'), await letters('.tag-box:has(#a-tagbox)')];
+    await tab.evaluate(() => { document.getElementById('a-box').parentElement.remove(); });
+    await tab.keyboard.press('Control+k');
+    await tab.locator('.palette-head input').waitFor();
+    await tab.evaluate(() => { const i = document.querySelector('.palette-head input'); i.placeholder = 'MMMMMM'; i.style.caretColor = 'transparent'; });
+    got.push(await letters('.palette-head input'));
+    const want = await tab.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--faint').trim());
+    const near = (c) => [1, 3, 5].every((i, n) => Math.abs(parseInt(want.slice(i, i + 2), 16) - c[n]) <= 4);
+    check(`1.17.1 hints: in a box, a tag box and the palette they have the faint colour, ${colorScheme}`, got.every(near), `${want} ${got.map((c) => '#' + c.map((v) => v.toString(16).padStart(2, '0')).join('')).join(' ')}`);
+    await ctx.close();
+  }
+}
+
 await browser.close();
 server.close();
 for (const e of errors) results.push({ name: 'page error', ok: false, detail: e });

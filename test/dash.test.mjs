@@ -340,7 +340,8 @@ test('the version is the same in dash.css, dash.js, Dash.version and package.jso
 });
 
 // WCAG contrast. Every tone is AA (4.5) as text on a card and on its own tint, at every tint strength the kit puts
-// tone text on (10-14%: nav highlight, tag/tint, pill, rank). accent and faint are below 4.5 and not for body text.
+// tone text on (10-14%: nav highlight, tag/tint, pill, rank), and muted and faint text on everything text stands on: a card,
+// the page, a block, the track of a .seg, a row that is selected, marked or pointed at, a callout. test/screens.mjs looks at the pages.
 test('dash.css: colour contrast', () => {
   const block = (re) => Object.fromEntries([...css.match(re)[1].matchAll(/--([\w-]+):\s*(#[0-9a-f]{6})/gi)].map((m) => [m[1], m[2]]));
   const light = block(/:root\s*\{([\s\S]*?)\n\}/);
@@ -349,13 +350,17 @@ test('dash.css: colour contrast', () => {
   const lum = (c) => c.map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }).reduce((s, v, i) => s + v * [0.2126, 0.7152, 0.0722][i], 0);
   const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
   const tint = (c, base, p) => c.map((v, i) => Math.round(v * p + base[i] * (1 - p)));
-  const tones = ['ok', 'warn', 'bad', 'blue', 'teal', 'purple', 'orange', 'pink', 'gold', 'silver', 'bronze', 'idle'];
+  const tones = ['accent', 'ok', 'warn', 'bad', 'blue', 'teal', 'purple', 'orange', 'pink', 'gold', 'silver', 'bronze', 'idle'];
   for (const [name, t] of [['light', light], ['dark', dark]]) {
     const card = rgb(t.card);
     assert.ok(ratio(rgb(t.text), card) >= 7, `${name} text`);
-    assert.ok(ratio(rgb(t.muted), card) >= 4.5, `${name} muted`);
-    assert.ok(ratio(rgb(t.faint), card) >= 3.5, `${name} faint`);
-    assert.ok(ratio(rgb(t.accent), card) >= 3.85, `${name} accent`);
+    const under = { card, page: rgb(t.bg), soft: rgb(t.soft), 'the track of a .seg': tint(rgb(t.line), rgb(t.bg), 0.55), 'a row pointed at': tint(rgb(t.soft), card, 0.7) };
+    for (const k of tones) Object.assign(under, { [`a row marked ${k}`]: tint(rgb(t[k]), card, 0.08), [`a ${k} callout`]: tint(rgb(t[k]), card, 0.11) });
+    for (const k of ['muted', 'faint']) {
+      for (const [what, b] of Object.entries(under)) assert.ok(ratio(rgb(t[k]), b) >= 4.5, `${name} ${k} on ${what}: ${ratio(rgb(t[k]), b).toFixed(2)}`);
+    }
+    assert.ok(ratio(rgb(t.muted), card) > ratio(rgb(t.faint), card) + 1, `${name} faint is fainter than muted`);
+    for (const k of ['page', 'soft']) assert.ok(ratio(rgb(t.accent), under[k]) >= 4.5, `${name} accent on ${k}: ${ratio(rgb(t.accent), under[k]).toFixed(2)}`);
     for (const k of tones) {
       const c = rgb(t[k]);
       assert.ok(ratio(c, card) >= 4.8, `${name} ${k} on a card: ${ratio(c, card).toFixed(2)}`);
@@ -363,6 +368,8 @@ test('dash.css: colour contrast', () => {
         assert.ok(ratio(c, tint(c, card, p)) >= 4.5, `${name} ${k} on its ${p * 100}% tint: ${ratio(c, tint(c, card, p)).toFixed(2)}`);
       }
     }
+    // an avatar's tint is 16%: accent is dark enough for that too
+    assert.ok(ratio(rgb(t.accent), tint(rgb(t.accent), card, 0.16)) >= 4.5, `${name} accent in an avatar`);
   }
 });
 

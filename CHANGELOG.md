@@ -2,6 +2,15 @@
 
 Dashboards keep a copy of `dash.css` and `dash.js`; the first line of each file says which version it is. Versions only add things: a page that worked with an older copy works the same with a newer one.
 
+## 1.17.1 (2026-11-25)
+
+Two colours are not what they were, so a page looks a little different with this version:
+
+- `--faint` is darker in light (`#8b887f` → `#6c6960`) and lighter in dark (`#85837c` → `#9c9990`). Faint text was 2.9–4.8:1 on what is behind it, and is 4.5:1 or better on cards, the page, blocks, the track of a `.seg`, selected and marked rows, and callouts. What is drawn with it gets darker (lighter in dark) too: the dot and the box to tick without a tone, the track of a switch that is off.
+- `--accent` is darker and a little redder in light (`#c96442` → `#a7493d`; dark is as it was). As text it was 3.4–3.9:1, and is 4.5:1 or better on cards, the page, blocks, its own tints, and in an avatar. Bars, keys and other fills in `accent` have the new colour too. (Redder, because the old hue made darker is hardly told apart from `warn`.) A page that wants the old one back says `:root { --accent: #c96442; }` after the kit; that doesn't reach dark.
+- The hint in an empty tag box and in the command palette has the faint colour, as in other boxes. It was the browser's grey: 3.6:1 in dark.
+- MIT licence: `LICENSE`, and a line at the top of `dash.css`, `dash.js` and `dash-utils.css`.
+
 ## 1.17.0 (2026-11-25)
 
 - `Dash.board`: a kanban board. Cards in columns, moved by mouse (anywhere on a card), by finger (its grip), with the arrow keys on its grip, or from the grip's menu. Columns with a limit, a tone, a + to add; `can(card, column)` says where a card may go, and the other columns fade while it is dragged. Moves show at once and are saved one after another: one that can't be goes back, with what was moved after it, and a refresh from before a move doesn't undo it. A filter, a menu per card, links, a height its columns scroll in; it scrolls sideways in itself, also while a card is held near its edge.

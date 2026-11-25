@@ -1,8 +1,9 @@
 // Layout checks in a real browser: every page at phone, tablet, laptop and wide widths, light and dark.
-// Fails on a page wider than the window, a console error, or a stacked table that lost its card layout.
+// Fails on a page wider than the window, a console error, a stacked table that lost its card layout, or faint or accent
+// text that can't be read (below 4.5:1 against what is really behind it).
 //
 //   npm i --no-save playwright-core && npx playwright-core install --only-shell chromium
-//   node test/screens.mjs            (SHOTS=1 also saves screenshots to screens/)
+//   node test/screens.mjs            (SHOTS=1 also saves screenshots to screens/; KIT=<dir> takes dash.css, dash.js and dash-utils.css from there)
 //
 // It serves this folder itself on 127.0.0.1 (a free port), so nothing else needs to run.
 import { createServer } from 'node:http';
@@ -19,11 +20,12 @@ try {
 }
 
 const root = fileURLToPath(new URL('../', import.meta.url));
+const kit = process.env.KIT || root;
 const TYPES = { '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 'text/javascript', '.svg': 'image/svg+xml' };
 const server = createServer(async (req, res) => {
   const path = normalize(decodeURIComponent(new URL(req.url, 'http://x').pathname)).replace(/^(\.\.[/\\])+/, '');
   try {
-    const body = await readFile(join(root, path.endsWith('/') ? path + 'index.html' : path));
+    const body = await readFile(join(/^\/dash(-utils)?\.(css|js)$/.test(path) ? kit : root, path.endsWith('/') ? path + 'index.html' : path));
     res.writeHead(200, { 'Content-Type': TYPES[extname(path)] || 'application/octet-stream' }).end(body);
   } catch {
     res.writeHead(404).end('not found');
@@ -38,7 +40,59 @@ const WIDTHS = [390, 700, 860, 1440];
 const shots = process.env.SHOTS === '1';
 if (shots) await mkdir(join(root, 'screens'), { recursive: true });
 
+// The text of a page that is in the faint or the accent colour (placeholders too), and where it is below 4.5:1 on what is behind it.
+// What is see-through is laid over what is under it. Not counted: what is off or faded on purpose, and text on a gradient.
+function quietText() {
+  for (const d of document.querySelectorAll('details')) d.open = true;
+  const canvas = Object.assign(document.createElement('canvas'), { width: 1, height: 1 });
+  const g = canvas.getContext('2d', { willReadFrequently: true });
+  const known = new Map();
+  const rgba = (s) => {
+    if (!known.has(s)) {
+      g.clearRect(0, 0, 1, 1);
+      g.fillStyle = s;
+      g.fillRect(0, 0, 1, 1);
+      const d = g.getImageData(0, 0, 1, 1).data;
+      known.set(s, [d[0], d[1], d[2], d[3] / 255]);
+    }
+    return known.get(s);
+  };
+  const lum = (c) => c.slice(0, 3).map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }).reduce((s, v, i) => s + v * [0.2126, 0.7152, 0.0722][i], 0);
+  const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+  const behind = (e) => {
+    const layers = [];
+    for (let n = e; n; n = n.parentElement) {
+      const s = getComputedStyle(n);
+      if (s.backgroundImage !== 'none' || s.opacity !== '1') return null;
+      const c = rgba(s.backgroundColor);
+      if (c[3]) layers.push(c);
+      if (c[3] === 1) break;
+    }
+    return layers.reverse().reduce((under, c) => c.slice(0, 3).map((v, i) => v * c[3] + under[i] * (1 - c[3])), [255, 255, 255]);
+  };
+  const tokens = getComputedStyle(document.documentElement);
+  const names = Object.fromEntries(['faint', 'accent'].map((k) => [rgba(tokens.getPropertyValue('--' + k).trim()).join(), k]));
+  const seen = { faint: 0, accent: 0 }, low = new Set();
+  const look = (e, color) => {
+    const name = names[rgba(color).join()];
+    const under = name && !e.closest(':disabled, [aria-disabled="true"]') && behind(e);
+    if (!under) return;
+    seen[name]++;
+    const r = ratio(rgba(color), under);
+    if (r < 4.5) low.add(`${name} text in ${e.tagName.toLowerCase()}${typeof e.className === 'string' && e.className ? '.' + e.className.trim().replace(/\s+/g, '.') : ''} is ${r.toFixed(2)}:1`);
+  };
+  const walk = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  while (walk.nextNode()) {
+    const e = walk.currentNode.parentElement;
+    if (!walk.currentNode.nodeValue.trim() || /^(SCRIPT|STYLE)$/.test(e.tagName) || !e.checkVisibility({ visibilityProperty: true })) continue;
+    look(e, e instanceof SVGElement ? getComputedStyle(e).fill : getComputedStyle(e).color);
+  }
+  for (const e of document.querySelectorAll('input, textarea')) if (e.placeholder && e.checkVisibility()) look(e, getComputedStyle(e, '::placeholder').color);
+  return { seen, low: [...low] };
+}
+
 const problems = [];
+const quiet = { light: { faint: 0, accent: 0 }, dark: { faint: 0, accent: 0 } };
 const browser = await chromium.launch();
 for (const page of PAGES) {
   for (const scheme of ['light', 'dark']) {
@@ -72,10 +126,16 @@ for (const page of PAGES) {
         if (stacked && t.actionsInCorner === false) problems.push(`${where}: td.actions is not in the card's corner`);
       }
       if (shots) await tab.screenshot({ path: join(root, 'screens', `${page.replace(/\W+/g, '_')}-${width}-${scheme}.png`), fullPage: true });
+      if (width === WIDTHS[0] || width === WIDTHS.at(-1)) {
+        const { seen, low } = await tab.evaluate(quietText);
+        for (const k in seen) quiet[scheme][k] += seen[k];
+        for (const t of low) problems.push(`${where}: ${t}`);
+      }
       await ctx.close();
     }
   }
 }
+for (const s in quiet) for (const k in quiet[s]) if (!quiet[s][k]) problems.push(`no ${k} text found in ${s}: the check for it looks at nothing`);
 await browser.close();
 server.close();
 
@@ -85,4 +145,4 @@ if (problems.length) {
   console.log(`\n${problems.length} problem(s) in ${runs} page loads`);
   process.exit(1);
 }
-console.log(`${runs} page loads: no sideways scroll, no console errors, stacked tables right`);
+console.log(`${runs} page loads: no sideways scroll, no console errors, stacked tables right, ${quiet.light.faint + quiet.dark.faint} faint and ${quiet.light.accent + quiet.dark.accent} accent texts readable`);
