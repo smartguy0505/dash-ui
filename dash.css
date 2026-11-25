@@ -1,4 +1,4 @@
-/* dash-ui 1.13.1: the look shared by my dashboards (agents, fleet, leaderboard, payouts, balances).
+/* dash-ui 1.14.0: the look shared by my dashboards (agents, fleet, leaderboard, payouts, balances).
    Warm neutral backgrounds, white panels, tinted status colours, light and dark from the system setting
    (or data-theme="light|dark" on <html>). No build step, no dependencies: link this file, or paste it into a page.
 
@@ -150,8 +150,24 @@ a { color: var(--blue); text-underline-offset: 3px; }
 .nav-sub { overflow: hidden; color: var(--muted); font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
 .nav-meta { display: grid; justify-items: end; color: var(--muted); font-size: 12.5px; line-height: 1.4; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .nav-meta .tone { font-weight: 600; }
+.nav-item[aria-current="location"] { color: var(--blue); } /* the section being read (Dash.spy) */
+.nav-item[aria-current="location"]:not(:hover) { background: var(--soft); }
+/* a group of links (1.14): <details class="nav-group"><summary class="nav-item">…</summary><div class="nav-list">nav items</div></details> (Dash.nav) */
+.nav-group > summary { color: var(--text); font-size: inherit; list-style: none; cursor: pointer; }
+.nav-group:not([open]):has(.nav-item[aria-current]) > summary { color: var(--blue); } /* closed, with the reader's page in it */
+.nav-group > summary::-webkit-details-marker { display: none; }
+.nav-group > summary::after { content: ""; flex: none; width: 7px; height: 7px; margin: 0 4px 0 2px; border: solid var(--muted); border-width: 0 1.5px 1.5px 0;
+  transform: rotate(-45deg); transition: transform .15s; }
+.nav-group[open] > summary::after { transform: rotate(45deg) translate(-2px, -2px); }
+.nav-list { margin: 1px 0 8px 20px; padding-left: 8px; border-left: 1px solid var(--line); }
+.nav-list .nav-item { padding-block: 6px; font-size: 14px; }
+.nav-list .nav-item:not(summary) .nav-name { font-weight: 500; }
+.nav-list .nav-item[aria-current] .nav-name { font-weight: 600; }
+.nav-none { margin: 8px 10px; color: var(--muted); font-size: 14px; }
+.nav-none:empty { display: none; }
 .shell.collapsed .sidebar { padding: 10px 10px 20px; }
-.shell.collapsed .side-head, .shell.collapsed .nav-main, .shell.collapsed .nav-meta { display: none; }
+.shell.collapsed .side-head, .shell.collapsed .nav-main, .shell.collapsed .nav-meta, .shell.collapsed .nav-list, .shell.collapsed .nav-item > .count-badge { display: none; }
+.shell.collapsed .nav-group > summary::after { content: none; }
 .shell.collapsed .nav-item { justify-content: center; padding: 9px 0; }
 
 /* ---- surfaces: panel (a section with a head), card (one of many in a grid), stat, banner ---- */
@@ -972,6 +988,9 @@ textarea.input.autosize { min-height: 62px; max-height: var(--max-h, 320px); fie
   .shell.offcanvas.collapsed .sidebar { display: block; }
   .shell.offcanvas.collapsed .side-head { display: flex; }
   .shell.offcanvas.collapsed .nav-main, .shell.offcanvas.collapsed .nav-meta { display: grid; }
+  .shell.offcanvas.collapsed .nav-list { display: block; }
+  .shell.offcanvas.collapsed .nav-item > .count-badge { display: inline-block; }
+  .shell.offcanvas.collapsed .nav-group > summary::after { content: ""; }
   .shell.offcanvas.collapsed .nav-item { width: 100%; justify-content: flex-start; padding: 9px 10px; }
 }
 
@@ -1036,6 +1055,67 @@ textarea.input.autosize { min-height: 62px; max-height: var(--max-h, 320px); fie
 @media (forced-colors: active) {
   .combo-option[aria-selected="true"], .cal-grid [aria-selected="true"] > button { outline: 2px solid Highlight; outline-offset: -2px; }
 }
+
+/* ---- trees and lists (1.14) ---- */
+/* a tree: Dash.tree writes <ul class="tree" role="tree"><li class="tree-item" role="treeitem"><div class="tree-row">…</div><ul role="group">…</ul></li></ul> */
+.tree, .tree ul { margin: 0; padding: 0; list-style: none; }
+.tree ul { margin-left: 15px; padding-left: 9px; border-left: 1px solid var(--line); }
+.tree-item { min-width: 0; }
+.tree-item:focus { outline: 0; }
+.tree-row { display: flex; align-items: center; gap: 8px; min-width: 0; min-height: 34px; padding: 3px 8px 3px 4px; border-radius: 8px; cursor: pointer; scroll-margin-block: calc(var(--topbar-h) + 10px) 10px; }
+.tree-row:hover { background: var(--soft); }
+.tree-item:focus-visible > .tree-row { outline: 2px solid var(--blue); outline-offset: -2px; }
+.tree-turn { flex: none; display: grid; place-items: center; align-self: stretch; width: 24px; }
+.tree-item[aria-expanded] > .tree-row > .tree-turn::before { content: ""; width: 7px; height: 7px; border: solid var(--muted); border-width: 0 1.5px 1.5px 0; transform: translateX(-2px) rotate(-45deg); transition: transform .15s; }
+.tree-item[aria-expanded="true"] > .tree-row > .tree-turn::before { transform: translateY(-2px) rotate(45deg); }
+.tree-lead { flex: none; display: grid; place-items: center; color: var(--muted); }
+.tree-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tree-sub { margin-left: 4px; color: var(--muted); font-size: 13px; }
+.tree-end { flex: none; display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.tree-item[aria-selected="true"] > .tree-row { background: color-mix(in srgb, var(--blue) 11%, var(--card)); box-shadow: inset 3px 0 0 var(--blue); }
+.tree-item[aria-selected="true"] > .tree-row .tree-title { font-weight: 600; }
+.tree-item[aria-disabled="true"] > .tree-row { color: var(--muted); cursor: default; }
+.tree-item.no-pick > .tree-row > .pick-box { opacity: .4; }
+.tree-note > .tree-row { color: var(--muted); font-size: 14px; cursor: default; }
+.tree-note u { color: var(--blue); cursor: pointer; }
+.tree mark, .entries mark { background: none; color: inherit; font-weight: 700; text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 3px; }
+/* a drawn tick box, in a row that is itself the thing to tick */
+.pick-box { flex: none; display: grid; place-items: center; width: 17px; height: 17px; border: 1.5px solid var(--faint); border-radius: 5px; background: var(--card); }
+[aria-checked="true"] > .tree-row > .pick-box, [aria-checked="mixed"] > .tree-row > .pick-box, [aria-selected="true"] > .pick-box { border-color: var(--blue); background: var(--blue); }
+[aria-checked="true"] > .tree-row > .pick-box::after, [aria-selected="true"] > .pick-box::after { content: ""; width: 5px; height: 9px; margin-top: -2px; border: solid var(--card); border-width: 0 2px 2px 0; transform: rotate(45deg); }
+[aria-checked="mixed"] > .tree-row > .pick-box::after { content: ""; width: 9px; height: 2px; background: var(--card); }
+.row-dots { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 7px; color: var(--muted); font-weight: 700; line-height: 1; cursor: pointer; }
+.row-dots:hover { background: color-mix(in srgb, var(--text) 8%, transparent); color: var(--text); }
+@media (hover: hover) {
+  span.row-dots { visibility: hidden; }
+  .tree-row:hover > .row-dots, .tree-item:focus-visible > .tree-row > .row-dots, .entry:hover > .row-dots, .entry:focus-visible > .row-dots { visibility: visible; }
+}
+/* Dash.list: entries that can be picked, dragged, grouped */
+.picks .entry, .entries.picks > .entry { padding: 8px 10px; border-radius: 9px; cursor: pointer; scroll-margin-block: calc(var(--topbar-h) + 10px) 10px; }
+.entries.picks > li + li { border-top: 0; margin-top: 2px; }
+.entries.picks > .entry:hover { background: var(--soft); }
+.entries.picks > .entry:focus-visible { outline-offset: -2px; }
+.entries.picks > .entry[aria-selected="true"] { background: color-mix(in srgb, var(--blue) 11%, var(--card)); }
+.entries.picks > .entry[aria-selected="true"]:not(:has(> .pick-box)) { box-shadow: inset 3px 0 0 var(--blue); }
+.entries.picks > .entry[aria-disabled="true"] { opacity: .55; cursor: default; }
+.entry-line { display: flex; align-items: center; gap: 2px; min-width: 0; }
+.entry-line > .entry { flex: 1; }
+.entry-grip { flex: none; display: grid; place-items: center; color: var(--faint); cursor: grab; touch-action: none; }
+.entry-grip:hover { color: var(--text); }
+span.entry-grip { width: 20px; margin-left: -4px; align-self: stretch; }
+button.entry-grip { width: 30px; height: 30px; }
+.entries-head { padding: 12px 2px 4px; color: var(--muted); font-size: 12.5px; font-weight: 700; }
+.picks .entries-head { padding-left: 10px; }
+.entries-group:first-child > .entries-head { padding-top: 2px; }
+.entries-scroll { max-height: var(--entries-h); overflow-y: auto; scrollbar-width: thin; }
+.entries-scroll .entries-head { position: sticky; top: 0; z-index: 1; padding-top: 6px; background: var(--card); }
+.entries-foot { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 10px 2px 2px; color: var(--muted); font-size: 14px; }
+.entries[data-zone], [data-drop] { position: relative; }
+.drop-line { position: absolute; right: 0; left: 0; z-index: 2; height: 2px; margin-top: -1px; border-radius: 1px; background: var(--blue); pointer-events: none; }
+.drag-ghost { position: fixed; z-index: 90; pointer-events: none; opacity: .85; }
+.drag-ghost > * { padding-inline: 10px; border: 1px solid var(--line); border-radius: 9px; background: var(--card); box-shadow: var(--shadow-pop); list-style: none; }
+.drag-from { opacity: .35; }
+.dragging, .dragging * { cursor: grabbing !important; user-select: none; -webkit-user-select: none; }
 
 /* a hidden value's stand-in (Dash.mask): the real one isn't in the page, so the blur is only the look of it */
 .private { color: var(--muted); filter: blur(min(.32em, 6px)); user-select: none; -webkit-user-select: none; }
@@ -1108,6 +1188,8 @@ textarea.input.autosize { min-height: 62px; max-height: var(--max-h, 320px); fie
   .topstat { flex-wrap: wrap; max-width: 100%; }
   .top-right { margin-left: 0; }
   .page { padding: 16px 16px 40px; }
+  .tree ul { margin-left: 12px; padding-left: 4px; }
+  .tree-row { min-height: 42px; }
   .stats { gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(var(--stat-min-sm, 140px), 100%), 1fr)); } /* two across on a phone; --stat-min-sm: 100% for one */
   .stat { padding: 12px 14px; }
   .stat .value { font-size: 20px; }
@@ -1177,6 +1259,14 @@ textarea.input.autosize { min-height: 62px; max-height: var(--max-h, 320px); fie
   .dropzone.over { outline: 2px solid Highlight; outline-offset: -2px; }
   .table tr.marked { outline: 2px solid Highlight; outline-offset: -2px; } /* a row, or a card on a phone */
   .stepper > li[aria-current="step"]::before { outline: 2px solid CanvasText; outline-offset: 2px; }
+  .nav-item[aria-current="location"] .nav-name { text-decoration: underline; }
+  .tree-item[aria-selected="true"] > .tree-row, .entries.picks > .entry[aria-selected="true"] { outline: 2px solid Highlight; outline-offset: -2px; }
+  .tree-item:focus-visible > .tree-row, .entries.picks > .entry:focus-visible { outline: 3px double CanvasText; outline-offset: -3px; }
+  .pick-box { forced-color-adjust: none; border-color: CanvasText; background: Canvas; }
+  [aria-checked="true"] > .tree-row > .pick-box, [aria-checked="mixed"] > .tree-row > .pick-box, [aria-selected="true"] > .pick-box { border-color: Highlight; background: Highlight; }
+  [aria-checked] > .tree-row > .pick-box::after, [aria-selected="true"] > .pick-box::after { border-color: HighlightText; }
+  [aria-checked="mixed"] > .tree-row > .pick-box::after, .drop-line { background: HighlightText; }
+  .drop-line { forced-color-adjust: none; background: Highlight; }
   [data-badge]::after { forced-color-adjust: none; border-color: Canvas; background: Highlight; color: HighlightText; }
 
   /* chosen, current, the main action */

@@ -13,7 +13,7 @@ It's plain CSS and one plain script: no build step, no dependencies, no framewor
 | | |
 |---|---|
 | `docs/` | the docs site (written by `node tools/docs.mjs` from `docs-src/`) |
-| `index.html` | every component, with made-up data, light and dark |
+| `index.html` | every component by its class, with a sidebar to them, made-up data, light and dark |
 | `examples/overview.html` | an agent-dash style page: top-bar limits, a collapsible sidebar, donut, gauges, column chart, cards |
 | `examples/portfolio.html` | balances and payout style: hero number, stats, toolbar, sortable paged table, editor dialog, live updates |
 | `examples/fleet.html` | fleet and leaderboard style: status banner, server cards, timeline lanes, leaderboard with server rows and a drawer |
@@ -191,7 +191,7 @@ Surfaces and text: `--bg`, `--card`, `--soft` (a block inside a card, table head
 | `.page` | The content column: 1320 px max, 24 px gutters. `.page.wide` is 1480 px, `.page.narrow` 1000 px. |
 | `.page-head`, `.page-title`, `.page-note` | Page heading, 22 px. |
 | `.section`, `.section-head`, `.section-title`, `.kicker` | Sections with small uppercase titles. |
-| `.shell` > `.sidebar` + `.content` | Sidebar layout. `.shell.collapsed` makes the sidebar a rail of icons; a `[data-toggle-side]` button switches it and it's remembered. Inside: `.side-head`, `.count-badge`, `.nav-item` (`.nav-icon`, `.nav-main` › `.nav-name` + `.nav-sub`, `.nav-meta`; `aria-current="true"` marks the selected item, `.attn` tints it). |
+| `.shell` > `.sidebar` + `.content` | Sidebar layout. `.shell.collapsed` makes the sidebar a rail of icons; a `[data-toggle-side]` button switches it and it's remembered. Inside: `.side-head`, `.count-badge`, `.nav-item` (`.nav-icon`, `.nav-main` › `.nav-name` + `.nav-sub`, `.nav-meta`; `aria-current="true"` marks the selected item, `"location"` the section being read (`Dash.spy`), `.attn` tints it). Links in groups: `details.nav-group` › `summary.nav-item` + `.nav-list` of `.nav-item`s (`Dash.nav` writes them, and filters and remembers them). |
 | `.grid` | Equal columns: `style="--cols:3"`, `.span-2`. One column below 900 px. Panels in a grid of your own: add `grid` to it too, so the panels lose the margin they get when stacked. |
 | `.cards` | Auto-filling card grid, `--card-min` (300 px) per card. |
 | `.stats` | Auto-fitting stat tiles, `--stat-min` (180 px); two across on a phone (`--stat-min-sm`, 140 px; `100%` for one per row). |
@@ -217,6 +217,8 @@ Surfaces and text: `--bg`, `--card`, `--soft` (a block inside a card, table head
 - `.tabs`: a row of tab buttons over panels (`Dash.tabs` shows one panel at a time). A `.count-badge` in a tab holds a count.
 - `.accordion`: `<details>` blocks joined into one box, with a chevron on each `summary`. Give them the same `name` to keep one open at a time.
 - `.entries` › `.entry` (`Dash.entries`): a list of things a line or two each: `.entry-lead` (an avatar or icon), `.entry-text` with `.entry-title` and `.entry-sub`, then `.entry-end`. An entry can be an `a` or a `button`. `.entries.wrap` lets long text wrap instead of ending in `…`.
+- `Dash.list` writes these entries too, to pick from (`.entries.picks`, with a `.pick-box` each), to put in order (`.entry-grip`), in groups (`.entries-group`, `.entries-head`), in parts (`.entries-foot`) and in a box that scrolls (`.entries-scroll`); a row with a grip or a menu (`.row-dots`) is an `li.entry-line`.
+- `.tree` › `.tree-item` › `.tree-row` (`Dash.tree`): things inside things. A row has a `.tree-turn` (the arrow), a `.pick-box` when it can be ticked, `.tree-lead`, `.tree-text` with `.tree-title` and `.tree-sub`, `.tree-end` and `.row-dots`.
 - `.divider`: a line between things, with a word in it if it has one (`<div class="divider">or</div>`; `<hr class="divider">`).
 - `.card-media`: a picture across the top of a `.card`.
 - `.timeline`: events on a line (`Dash.timeline` builds it), with a dot in each event's tone. The dots stay in high contrast, in their tones. A time still to come counts down ("in 3h 5m").
@@ -355,6 +357,10 @@ Builders return HTML strings, with every value escaped. Put them in with `innerH
 | `Dash.slider({ label, name, id, min, max, step, value, unit, tone, disabled })` | a range input with its value beside it |
 | `Dash.entries(rows, { title, sub, lead, end, href, button, key, wrap, empty, label })` | a list: `title` and `sub` are keys or functions (escaped), `lead` and `end` return HTML, `href(row)` makes links, `button: true` buttons with `data-key` |
 | `Dash.side.open()`, `.close()` | the `.shell.offcanvas` drawer from code; `open` returns `false` wider than 900 px, where there is no drawer |
+| `Dash.nav(el, items, { current, store, onPick })` | a sidebar's links in groups that open and close: `{ label, href or key, sub, icon, meta, badge, tone }`, `{ heading }`, `{ label, items }`. `.filter(text)`, `.current(key)`, `.update(items)`; without items it takes the links already there. `Dash.nav.html(items, { current })` gives the HTML, in Node too |
+| `Dash.spy(el, { offset, onChange })` | marks the link to the section being read (`aria-current="location"`) and keeps it in view |
+| `Dash.list(el, { rows, title, sub, lead, end, select, reorder, group, more, load, height, menu })` | a list that is looked after: picking one or many, dragging into order, groups, a menu per row, rows in parts (below) |
+| `Dash.tree(el, { items, title, sub, lead, end, open, select, load, menu, store })` | a tree: keys, ticking a branch ticks what is in it, a filter, branches that load as they open (below) |
 | `Dash.maskIps(text)`, `Dash.hideIps(text)` | blur IPv4 addresses (a click shows every copy of that address); `(IP hidden)` for tooltips |
 | `Dash.mask(text, { html, as, label })`, `Dash.mask.text(text, as)` | a value, or its stand-in while the reader hides values (the real one isn't in the page then); `.text` for titles, labels and toasts |
 | `Dash.privacy.on`, `.set(on)`, `.toggle()`, `.onChange(fn)`, `.button(noun)` | whether values are hidden (remembered, and followed across tabs), and the eye that hides them; `<button class="icon-btn" data-privacy="balances">` is an eye too |
@@ -417,6 +423,28 @@ Builders return HTML strings, with every value escaped. Put them in with `innerH
 - `select: true`, or `{ can, actions: [{ label, tone, primary, run: (rows, table) => … }], onChange }`: a box on every row (Shift-click for a range), one in the header for this page, and a bar with the count and the actions. The count says how many aren't on this page; an action gets those too.
 - `expand: (row, box) => markup` (or an element, a promise of either, or nothing when it draws in `box`), or `{ draw, can, one }`: a button that opens a row's details. `box` is the same element until the row closes, so a chart or a table in it keeps its place; what the reader changed in markup stays when it is drawn anew (fields with an `id`, a `data-key` or a `name` of their own). A promise is asked for when the row opens, not on every update.
 - `rowLabel: (row) => text` names a row for a screen reader (the `main` column's text by default).
+
+**`Dash.list` and `Dash.tree`.** Both take `title` and `sub` as fields or functions (escaped), `lead(row)` and `end(row)` as HTML, a `key` (`id`), `select: 'one' | 'many'` with `selected`, `can(row)` and `onSelect(row or rows)`, `onPick(row, event)`, and `menu(row)` with `onMenu(value, row)` for a row's own menu (its ⋯ button, a right click, Shift+F10).
+
+```js
+const rules = Dash.list('rules', {
+  rows, reorder: true,                                       // grips: drag, arrow keys, or a menu of moves
+  onMove: (all, { row, from, to }) => save(all),             // a rejection, or false, puts the row back and says so
+});
+const servers = Dash.list('servers', { rows, select: 'many', group: 'region', height: 300, onSelect: (picked) => { … } });
+const events = Dash.list('events', { more: 20, load: (from) => Dash.api('/api/events?from=' + from) });
+
+const files = Dash.tree('files', {
+  items: [{ id: 'src', title: 'src', items: [{ id: 'app', title: 'app.js' }] }, { id: 'logs', title: 'logs', items: true }],
+  load: (row) => Dash.api('/api/files/' + row.id),           // for a row whose items are true, when it is first opened
+  store: 'files', open: 1, onPick: (row) => { … },
+});
+Dash.search('find', { onChange: (q) => files.filter(q) });   // shows what has the words, inside what it is in
+```
+
+- A list: Space or a click picks, Shift picks a range, Ctrl+A (⌘A) all; Alt with an arrow moves a row. `.update(rows)`, `.selected`, `.select(keys)`, `.filter(text or test)`, `.move(key, place)`, `.reload()`, `.destroy()`. An update during a drag or a save waits until it is over.
+- A tree: the arrow keys, Home, End, `*`, Enter, Space and the first letters, as in any tree. `select: 'many'` gives ticked leaves; a branch is ticked when all of it is. `.update(items)`, `.filter(text or test)`, `.expand(keys, on)` (`true`, `false` for all), `.reveal(key)`, `.reload(key)`, `.select(keys)`, `.destroy()`.
+- A refresh keeps what is picked and open, the focus and the scroll. A control of your own inside a row (a link, a button) keeps its click to itself.
 
 **`Dash.form`.** What is wrong with a form shows under its fields, instead of in the browser's bubbles.
 
@@ -519,6 +547,8 @@ Where the dashboards disagreed, this kit follows agent-dash and the balances das
 
 - `<section id="select" data-terms=".select Dash.slider">` with an `<h2>`: a section of the page, a chip in its list of contents, and the names the search finds there. Every class in `dash.css` and every `Dash` function has to be named in some section (a test counts them).
 - `<example>…</example>`: HTML, and scripts, shown live where it stands and printed under it from the same text, with Copy, Phone (a 390 px preview) and the other theme. `<example frame>` is for something that takes the whole screen, like a bottom nav: it is only printed, and the previews show it alone.
+- `data-nav="…"` on a section is its name in the sidebar, where its title is too long for one.
+- `<components></components>`: a card for every section of the pages under Components, by class. The sidebar and that page come from the list of pages at the top of `tools/docs.mjs` (file, title, class) and the pages' sections; nothing else has to be kept up.
 - `<utilities group="flex"></utilities>`: that group's classes from `tools/utils.mjs`, with what each sets and which prefixes it takes.
 
 The pages link the kit as `../dash.css`, so GitHub Pages serving this repository from its root shows them at `/docs/`. `node tools/docs.mjs --flat DIR` writes the same pages with the kit beside them, for hosting the docs on their own.
@@ -531,7 +561,7 @@ node --test test/dash.test.mjs
 
 The tests cover the formatters, sorting, paging, escaping in every builder, and chart sizes. For `dash-utils.css`, they check four things: it is what `tools/utils.mjs` writes; no utility takes the name of a kit class; shorthands come before their parts and the variants come in order; and it stays within its size budget. They also check that the two dark palettes in `dash.css` are equal, that every token has a dark value, and that every class used in the pages and in dash.js exists in `dash.css`. For the docs, they check that `docs/` is what `tools/docs.mjs` writes, that every kit class and `Dash` function is named on some page, that every class the docs use exists, and that the links between the pages lead somewhere. For layout, `test/screens.mjs` loads every page (the docs too) in headless Chromium at 390, 700, 860 and 1440 px, light and dark. It fails on a page wider than the window, a console error, or a stacked table whose rows aren't cards at the right widths (or whose `td.actions` left the card's corner). It needs Playwright, which the kit itself doesn't:
 
-`test/behaviour.mjs` checks in the same browser what a node test can't see: `Dash.render` keeping focus, typing, open details, scroll and a selection; the poll's live status; the chart readout; copy buttons across a redraw; the sidebar event; the search count; saved choices in `Dash.seg`; `.topbar.static-md` and phone tiles; `Dash.table`, tabs, menus, tooltips, dialogs, `Dash.search`, `Dash.key`, live times and stacked columns; and modals, popups and menus (each popup check runs with the browser's own popovers and without them), and what shows above an open dialog; lanes; and, on a page served with `style-src 'self'` (`test/csp.html`), `Dash.lanes` and the sizing builders with `Dash.config.csp`, drawn as without the policy and with no violations; and `dash-utils.css` next to the kit (`test/utils.html`): every rule parses, utilities beat the kit's rules while its modifiers keep their meaning, and the widths, `dark:` both ways, hover, focus and print work; the components on `test/components.html` (slider values, file drops, the offcanvas drawer, the stepper on a phone, the combobox with the keyboard, the mouse, a server search and inside a dialog, and the date picker's keyboard grid, range and typed dates); the docs' search and their phone and theme previews; what shows in high contrast, by its pixels (`test/contrast.html`); values the reader hides, in the page, in its text boxes and across tabs (`test/private.html`); and line charts: where things are, the crosshair by mouse, finger and key, gaps, time labels through a clock change, and under a strict style policy (`test/lines.html`); and table rows to pick and to open: by mouse, range, key and from the page, through a refresh, what is in a row's details staying as it was, details that take a moment or fail, hidden values, and cards on a phone (`test/rows.html`). `KIT=<dir>` serves `dash.css`, `dash.js` and `dash-utils.css` from another folder, to try a change (the node tests read it too, and `tools/utils.mjs` from there when it has one).
+`test/behaviour.mjs` checks in the same browser what a node test can't see: `Dash.render` keeping focus, typing, open details, scroll and a selection; the poll's live status; the chart readout; copy buttons across a redraw; the sidebar event; the search count; saved choices in `Dash.seg`; `.topbar.static-md` and phone tiles; `Dash.table`, tabs, menus, tooltips, dialogs, `Dash.search`, `Dash.key`, live times and stacked columns; and modals, popups and menus (each popup check runs with the browser's own popovers and without them), and what shows above an open dialog; lanes; and, on a page served with `style-src 'self'` (`test/csp.html`), `Dash.lanes` and the sizing builders with `Dash.config.csp`, drawn as without the policy and with no violations; and `dash-utils.css` next to the kit (`test/utils.html`): every rule parses, utilities beat the kit's rules while its modifiers keep their meaning, and the widths, `dark:` both ways, hover, focus and print work; the components on `test/components.html` (slider values, file drops, the offcanvas drawer, the stepper on a phone, the combobox with the keyboard, the mouse, a server search and inside a dialog, and the date picker's keyboard grid, range and typed dates); the docs' search and their phone and theme previews; what shows in high contrast, by its pixels (`test/contrast.html`); values the reader hides, in the page, in its text boxes and across tabs (`test/private.html`); and line charts: where things are, the crosshair by mouse, finger and key, gaps, time labels through a clock change, and under a strict style policy (`test/lines.html`); and table rows to pick and to open: by mouse, range, key and from the page, through a refresh, what is in a row's details staying as it was, details that take a moment or fail, hidden values, and cards on a phone (`test/rows.html`); trees and lists: keys, picking, dragging by mouse and finger, saving a new order, loading, filters (`test/lists.html`, and `test/csp-lists.html` under a strict style policy); and the docs' sidebar and list of components. `KIT=<dir>` serves `dash.css`, `dash.js` and `dash-utils.css` from another folder, to try a change (the node tests read it too, and `tools/utils.mjs` from there when it has one).
 
 ```sh
 npm i --no-save playwright-core && npx playwright-core install --only-shell chromium

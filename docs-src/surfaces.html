@@ -83,36 +83,6 @@
       </example>
     </section>
 
-    <section id="facts" data-terms=".kv .facts dl dt dd">
-      <h2>Facts</h2>
-      <p><code>.kv</code> is a <code>dl</code> of names and values in columns (<code>--cols</code>, 2). <code>.facts</code> is a line of facts with dots between them, wrapping as it needs.</p>
-      <example>
-        <dl class="kv"><dt>Region</dt><dd>eu-west</dd><dt>Plan</dt><dd>Business</dd><dt>Created</dt><dd>Mar 3, 2025</dd><dt>Owner</dt><dd>Ada Lovelace</dd></dl>
-        <div class="facts mt-3"><span>8 cores</span><span>32 GB</span><span>Ubuntu 24.04</span><span>203.0.113.10</span></div>
-      </example>
-    </section>
-
-    <section id="entries" data-terms=".entries .entry .entry-lead .entry-text .entry-title .entry-sub .entry-end Dash.entries">
-      <h2>Lists</h2>
-      <p><code>Dash.entries(rows, options)</code> is a list of things, a line or two each: a <code>lead</code> (an avatar or an icon), a <code>title</code> and <code>sub</code>, and an <code>end</code> (a time, a pill). <code>title</code> and <code>sub</code> are keys or functions and are escaped; <code>lead</code> and <code>end</code> return HTML. <code>href: (row) =&gt; url</code> makes each a link, <code>button: true</code> a button (with <code>key</code> as its <code>data-key</code>, for a click handler and so a redraw keeps the focus). <code>wrap: true</code> lets long text wrap instead of ending in …; <code>empty</code> is the text when there are no rows.</p>
-      <example>
-        <div class="panel flush" id="people"></div>
-        <script>
-          const team = [
-            { id: 1, name: 'Ada Lovelace', role: 'Owner', seen: Date.now() - 5 * 60e3 },
-            { id: 2, name: 'Grace Hopper', role: 'Admin', seen: Date.now() - 3 * 3600e3 },
-            { id: 3, name: 'Alan Turing', role: 'Viewer · invited, not joined yet', seen: null },
-          ];
-          Dash.render('people', Dash.entries(team, {
-            title: 'name', sub: 'role', key: 'id', button: true, label: 'Team',
-            lead: (p) => Dash.avatar(p.name), end: (p) => (p.seen ? Dash.ago(p.seen) : Dash.pill('Invited', 'idle')),
-          }));
-          Dash.on('people', 'click', '[data-key]', (e, b) => Dash.toast(`Open person ${b.dataset.key}`));
-        </script>
-      </example>
-      <p>By hand: <code>ul.entries</code> › <code>li.entry</code> (or an <code>a.entry</code> or <code>button.entry</code> in the <code>li</code>) › <code>.entry-lead</code>, <code>.entry-text</code> with <code>.entry-title</code> and <code>.entry-sub</code>, <code>.entry-end</code>.</p>
-    </section>
-
     <section id="accordion" data-terms=".accordion details summary name">
       <h2>Accordions</h2>
       <p><code>.accordion</code> joins <code>&lt;details&gt;</code> blocks into one box, with a chevron on each <code>summary</code>. Give them the same <code>name</code> and the browser keeps one open at a time. A lone <code>&lt;details&gt;</code> anywhere is styled too.</p>
@@ -131,16 +101,5 @@
       <example>
         <div class="divider">or</div>
         <hr class="divider">
-      </example>
-    </section>
-
-    <section id="empty" data-terms=".empty .empty-title .boxed .skel .wide .mid .short">
-      <h2>Empty and loading</h2>
-      <p><code>.empty</code> is what a list shows with nothing in it: an <code>.empty-title</code> (or <code>h2</code>), a line, and a button. <code>.empty.boxed</code> is a dashed box, for a whole page with nothing yet. <code>.skel</code> is a loading line (<code>.wide</code>, <code>.mid</code>, <code>.short</code>), until the data comes.</p>
-      <example>
-        <div class="grid">
-          <div class="panel"><div class="empty"><span class="empty-title">No alerts</span><p>Alerts you set up show here.</p><button type="button" class="btn sm">Add an alert</button></div></div>
-          <div class="panel" aria-busy="true"><span class="skel wide"></span><span class="skel"></span><span class="skel mid"></span><span class="skel short"></span></div>
-        </div>
       </example>
     </section>

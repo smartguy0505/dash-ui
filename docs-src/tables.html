@@ -38,7 +38,7 @@
           <tr><td><code>format: (value, row) =&gt; text</code></td><td>Text for the cell (escaped).</td></tr>
           <tr><td><code>html: (row) =&gt; markup</code></td><td>Markup from a builder (<code>Dash.pill</code>, <code>Dash.ago</code>, <code>Dash.bar</code>…), not escaped.</td></tr>
           <tr><td><code>sort: false</code>, <code>firstDir: 'asc'</code></td><td>A column that doesn't sort; one whose first click sorts up (names, latency).</td></tr>
-          <tr><td><code>private: true</code></td><td>Hidden while the reader <a href="feedback.html#private">hides values</a>; a text is the stand-in to show instead of <code>000.00</code>. Rows keep their order, and the CSV its values.</td></tr>
+          <tr><td><code>private: true</code></td><td>Hidden while the reader <a href="privacy.html#private">hides values</a>; a text is the stand-in to show instead of <code>000.00</code>. Rows keep their order, and the CSV its values.</td></tr>
           <tr><td><code>title</code>, <code>cls</code></td><td>A tooltip on the header; classes on its cells.</td></tr>
         </tbody>
       </table></div>
@@ -85,7 +85,7 @@
         <li><code>can: (row) =&gt; …</code> says which rows may be picked. <code>actions: [{ label, tone, primary, run: (rows, table) =&gt; … }]</code>: while a promise <code>run</code> gave is pending its button is busy, and an error it throws shows as a toast. <code>onChange(rows)</code> runs when the picked rows change.</li>
         <li><code>table.selected</code> is the rows. <code>table.select(keys)</code> picks those and no others, <code>table.select((row) =&gt; …)</code> the rows that pass, <code>table.select([])</code> none.</li>
         <li>On a phone, where the cards have no header, a box above them picks them all.</li>
-        <li>A screen reader hears each box as “Select” and the row's name: the <code>main</code> column's text, or <code>rowLabel: (row) =&gt; text</code>. While that column is hidden by <a href="feedback.html#private">the reader's eye</a> it is the row's number.</li>
+        <li>A screen reader hears each box as “Select” and the row's name: the <code>main</code> column's text, or <code>rowLabel: (row) =&gt; text</code>. While that column is hidden by <a href="privacy.html#private">the reader's eye</a> it is the row's number.</li>
       </ul>
     </section>
 

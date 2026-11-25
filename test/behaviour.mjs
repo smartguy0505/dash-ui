@@ -37,7 +37,7 @@ const server = createServer(async (req, res) => {
   const base = ['/dash.css', '/dash.js', '/dash-utils.css'].includes(path) ? kit : root;
   try {
     // test/csp.html: under a strict style policy, as some dashboards are
-    const csp = path === '/test/csp.html' || path === '/test/csp-forms.html' ? { 'Content-Security-Policy': "style-src 'self'" } : {};
+    const csp = ['/test/csp.html', '/test/csp-forms.html', '/test/csp-lists.html'].includes(path) ? { 'Content-Security-Policy': "style-src 'self'" } : {};
     const body = await readFile(join(base, path)); // first: a missing file is a 404
     res.writeHead(200, { 'Content-Type': TYPES[extname(path)] || 'application/octet-stream', ...csp }).end(body);
   } catch {
@@ -2642,6 +2642,625 @@ let reference;
   const csp = await strict.evaluate(async () => { const a = await f.check(); return [a, f.errors.x, getComputedStyle(document.querySelector('.err')).color !== getComputedStyle(document.body).color, document.querySelectorAll('body [style]').length, violations.length].join(); });
   check('1.13 forms: under a strict style policy too', csp === 'false,Fill this in.,true,0,0', csp);
   await strict.context().close();
+}
+
+// ---- 1.14 trees, lists and a classified sidebar (test/lists.html)
+{
+  const openLists = async ({ width = 1280, height = 900, page = 'lists.html', ...more } = {}) => {
+    const ctx = await browser.newContext({ viewport: { width, height }, locale: 'en-US', reducedMotion: 'reduce', ...more });
+    const tab = await ctx.newPage();
+    tab.setDefaultTimeout(5000);
+    tab.on('pageerror', (e) => errors.push(e.message));
+    await tab.goto(url.replace('behaviour.html', page), { waitUntil: 'load' });
+    return tab;
+  };
+  const tab = await openLists();
+  const at = async (f, a) => { let t; try { return await Promise.race([tab.evaluate(f, a), new Promise((_, no) => { t = setTimeout(() => no(new Error('the page hangs')), 10000); })]); } finally { clearTimeout(t); } };
+  const tick = (ms = 40) => tab.waitForTimeout(ms);
+  const logged = () => at(() => log.splice(0).filter((x) => !x.startsWith('at ')).join(' | '));
+  const press = async (...keys) => { for (const k of keys) await tab.keyboard.press(k); };
+  // the rows that show, with what they say about themselves
+  const rows = (id) => at((k) => [...document.querySelectorAll(`#${k} [role="treeitem"]`)].map((li) => '  '.repeat(li.getAttribute('aria-level') - 1) + li.querySelector('.tree-text').textContent.trim()
+    + ({ true: ' -', false: ' +' }[li.getAttribute('aria-expanded')] ?? '')).join('\n'), id);
+  const here = () => at(() => document.activeElement?.dataset?.key ?? document.activeElement?.tagName);
+  const row = (id, k) => `#${id} li[data-key="${k}"] > .tree-row`;
+
+  // ---- a tree
+  await logged(); // what was asked for at the start
+  const shape = await rows('files');
+  check('1.14 tree: rows inside rows; only open ones hold theirs', shape === 'src -\n  app.js 12 KB\n  parts +\ntest +\nREADME.md 4 KB', shape);
+  const aria = await at(() => { const t = document.querySelector('#files [role="tree"]'), q = (k) => t.querySelector(`[data-key="${k}"]`); const name = (li) => li.getAttribute('aria-labelledby').split(' ').map((x) => document.getElementById(x).textContent.trim()).join(' ');
+    return [t.getAttribute('aria-label'), q('src').getAttribute('aria-level'), q('src').getAttribute('aria-setsize'), q('test').getAttribute('aria-posinset'), q('src/app.js').getAttribute('aria-level'), q('src/app.js').hasAttribute('aria-expanded'), name(q('src')), name(q('test')), t.querySelectorAll('[tabindex="0"]').length, q('src').tabIndex, q('src').getAttribute('aria-haspopup')].join(); });
+  check('1.14 tree: says its level, its place and its name (not the names inside it); one stop for Tab', aria === 'Files,1,3,2,2,false,src,test Failing,1,0,menu', aria);
+  await at(() => { document.getElementById('tree-q').focus(); });
+  await press('Tab');
+  check('1.14 tree: Tab goes to its first row', (await here()) === 'src', await here());
+  await press('ArrowDown', 'ArrowDown', 'ArrowRight');
+  check('1.14 tree: Right opens', (await here()) === 'src/parts' && (await rows('files')).includes('parts -\n    table.js\n    deep +'), await rows('files'));
+  await press('ArrowRight');
+  const into = await here();
+  await press('ArrowLeft');
+  const out1 = await here();
+  await press('ArrowLeft');
+  const shut = (await rows('files')).includes('parts +');
+  await press('ArrowLeft', 'ArrowLeft');
+  const top = [await here(), (await rows('files')).split('\n')[0]].join();
+  check('1.14 tree: Right goes in, Left out, then closes, then out again', into === 'src/parts/table.js' && out1 === 'src/parts' && shut && top === 'src,src +', JSON.stringify([into, out1, shut, top]));
+  check('1.14 tree: says what was opened and closed', (await logged()) === 'open src/parts | close src/parts | close src', '');
+  await press('End');
+  const last = await here();
+  await press('ArrowDown', 'Home');
+  check('1.14 tree: End, Home, and no further than the ends', last === 'readme' && (await here()) === 'src', last);
+  await press('t');
+  const t1 = await here();
+  await tick(650);
+  await press('r', 'e');
+  const t2 = await here();
+  check('1.14 tree: the first letters of a row', t1 === 'test' && t2 === 'readme', t1 + t2);
+  await at(() => { window.keys = []; Dash.key('s', () => keys.push('s')); Dash.key('q', () => keys.push('q')); });
+  await tick(650);
+  await press('s', 'q');
+  check('1.14 tree: a letter that finds a row is no shortcut of the page; one that finds none is', (await at(() => keys.join())) === 'q' && (await here()) === 'src', await at(() => keys.join()));
+  await tick(650);
+  await press('*');
+  check('1.14 tree: * opens all beside', (await rows('files')) === 'src -\n  app.js 12 KB\n  parts +\ntest -\n  app.test.js\nREADME.md 4 KB' && (await here()) === 'src', await rows('files'));
+  await tick(650);
+  await press('a', 'p', 'p', '.', 't');
+  const t3 = await here();
+  await tick(650);
+  await press('a');
+  const t4 = await here();
+  await press('a');
+  const t5 = await here();
+  await press('Home');
+  check('1.14 tree: several letters of a row; the same one again goes to the next', t3 === 'test/app.js' && t4 === 'src/app.js' && t5 === 'test/app.js', [t3, t4, t5].join());
+  await press('ArrowDown', 'Enter');
+  check('1.14 tree: Enter picks a leaf', (await logged()).endsWith('pick src/app.js'), '');
+  await tab.click(row('files', 'readme'));
+  await tab.click(row('files', 'test'));
+  check('1.14 tree: a click picks a leaf, and opens or closes a branch', (await logged()) === 'pick readme | close test' && (await here()) === 'test', '');
+  await tab.click('#own-btn');
+  check('1.14 tree: a button in a row is not the row', (await logged()) === '', '');
+  await tab.click(row('files', 'src'));
+  await tab.reload();
+  const shutAll = await rows('files');
+  await tab.click(row('files', 'src'));
+  await logged();
+  await tab.reload();
+  const kept = await rows('files');
+  check('1.14 tree: what is open is remembered', shutAll === 'src +\ntest +\nREADME.md 4 KB' && kept === 'src -\n  app.js 12 KB\n  parts +\ntest +\nREADME.md 4 KB' && (await at(() => localStorage.getItem('test-files'))) === '["src"]', kept);
+  // a right click with a real button: on Linux and Mac the menu opens at the press, and the release must not close it
+  await at(() => { window.got = []; document.getElementById('end').addEventListener('contextmenu', async (e) => { e.preventDefault(); got.push(await Dash.menu(e, ['One', 'Two'])); }); document.getElementById('end').scrollIntoView(); });
+  const menuUp = () => at(() => `${document.querySelectorAll('.popup').length} ${document.activeElement.textContent.trim().slice(0, 5)}`);
+  const held0 = await at(() => { const r = document.getElementById('end').getBoundingClientRect(); return [r.left + 200, 400]; });
+  await tab.mouse.move(...held0);
+  await tab.mouse.down({ button: 'right' });
+  await tick(80);
+  const r1 = await menuUp();
+  await tab.mouse.up({ button: 'right' });
+  await tick(80);
+  const r2 = await menuUp();
+  await press('ArrowDown', 'Enter');
+  await tick();
+  await tab.mouse.click(...held0, { button: 'right' });
+  await tick(80);
+  const r3 = await menuUp();
+  await tab.mouse.click(held0[0] + 300, 600);
+  await tick(80);
+  const r4 = [(await menuUp()).split(' ')[0], await at(() => got.join())].join();
+  check('1.14 popup: a right click\'s menu stays when the button is let go, and closes with a press elsewhere', r1 === '1 One' && r2 === '1 One' && r3 === '1 One' && r4 === '0,Two,', [r1, r2, r3, r4].join(' / '));
+  await at(() => scrollTo(0, 0));
+  // menus
+  await tab.focus('#files li[data-key="src/app.js"]');
+  await press('Shift+F10');
+  await tick();
+  const opens = await at(() => document.querySelector('.popup[role="menu"], [role="menu"]')?.textContent);
+  await press('ArrowDown', 'Enter');
+  await tick();
+  check('1.14 tree: Shift+F10 opens the row\'s menu', /Rename.*Delete/.test(opens || '') && (await logged()).endsWith('menu delete src/app.js') && (await here()) === 'src/app.js', String(opens) + await here());
+  // (a browser may have no menu key of its own: the kit's is enough)
+  const keyed = (id, k, key) => at(async ([id, k, key]) => {
+    const li = document.querySelector(`#${id} li[data-key="${k}"]`), e = new KeyboardEvent('keydown', { key, shiftKey: key === 'F10', bubbles: true, cancelable: true });
+    li.focus();
+    li.dispatchEvent(e);
+    await new Promise((ok) => setTimeout(ok, 40));
+    const out = [e.defaultPrevented, document.querySelectorAll('[role="menu"]').length].join();
+    document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    for (const p of document.querySelectorAll('.popup')) p.hidePopover();
+    await new Promise((ok) => setTimeout(ok, 40));
+    return out;
+  }, [id, k, key]);
+  const k1 = [await keyed('files', 'src/app.js', 'F10'), await keyed('files', 'src/app.js', 'ContextMenu')].join(' ');
+  check('1.14 tree: by the kit\'s own keys', k1 === 'true,1 true,1' && (await at(() => document.querySelectorAll('.popup').length)) === 0, k1);
+  await logged();
+  await tab.click(row('files', 'readme'), { button: 'right' });
+  await tick();
+  await tab.click('[role="menuitem"]');
+  await tab.hover(row('files', 'test'));
+  await tab.click(`${row('files', 'test')} > .row-dots`);
+  await tick();
+  await tab.click('[role="menuitem"] >> nth=1');
+  await tick();
+  check('1.14 tree: so do a right click and its dots, and neither opens the row', (await logged()) === 'menu Rename readme | menu delete test', '');
+  // filter
+  await tab.fill('#tree-q', 'app');
+  await tick(200);
+  const found = await at(() => [files.filter('app'), document.querySelectorAll('#files mark').length, document.querySelector('#files mark').textContent].join());
+  check('1.14 tree: the filter keeps what has the words, and what that is in, open', (await rows('files')) === 'src -\n  app.js 12 KB\ntest -\n  app.test.js' && found === '2,2,app', await rows('files') + found);
+  const parts = await at(() => { files.filter('parts'); const a = [...document.querySelectorAll('#files [role="treeitem"]')].map((x) => x.dataset.key).join(); document.querySelector('#files li[data-key="src/parts"] > .tree-row').click(); const b = [...document.querySelectorAll('#files [role="treeitem"]')].map((x) => x.dataset.key).join(); return a + ' ' + b; });
+  check('1.14 tree: a branch that has the words can be opened, and shows all of its own', parts === 'src,src/parts src,src/parts,src/parts/table.js,src/parts/a', parts);
+  const none = await at(() => [files.filter('zzz'), document.querySelector('#files .empty').textContent, files.filter('')].join());
+  check('1.14 tree: nothing found; then all as it was', none === '0,Nothing by that name,11' && (await rows('files')) === kept && (await at(() => localStorage.getItem('test-files'))) === '["src"]', none + '\n' + await rows('files'));
+  const fn = await at(() => [files.filter((r) => r.sub), document.querySelectorAll('#files mark').length].join());
+  check('1.14 tree: or any test', fn === '2,0' && (await rows('files')) === 'src -\n  app.js 12 KB\nREADME.md 4 KB', fn);
+  await at(() => { files.filter(null); for (const t of [one, many, lazy]) t.filter(''); log.length = 0; });
+
+  // picking one
+  const chosen = () => at(() => [...document.querySelectorAll('#one [aria-selected="true"]')].map((x) => x.dataset.key).join());
+  check('1.14 tree: one picked from the start, and where Tab goes', (await chosen()) === 'src/app.js' && (await at(() => document.querySelector('#one [tabindex="0"]').dataset.key)) === 'src/app.js', await chosen());
+  await tab.click(row('one', 'src/parts/table.js'));
+  await tab.click(row('one', 'readme'));
+  await tab.click(row('one', 'src'));
+  check('1.14 tree: a click picks, not one that can\'t be', (await logged()) === 'one src/parts/table.js | one src' && (await chosen()) === 'src', await chosen());
+  const two = [(await rows('one')).split('\n')[0]];
+  await tab.click(row('one', 'src'));
+  two.push((await rows('one')).split('\n')[0]);
+  check('1.14 tree: a branch that is open closes with the second click', two.join() === 'src -,src +' && (await logged()) === '', two.join());
+  await press('Enter', 'ArrowDown', ' ');
+  check('1.14 tree: Space picks, Enter opens a branch and goes to a leaf', (await logged()) === 'one src/app.js', '');
+  await press('Enter');
+  await tab.dblclick(row('one', 'src/parts/table.js'));
+  check('1.14 tree: Enter or a double click is onPick', (await logged()) === 'go src/app.js | one src/parts/table.js | go src/parts/table.js', '');
+  const offs = await at(() => { const li = document.querySelector('#one li[data-key="readme"]'); return [li.getAttribute('aria-disabled'), li.hasAttribute('aria-selected'), document.querySelector('#one [role="tree"]').hasAttribute('aria-multiselectable')].join(); });
+  check('1.14 tree: one that can\'t be picked says so', offs === 'true,false,false', offs);
+  const coded = await at(() => { one.select('test/app.js'); const a = [one.selected.id, log.splice(0).join()]; one.select('readme'); a.push(String(one.selected), log.splice(0).join()); one.select('src'); one.select('src'); a.push(log.splice(0).join()); return a.join(); });
+  check('1.14 tree: select() from code', coded === 'test/app.js,one test/app.js,null,one null,one src', coded);
+
+  // ticking many
+  const boxes = () => at(() => [...document.querySelectorAll('#many [role="treeitem"]')].map((x) => `${x.dataset.key}:${{ true: 'x', false: '-', mixed: 'o' }[x.getAttribute('aria-checked')] ?? ' '}`).join(' '));
+  check('1.14 tree: boxes; a branch with some of it ticked is neither', (await boxes()) === 'src:o src/app.js:- src/parts:o src/parts/table.js:x src/parts/a:- test:- test/app.js:- readme: ', await boxes());
+  await tab.click(row('many', 'src/parts'));
+  check('1.14 tree: ticking a branch ticks all of it, also what is closed', (await logged()) === 'many src/parts/table.js+x' && (await boxes()).includes('src:o src/app.js:- src/parts:x src/parts/table.js:x src/parts/a:x'), await boxes());
+  await tab.click(row('many', 'src'));
+  await tab.click(row('many', 'src'));
+  check('1.14 tree: then all, then none', (await logged()) === 'many src/app.js+src/parts/table.js+x | many ' && (await boxes()).startsWith('src:- src/app.js:- src/parts:-'), await boxes());
+  await tab.click(`${row('many', 'src')} > .tree-turn`);
+  await press(' ', 'ArrowRight');
+  check('1.14 tree: the arrow opens and closes, Space ticks', (await logged()) === 'many src/app.js+src/parts/table.js+x' && (await boxes()).startsWith('src:x src/app.js:x'), await boxes());
+  await tab.click(row('many', 'readme'));
+  const sifted = await at(() => { many.select([]); many.filter('app'); document.querySelector('#many li[data-key="src"] > .tree-row').click(); const a = [many.selected.map((r) => r.id).join('+'), document.querySelector('#many li[data-key="src"]').getAttribute('aria-checked')]; many.filter(''); a.push(document.querySelector('#many li[data-key="src"]').getAttribute('aria-checked')); many.select(['src']); a.push(many.selected.length); return a.join(); });
+  check('1.14 tree: while filtered, a branch is what shows of it', sifted === 'src/app.js,true,mixed,3', sifted);
+  const pruned = await at(async () => { log.length = 0; many.update([{ id: 'src', title: 'src', items: [{ id: 'src/app.js', title: 'app.js' }, { id: 'new', title: 'new' }] }]); await null; return [log.splice(0).join(), many.selected.length, document.querySelector('#many li[data-key="src"]').getAttribute('aria-checked')].join(); });
+  check('1.14 tree: what left the data is ticked no more', pruned === 'many src/app.js,1,mixed', pruned);
+  const pick = await at(() => { const q = (s) => document.querySelector(s), b = getComputedStyle(q('#many li[data-key="src/app.js"] .pick-box'), '::after').transform !== 'none', off = getComputedStyle(q('#many li[data-key="new"] .pick-box'), '::after').content; return [b, off].join(); });
+  check('1.14 tree: a ticked box has its tick, an empty one nothing', pick === 'true,none', pick);
+
+  // asked for when opened
+  await tab.click(`${row('lazy', 'eu')} > .tree-turn`);
+  const wait = [await rows('lazy'), await logged()];
+  await at(() => { answers.eu.ok([{ id: 'de', title: 'Germany', items: true }, { id: 'fr', title: 'France' }]); });
+  await tick();
+  check('1.14 tree: what is inside is asked for when it is first opened', wait.join() === 'Europe -\n  Loading…\nAmerica +\nEmpty +\nA leaf,load eu' && (await rows('lazy')) === 'Europe -\n  Germany +\n  France\nAmerica +\nEmpty +\nA leaf', wait.join() + await rows('lazy'));
+  await press('ArrowLeft', 'ArrowRight');
+  check('1.14 tree: and only then', (await logged()) === '' && (await rows('lazy')).startsWith('Europe -\n  Germany +') && (await here()) === 'eu', await logged());
+  await tab.click(`${row('lazy', 'us')} > .tree-turn`);
+  await at(() => { answers.us.no(new Error('no <net>')); });
+  await tick();
+  const sad = await rows('lazy');
+  await press('ArrowDown', 'Enter');
+  const again = [await rows('lazy'), await logged()].join(), askedAt = await here();
+  await at(() => { answers.us.ok([{ id: 'ny', title: 'New York' }]); });
+  await tick();
+  check('1.14 tree: an answer that fails says so, and can be asked for again', sad.includes('Couldn’t load this: no <net> Try again') && again.includes('America -\n  Loading…') && again.endsWith('load us | load us') && (await rows('lazy')).includes('America -\n  New York') && askedAt === 'us' && (await here()) === 'us', sad + again + await here());
+  await tab.click(row('lazy', 'none'));
+  await tab.click(`${row('lazy', 'none')} > .tree-turn`);
+  const ticked = await at(() => lazy.selected.map((r) => r.id).join());
+  await at(() => { answers.none.ok([]); });
+  await tick();
+  check('1.14 tree: nothing inside: says so', (await rows('lazy')).includes('Empty -\n  Nothing here'), await rows('lazy'));
+  await tab.click(row('lazy', 'de'));
+  await tab.click(`${row('lazy', 'de')} > .tree-turn`);
+  await at(() => { answers.de.ok([{ id: 'ber', title: 'Berlin' }, { id: 'muc', title: 'Munich' }]); });
+  await tick();
+  check('1.14 tree: a ticked branch whose items come has them ticked', ticked === 'none' && (await at(() => lazy.selected.map((r) => r.id).join())) === 'ber,muc', ticked + await at(() => lazy.selected.map((r) => r.id).join()));
+  const reload = await at(async () => { lazy.reload('us'); const a = document.querySelector('#lazy [data-note="us"]')?.textContent; await new Promise((ok) => setTimeout(ok, 5)); answers.us.ok([{ id: 'sf', title: 'San Francisco' }]); await new Promise((ok) => setTimeout(ok, 20)); const b = document.querySelector('#lazy li[data-key="us"] ul').textContent; lazy.reload('eu'); await new Promise((ok) => setTimeout(ok, 5)); const late = answers.eu; lazy.update([{ id: 'other', title: 'Other' }]); late.ok([{ id: 'zz', title: 'zz' }]); await new Promise((ok) => setTimeout(ok, 20)); return [a, b, document.querySelectorAll('#lazy [role="treeitem"]').length].join(); });
+  check('1.14 tree: reload() asks again; an answer for what is gone changes nothing', reload === 'Loading…,San Francisco,1', reload);
+  const late = await at(async () => { const wait = () => new Promise((ok) => setTimeout(ok, 20)); lazy.update([{ id: 'us', title: 'America', items: true }]); lazy.expand('us'); await wait(); lazy.reload('us'); await wait(); const first = answers.us; lazy.reload('us'); await wait(); answers.us.ok([{ id: 'b', title: 'Second' }]); await wait(); first.ok([{ id: 'a', title: 'First' }]); await wait(); return document.querySelector('#lazy li[data-key="us"] ul').textContent; });
+  check('1.14 tree: asked twice, the first answer is too late', late === 'Second', late);
+
+  // from code
+  const code = await at(() => { const out = []; files.expand(false); out.push(files.expanded.length); files.expand(['src', 'test']); out.push(files.expanded.map((r) => r.id).join('+')); files.expand('src', false); out.push(files.expanded.map((r) => r.id).join('+')); files.expand(true); out.push(files.expanded.length, document.querySelectorAll('#files [role="treeitem"]').length); files.expand(false); out.push(files.reveal('x'), files.expanded.length, document.querySelector('#files [tabindex="0"]').dataset.key, files.reveal('nope')); files.reveal('src/app.js', { focus: true }); out.push(document.activeElement.dataset.key); return out.join(); });
+  check('1.14 tree: expand(), expanded and reveal()', code === '0,src+test,test,6,11,true,5,x,false,src/app.js', code);
+  const gone = await at(async () => { const a = []; document.querySelector('#files li[data-key="src/app.js"]').focus(); files.expand('src', false); a.push(document.activeElement.dataset.key); files.expand('src'); files.expand('test'); document.querySelector('#files li[data-key="test/app.js"]').focus(); files.update(FILES.map((f) => (f.id === 'test' ? { ...f, items: [{ id: 'new', title: 'new' }] } : f))); a.push(document.activeElement.dataset.key); files.update(FILES.slice(2)); a.push(document.activeElement.dataset.key); files.update([]); a.push(document.querySelector('#files .empty').textContent); files.update(FILES); return a.join(); });
+  check('1.14 tree: the focus goes to what a row was in, if the row goes', gone === 'src,test,readme,Nothing here yet', gone);
+  const same = await at(() => { const li = document.querySelector('#files li[data-key="src"]'); files.update(FILES.map((f) => ({ ...f }))); return li === document.querySelector('#files li[data-key="src"]'); });
+  check('1.14 tree: an update that changes nothing writes nothing', same, '');
+  const destroyed = await at(() => { const d = document.createElement('div'); document.body.append(d); const t = Dash.tree(d, { items: FILES }); t.destroy(); const a = d.innerHTML; d.innerHTML = '<ul><li class="tree-item" data-key="src" tabindex="0"><div class="tree-row">x</div></li></ul>'; let n = 0; d.querySelector('.tree-row').click(); Dash.tree(d, { items: FILES, onPick: () => { n += 1; } }); Dash.tree(d, { items: FILES, onPick: () => { n += 1; } }); d.querySelector('li[data-key="readme"] > .tree-row').click(); d.remove(); return [a, n, Dash.tree('no such', {})].join(); });
+  check('1.14 tree: destroy(), and a tree made again: one listener', destroyed === ',1,', destroyed);
+
+  // ---- a list
+  const order = (id) => at((k) => [...document.querySelectorAll(`#${k} .entry-title`)].map((x) => x.textContent).join('|'), id);
+  await logged();
+  check('1.14 list: the rows of Dash.entries', (await order('rules')) === 'Block bots|Cache pictures|Send to the old site|Ask for a login|Let the rest through' && (await at(() => document.querySelector('#plain a.entry').getAttribute('href'))) === '#a', await order('rules'));
+  // in order, by the keyboard
+  await tab.focus('#rules [data-key="dash-grip a"]');
+  await press('ArrowDown');
+  const moved = [await order('rules'), await here(), await logged(), await at(() => document.querySelector('body > [data-dash-voice]').textContent)].join(' / ');
+  check('1.14 list: an arrow key on the grip moves the row, keeps the focus and says where it is', moved === 'Cache pictures|Block bots|Send to the old site|Ask for a login|Let the rest through / dash-grip a / move a 0>1 bacde / Block bots: 2 of 5', moved);
+  await press('ArrowUp', 'ArrowUp');
+  check('1.14 list: no further than the ends', (await logged()) === 'move a 1>0 abcde' && (await order('rules')).startsWith('Block bots'), await order('rules'));
+  await press('Enter');
+  await tick();
+  const offered = await at(() => [...document.querySelectorAll('[role="menuitem"]')].map((x) => x.textContent + (x.disabled ? ' (no)' : '')).join());
+  await tab.click('[role="menuitem"] >> nth=3');
+  await tick();
+  check('1.14 list: a click on the grip gives the moves as a menu', offered === 'Move to the top (no),Move up (no),Move down,Move to the end' && (await logged()) === 'move a 0>4 bcdea', offered);
+  // dragging
+  const grip = (id, k) => tab.locator(`#${id} li[data-key="${k}"] [data-grip]`);
+  const spot = async (l) => { const b = await l.boundingBox(); return [b.x + b.width / 2, b.y + b.height / 2]; };
+  await at(() => document.getElementById('rules').scrollIntoView({ block: 'center' }));
+  const drag = async (from, to, { drop = true, dy = 0 } = {}) => {
+    const [x, y] = await spot(from), [x2, y2] = await spot(to);
+    await tab.mouse.move(x, y);
+    await tab.mouse.down();
+    await tab.mouse.move(x, y + (y2 > y ? 8 : -8));
+    await tab.mouse.move(x2, y2 + dy, { steps: 4 });
+    if (drop) await tab.mouse.up();
+  };
+  await drag(grip('rules', 'b'), grip('rules', 'd'), { dy: 6, drop: false });
+  await tick();
+  const mid = await at(() => [document.querySelectorAll('.drag-ghost').length, document.querySelector('.drag-ghost').textContent.includes('Cache pictures'), document.querySelectorAll('#rules .drop-line').length, document.querySelector('#rules li[data-key="b"]').className.includes('drag-from'), document.querySelectorAll('.drag-ghost [data-key], .drag-ghost [id]').length, Math.abs(document.querySelector('#rules .drop-line').getBoundingClientRect().top - document.querySelector('#rules li[data-key="d"]').getBoundingClientRect().bottom) < 3, Math.abs(document.querySelector('.drag-ghost').getBoundingClientRect().top - document.querySelector('#rules li[data-key="d"]').getBoundingClientRect().top - 6) < 2].join());
+  await tab.mouse.up();
+  await tick();
+  check('1.14 list: dragged by its grip: a copy follows, a line shows where', mid === '1,true,1,true,0,true,true', mid);
+  check('1.14 list: let go there, with nothing left behind and no click', (await logged()) === 'move b 0>2 cdbea' && (await at(() => document.querySelectorAll('.drag-ghost, .drop-line, .drag-from, .dragging, [role="menu"]').length)) === 0, '');
+  await drag(grip('rules', 'a'), grip('rules', 'c'), { dy: -6 });
+  check('1.14 list: to the top', (await logged()) === 'move a 4>0 acdbe', '');
+  await drag(grip('rules', 'a'), grip('rules', 'e'), { dy: 60 });
+  check('1.14 list: past the end is the end', (await logged()) === 'move a 0>4 cdbea', '');
+  await drag(grip('rules', 'c'), grip('rules', 'e'), { drop: false });
+  await press('Escape');
+  await tab.mouse.up();
+  await tick();
+  check('1.14 list: Escape calls it off', (await logged()) === '' && (await order('rules')).startsWith('Send to') && (await at(() => document.querySelectorAll('.drag-ghost, .drop-line, [role="menu"]').length)) === 0, await order('rules'));
+  await drag(grip('rules', 'c'), grip('rules', 'c'), { dy: 3 });
+  await tick();
+  check('1.14 list: back where it was is no move, and no click on the grip', (await logged()) === '' && (await at(() => document.querySelectorAll('[role="menu"]').length)) === 0, '');
+  // saved, or not
+  await at(() => { save = () => Promise.reject(new Error('Not saved')); });
+  await tab.focus('#rules [data-key="dash-grip c"]');
+  await press('ArrowDown');
+  await tick(60);
+  const back = [await order('rules'), await at(() => document.querySelector('.toast')?.textContent), await at(() => document.querySelector('body > [data-dash-voice]').textContent), await here()].join(' / ');
+  check('1.14 list: a move that can\'t be saved is put back, and says why', back === 'Send to the old site|Ask for a login|Cache pictures|Let the rest through|Block bots / Not saved / Send to the old site was put back / dash-grip c', back);
+  await logged();
+  const held = await at(async () => { let ok; save = () => new Promise((y) => { ok = y; }); rules.move('c', 1); const a = []; rules.update(RULES); a.push(rules.rows.map((r) => r.id).join('')); rules.move('a', 0); a.push(rules.rows.map((r) => r.id).join('')); ok(); await new Promise((y) => setTimeout(y, 20)); a.push(rules.rows.map((r) => r.id).join('')); save = () => false; rules.move('a', 2); await new Promise((y) => setTimeout(y, 20)); a.push(rules.rows.map((r) => r.id).join('')); save = null; return a.join(); });
+  check('1.14 list: an update waits until a move is saved; false puts it back', held === 'dcbea,dcbea,abcde,abcde', held);
+  await logged();
+  await drag(grip('rules', 'a'), grip('rules', 'c'), { dy: 6, drop: false });
+  await at(() => { rules.update(RULES.slice(0, 4).map((r) => ({ ...r }))); });
+  const during = await order('rules');
+  await tab.mouse.up();
+  await tick();
+  check('1.14 list: an update waits for the drop, too', during.split('|').length === 5 && (await logged()) === 'move a 0>2 bcade' && (await order('rules')).split('|').length === 4, during + (await order('rules')));
+  await at(() => { rules.update(RULES); });
+  await drag(grip('rules', 'a'), grip('rules', 'c'), { dy: 6, drop: false });
+  await at(() => { rules.update(RULES.slice(1)); });
+  const waiting = (await order('rules')).split('|').length;
+  await press('Escape');
+  await tab.mouse.up();
+  await tick();
+  check('1.14 list: and one that is called off lets it through', waiting === 5 && (await order('rules')).split('|').length === 4 && (await logged()) === '', waiting + await order('rules'));
+  await at(() => { rules.update(RULES); });
+  // menu
+  await tab.click('#rules [data-key="dash-dots b"]');
+  await tick();
+  await tab.click('[role="menuitem"] >> nth=1');
+  await tick();
+  check('1.14 list: a row\'s menu', (await logged()) === 'rule Remove b', '');
+  const filtered = await at(() => { const n = rules.filter('a'); const a = [n, rules.count.shown, rules.count.total, document.querySelectorAll('#rules mark').length > 0]; rules.filter('login'); a.push(document.querySelectorAll('#rules li').length); rules.filter('zzz'); a.push(document.querySelector('#rules .empty').textContent); rules.filter(''); rules.update([]); a.push(document.querySelector('#rules .empty').textContent); rules.update(RULES); return a.join(); });
+  check('1.14 list: filter() and count', filtered.startsWith('4,4,5,true,1,Nothing by that name,Nothing here yet'), filtered);
+
+  // picking one
+  const lab = await at(() => { const l = document.querySelector('#people [role="listbox"]'); return [l.getAttribute('aria-label'), l.hasAttribute('aria-multiselectable'), l.querySelectorAll('[role="option"]').length, l.querySelector('[aria-selected="true"]').dataset.key, l.querySelector('[tabindex="0"]').dataset.key, l.querySelector('[aria-disabled]').dataset.key].join(); });
+  check('1.14 list: a list to pick from is a listbox', lab === 'People,false,5,2,2,3', lab);
+  await tab.click('#people li[data-key="4"]');
+  await tab.click('#people li[data-key="3"]', { force: true });
+  await press('ArrowDown', 'ArrowDown', 'ArrowDown', 'Space');
+  await press('Enter');
+  check('1.14 list: a click or Space picks; Enter opens', (await logged()) === 'person 4 | person 5 | open 5', '');
+  await press('Home', 'g');
+  const typed = await here();
+  await tab.dblclick('#people li[data-key="1"]');
+  check('1.14 list: the first letter; a double click opens', typed === '2' && (await logged()) === 'person 1 | open 1', typed);
+
+  // picking many
+  const ticks = () => at(() => servers.selected.map((r) => r.id).join());
+  await tab.click('#servers li[data-key="s1"]');
+  await tab.click('#servers li[data-key="s10"]', { modifiers: ['Shift'] });
+  check('1.14 list: Shift-click picks all between', (await ticks()) === 's1,s4,s7,s10' && (await logged()) === 'servers s1 | servers s1+s4+s7+s10', await ticks());
+  await tab.click('#servers li[data-key="s4"]');
+  check('1.14 list: a click puts one back', (await ticks()) === 's1,s7,s10', await ticks());
+  await press('Control+a');
+  const allOf = (await ticks()).split(',').length;
+  await press('Control+a');
+  check('1.14 list: mod+A picks all, then none', allOf === 14 && (await ticks()) === '', String(allOf));
+  await press('Shift+ArrowDown', 'Shift+ArrowDown');
+  check('1.14 list: Shift with an arrow picks on', (await ticks()) === 's4,s7,s10', await ticks());
+  await press('ArrowDown', 'Space');
+  check('1.14 list: the arrow alone goes on, Space picks', (await ticks()) === 's4,s7,s10,s13', await ticks());
+  await tab.click('#own-link');
+  check('1.14 list: a link in a row is not the row', (await ticks()) === 's4,s7,s10,s13', await ticks());
+  const groups = await at(() => [...document.querySelectorAll('#servers [role="group"]')].map((g) => document.getElementById(g.getAttribute('aria-labelledby')).textContent + g.querySelectorAll('[role="option"]').length).join());
+  check('1.14 list: groups with their names', groups === 'Frankfurt5,Paris5,Dublin4', groups);
+  const scrolls = await at(() => { const s = document.querySelector('#servers .entries-scroll'); s.scrollTop = 150; const tall = getComputedStyle(s).maxHeight; const h = s.querySelector('.entries-head').getBoundingClientRect().top - s.getBoundingClientRect().top; servers.update(servers.rows.map((r) => ({ ...r, load: 0.5 }))); return [tall, Math.abs(h) < 2, document.querySelector('#servers .entries-scroll').scrollTop, document.querySelector('#servers .entry-end').textContent].join(); });
+  check('1.14 list: with a height it scrolls under its headings, and keeps its place in a refresh', scrolls === '260px,true,150,50%', scrolls);
+  await logged();
+  await tab.focus('#servers li[data-key="s5"]');
+  await press('Alt+ArrowDown');
+  const alt = [await logged(), await here(), await at(() => document.querySelector('body > [data-dash-voice]').textContent)].join(' / ');
+  await press('Alt+ArrowUp', 'Alt+ArrowUp', 'Alt+ArrowUp', 'Alt+ArrowUp');
+  check('1.14 list: Alt with an arrow moves a row in its group', alt === 'server s5 4>7 / s5 / web-5: 3 of 5' && (await at(() => [...document.querySelectorAll('#servers [data-zone="Paris"] li')].map((x) => x.dataset.key).join())) === 's5,s2,s8,s11,s14', alt + await logged());
+  await logged();
+  await at(() => { document.querySelector('#servers .entries-scroll').scrollTop = 0; });
+  await drag(grip('servers', 's1'), grip('servers', 's7'), { dy: 6 });
+  await tick();
+  check('1.14 list: dragging in a group; a drag picks nothing', (await logged()).startsWith('server s1') && (await at(() => [...document.querySelectorAll('#servers [data-zone="Frankfurt"] li')].map((x) => x.dataset.key).join())) === 's4,s7,s1,s10,s13' && (await ticks()) === 's4,s7,s10,s13', await ticks());
+  await tab.focus('#servers li[data-key="s4"]');
+  await press('Shift+F10');
+  await tick();
+  await press('Enter');
+  await tick();
+  const k2 = [await keyed('servers', 's4', 'F10'), await keyed('servers', 's4', 'ContextMenu')].join(' ');
+  check('1.14 list: the menu by the kit\'s own keys', k2 === 'true,1 true,1', k2);
+  check('1.14 list: the menu of a row that is picked from', (await logged()) === 'Restart s4' && (await here()) === 's4', await here());
+  const lose = await at(async () => { document.querySelector('#servers li[data-key="s4"]').focus(); servers.update(servers.rows.filter((r) => r.id !== 's4')); const a = document.activeElement.dataset.key; await null; return [a, log.splice(0).join()].join(); });
+  check('1.14 list: a row that goes is picked no more, and the focus goes on', lose === 's7,servers s7+s10+s13', lose);
+  const bycode = await at(() => { servers.select(['s2', 's3', 'nope']); const a = [servers.selected.map((r) => r.id).join('+'), log.splice(0).join()]; people.select(3); a.push(String(people.selected)); people.select([1, 2]); a.push(people.selected.id); return a.join(); });
+  check('1.14 list: select() from code', bycode.startsWith('s2+s3,servers s2+s3,null,1') || bycode.startsWith('s3+s2,servers s3+s2,null,1'), bycode);
+
+  // in parts
+  const foot = (id) => at((k) => [document.querySelectorAll(`#${k} li`).length, document.querySelector(`#${k} .entries-foot`)?.textContent.trim() ?? 'none'].join(), id);
+  const f1 = await foot('events');
+  await tab.focus('#events [data-more]');
+  await press('Enter');
+  const f2 = [await foot('events'), await here()].join();
+  await tab.click('#events [data-more]');
+  check('1.14 list: shown in parts', f1 === '20,Show 20 more of 57' && f2 === '40,Show the last 17 of 57,dash-row 20' && (await foot('events')) === '57,none', f1 + f2 + await foot('events'));
+  await logged();
+  await tab.click('#events .entry >> nth=2');
+  check('1.14 list: a row that is clicked', (await logged()) === 'event 2', '');
+  const p1 = await foot('parts');
+  await at(() => { answers.part.ok([{ id: 1, title: 'One' }, { id: 2, title: 'Two' }, { id: 3, title: 'Three' }]); });
+  await tick();
+  const p2 = await foot('parts');
+  await tab.click('#parts [data-more]');
+  const p3 = [await foot('parts'), await logged()].join();
+  await at(() => { answers.part.no(new Error('offline')); });
+  await tick();
+  const p4 = await foot('parts');
+  await tab.click('#parts [data-more]');
+  await at(() => { answers.part.ok([{ id: 3, title: 'Three' }, { id: 4, title: 'Four' }]); });
+  await tick();
+  check('1.14 list: asked for in parts: waiting, failing, again, and the end', [p1, p2, p3, p4].join(' ') === '0,Loading… 3,Show more 3,Loading more…,part 3 3,Couldn’t load more: offline Try again' && (await foot('parts')) === '4,none' && (await at(() => document.querySelector('body > [data-dash-voice]').textContent)) === '1 part more', [p1, p2, p3, p4, await foot('parts')].join(' '));
+  const reloaded = await at(async () => { parts.reload(); const a = document.querySelector('#parts .entries-foot').textContent.trim(); answers.part.ok([]); await new Promise((ok) => setTimeout(ok, 20)); return [a, document.querySelector('#parts').textContent].join(); });
+  check('1.14 list: reload(), and nothing there', reloaded === 'Loading…,Nothing here yet', reloaded);
+  const once = await at(() => { const d = document.createElement('div'); document.body.append(d); let n = 0; Dash.list(d, { rows: RULES, onPick: () => { n += 1; } }); const l = Dash.list(d, { rows: RULES, onPick: () => { n += 1; } }); d.querySelector('.entry').click(); l.destroy(); const a = d.innerHTML; d.remove(); return [n, a, Dash.list('no such', {})].join(); });
+  check('1.14 list: made again: one listener; destroy()', once === '1,,', once);
+
+  // ---- the sidebar
+  const side = () => at(() => [...document.querySelectorAll('#side > *')].filter((x) => !x.hidden && x.className !== 'nav-none').map((x) => (x.tagName === 'DETAILS' ? `${x.open ? '[' : '('}${x.querySelector('.nav-name').textContent}: ${[...x.querySelectorAll('.nav-list .nav-item')].filter((i) => i.checkVisibility()).map((i) => i.querySelector('.nav-name').textContent).join(' ')}` : x.textContent.trim())).join(' | '));
+  const s0 = await side();
+  check('1.14 nav: links, headings and groups; the group the reader is in is open', s0 === 'Overview | Pieces | [Trees: Files One <b> | (Lists:  | Other | Busy91%', s0);
+  const items = await at(() => { const q = (t) => [...document.querySelectorAll('#side .nav-item')].find((x) => x.querySelector('.nav-name').textContent === t); return [q('One <b>').getAttribute('aria-current'), q('Busy').getAttribute('href'), q('Busy').className, q('A button').tagName, document.querySelector('#side .nav-group .count-badge').textContent, document.querySelectorAll('#side [aria-current="page"]').length].join(); });
+  check('1.14 nav: escaped, no script, the current page marked', items === 'page,#,nav-item attn warn,BUTTON,4,1', items);
+  const turned = await at(() => { const s = [...document.querySelectorAll('#side .nav-group > summary')].map((x) => getComputedStyle(x, '::after')); return [s[0].content, s[0].transform !== s[1].transform].join(); });
+  check('1.14 nav: the arrow says whether a group is open', turned === '"",true', turned);
+  const tinted = await at(async () => { const c = (x) => getComputedStyle(x).color, d = document.querySelector('#side .nav-group'), s = d.querySelector('summary'); const blue = Dash.color('blue'), rgb = `rgb(${[1, 3, 5].map((i) => parseInt(blue.slice(i, i + 2), 16)).join(', ')})`; const a = [c(s) === rgb]; d.open = false; await new Promise((ok) => setTimeout(ok, 60)); a.push(c(s) === rgb); d.open = true; const l = document.querySelector('#side [aria-current="location"]'); a.push(Boolean(l) && c(l) === rgb); return a.join(); });
+  check('1.14 nav: the marks: the section being read, and a closed group that has the reader\'s page in it', tinted === 'false,true,true', tinted);
+  await logged();
+  await tab.click('#side .nav-group >> nth=1 >> summary >> nth=0');
+  await tab.click('#side .nav-group .nav-group > summary');
+  await tab.click('#side button.nav-item');
+  await tick();
+  check('1.14 nav: a group opens, a group in it too; onPick', (await logged()) === 'nav A button' && (await side()).includes('[Lists: Rules More The end A button'), await side());
+  const store = await at(() => localStorage.getItem('test-nav'));
+  await tab.reload();
+  check('1.14 nav: the groups the reader opened are remembered', store === '{"lists":true,"More":true}' && (await side()).includes('[Lists: Rules More The end A button'), store + await side());
+  await tab.fill('#side-q', 'end');
+  await tick(200);
+  const n1 = [await side(), await at(() => found)].join();
+  await tab.fill('#side-q', 'trees');
+  await tick(200);
+  const n2 = [await side(), await at(() => found)].join();
+  await tab.click('#side .nav-group > summary >> nth=0'); // (closed while filtered: not remembered)
+  await tick();
+  await tab.fill('#side-q', 'zzz');
+  await tick(200);
+  const n3 = [await side(), await at(() => document.querySelector('#side .nav-none').textContent), await at(() => found)].join();
+  await tab.fill('#side-q', '');
+  await tick(200);
+  check('1.14 nav: the filter keeps what has the words, with its group and heading', n1 === 'Pieces | [Lists: More The end,1' && n2 === 'Pieces | [Trees: Files One <b>,2' && n3 === ',Nothing by that name,0', n1 + ' / ' + n2 + ' / ' + n3);
+  check('1.14 nav: then all as it was', (await side()) === 'Overview | Pieces | [Trees: Files One <b> | [Lists: Rules More The end A button | Other | Busy91%' && (await at(() => localStorage.getItem('test-nav'))) === store && (await at(() => document.querySelector('#side .nav-none').textContent)) === '', await side());
+  const cur = await at(() => { for (const d of document.querySelectorAll('#side details')) d.open = false; nav.current('#end'); const a = [[...document.querySelectorAll('#side [aria-current="page"]')].map((x) => x.textContent).join(), [...document.querySelectorAll('#side details')].map((d) => d.open).join()]; nav.current(null); a.push(document.querySelectorAll('#side [aria-current="page"]').length); nav.update([{ label: 'Only', href: '#x', items: [{ label: 'in', href: '#in' }] }]); a.push(document.querySelector('#side').textContent); return a.join(); });
+  check('1.14 nav: current() and update()', cur === 'The end,false,true,true,0,Onlyin', cur);
+  const adopted = await at(() => { const d = document.createElement('nav'); d.innerHTML = Dash.nav.html([{ label: 'A', items: [{ label: 'x', href: 'x.html' }] }, { label: 'B', items: [{ label: 'y', href: 'y.html', key: 'why' }], open: true }]); document.body.append(d); const h = Dash.nav(d, null, { current: 'x.html' }); const a = [...d.querySelectorAll('details')].map((x) => x.open).join(); const n = h.filter('y'); const b = [...d.querySelectorAll('details')].map((x) => x.hidden).join(); h.filter(''); h.stop(); d.remove(); return [a, n, b].join(); });
+  check('1.14 nav: links that are already in the page', adopted === 'true,true,1,true,false', adopted);
+
+  const html = await at(() => Dash.nav.html([{ label: 'A', items: [{ label: 'x', href: 'x.html' }] }, { label: 'B', items: [{ label: 'C', items: [{ label: 'y', href: 'y.html' }] }] }, { label: 'D', open: true, items: [] }], { current: 'y.html', open: { A: false } }).match(/<details[^>]*>|aria-current="page"/g).map((x) => (x.startsWith('<') ? (/ open>/.test(x) ? 'open' : 'shut') : x)).join());
+  check('1.14 nav: its HTML on its own has the groups of the current page open', html === 'shut,open,open,aria-current="page",open', html);
+
+  // the rail, and the drawer
+  await tab.reload();
+  await tab.click('[data-toggle-side]');
+  const rail = await at(() => [...document.querySelectorAll('#side .nav-list, #side .nav-main, #side .count-badge')].filter((x) => x.checkVisibility()).length);
+  await tab.click('#side .nav-group > summary >> nth=0');
+  await tick();
+  const wide = await at(() => [document.querySelector('.shell').className, document.querySelector('#side .nav-group').open, document.querySelector('[data-toggle-side]').getAttribute('aria-expanded'), localStorage.getItem(Dash.config.sideKey)].join());
+  check('1.14 nav: in the rail a group brings the sidebar back', rail === 0 && wide === 'shell offcanvas,true,true,"open"', rail + wide);
+  await tab.context().close();
+  const phone = await openLists({ width: 390, height: 780, hasTouch: true, isMobile: true });
+  await phone.click('[data-toggle-side]');
+  await phone.waitForTimeout(300);
+  await phone.click('#side .nav-group >> nth=1 >> summary >> nth=0');
+  await phone.waitForTimeout(60);
+  const d1 = await phone.evaluate(() => [document.querySelector('.shell').classList.contains('side-open'), document.querySelectorAll('#side .nav-group')[1].open].join());
+  const railed = await phone.evaluate(() => { const s = document.querySelector('.shell'); s.classList.add('collapsed'); const a = [...document.querySelectorAll('#side .nav-list')].slice(0, 2).map((x) => x.checkVisibility()).join(); s.classList.remove('collapsed'); return a; });
+  check('1.14 nav: in the drawer, the groups show also when the sidebar is a rail on a wide screen', railed === 'true,true', railed);
+  await phone.click('#side .nav-group >> nth=1 >> .nav-list > a >> nth=0');
+  await phone.waitForTimeout(60);
+  check('1.14 nav: in the drawer, opening a group leaves it open; a link closes it', d1 === 'true,true' && !(await phone.evaluate(() => document.querySelector('.shell').classList.contains('side-open'))), d1);
+  const fits = await phone.evaluate(() => { files.expand(true); one.expand(true); const r = [...document.querySelectorAll('.tree-row, .entry')].filter((x) => x.checkVisibility()); return [document.documentElement.scrollWidth - innerWidth, Math.min(...r.map((x) => Math.round(x.getBoundingClientRect().height))) >= 38, Math.min(...[...document.querySelectorAll('.tree-text')].map((x) => x.getBoundingClientRect().width)) > 60, getComputedStyle(document.querySelector('#files .row-dots')).visibility, [...document.querySelectorAll('.tree-text')].every((x) => x.getBoundingClientRect().right <= x.closest('.panel').getBoundingClientRect().right), [...document.querySelectorAll('.tree-text')].some((x) => x.scrollWidth > x.clientWidth)].join(); });
+  check('1.14 on a phone: six levels fit, rows are large enough to press, and the dots show', fits === '0,true,true,visible,true,true', fits);
+  // dragging by touch doesn't scroll the page
+  await phone.evaluate(() => { document.getElementById('rules').scrollIntoView({ block: 'center' }); log.length = 0; });
+  await phone.waitForTimeout(100);
+  const touch = async (type, x, y) => { await cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y }] }); };
+  const cdp = await phone.context().newCDPSession(phone);
+  const from = await phone.locator('#rules li[data-key="a"] [data-grip]').boundingBox(), to = await phone.locator('#rules li[data-key="c"] [data-grip]').boundingBox();
+  const y0 = await phone.evaluate(() => scrollY);
+  await touch('touchStart', from.x + 10, from.y + 10);
+  for (let i = 1; i <= 5; i++) await touch('touchMove', from.x + 10, from.y + 10 + ((to.y + 14 - from.y) * i) / 5);
+  await touch('touchEnd');
+  await phone.waitForTimeout(60);
+  const touched = await phone.evaluate(() => [log.filter((x) => x.startsWith('move')).join(), scrollY].join());
+  check('1.14 on a phone: a row is dragged by its grip, and the page stays', touched === `move a 0>2 bcade,${y0}`, touched + ' ' + y0);
+  await phone.context().close();
+
+  // the section being read
+  const spy = await openLists({ height: 700 });
+  const now = () => spy.evaluate(() => [...document.querySelectorAll('#side [aria-current="location"]')].map((x) => x.getAttribute('href')).join());
+  const at0 = await now();
+  await spy.evaluate(() => { document.getElementById('lists').scrollIntoView(); scrollBy(0, 5); });
+  await spy.waitForTimeout(80);
+  const at1 = await now();
+  await spy.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
+  await spy.waitForTimeout(80);
+  const at2 = [await now(), await spy.evaluate(() => `${window.spy.current} ${log.filter((x) => x.startsWith('at ')).join()}`)].join();
+  check('1.14 spy: the link to the section being read is marked', at0 === '#trees' && at1 === '#lists' && at2 === '#end,end at trees,at lists,at end', [at0, at1, at2].join(' / '));
+  await spy.evaluate(() => { document.getElementById('end').lastElementChild.style.height = '10px'; scrollTo(0, 0); });
+  await spy.waitForTimeout(80);
+  await spy.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
+  await spy.waitForTimeout(80);
+  check('1.14 spy: the end of the page is its last section, too short to reach the top', (await now()) === '#end', await now());
+  await spy.evaluate(() => { scrollTo(0, 0); for (const d of document.querySelectorAll('#side details')) d.open = true; const b = document.querySelector('.sidebar'); b.style.maxHeight = '120px'; b.scrollTop = 0; });
+  await spy.waitForTimeout(80);
+  await spy.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
+  await spy.waitForTimeout(80);
+  const inBox = await spy.evaluate(() => { const b = document.querySelector('.sidebar'), x = document.querySelector('#side a[href="#end"]').getBoundingClientRect(), r = b.getBoundingClientRect(), a = [b.scrollHeight > b.clientHeight, x.top >= r.top && x.bottom <= r.bottom].join(); b.style.maxHeight = ''; scrollTo(0, 0); return a; });
+  check('1.14 spy: the marked link is kept in view in its own box', inBox === 'true,true', inBox);
+  await spy.waitForTimeout(80);
+  await spy.click('#side a[href="#lists"]');
+  await spy.waitForTimeout(700);
+  const held1 = await now();
+  await spy.click('#side a[href="#end"]');
+  await spy.waitForTimeout(700);
+  const held2 = await now();
+  await spy.mouse.move(800, 400);
+  await spy.mouse.wheel(0, -900);
+  await spy.waitForTimeout(250);
+  check('1.14 spy: one that is clicked, until the reader scrolls on', held1 === '#lists' && held2 === '#end' && (await now()) !== '#end', [held1, held2, await now()].join());
+  await spy.evaluate(() => { location.hash = '#trees'; });
+  await spy.waitForTimeout(600);
+  const hashed = await now();
+  await spy.evaluate(() => { document.querySelector('#lists .grid').style.display = 'none'; location.hash = '#lists'; }); // (now too near the end to reach the top)
+  await spy.waitForTimeout(700);
+  const near = [await now()];
+  await spy.evaluate(() => scrollTo(0, 0));
+  await spy.waitForTimeout(300);
+  near.push(await now());
+  await spy.click('#side a[href="#lists"]'); // (the address stays as it is)
+  await spy.waitForTimeout(700);
+  near.push(await now());
+  check('1.14 spy: a link that is clicked again counts, though the address stays', near.join() === '#lists,#trees,#lists', near.join());
+  await spy.evaluate(() => { location.hash = '#trees'; });
+  await spy.waitForTimeout(600);
+  await spy.evaluate(() => { window.spy.stop(); scrollTo(0, document.documentElement.scrollHeight); });
+  await spy.waitForTimeout(80);
+  check('1.14 spy: the address too; stop()', hashed === '#trees' && (await now()) === '#trees', hashed + await now());
+  await spy.context().close();
+
+  // a strict style policy
+  const strict = await openLists({ page: 'csp-lists.html' });
+  await strict.locator('#list').scrollIntoViewIfNeeded();
+  const g = await strict.locator('#list [data-grip] >> nth=0').boundingBox();
+  await strict.mouse.move(g.x + 5, g.y + 8);
+  await strict.mouse.down();
+  await strict.mouse.move(g.x + 5, g.y + 30, { steps: 3 });
+  await strict.mouse.move(g.x + 5, g.y + 95, { steps: 3 });
+  await strict.waitForTimeout(60);
+  const ghost = await strict.evaluate(() => [Math.round(document.querySelector('.drag-ghost').getBoundingClientRect().top - document.querySelector('.drag-from').getBoundingClientRect().top), getComputedStyle(document.querySelector('.drop-line')).top !== 'auto']);
+  await strict.mouse.up();
+  await strict.waitForTimeout(60);
+  const csp = await strict.evaluate((g) => [g[0], g[1], document.querySelector('#list li').dataset.key, document.querySelector('.entries-scroll').clientHeight, document.querySelectorAll('#tree [role="treeitem"]').length, document.querySelectorAll('[style]').length, document.querySelectorAll('main [style]').length, violations.length].join(), ghost);
+  check('1.14 under a strict style policy: the height, the drag and the avatars too', /^\d+,true,1,200,31,\d+,\d+,0$/.test(csp) && Number(csp.split(',')[0]) > 50, csp);
+  await strict.context().close();
+
+  // high contrast: what is picked, ticked and focused is more than a background
+  const hc = await openLists({ forcedColors: 'active' });
+  const shown = await hc.evaluate(async () => { const s = (q) => getComputedStyle(document.querySelector(q)); servers.select(['s1']); await new Promise((ok) => setTimeout(ok, 60)); const a = [s('#one [aria-selected="true"] > .tree-row').outlineStyle, s('#people [aria-selected="true"]').outlineStyle, s('#many [aria-checked="true"] .pick-box').backgroundColor !== s('#many [aria-checked="false"] .pick-box').backgroundColor, s('#side [aria-current="location"] .nav-name').textDecorationLine, s('#servers [aria-selected="true"] .pick-box').backgroundColor !== s('#servers [aria-selected="false"] .pick-box').backgroundColor, (() => { const i = document.createElement('i'); i.style.backgroundColor = 'Highlight'; document.body.append(i); const c = getComputedStyle(i).backgroundColor; i.remove(); return s('#many [aria-checked="true"] .pick-box').backgroundColor === c; })()]; return a.join(); });
+  check('1.14 in high contrast: picked rows, ticked boxes and the section being read show', shown === 'solid,solid,true,underline,true,true', shown);
+  await hc.focus('#one [tabindex="0"]');
+  await hc.keyboard.press('ArrowDown');
+  const ringed = await hc.evaluate(() => [getComputedStyle(document.activeElement.querySelector('.tree-row')).outlineStyle, getComputedStyle(document.querySelector('#one [aria-selected="true"] > .tree-row')).outlineStyle].join());
+  check('1.14 in high contrast: the focus is told apart from the pick', ringed === 'double,solid', ringed);
+  await hc.context().close();
+}
+
+// ---- 1.14 the docs' own sidebar, and the page of all components
+{
+  const open = async (page, width = 1280, height = 800) => {
+    const ctx = await browser.newContext({ viewport: { width, height }, locale: 'en-US', reducedMotion: 'reduce' });
+    const tab = await ctx.newPage();
+    tab.setDefaultTimeout(5000);
+    tab.on('pageerror', (e) => errors.push(e.message));
+    await tab.goto(url.replace('test/behaviour.html', page), { waitUntil: 'load' });
+    await tab.waitForTimeout(150);
+    return tab;
+  };
+  const tab = await open('docs/lists.html#tree');
+  const side = () => tab.evaluate(() => [[...document.querySelectorAll('#docs-nav details[open] > summary')].map((x) => x.textContent).join(), [...document.querySelectorAll('#docs-nav [aria-current]')].map((x) => `${x.textContent}:${x.getAttribute('aria-current')}`).join()].join(' '));
+  const first = await side();
+  check('1.14 docs: the sidebar has this page\'s class open and the section being read marked', first === 'Lists and trees Trees:location', first);
+  const tall = await open('docs/lists.html#facts', 1280, 2600);
+  const late = await tall.evaluate(() => [...document.querySelectorAll('#docs-nav [aria-current="location"]')].map((x) => x.getAttribute('href')).join());
+  check('1.14 docs: opened at a section too near the end to reach the top, that one is marked', late === '#facts', late);
+  await tall.context().close();
+  const inView = await tab.evaluate(() => { const a = document.querySelector('#docs-nav [aria-current]').getBoundingClientRect(), s = document.querySelector('.sidebar').getBoundingClientRect(); return a.top >= s.top && a.bottom <= s.bottom; });
+  check('1.14 docs: and in view', inView, '');
+  await tab.fill('#docs-filter', 'date');
+  await tab.waitForTimeout(250);
+  const hits = await tab.evaluate(() => [...document.querySelectorAll('#docs-nav a')].filter((x) => x.checkVisibility()).map((x) => x.textContent).join());
+  check('1.14 docs: the box over it filters it', hits === 'Dates', hits);
+  await tab.click('#docs-nav a[href="forms.html#datepicker"]');
+  await tab.waitForTimeout(250);
+  check('1.14 docs: a link goes to its section', tab.url().endsWith('/docs/forms.html#datepicker') && (await side()) === 'Forms Dates:location', tab.url() + await side());
+  await tab.click('#docs-nav summary:has-text("Tables")');
+  await tab.waitForTimeout(60);
+  await tab.goto(url.replace('test/behaviour.html', 'docs/buttons.html'), { waitUntil: 'load' });
+  await tab.waitForTimeout(150);
+  check('1.14 docs: the classes the reader opened stay open on the next page', (await side()).startsWith('Buttons,Tables '), await side());
+  for (const [from, to] of [['text.html#pills', 'labels.html#pills'], ['feedback.html#private', 'privacy.html#private'], ['navigation.html#timeline', 'lists.html#timeline']]) {
+    await tab.goto(url.replace('test/behaviour.html', 'docs/' + from), { waitUntil: 'load' });
+    await tab.waitForTimeout(250);
+    check(`1.14 docs: an old link to ${from} goes where that is now`, tab.url().endsWith('/docs/' + to), tab.url());
+  }
+  await tab.goto(url.replace('test/behaviour.html', 'docs/components.html'), { waitUntil: 'load' });
+  const cards = () => tab.evaluate(() => [[...document.querySelectorAll('.docs-class')].filter((x) => !x.hidden).map((x) => x.id).join(), [...document.querySelectorAll('.docs-class .card')].filter((x) => x.checkVisibility()).length, document.getElementById('docs-found').textContent, [...document.querySelectorAll('#docs-nav [aria-current="page"]')].map((x) => x.textContent).join()].join(' / '));
+  const all = await cards();
+  check('1.14 docs: all components, by their class', /^buttons,forms,labels,lists,tables,charts,surfaces,navigation,overlays,feedback,privacy \/ (\d+) \/ \1 components \/ All components$/.test(all), all);
+  await tab.fill('#docs-find', 'Dash.tree');
+  await tab.waitForTimeout(250);
+  const trees = await cards();
+  await tab.fill('#docs-find', 'zzz');
+  await tab.waitForTimeout(250);
+  check('1.14 docs: found by a name, a class or a function', trees === 'lists / 1 / 1 component / All components' && (await cards()) === ' / 0 / Nothing by that name / All components', trees + await cards());
+  await tab.context().close();
+  // the gallery
+  const gal = await open('index.html#lists');
+  const g = await gal.evaluate(() => { const links = [...document.querySelectorAll('#side a')]; return [document.querySelectorAll('#side .side-head').length, links.every((a) => document.getElementById(a.getAttribute('href').slice(1))), links.length > 20, document.querySelector('#side [aria-current="location"]')?.getAttribute('href'), ['colours', 'numbers', 'labels', 'controls', 'surfaces', 'tables', 'charts', 'more', 'popups', 'forms', 'feedback'].every((id) => document.getElementById(id))].join(); });
+  check('1.14 gallery: a sidebar of its sections by class, every link to something; the old anchors still there', g === '2,true,true,#lists,true', g);
+  await gal.context().close();
 }
 
 await browser.close();

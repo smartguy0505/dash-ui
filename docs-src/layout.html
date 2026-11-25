@@ -33,43 +33,6 @@
       </example>
     </section>
 
-    <section id="sidebar" data-terms=".shell .sidebar .content .side-head .nav-item .nav-icon .nav-main .nav-name .nav-sub .nav-meta .attn .collapsed data-toggle-side --side-w dash:side">
-      <h2>A sidebar</h2>
-      <p><code>.shell</code> puts a <code>.sidebar</code> beside the <code>.content</code>. The sidebar holds <code>.side-head</code> labels and <code>.nav-item</code> links or buttons. An item has an optional <code>.nav-icon</code>, a <code>.nav-main</code> with a <code>.nav-name</code> and a <code>.nav-sub</code>, and a <code>.nav-meta</code> on the right. <code>aria-current="page"</code> marks where the reader is; <code>.attn</code> with a tone tints one that needs a look.</p>
-      <example title="A sidebar (shown here at its own height)">
-        <div class="shell">
-          <nav class="sidebar h-auto static" aria-label="Places">
-            <div class="side-head">Servers <span class="count-badge">3</span></div>
-            <a class="nav-item" href="#sidebar" aria-current="page"><span class="nav-main"><span class="nav-name">Overview</span></span></a>
-            <a class="nav-item" href="#sidebar"><span class="nav-main"><span class="nav-name">web-1</span><span class="nav-sub">Frankfurt</span></span><span class="nav-meta"><span>42%</span></span></a>
-            <a class="nav-item attn warn" href="#sidebar"><span class="nav-main"><span class="nav-name">web-2</span><span class="nav-sub">Busy for 12 min</span></span><span class="nav-meta"><span class="tone warn">91%</span></span></a>
-          </nav>
-          <main class="content"><p class="muted">The page's content.</p></main>
-        </div>
-      </example>
-      <p>A button with <code>data-toggle-side</code> folds the sidebar to a 64 px rail of icons (<code>.shell.collapsed</code>) and back; the choice is remembered (<code>Dash.config.sideKey</code>), and <code>document</code> gets a <code>dash:side</code> event with <code>e.detail.collapsed</code>. <code>--side-w</code> sets the sidebar's width.</p>
-    </section>
-
-    <section id="drawer" data-terms=".offcanvas .side-open Dash.side Dash.side.open Dash.side.close">
-      <h2>The sidebar as a drawer</h2>
-      <p>Add <code>.offcanvas</code> to the shell and, from 900 px down, the sidebar becomes a drawer over the page. The same <code>data-toggle-side</code> button opens it there (and still folds the rail on a wider screen). While it's open, the rest of the page is inert; Escape, a click outside it or a link inside closes it, and the focus goes back to the button. These docs use it: make the window narrow and press ≡.</p>
-      <example frame title="A page with a drawer">
-        <header class="topbar">
-          <button type="button" class="side-toggle" data-toggle-side aria-label="Pages">≡</button>
-          <div class="brand"><span class="mark">F</span><h1>Fleet</h1></div>
-        </header>
-        <div class="shell offcanvas">
-          <nav class="sidebar" aria-label="Pages">
-            <a class="nav-item" href="#" aria-current="page"><span class="nav-main"><span class="nav-name">Overview</span></span></a>
-            <a class="nav-item" href="#"><span class="nav-main"><span class="nav-name">Servers</span></span></a>
-            <a class="nav-item" href="#"><span class="nav-main"><span class="nav-name">Alerts</span></span></a>
-          </nav>
-          <main class="content"><p>Press ≡ to open the drawer; Escape or a click beside it closes it.</p></main>
-        </div>
-      </example>
-      <p><code>Dash.side.open()</code> and <code>Dash.side.close()</code> do it from code; <code>open</code> returns <code>false</code> on a wider screen, where there is no drawer.</p>
-    </section>
-
     <section id="grids" data-terms=".grid .span-2 --cols .cards --card-min .vstack .row .toolbar .push .grow">
       <h2>Grids, stacks and rows</h2>
       <ul>

@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="en" data-kit="../">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lists and trees · dash-ui</title>
+<meta name="description" content="Lists to read, to pick from and to put in order, trees, facts and timelines.">
+<link rel="stylesheet" href="../dash.css">
+<link rel="stylesheet" href="../dash-utils.css">
+<link rel="stylesheet" href="docs.css">
+<script src="../dash.js"></script>
+</head>
+<body>
+<!-- dash-ui 1.14.0 docs, written by tools/docs.mjs from docs-src/lists.html: edit that, not this -->
+<header class="topbar">
+  <button type="button" class="icon-btn docs-menu" data-toggle-side aria-label="Pages"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3 5h12M3 9h12M3 13h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+  <a class="brand" href="./"><span class="mark">d</span><h1>dash-ui</h1></a><span class="tag plain docs-version">1.14.0</span>
+  <div class="top-right">
+    <label class="search docs-search"><span class="sr-only">Search the docs</span><svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.6"/><path d="m11 11 3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><input class="input" type="search" id="docs-search" placeholder="Search" aria-keyshortcuts="/"><kbd class="docs-key">/</kbd></label>
+    <div class="seg" role="group" aria-label="Theme"><button type="button" data-theme-set="system">Auto</button><button type="button" data-theme-set="light">Light</button><button type="button" data-theme-set="dark">Dark</button></div>
+  </div>
+</header>
+<div class="shell offcanvas">
+  <nav class="sidebar" aria-label="Pages">
+    <label class="search docs-filter"><span class="sr-only">Filter the list</span><input class="input sm" id="docs-filter" type="search" placeholder="Filter components" autocomplete="off"></label>
+    <div id="docs-nav"><div class="side-head">Start</div><details class="nav-group" data-key="nav index"><summary class="nav-item"><span class="nav-main"><span class="nav-name">Getting started</span></span></summary><div class="nav-list"><a class="nav-item" data-key="./#what" href="./#what"><span class="nav-main"><span class="nav-name">What it is</span></span></a><a class="nav-item" data-key="./#install" href="./#install"><span class="nav-main"><span class="nav-name">Add it to a page</span></span></a><a class="nav-item" data-key="./#first-page" href="./#first-page"><span class="nav-main"><span class="nav-name">A first page</span></span></a><a class="nav-item" data-key="./#parts" href="./#parts"><span class="nav-main"><span class="nav-name">What&#39;s in the kit</span></span></a><a class="nav-item" data-key="./#principles" href="./#principles"><span class="nav-main"><span class="nav-name">What every piece does</span></span></a></div></details><a class="nav-item" data-key="components.html" href="components.html"><span class="nav-main"><span class="nav-name">All components</span></span></a><div class="side-head">Foundations</div><details class="nav-group" data-key="nav colours"><summary class="nav-item"><span class="nav-main"><span class="nav-name">Colours and themes</span></span></summary><div class="nav-list"><a class="nav-item" data-key="colours.html#tokens" href="colours.html#tokens"><span class="nav-main"><span class="nav-name">The tokens</span></span></a><a class="nav-item" data-key="colours.html#tones" href="colours.html#tones"><span class="nav-main"><span class="nav-name">Tones</span></span></a><a class="nav-item" data-key="colours.html#tint" href="colours.html#tint"><span class="nav-main"><span class="nav-name">A tinted block</span></span></a><a class="nav-item" data-key="colours.html#themes" href="colours.html#themes"><span class="nav-main"><span class="nav-name">Light and dark</span></span></a><a class="nav-item" data-key="colours.html#contrast" href="colours.html#contrast"><span class="nav-main"><span class="nav-name">Forced colours and less motion</span></span></a></div></details><details class="nav-group" data-key="nav layout"><summary class="nav-item"><span class="nav-main"><span class="nav-name">Page layout</span></span></summary><div class="nav-list"><a class="nav-item" data-key="layout.html#topbar" href="layout.html#topbar"><span class="nav-main"><span class="nav-name">The top bar</span></span></a><a class="nav-item" data-key="layout.html#page" href="layout.html#page"><span class="nav-main"><span class="nav-name">The page</span></span></a><a class="nav-item" data-key="layout.html#grids" href="layout.html#grids"><span class="nav-main"><span class="nav-name">Grids, stacks and rows</span></span></a><a class="nav-item" data-key="layout.html#phone" href="layout.html#phone"><span class="nav-main"><span class="nav-name">On a phone</span></span></a></div></details><a class="nav-item" data-key="text.html" href="text.html"><span class="nav-main"><span class="nav-name">Text</span></span></a><div class="side-head">Components</div><details class="nav-group" data-key="nav buttons"><summary class="nav-item"><span class="nav-main"><span class="nav-name">Buttons</span></span></summary><div class="nav-list"><a class="nav-item" data-key="buttons.html#buttons" href="buttons.html#buttons"><span class="nav-main"><span class="nav-name">Buttons</span></span></a><a class="nav-item" data-key="buttons.html#busy" href="buttons.html#busy"><span class="nav-main"><span class="nav-name">Busy buttons and spinners</span></span></a><a class="nav-item" data-key="buttons.html#icon-buttons" href="buttons.html#icon-buttons"><span class="nav-main"><span class="nav-name">Icon buttons</span></span></a><a class="nav-item" data-key="buttons.html#links" href="buttons.html#links"><span class="nav-main"><span class="nav-name">Buttons that look like links</span></span></a><a class="nav-item" data-key="buttons.html#segmented" href="buttons.html#segmented"><span class="nav-main"><span class="nav-name">Segmented controls</span></span></a><a class="nav-item" data-key="buttons.html#menus" href="buttons.html#menus"><span class="nav-main"><span class="nav-name">Menus without code</span></span></a><a class="nav-item" data-key="buttons.html#copy" href="buttons.html#copy"><span class="nav-main"><span class="nav-name">Copy buttons</span></span></a></div></details><details class="nav-group" data-key="nav forms"><summary class="nav-item"><span class="nav-main"><span class="nav-name">Forms</span></span></summary><div class="nav-list"><a class="nav-item" data-key="forms.html#inputs" href="forms.html#inputs"><span class="nav-main"><span class="nav-name">Inputs</span></span></a><a class="nav-item" data-key="forms.html#fields" href="forms.html#fields"><span class="nav-main"><span class="nav-name">Fields</span></span></a><a class="nav-item" data-key="forms.html#search" href="forms.html#search"><span class="nav-main"><span class="nav-name">Search boxes</span></span></a><a class="nav-item" data-key="forms.html#select" href="forms.html#select"><span class="nav-main"><span class="nav-name">Selects</span></span></a><a class="nav-item" data-key="forms.html#input-group" href="forms.html#input-group"><span class="nav-main"><span class="nav-name">Input groups</span></span></a><a class="nav-item" data-key="forms.html#checks" href="forms.html#checks"><span class="nav-main"><span class="nav-name">Checkboxes and radios</span></span></a><a class="nav-item" data-key="forms.html#choices" href="forms.html#choices"><span class="nav-main"><span class="nav-name">Choices as cards</span></span></a><a class="nav-item" data-key="forms.html#switch" href="forms.html#switch"><span class="nav-main"><span class="nav-name">Switches</span></span></a><a class="nav-item" data-key="forms.html#slider" href="forms.html#slider"><span class="nav-main"><span class="nav-name">Sliders</span></span></a><a class="nav-item" data-key="forms.html#dropzone" href="forms.html#dropzone"><span class="nav-main"><span class="nav-name">Dropping files</span></span></a><a class="nav-item" data-key="forms.html#combobox" href="forms.html#combobox"><span class="nav-main"><span class="nav-name">Suggestions</span></span></a><a class="nav-item" data-key="forms.html#datepicker" href="forms.html#datepicker"><span class="nav-main"><span class="nav-name">Dates</span></span></a><a class="nav-item" data-key="forms.html#validation" href="forms.html#validation"><span class="nav-main"><span class="nav-name">Checking a form</span></span></a></div></details><details class="nav-group" data-key="nav labels"><summary class="nav-item"><span class="nav-main"><span class="nav-name">Labels and badges</span></span></summary><div class="nav-list"><a class="nav-item" data-key="labels.html#pills" href="labels.html#pills"><span class="nav-main"><span class="nav-name">Status pills</span></span></a><a class="nav-item" data-key="labels.html#tags" href="labels.html#tags"><span class="nav-main"><span class="nav-name">Tags</span></span></a><a class="nav-item" data-key="labels.html#chips" href="labels.html#chips"><span class="nav-main"><span class="nav-name">Chips</span></span></a><a class="nav-item" data-key="labels.html#changes" href="labels.html#changes"><span class="nav-main"><span class="nav-name">Changes and ranks</span></span></a><a class="nav-item" data-key="labels.html#avatars" href="labels.html#avatars"><span class="nav-main"><span class="nav-name">Avatars</span></span></a><a class="nav-item" data-key="labels.html#badges" href="labels.html#badges"><span class="nav-main"><span class="nav-name">Badges</span></span></a></div></details><details class="nav-group" data-key="nav lists" open><summary class="nav-item"><span class="nav-main"><span class="nav-name">Lists and trees</span></span></summary><div class="nav-list"><a class="nav-item" data-key="#entries" href="#entries"><span class="nav-main"><span class="nav-name">Lists</span></span></a><a class="nav-item" data-key="#pick-list" href="#pick-list"><span class="nav-main"><span class="nav-name">Lists to pick from</span></span></a><a class="nav-item" data-key="#reorder" href="#reorder"><span class="nav-main"><span class="nav-name">Lists to put in order</span></span></a><a class="nav-item" data-key="#long-lists" href="#long-lists"><span class="nav-main"><span class="nav-name">Long lists</span></span></a><a class="nav-item" data-key="#tree" href="#tree"><span class="nav-main"><span class="nav-name">Trees</span></span></a><a class="nav-item" data-key="#tree-pick" href="#tree-pick"><span class="nav-main"><span class="nav-name">Trees to pick from</span></span></a><a class="nav-item" data-key="#tree-load" href="#tree-load"><span class="nav-main"><span class="nav-name">Trees that load as they open</span></span></a><a class="nav-item" data-key="#facts" href="#facts"><span class="nav-main"><span class="nav-name">Facts</span></span></a><a class="nav-item" data-key="#timeline" href="#timeline"><span class="nav-main"><span class="nav-name">Timelines</span></span></a></div></details><details class="nav-group" data-key="nav tables"><summary class="nav-item"><span class="nav-main"><span class="nav-name">Tables</span></span></summary><div class="nav-list"><a class="nav-item" data-key="tables.html#table" href="tables.html#table"><span class="nav-main"><span class="nav-name">A table from its columns</span></span></a><a class="nav-item" data-key="tables.html#select" href="tables.html#select"><span class="nav-main"><span class="nav-name">Rows to pick</span></span></a><a class="nav-item" data-key="tables.html#expand" href="tables.html#expand"><span class="nav-main"><span class="nav-name">Rows that open</span></span></a><a class="nav-item" data-key="tables.html#markup" href="tables.html#markup"><span class="nav-main"><span class="nav-name">Tables by hand</span></span></a><a class="nav-item" data-key="tables.html#rows" href="tables.html#rows"><span class="nav-main"><span class="nav-name">Row states</span></span></a><a class="nav-item" data-key="tables.html#phones" href="tables.html#phones"><span class="nav-main"><span class="nav-name">On a phone, and long tables</span></span></a><a class="nav-item" data-key="tables.html#data" href="tables.html#data"><span class="nav-main"><span class="nav-name">Working with rows</span></span></a></div></details><details class="nav-group" data-key="nav charts"><summary class="nav-item"><span class="nav-main"><span class="nav-name">Charts and progress</span></span></summary><div class="nav-list"><a class="nav-item" data-key="charts.html#bars" href="charts.html#bars"><span class="nav-main"><span class="nav-name">Bars</span></span></a><a class="nav-item" data-key="charts.html#legend" href="charts.html#legend"><span class="nav-main"><span class="nav-name">Legends</span></span></a><a class="nav-item" data-key="charts.html#hbars" href="charts.html#hbars"><span class="nav-main"><span class="nav-name">Horizontal bars</span></span></a><a class="nav-item" data-key="charts.html#columns" href="charts.html#columns"><span class="nav-main"><span class="nav-name">Column charts</span></span></a><a class="nav-item" data-key="charts.html#lines" href="charts.html#lines"><span class="nav-main"><span class="nav-name">Line charts</span></span></a><a class="nav-item" data-key="charts.html#donuts" href="charts.html#donuts"><span class="nav-main"><span class="nav-name">Donuts</span></span></a><a class="nav-item" data-key="charts.html#gauges" href="charts.html#gauges"><span class="nav-main"><span class="nav-name">Gauges</span></span></a><a class="nav-item" data-key="charts.html#spark" href="charts.html#spark"><span class="nav-main"><span class="nav-name">Sparklines</span></span></a><a class="nav-item" data-key="charts.html#lanes" href="charts.html#lanes"><span class="nav-main"><span class="nav-name">Lanes</span></span></a><a class="nav-item" data-key="charts.html#progress" href="charts.html#progress"><span class="nav-main"><span class="nav-name">Progress</span></span></a><a class="nav-item" data-key="charts.html#strict" href="charts.html#strict"><span class="nav-main"><span class="nav-name">Under a strict style policy</span></span></a></div></details><details class="nav-group" data-key="nav surfaces"><summary class="nav-item"><span class="nav-main"><span class="nav-name">Panels and cards</span></span></summary><div class="nav-list"><a class="nav-item" data-key="surfaces.html#panels" href="surfaces.html#panels"><span class="nav-main"><span class="nav-name">Panels</span></span></a><a class="nav-item" data-key="surfaces.html#cards" href="surfaces.html#cards"><span class="nav-main"><span class="nav-name">Cards</span></span></a><a class="nav-item" data-key="surfaces.html#stats" href="surfaces.html#stats"><span class="nav-main"><span class="nav-name">Stat tiles</span></span></a><a class="nav-item" data-key="surfaces.html#hero" href="surfaces.html#hero"><span class="nav-main"><span class="nav-name">The big number</span></span></a><a class="nav-item" data-key="surfaces.html#banner" href="surfaces.html#banner"><span class="nav-main"><span class="nav-name">Status banners</span></span></a><a class="nav-item" data-key="surfaces.html#callouts" href="surfaces.html#callouts"><span class="nav-main"><span class="nav-name">Callouts and rings</span></span></a><a class="nav-item" data-key="surfaces.html#accordion" href="surfaces.html#accordion"><span class="nav-main"><span class="nav-name">Accordions</span></span></a><a class="nav-item" data-key="surfaces.html#divider" href="surfaces.html#divider"><span class="nav-main"><span class="nav-name">Dividers</span></span></a></div></details><details class="nav-group" data-key="nav navigation"><summary class="nav-item"><span class="nav-main"><span class="nav-name">Navigation</span></span></summary><div class="nav-list"><a class="nav-item" data-key="navigation.html#sidebar" href="navigation.html#sidebar"><span class="nav-main"><span class="nav-name">A sidebar</span></span></a><a class="nav-item" data-key="navigation.html#side-groups" href="navigation.html#side-groups"><span class="nav-main"><span class="nav-name">Sidebar groups</span></span></a><a class="nav-item" data-key="navigation.html#drawer" href="navigation.html#drawer"><span class="nav-main"><span class="nav-name">The sidebar as a drawer</span></span></a><a class="nav-item" data-key="navigation.html#spy" href="navigation.html#spy"><span class="nav-main"><span class="nav-name">Section being read</span></span></a><a class="nav-item" data-key="navigation.html#tabs" href="navigation.html#tabs"><span class="nav-main"><span class="nav-name">Tabs</span></span></a><a class="nav-item" data-key="navigation.html#crumbs" href="navigation.html#crumbs"><span class="nav-main"><span class="nav-name">Breadcrumbs</span></span></a><a class="nav-item" data-key="navigation.html#stepper" href="navigation.html#stepper"><span class="nav-main"><span class="nav-name">Steps</span></span></a><a class="nav-item" data-key="navigation.html#pager" href="navigation.html#pager"><span class="nav-main"><span class="nav-name">Pages of rows</span></span></a></div></details><details class="nav-group" data-key="nav overlays"><summary class="nav-item"><span class="nav-main"><span class="nav-name">Modals and popups</span></span></summary><div class="nav-list"><a class="nav-item" data-key="overlays.html#questions" href="overlays.html#questions"><span class="nav-main"><span class="nav-name">Asking a question</span></span></a><a class="nav-item" data-key="overlays.html#modal" href="overlays.html#modal"><span class="nav-main"><span class="nav-name">Modals</span></span></a><a class="nav-item" data-key="overlays.html#dialogs" href="overlays.html#dialogs"><span class="nav-main"><span class="nav-name">Dialogs and drawers by hand</span></span></a><a class="nav-item" data-key="overlays.html#popups" href="overlays.html#popups"><span class="nav-main"><span class="nav-name">Popups</span></span></a><a class="nav-item" data-key="overlays.html#menus" href="overlays.html#menus"><span class="nav-main"><span class="nav-name">Menus</span></span></a><a class="nav-item" data-key="overlays.html#tooltips" href="overlays.html#tooltips"><span class="nav-main"><span class="nav-name">Tooltips</span></span></a></div></details><details class="nav-group" data-key="nav feedback"><summary class="nav-item"><span class="nav-main"><span class="nav-name">Feedback</span></span></summary><div class="nav-list"><a class="nav-item" data-key="feedback.html#toasts" href="feedback.html#toasts"><span class="nav-main"><span class="nav-name">Toasts</span></span></a><a class="nav-item" data-key="feedback.html#notices" href="feedback.html#notices"><span class="nav-main"><span class="nav-name">Notices</span></span></a><a class="nav-item" data-key="feedback.html#live" href="feedback.html#live"><span class="nav-main"><span class="nav-name">The live status</span></span></a><a class="nav-item" data-key="feedback.html#flash" href="feedback.html#flash"><span class="nav-main"><span class="nav-name">Flashing a change</span></span></a><a class="nav-item" data-key="feedback.html#empty" href="feedback.html#empty"><span class="nav-main"><span class="nav-name">Empty and loading</span></span></a></div></details><details class="nav-group" data-key="nav privacy"><summary class="nav-item"><span class="nav-main"><span class="nav-name">Privacy and sign-in</span></span></summary><div class="nav-list"><a class="nav-item" data-key="privacy.html#private" href="privacy.html#private"><span class="nav-main"><span class="nav-name">Hidden values</span></span></a><a class="nav-item" data-key="privacy.html#ips" href="privacy.html#ips"><span class="nav-main"><span class="nav-name">Hidden addresses</span></span></a><a class="nav-item" data-key="privacy.html#login" href="privacy.html#login"><span class="nav-main"><span class="nav-name">The sign-in page</span></span></a></div></details><div class="side-head">JavaScript</div><details class="nav-group" data-key="nav helpers"><summary class="nav-item"><span class="nav-main"><span class="nav-name">dash.js helpers</span></span></summary><div class="nav-list"><a class="nav-item" data-key="helpers.html#basics" href="helpers.html#basics"><span class="nav-main"><span class="nav-name">The basics</span></span></a><a class="nav-item" data-key="helpers.html#render" href="helpers.html#render"><span class="nav-main"><span class="nav-name">Redrawing without losing the reader&#39;s place</span></span></a><a class="nav-item" data-key="helpers.html#numbers" href="helpers.html#numbers"><span class="nav-main"><span class="nav-name">Numbers</span></span></a><a class="nav-item" data-key="helpers.html#times" href="helpers.html#times"><span class="nav-main"><span class="nav-name">Times</span></span></a><a class="nav-item" data-key="helpers.html#fetching" href="helpers.html#fetching"><span class="nav-main"><span class="nav-name">Fetching and polling</span></span></a><a class="nav-item" data-key="helpers.html#state" href="helpers.html#state"><span class="nav-main"><span class="nav-name">Remembering things</span></span></a><a class="nav-item" data-key="helpers.html#keys" href="helpers.html#keys"><span class="nav-main"><span class="nav-name">Shortcuts and matching</span></span></a></div></details><div class="side-head">Utilities</div><details class="nav-group" data-key="nav utilities"><summary class="nav-item"><span class="nav-main"><span class="nav-name">Utility classes</span></span></summary><div class="nav-list"><a class="nav-item" data-key="utilities.html#overview" href="utilities.html#overview"><span class="nav-main"><span class="nav-name">What they are</span></span></a><a class="nav-item" data-key="utilities.html#specificity" href="utilities.html#specificity"><span class="nav-main"><span class="nav-name">A utility beats the kit</span></span></a><a class="nav-item" data-key="utilities.html#variants" href="utilities.html#variants"><span class="nav-main"><span class="nav-name">States</span></span></a><a class="nav-item" data-key="utilities.html#widths" href="utilities.html#widths"><span class="nav-main"><span class="nav-name">Widths</span></span></a><a class="nav-item" data-key="utilities.html#dark-print" href="utilities.html#dark-print"><span class="nav-main"><span class="nav-name">Dark and print</span></span></a><a class="nav-item" data-key="utilities.html#names" href="utilities.html#names"><span class="nav-main"><span class="nav-name">Names the kit already uses</span></span></a><a class="nav-item" data-key="utilities.html#adding" href="utilities.html#adding"><span class="nav-main"><span class="nav-name">Adding it to a page</span></span></a></div></details><details class="nav-group" data-key="nav utilities-layout"><summary class="nav-item"><span class="nav-main"><span class="nav-name">Layout utilities</span></span></summary><div class="nav-list"><a class="nav-item" data-key="utilities-layout.html#display" href="utilities-layout.html#display"><span class="nav-main"><span class="nav-name">Display</span></span></a><a class="nav-item" data-key="utilities-layout.html#position" href="utilities-layout.html#position"><span class="nav-main"><span class="nav-name">Position, inset and layers</span></span></a><a class="nav-item" data-key="utilities-layout.html#overflow" href="utilities-layout.html#overflow"><span class="nav-main"><span class="nav-name">Overflow and the box</span></span></a><a class="nav-item" data-key="utilities-layout.html#visibility" href="utilities-layout.html#visibility"><span class="nav-main"><span class="nav-name">Showing on hover</span></span></a><a class="nav-item" data-key="utilities-layout.html#flex" href="utilities-layout.html#flex"><span class="nav-main"><span class="nav-name">Flex</span></span></a><a class="nav-item" data-key="utilities-layout.html#grid" href="utilities-layout.html#grid"><span class="nav-main"><span class="nav-name">Grid</span></span></a><a class="nav-item" data-key="utilities-layout.html#alignment" href="utilities-layout.html#alignment"><span class="nav-main"><span class="nav-name">Alignment</span></span></a></div></details><details class="nav-group" data-key="nav utilities-spacing"><summary class="nav-item"><span class="nav-main"><span class="nav-name">Spacing utilities</span></span></summary><div class="nav-list"><a class="nav-item" data-key="utilities-spacing.html#scale" href="utilities-spacing.html#scale"><span class="nav-main"><span class="nav-name">The scale</span></span></a><a class="nav-item" data-key="utilities-spacing.html#padding" href="utilities-spacing.html#padding"><span class="nav-main"><span class="nav-name">Padding</span></span></a><a class="nav-item" data-key="utilities-spacing.html#margin" href="utilities-spacing.html#margin"><span class="nav-main"><span class="nav-name">Margin</span></span></a><a class="nav-item" data-key="utilities-spacing.html#gap" href="utilities-spacing.html#gap"><span class="nav-main"><span class="nav-name">Gap</span></span></a><a class="nav-item" data-key="utilities-spacing.html#space" href="utilities-spacing.html#space"><span class="nav-main"><span class="nav-name">Space between</span></span></a></div></details><details class="nav-group" data-key="nav utilities-sizing"><summary class="nav-item"><span class="nav-main"><span class="nav-name">Sizing utilities</span></span></summary><div class="nav-list"><a class="nav-item" data-key="utilities-sizing.html#size" href="utilities-sizing.html#size"><span class="nav-main"><span class="nav-name">Size</span></span></a><a class="nav-item" data-key="utilities-sizing.html#width" href="utilities-sizing.html#width"><span class="nav-main"><span class="nav-name">Width</span></span></a><a class="nav-item" data-key="utilities-sizing.html#height" href="utilities-sizing.html#height"><span class="nav-main"><span class="nav-name">Height</span></span></a></div></details><details class="nav-group" data-key="nav utilities-type"><summary class="nav-item"><span class="nav-main"><span class="nav-name">Type utilities</span></span></summary><div class="nav-list"><a class="nav-item" data-key="utilities-type.html#size" href="utilities-type.html#size"><span class="nav-main"><span class="nav-name">Size</span></span></a><a class="nav-item" data-key="utilities-type.html#align" href="utilities-type.html#align"><span class="nav-main"><span class="nav-name">Alignment</span></span></a><a class="nav-item" data-key="utilities-type.html#text" href="utilities-type.html#text"><span class="nav-main"><span class="nav-name">Weight, wrapping and the rest</span></span></a><a class="nav-item" data-key="utilities-type.html#underline" href="utilities-type.html#underline"><span class="nav-main"><span class="nav-name">Underline on hover</span></span></a></div></details><details class="nav-group" data-key="nav utilities-colour"><summary class="nav-item"><span class="nav-main"><span class="nav-name">Colour utilities</span></span></summary><div class="nav-list"><a class="nav-item" data-key="utilities-colour.html#text-colour" href="utilities-colour.html#text-colour"><span class="nav-main"><span class="nav-name">Text colour</span></span></a><a class="nav-item" data-key="utilities-colour.html#background" href="utilities-colour.html#background"><span class="nav-main"><span class="nav-name">Background</span></span></a><a class="nav-item" data-key="utilities-colour.html#border-colour" href="utilities-colour.html#border-colour"><span class="nav-main"><span class="nav-name">Border colour</span></span></a></div></details><details class="nav-group" data-key="nav utilities-effects"><summary class="nav-item"><span class="nav-main"><span class="nav-name">Borders and effects</span></span></summary><div class="nav-list"><a class="nav-item" data-key="utilities-effects.html#borders" href="utilities-effects.html#borders"><span class="nav-main"><span class="nav-name">Borders</span></span></a><a class="nav-item" data-key="utilities-effects.html#radius" href="utilities-effects.html#radius"><span class="nav-main"><span class="nav-name">Radius</span></span></a><a class="nav-item" data-key="utilities-effects.html#svg" href="utilities-effects.html#svg"><span class="nav-main"><span class="nav-name">SVG and controls</span></span></a><a class="nav-item" data-key="utilities-effects.html#shadow" href="utilities-effects.html#shadow"><span class="nav-main"><span class="nav-name">Shadows and rings</span></span></a><a class="nav-item" data-key="utilities-effects.html#opacity" href="utilities-effects.html#opacity"><span class="nav-main"><span class="nav-name">Opacity</span></span></a><a class="nav-item" data-key="utilities-effects.html#motion" href="utilities-effects.html#motion"><span class="nav-main"><span class="nav-name">Motion</span></span></a><a class="nav-item" data-key="utilities-effects.html#interaction" href="utilities-effects.html#interaction"><span class="nav-main"><span class="nav-name">Interaction</span></span></a></div></details></div>
+  </nav>
+  <main class="content docs" id="top" data-page="lists">
+    <header class="docs-head"><p class="docs-group">Components</p><h1>Lists and trees</h1><p class="docs-blurb">Lists to read, to pick from and to put in order, trees, facts and timelines.</p><nav class="chips docs-toc" aria-label="On this page"><a class="chip" href="#entries">Lists</a><a class="chip" href="#pick-list">Lists to pick from</a><a class="chip" href="#reorder">Lists to put in order</a><a class="chip" href="#long-lists">Long lists</a><a class="chip" href="#tree">Trees</a><a class="chip" href="#tree-pick">Trees to pick from</a><a class="chip" href="#tree-load">Trees that load as they open</a><a class="chip" href="#facts">Facts</a><a class="chip" href="#timeline">Timelines</a></nav></header>
+<section id="entries" data-terms=".entries .entry .entry-lead .entry-text .entry-title .entry-sub .entry-end Dash.entries">
+      <h2>Lists</h2>
+      <p><code>Dash.entries(rows, options)</code> is a list of things, a line or two each: a <code>lead</code> (an avatar or an icon), a <code>title</code> and <code>sub</code>, and an <code>end</code> (a time, a pill). <code>title</code> and <code>sub</code> are keys or functions and are escaped; <code>lead</code> and <code>end</code> return HTML. <code>href: (row) =&gt; url</code> makes each a link, <code>button: true</code> a button (with <code>key</code> as its <code>data-key</code>, for a click handler and so a redraw keeps the focus). <code>wrap: true</code> lets long text wrap instead of ending in …; <code>empty</code> is the text when there are no rows.</p>
+      <figure class="example" id="ex-1"><div class="example-view">
+<div class="panel flush" id="people"></div>
+<script>
+  const team = [
+    { id: 1, name: 'Ada Lovelace', role: 'Owner', seen: Date.now() - 5 * 60e3 },
+    { id: 2, name: 'Grace Hopper', role: 'Admin', seen: Date.now() - 3 * 3600e3 },
+    { id: 3, name: 'Alan Turing', role: 'Viewer · invited, not joined yet', seen: null },
+  ];
+  Dash.render('people', Dash.entries(team, {
+    title: 'name', sub: 'role', key: 'id', button: true, label: 'Team',
+    lead: (p) => Dash.avatar(p.name), end: (p) => (p.seen ? Dash.ago(p.seen) : Dash.pill('Invited', 'idle')),
+  }));
+  Dash.on('people', 'click', '[data-key]', (e, b) => Dash.toast(`Open person ${b.dataset.key}`));
+</script>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;div class=&quot;panel flush&quot; id=&quot;people&quot;&gt;&lt;/div&gt;
+&lt;script&gt;
+  const team = [
+    { id: 1, name: &#39;Ada Lovelace&#39;, role: &#39;Owner&#39;, seen: Date.now() - 5 * 60e3 },
+    { id: 2, name: &#39;Grace Hopper&#39;, role: &#39;Admin&#39;, seen: Date.now() - 3 * 3600e3 },
+    { id: 3, name: &#39;Alan Turing&#39;, role: &#39;Viewer · invited, not joined yet&#39;, seen: null },
+  ];
+  Dash.render(&#39;people&#39;, Dash.entries(team, {
+    title: &#39;name&#39;, sub: &#39;role&#39;, key: &#39;id&#39;, button: true, label: &#39;Team&#39;,
+    lead: (p) =&gt; Dash.avatar(p.name), end: (p) =&gt; (p.seen ? Dash.ago(p.seen) : Dash.pill(&#39;Invited&#39;, &#39;idle&#39;)),
+  }));
+  Dash.on(&#39;people&#39;, &#39;click&#39;, &#39;[data-key]&#39;, (e, b) =&gt; Dash.toast(`Open person ${b.dataset.key}`));
+&lt;/script&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;panel flush&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;people&quot;</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+&lt;<span class="c-tag">script</span>&gt;
+  <span class="c-key">const</span> team = [
+    { id: <span class="c-num">1</span>, name: <span class="c-str">&#39;Ada Lovelace&#39;</span>, role: <span class="c-str">&#39;Owner&#39;</span>, seen: Date.now() - <span class="c-num">5</span> * <span class="c-num">60e3</span> },
+    { id: <span class="c-num">2</span>, name: <span class="c-str">&#39;Grace Hopper&#39;</span>, role: <span class="c-str">&#39;Admin&#39;</span>, seen: Date.now() - <span class="c-num">3</span> * <span class="c-num">3600e3</span> },
+    { id: <span class="c-num">3</span>, name: <span class="c-str">&#39;Alan Turing&#39;</span>, role: <span class="c-str">&#39;Viewer · invited, not joined yet&#39;</span>, seen: <span class="c-key">null</span> },
+  ];
+  <span class="c-fn">Dash</span>.render(<span class="c-str">&#39;people&#39;</span>, <span class="c-fn">Dash</span>.entries(team, {
+    title: <span class="c-str">&#39;name&#39;</span>, sub: <span class="c-str">&#39;role&#39;</span>, key: <span class="c-str">&#39;id&#39;</span>, button: <span class="c-key">true</span>, label: <span class="c-str">&#39;Team&#39;</span>,
+    lead: (p) =&gt; <span class="c-fn">Dash</span>.avatar(p.name), end: (p) =&gt; (p.seen ? <span class="c-fn">Dash</span>.ago(p.seen) : <span class="c-fn">Dash</span>.pill(<span class="c-str">&#39;Invited&#39;</span>, <span class="c-str">&#39;idle&#39;</span>)),
+  }));
+  <span class="c-fn">Dash</span>.on(<span class="c-str">&#39;people&#39;</span>, <span class="c-str">&#39;click&#39;</span>, <span class="c-str">&#39;[data-key]&#39;</span>, (e, b) =&gt; <span class="c-fn">Dash</span>.toast(<span class="c-str">`Open person ${b.dataset.key}`</span>));
+&lt;/<span class="c-tag">script</span>&gt;</code></pre></figure>
+      <p>By hand: <code>ul.entries</code> › <code>li.entry</code> (or an <code>a.entry</code> or <code>button.entry</code> in the <code>li</code>) › <code>.entry-lead</code>, <code>.entry-text</code> with <code>.entry-title</code> and <code>.entry-sub</code>, <code>.entry-end</code>.</p>
+    </section>
+
+    <section id="pick-list" data-terms="Dash.list .picks .pick-box .entry-line .entry-own .row-dots listbox select menu">
+      <h2>Lists to pick from</h2>
+      <p><code>Dash.list(el, options)</code> writes the same rows and looks after them. It takes <code>rows</code>, <code>title</code>, <code>sub</code>, <code>lead</code>, <code>end</code> and <code>href</code> as <code>Dash.entries</code> does, and a <code>key</code> (<code>id</code>). With <code>select: 'one'</code> a click picks a row, with <code>'many'</code> it ticks one; <code>onSelect</code> gets the row, or the rows. <code>can(row)</code> says which may be picked. <code>menu(row)</code> gives a row a menu (its ⋯ button, a right click or Shift+F10), and <code>onMenu(value, row)</code> gets what was chosen.</p>
+      <figure class="example" id="ex-2"><figcaption>One of them</figcaption><div class="example-view">
+<div class="panel" id="plans"></div>
+<script>
+  Dash.list('plans', {
+    label: 'Plans', select: 'one', selected: 'team',
+    rows: [
+      { id: 'solo', title: 'Solo', sub: 'One person', price: 9 },
+      { id: 'team', title: 'Team', sub: 'Up to ten people', price: 49 },
+      { id: 'org', title: 'Organization', sub: 'Ask us', price: null },
+    ],
+    end: (r) => (r.price == null ? Dash.tag('Soon', 'plain') : Dash.esc(Dash.fmt.usd(r.price))),
+    can: (r) => r.price != null,
+    onSelect: (r) => Dash.toast(`${r.title} picked`),
+  });
+</script>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;div class=&quot;panel&quot; id=&quot;plans&quot;&gt;&lt;/div&gt;
+&lt;script&gt;
+  Dash.list(&#39;plans&#39;, {
+    label: &#39;Plans&#39;, select: &#39;one&#39;, selected: &#39;team&#39;,
+    rows: [
+      { id: &#39;solo&#39;, title: &#39;Solo&#39;, sub: &#39;One person&#39;, price: 9 },
+      { id: &#39;team&#39;, title: &#39;Team&#39;, sub: &#39;Up to ten people&#39;, price: 49 },
+      { id: &#39;org&#39;, title: &#39;Organization&#39;, sub: &#39;Ask us&#39;, price: null },
+    ],
+    end: (r) =&gt; (r.price == null ? Dash.tag(&#39;Soon&#39;, &#39;plain&#39;) : Dash.esc(Dash.fmt.usd(r.price))),
+    can: (r) =&gt; r.price != null,
+    onSelect: (r) =&gt; Dash.toast(`${r.title} picked`),
+  });
+&lt;/script&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;panel&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;plans&quot;</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+&lt;<span class="c-tag">script</span>&gt;
+  <span class="c-fn">Dash</span>.list(<span class="c-str">&#39;plans&#39;</span>, {
+    label: <span class="c-str">&#39;Plans&#39;</span>, select: <span class="c-str">&#39;one&#39;</span>, selected: <span class="c-str">&#39;team&#39;</span>,
+    rows: [
+      { id: <span class="c-str">&#39;solo&#39;</span>, title: <span class="c-str">&#39;Solo&#39;</span>, sub: <span class="c-str">&#39;One person&#39;</span>, price: <span class="c-num">9</span> },
+      { id: <span class="c-str">&#39;team&#39;</span>, title: <span class="c-str">&#39;Team&#39;</span>, sub: <span class="c-str">&#39;Up to ten people&#39;</span>, price: <span class="c-num">49</span> },
+      { id: <span class="c-str">&#39;org&#39;</span>, title: <span class="c-str">&#39;Organization&#39;</span>, sub: <span class="c-str">&#39;Ask us&#39;</span>, price: <span class="c-key">null</span> },
+    ],
+    end: (r) =&gt; (r.price == <span class="c-key">null</span> ? <span class="c-fn">Dash</span>.tag(<span class="c-str">&#39;Soon&#39;</span>, <span class="c-str">&#39;plain&#39;</span>) : <span class="c-fn">Dash</span>.esc(<span class="c-fn">Dash</span>.fmt.usd(r.price))),
+    can: (r) =&gt; r.price != <span class="c-key">null</span>,
+    onSelect: (r) =&gt; <span class="c-fn">Dash</span>.toast(<span class="c-str">`${r.title} picked`</span>),
+  });
+&lt;/<span class="c-tag">script</span>&gt;</code></pre></figure>
+      <figure class="example" id="ex-3"><figcaption>Many, in groups, with a menu</figcaption><div class="example-view">
+<div class="panel">
+  <div class="panel-head"><h3>Servers</h3><span class="read" id="picked-servers">2 picked</span></div>
+  <div id="server-list"></div>
+</div>
+<script>
+  const servers = [
+    { id: 'web-1', title: 'web-1', sub: '8 cores', region: 'Frankfurt', state: 'ok' },
+    { id: 'web-2', title: 'web-2', sub: '8 cores', region: 'Frankfurt', state: 'warn' },
+    { id: 'db-1', title: 'db-1', sub: '32 cores', region: 'Frankfurt', state: 'ok' },
+    { id: 'web-3', title: 'web-3', sub: '8 cores', region: 'Paris', state: 'ok' },
+    { id: 'db-2', title: 'db-2', sub: '16 cores', region: 'Paris', state: 'bad' },
+  ];
+  Dash.list('server-list', {
+    rows: servers, label: 'Servers', select: 'many', selected: ['web-1', 'db-2'], group: 'region',
+    end: (r) => Dash.pill({ ok: 'Healthy', warn: 'Busy', bad: 'Down' }[r.state], r.state),
+    menu: (r) => ['Open', 'Restart', '-', { label: 'Remove', value: 'remove', tone: 'bad' }],
+    onMenu: (v, r) => Dash.toast(`${v}: ${r.title}`),
+    onSelect: (list) => { Dash.$('picked-servers').textContent = `${list.length} picked`; },
+  });
+</script>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;div class=&quot;panel&quot;&gt;
+  &lt;div class=&quot;panel-head&quot;&gt;&lt;h3&gt;Servers&lt;/h3&gt;&lt;span class=&quot;read&quot; id=&quot;picked-servers&quot;&gt;2 picked&lt;/span&gt;&lt;/div&gt;
+  &lt;div id=&quot;server-list&quot;&gt;&lt;/div&gt;
+&lt;/div&gt;
+&lt;script&gt;
+  const servers = [
+    { id: &#39;web-1&#39;, title: &#39;web-1&#39;, sub: &#39;8 cores&#39;, region: &#39;Frankfurt&#39;, state: &#39;ok&#39; },
+    { id: &#39;web-2&#39;, title: &#39;web-2&#39;, sub: &#39;8 cores&#39;, region: &#39;Frankfurt&#39;, state: &#39;warn&#39; },
+    { id: &#39;db-1&#39;, title: &#39;db-1&#39;, sub: &#39;32 cores&#39;, region: &#39;Frankfurt&#39;, state: &#39;ok&#39; },
+    { id: &#39;web-3&#39;, title: &#39;web-3&#39;, sub: &#39;8 cores&#39;, region: &#39;Paris&#39;, state: &#39;ok&#39; },
+    { id: &#39;db-2&#39;, title: &#39;db-2&#39;, sub: &#39;16 cores&#39;, region: &#39;Paris&#39;, state: &#39;bad&#39; },
+  ];
+  Dash.list(&#39;server-list&#39;, {
+    rows: servers, label: &#39;Servers&#39;, select: &#39;many&#39;, selected: [&#39;web-1&#39;, &#39;db-2&#39;], group: &#39;region&#39;,
+    end: (r) =&gt; Dash.pill({ ok: &#39;Healthy&#39;, warn: &#39;Busy&#39;, bad: &#39;Down&#39; }[r.state], r.state),
+    menu: (r) =&gt; [&#39;Open&#39;, &#39;Restart&#39;, &#39;-&#39;, { label: &#39;Remove&#39;, value: &#39;remove&#39;, tone: &#39;bad&#39; }],
+    onMenu: (v, r) =&gt; Dash.toast(`${v}: ${r.title}`),
+    onSelect: (list) =&gt; { Dash.$(&#39;picked-servers&#39;).textContent = `${list.length} picked`; },
+  });
+&lt;/script&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;panel&quot;</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;panel-head&quot;</span>&gt;&lt;<span class="c-tag">h3</span>&gt;Servers&lt;/<span class="c-tag">h3</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;read&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;picked-servers&quot;</span>&gt;2 picked&lt;/<span class="c-tag">span</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">id</span>=<span class="c-str">&quot;server-list&quot;</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+&lt;/<span class="c-tag">div</span>&gt;
+&lt;<span class="c-tag">script</span>&gt;
+  <span class="c-key">const</span> servers = [
+    { id: <span class="c-str">&#39;web-1&#39;</span>, title: <span class="c-str">&#39;web-1&#39;</span>, sub: <span class="c-str">&#39;8 cores&#39;</span>, region: <span class="c-str">&#39;Frankfurt&#39;</span>, state: <span class="c-str">&#39;ok&#39;</span> },
+    { id: <span class="c-str">&#39;web-2&#39;</span>, title: <span class="c-str">&#39;web-2&#39;</span>, sub: <span class="c-str">&#39;8 cores&#39;</span>, region: <span class="c-str">&#39;Frankfurt&#39;</span>, state: <span class="c-str">&#39;warn&#39;</span> },
+    { id: <span class="c-str">&#39;db-1&#39;</span>, title: <span class="c-str">&#39;db-1&#39;</span>, sub: <span class="c-str">&#39;32 cores&#39;</span>, region: <span class="c-str">&#39;Frankfurt&#39;</span>, state: <span class="c-str">&#39;ok&#39;</span> },
+    { id: <span class="c-str">&#39;web-3&#39;</span>, title: <span class="c-str">&#39;web-3&#39;</span>, sub: <span class="c-str">&#39;8 cores&#39;</span>, region: <span class="c-str">&#39;Paris&#39;</span>, state: <span class="c-str">&#39;ok&#39;</span> },
+    { id: <span class="c-str">&#39;db-2&#39;</span>, title: <span class="c-str">&#39;db-2&#39;</span>, sub: <span class="c-str">&#39;16 cores&#39;</span>, region: <span class="c-str">&#39;Paris&#39;</span>, state: <span class="c-str">&#39;bad&#39;</span> },
+  ];
+  <span class="c-fn">Dash</span>.list(<span class="c-str">&#39;server-list&#39;</span>, {
+    rows: servers, label: <span class="c-str">&#39;Servers&#39;</span>, select: <span class="c-str">&#39;many&#39;</span>, selected: [<span class="c-str">&#39;web-1&#39;</span>, <span class="c-str">&#39;db-2&#39;</span>], group: <span class="c-str">&#39;region&#39;</span>,
+    end: (r) =&gt; <span class="c-fn">Dash</span>.pill({ ok: <span class="c-str">&#39;Healthy&#39;</span>, warn: <span class="c-str">&#39;Busy&#39;</span>, bad: <span class="c-str">&#39;Down&#39;</span> }[r.state], r.state),
+    menu: (r) =&gt; [<span class="c-str">&#39;Open&#39;</span>, <span class="c-str">&#39;Restart&#39;</span>, <span class="c-str">&#39;-&#39;</span>, { label: <span class="c-str">&#39;Remove&#39;</span>, value: <span class="c-str">&#39;remove&#39;</span>, tone: <span class="c-str">&#39;bad&#39;</span> }],
+    onMenu: (v, r) =&gt; <span class="c-fn">Dash</span>.toast(<span class="c-str">`${v}: ${r.title}`</span>),
+    onSelect: (list) =&gt; { <span class="c-fn">Dash</span>.$(<span class="c-str">&#39;picked-servers&#39;</span>).textContent = <span class="c-str">`${list.length} picked`</span>; },
+  });
+&lt;/<span class="c-tag">script</span>&gt;</code></pre></figure>
+      <p>The arrow keys, Home, End and the first letters move between rows; Space picks. With <code>'many'</code>, Shift with a click or an arrow picks all between, and Ctrl+A (⌘A) all of them, then none. <code>onPick(row, event)</code> is a double click or Enter; without <code>select</code> it is a click. <code>group</code> is a field or a function whose values become headings. <code>.update(rows)</code> shows new rows and keeps what is picked, the focus and the scroll; <code>.filter(text or test)</code> shows those with the words, and returns how many. <code>.selected</code>, <code>.select(keys)</code>, <code>.rows</code>, <code>.shown</code>, <code>.count</code>, <code>.redraw()</code> and <code>.destroy()</code> are there too.</p>
+    </section>
+
+    <section id="reorder" data-terms=".entry-grip .drag-ghost .drag-from .drop-line .dragging reorder onMove drag sort">
+      <h2>Lists to put in order</h2>
+      <p><code>reorder: true</code> gives each row a grip. Drag it with a mouse or a finger (Escape calls it off), press the arrow keys on it, or click it for Move up, Move down and the ends. <code>onMove(rows, { row, from, to })</code> gets the rows in the new order. Return a promise while it is saved: if it rejects, or gives <code>false</code>, the row is put back and a toast says why. An update that comes during a drag or a save waits until it is over.</p>
+      <figure class="example" id="ex-4"><div class="example-view">
+<div class="panel" id="rules"></div>
+<script>
+  Dash.list('rules', {
+    label: 'Rules, the first that fits counts', reorder: true,
+    rows: [
+      { id: 1, title: 'Block bots', sub: 'All pages' },
+      { id: 2, title: 'Keep pictures for a day', sub: '/img/*' },
+      { id: 3, title: 'Ask for a login', sub: '/admin/*' },
+      { id: 4, title: 'Let the rest through', sub: 'All pages' },
+    ],
+    onMove: (rows, { row, to }) => Dash.toast(`${row.title} is number ${to + 1} now`),
+    menu: () => ['Edit', 'Copy'], onMenu: (v, r) => Dash.toast(`${v}: ${r.title}`),
+  });
+</script>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;div class=&quot;panel&quot; id=&quot;rules&quot;&gt;&lt;/div&gt;
+&lt;script&gt;
+  Dash.list(&#39;rules&#39;, {
+    label: &#39;Rules, the first that fits counts&#39;, reorder: true,
+    rows: [
+      { id: 1, title: &#39;Block bots&#39;, sub: &#39;All pages&#39; },
+      { id: 2, title: &#39;Keep pictures for a day&#39;, sub: &#39;/img/*&#39; },
+      { id: 3, title: &#39;Ask for a login&#39;, sub: &#39;/admin/*&#39; },
+      { id: 4, title: &#39;Let the rest through&#39;, sub: &#39;All pages&#39; },
+    ],
+    onMove: (rows, { row, to }) =&gt; Dash.toast(`${row.title} is number ${to + 1} now`),
+    menu: () =&gt; [&#39;Edit&#39;, &#39;Copy&#39;], onMenu: (v, r) =&gt; Dash.toast(`${v}: ${r.title}`),
+  });
+&lt;/script&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;panel&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;rules&quot;</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+&lt;<span class="c-tag">script</span>&gt;
+  <span class="c-fn">Dash</span>.list(<span class="c-str">&#39;rules&#39;</span>, {
+    label: <span class="c-str">&#39;Rules, the first that fits counts&#39;</span>, reorder: <span class="c-key">true</span>,
+    rows: [
+      { id: <span class="c-num">1</span>, title: <span class="c-str">&#39;Block bots&#39;</span>, sub: <span class="c-str">&#39;All pages&#39;</span> },
+      { id: <span class="c-num">2</span>, title: <span class="c-str">&#39;Keep pictures for a day&#39;</span>, sub: <span class="c-str">&#39;/img/*&#39;</span> },
+      { id: <span class="c-num">3</span>, title: <span class="c-str">&#39;Ask for a login&#39;</span>, sub: <span class="c-str">&#39;/admin/*&#39;</span> },
+      { id: <span class="c-num">4</span>, title: <span class="c-str">&#39;Let the rest through&#39;</span>, sub: <span class="c-str">&#39;All pages&#39;</span> },
+    ],
+    onMove: (rows, { row, to }) =&gt; <span class="c-fn">Dash</span>.toast(<span class="c-str">`${row.title} is number ${to + 1} now`</span>),
+    menu: () =&gt; [<span class="c-str">&#39;Edit&#39;</span>, <span class="c-str">&#39;Copy&#39;</span>], onMenu: (v, r) =&gt; <span class="c-fn">Dash</span>.toast(<span class="c-str">`${v}: ${r.title}`</span>),
+  });
+&lt;/<span class="c-tag">script</span>&gt;</code></pre></figure>
+      <p>With groups, a row moves within its own. In a list to pick from, Alt with an arrow moves the row with the focus. <code>.move(key, place)</code> does it from code. A screen reader hears the new place: “Block bots: 2 of 4”.</p>
+    </section>
+
+    <section id="long-lists" data-terms=".entries-group .entries-head .entries-foot .entries-scroll --entries-h more load">
+      <h2>Long lists</h2>
+      <p><code>more: 20</code> shows twenty rows and a button for the next twenty. <code>load(offset)</code> gives the rows from there on, or a promise of them: the first part is asked for at once, each further one with the button, and the end is a part shorter than <code>more</code>. A part that fails says so, with Try again; <code>.reload()</code> starts over. <code>height</code>, a number of pixels, makes it a box that scrolls under its headings.</p>
+      <figure class="example" id="ex-5"><figcaption>In parts, asked for as they are needed</figcaption><div class="example-view">
+<div class="panel" id="event-list"></div>
+<script>
+  const WHAT = ['Deployed', 'Restarted', 'Certificate renewed', 'Disk cleaned up'];
+  Dash.list('event-list', {
+    more: 4, noun: 'event', label: 'Events',
+    load: async (from) => {
+      await new Promise((ok) => setTimeout(ok, 600)); // this would be Dash.api('/api/events?from=' + from)
+      return Array.from({ length: Math.min(4, 10 - from) }, (_, i) => ({ id: from + i, title: WHAT[(from + i) % 4], sub: `web-${((from + i) % 3) + 1}` }));
+    },
+    end: (r) => Dash.ago(Date.now() - (r.id + 1) * 47 * 60e3),
+  });
+</script>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;div class=&quot;panel&quot; id=&quot;event-list&quot;&gt;&lt;/div&gt;
+&lt;script&gt;
+  const WHAT = [&#39;Deployed&#39;, &#39;Restarted&#39;, &#39;Certificate renewed&#39;, &#39;Disk cleaned up&#39;];
+  Dash.list(&#39;event-list&#39;, {
+    more: 4, noun: &#39;event&#39;, label: &#39;Events&#39;,
+    load: async (from) =&gt; {
+      await new Promise((ok) =&gt; setTimeout(ok, 600)); // this would be Dash.api(&#39;/api/events?from=&#39; + from)
+      return Array.from({ length: Math.min(4, 10 - from) }, (_, i) =&gt; ({ id: from + i, title: WHAT[(from + i) % 4], sub: `web-${((from + i) % 3) + 1}` }));
+    },
+    end: (r) =&gt; Dash.ago(Date.now() - (r.id + 1) * 47 * 60e3),
+  });
+&lt;/script&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;panel&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;event-list&quot;</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+&lt;<span class="c-tag">script</span>&gt;
+  <span class="c-key">const</span> WHAT = [<span class="c-str">&#39;Deployed&#39;</span>, <span class="c-str">&#39;Restarted&#39;</span>, <span class="c-str">&#39;Certificate renewed&#39;</span>, <span class="c-str">&#39;Disk cleaned up&#39;</span>];
+  <span class="c-fn">Dash</span>.list(<span class="c-str">&#39;event-list&#39;</span>, {
+    more: <span class="c-num">4</span>, noun: <span class="c-str">&#39;event&#39;</span>, label: <span class="c-str">&#39;Events&#39;</span>,
+    load: <span class="c-key">async</span> (from) =&gt; {
+      <span class="c-key">await</span> <span class="c-key">new</span> Promise((ok) =&gt; setTimeout(ok, <span class="c-num">600</span>)); <span class="c-com">// this would be Dash.api(&#39;/api/events?from=&#39; + from)</span>
+      <span class="c-key">return</span> Array.from({ length: Math.min(<span class="c-num">4</span>, <span class="c-num">10</span> - from) }, (_, i) =&gt; ({ id: from + i, title: WHAT[(from + i) % <span class="c-num">4</span>], sub: <span class="c-str">`web-${((from + i) % 3) + 1}`</span> }));
+    },
+    end: (r) =&gt; <span class="c-fn">Dash</span>.ago(Date.now() - (r.id + <span class="c-num">1</span>) * <span class="c-num">47</span> * <span class="c-num">60e3</span>),
+  });
+&lt;/<span class="c-tag">script</span>&gt;</code></pre></figure>
+      <figure class="example" id="ex-6"><figcaption>In a box that scrolls</figcaption><div class="example-view">
+<div class="panel" id="by-region"></div>
+<script>
+  const CITY = ['Frankfurt', 'Paris', 'Dublin'];
+  Dash.list('by-region', {
+    rows: Array.from({ length: 18 }, (_, i) => ({ id: i, title: `web-${i + 1}`, city: CITY[i % 3], load: ((i * 37) % 90) / 100 })),
+    group: 'city', height: 240, label: 'Servers by city', end: (r) => Dash.esc(Dash.fmt.pct(r.load * 100, 0)),
+    onPick: (r) => Dash.toast(`Open ${r.title}`),
+  });
+</script>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;div class=&quot;panel&quot; id=&quot;by-region&quot;&gt;&lt;/div&gt;
+&lt;script&gt;
+  const CITY = [&#39;Frankfurt&#39;, &#39;Paris&#39;, &#39;Dublin&#39;];
+  Dash.list(&#39;by-region&#39;, {
+    rows: Array.from({ length: 18 }, (_, i) =&gt; ({ id: i, title: `web-${i + 1}`, city: CITY[i % 3], load: ((i * 37) % 90) / 100 })),
+    group: &#39;city&#39;, height: 240, label: &#39;Servers by city&#39;, end: (r) =&gt; Dash.esc(Dash.fmt.pct(r.load * 100, 0)),
+    onPick: (r) =&gt; Dash.toast(`Open ${r.title}`),
+  });
+&lt;/script&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;panel&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;by-region&quot;</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+&lt;<span class="c-tag">script</span>&gt;
+  <span class="c-key">const</span> CITY = [<span class="c-str">&#39;Frankfurt&#39;</span>, <span class="c-str">&#39;Paris&#39;</span>, <span class="c-str">&#39;Dublin&#39;</span>];
+  <span class="c-fn">Dash</span>.list(<span class="c-str">&#39;by-region&#39;</span>, {
+    rows: Array.from({ length: <span class="c-num">18</span> }, (_, i) =&gt; ({ id: i, title: <span class="c-str">`web-${i + 1}`</span>, city: CITY[i % <span class="c-num">3</span>], load: ((i * <span class="c-num">37</span>) % <span class="c-num">90</span>) / <span class="c-num">100</span> })),
+    group: <span class="c-str">&#39;city&#39;</span>, height: <span class="c-num">240</span>, label: <span class="c-str">&#39;Servers by city&#39;</span>, end: (r) =&gt; <span class="c-fn">Dash</span>.esc(<span class="c-fn">Dash</span>.fmt.pct(r.load * <span class="c-num">100</span>, <span class="c-num">0</span>)),
+    onPick: (r) =&gt; <span class="c-fn">Dash</span>.toast(<span class="c-str">`Open ${r.title}`</span>),
+  });
+&lt;/<span class="c-tag">script</span>&gt;</code></pre></figure>
+    </section>
+
+    <section id="tree" data-terms="Dash.tree .tree .tree-item .tree-row .tree-turn .tree-lead .tree-text .tree-title .tree-sub .tree-end .tree-note tree treeitem hierarchy folders">
+      <h2>Trees</h2>
+      <p><code>Dash.tree(el, options)</code> shows things inside things. Each of <code>items</code> has an <code>id</code> and a <code>title</code>, and <code>items</code> of its own if it is a branch; <code>key</code>, <code>title</code>, <code>sub</code> and <code>children</code> name other fields, or are functions. <code>lead(row, { branch, open })</code> and <code>end(row)</code> are HTML: an icon, a pill. <code>open</code> says what is open at the start: keys, a number of levels, or <code>true</code> for all; <code>store: 'name'</code> remembers what the reader opened.</p>
+      <figure class="example" id="ex-7"><figcaption>A folder, with a filter</figcaption><div class="example-view">
+<div class="panel">
+  <div class="panel-head"><h3>Files</h3><label class="search"><input class="input sm" id="file-filter" type="search" aria-label="Filter files" placeholder="Filter files"></label></div>
+  <div id="files"></div>
+</div>
+<script>
+  const icon = (d) => `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="${d}"/></svg>`;
+  const FOLDER = icon('M1.5 4.5v8h13v-7h-7l-1.5-2h-4.5z'), FILE = icon('M3.5 1.5h6l3 3v10h-9z');
+  const files = Dash.tree('files', {
+    label: 'Files', open: ['src'],
+    items: [
+      { id: 'src', title: 'src', items: [
+        { id: 'app', title: 'app.js', size: '12 KB' },
+        { id: 'parts', title: 'parts', items: [{ id: 'table', title: 'table.js', size: '31 KB' }, { id: 'chart', title: 'chart.js', size: '18 KB' }] },
+      ] },
+      { id: 'test', title: 'test', state: 'bad', items: [{ id: 'app-test', title: 'app.test.js', size: '6 KB', state: 'bad' }] },
+      { id: 'readme', title: 'README.md', size: '4 KB' },
+    ],
+    lead: (r, { branch }) => (branch ? FOLDER : FILE),
+    end: (r) => (r.state ? Dash.pill('Failing', r.state) : Dash.esc(r.size || '')),
+    onPick: (r) => Dash.toast(`Open ${r.title}`),
+    menu: () => ['Rename', { label: 'Delete', value: 'delete', tone: 'bad' }], onMenu: (v, r) => Dash.toast(`${v}: ${r.title}`),
+  });
+  Dash.search('file-filter', { key: null, onChange: (q) => files.filter(q) });
+</script>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;div class=&quot;panel&quot;&gt;
+  &lt;div class=&quot;panel-head&quot;&gt;&lt;h3&gt;Files&lt;/h3&gt;&lt;label class=&quot;search&quot;&gt;&lt;input class=&quot;input sm&quot; id=&quot;file-filter&quot; type=&quot;search&quot; aria-label=&quot;Filter files&quot; placeholder=&quot;Filter files&quot;&gt;&lt;/label&gt;&lt;/div&gt;
+  &lt;div id=&quot;files&quot;&gt;&lt;/div&gt;
+&lt;/div&gt;
+&lt;script&gt;
+  const icon = (d) =&gt; `&lt;svg width=&quot;16&quot; height=&quot;16&quot; viewBox=&quot;0 0 16 16&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;1.4&quot; aria-hidden=&quot;true&quot;&gt;&lt;path d=&quot;${d}&quot;/&gt;&lt;/svg&gt;`;
+  const FOLDER = icon(&#39;M1.5 4.5v8h13v-7h-7l-1.5-2h-4.5z&#39;), FILE = icon(&#39;M3.5 1.5h6l3 3v10h-9z&#39;);
+  const files = Dash.tree(&#39;files&#39;, {
+    label: &#39;Files&#39;, open: [&#39;src&#39;],
+    items: [
+      { id: &#39;src&#39;, title: &#39;src&#39;, items: [
+        { id: &#39;app&#39;, title: &#39;app.js&#39;, size: &#39;12 KB&#39; },
+        { id: &#39;parts&#39;, title: &#39;parts&#39;, items: [{ id: &#39;table&#39;, title: &#39;table.js&#39;, size: &#39;31 KB&#39; }, { id: &#39;chart&#39;, title: &#39;chart.js&#39;, size: &#39;18 KB&#39; }] },
+      ] },
+      { id: &#39;test&#39;, title: &#39;test&#39;, state: &#39;bad&#39;, items: [{ id: &#39;app-test&#39;, title: &#39;app.test.js&#39;, size: &#39;6 KB&#39;, state: &#39;bad&#39; }] },
+      { id: &#39;readme&#39;, title: &#39;README.md&#39;, size: &#39;4 KB&#39; },
+    ],
+    lead: (r, { branch }) =&gt; (branch ? FOLDER : FILE),
+    end: (r) =&gt; (r.state ? Dash.pill(&#39;Failing&#39;, r.state) : Dash.esc(r.size || &#39;&#39;)),
+    onPick: (r) =&gt; Dash.toast(`Open ${r.title}`),
+    menu: () =&gt; [&#39;Rename&#39;, { label: &#39;Delete&#39;, value: &#39;delete&#39;, tone: &#39;bad&#39; }], onMenu: (v, r) =&gt; Dash.toast(`${v}: ${r.title}`),
+  });
+  Dash.search(&#39;file-filter&#39;, { key: null, onChange: (q) =&gt; files.filter(q) });
+&lt;/script&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;panel&quot;</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;panel-head&quot;</span>&gt;&lt;<span class="c-tag">h3</span>&gt;Files&lt;/<span class="c-tag">h3</span>&gt;&lt;<span class="c-tag">label</span> <span class="c-attr">class</span>=<span class="c-str">&quot;search&quot;</span>&gt;&lt;<span class="c-tag">input</span> <span class="c-attr">class</span>=<span class="c-str">&quot;input sm&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;file-filter&quot;</span> <span class="c-attr">type</span>=<span class="c-str">&quot;search&quot;</span> <span class="c-attr">aria-label</span>=<span class="c-str">&quot;Filter files&quot;</span> <span class="c-attr">placeholder</span>=<span class="c-str">&quot;Filter files&quot;</span>&gt;&lt;/<span class="c-tag">label</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">id</span>=<span class="c-str">&quot;files&quot;</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+&lt;/<span class="c-tag">div</span>&gt;
+&lt;<span class="c-tag">script</span>&gt;
+  <span class="c-key">const</span> icon = (d) =&gt; <span class="c-str">`&lt;svg width=&quot;16&quot; height=&quot;16&quot; viewBox=&quot;0 0 16 16&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;1.4&quot; aria-hidden=&quot;true&quot;&gt;&lt;path d=&quot;${d}&quot;/&gt;&lt;/svg&gt;`</span>;
+  <span class="c-key">const</span> FOLDER = icon(<span class="c-str">&#39;M1.5 4.5v8h13v-7h-7l-1.5-2h-4.5z&#39;</span>), FILE = icon(<span class="c-str">&#39;M3.5 1.5h6l3 3v10h-9z&#39;</span>);
+  <span class="c-key">const</span> files = <span class="c-fn">Dash</span>.tree(<span class="c-str">&#39;files&#39;</span>, {
+    label: <span class="c-str">&#39;Files&#39;</span>, open: [<span class="c-str">&#39;src&#39;</span>],
+    items: [
+      { id: <span class="c-str">&#39;src&#39;</span>, title: <span class="c-str">&#39;src&#39;</span>, items: [
+        { id: <span class="c-str">&#39;app&#39;</span>, title: <span class="c-str">&#39;app.js&#39;</span>, size: <span class="c-str">&#39;12 KB&#39;</span> },
+        { id: <span class="c-str">&#39;parts&#39;</span>, title: <span class="c-str">&#39;parts&#39;</span>, items: [{ id: <span class="c-str">&#39;table&#39;</span>, title: <span class="c-str">&#39;table.js&#39;</span>, size: <span class="c-str">&#39;31 KB&#39;</span> }, { id: <span class="c-str">&#39;chart&#39;</span>, title: <span class="c-str">&#39;chart.js&#39;</span>, size: <span class="c-str">&#39;18 KB&#39;</span> }] },
+      ] },
+      { id: <span class="c-str">&#39;test&#39;</span>, title: <span class="c-str">&#39;test&#39;</span>, state: <span class="c-str">&#39;bad&#39;</span>, items: [{ id: <span class="c-str">&#39;app-test&#39;</span>, title: <span class="c-str">&#39;app.test.js&#39;</span>, size: <span class="c-str">&#39;6 KB&#39;</span>, state: <span class="c-str">&#39;bad&#39;</span> }] },
+      { id: <span class="c-str">&#39;readme&#39;</span>, title: <span class="c-str">&#39;README.md&#39;</span>, size: <span class="c-str">&#39;4 KB&#39;</span> },
+    ],
+    lead: (r, { branch }) =&gt; (branch ? FOLDER : FILE),
+    end: (r) =&gt; (r.state ? <span class="c-fn">Dash</span>.pill(<span class="c-str">&#39;Failing&#39;</span>, r.state) : <span class="c-fn">Dash</span>.esc(r.size || <span class="c-str">&#39;&#39;</span>)),
+    onPick: (r) =&gt; <span class="c-fn">Dash</span>.toast(<span class="c-str">`Open ${r.title}`</span>),
+    menu: () =&gt; [<span class="c-str">&#39;Rename&#39;</span>, { label: <span class="c-str">&#39;Delete&#39;</span>, value: <span class="c-str">&#39;delete&#39;</span>, tone: <span class="c-str">&#39;bad&#39;</span> }], onMenu: (v, r) =&gt; <span class="c-fn">Dash</span>.toast(<span class="c-str">`${v}: ${r.title}`</span>),
+  });
+  <span class="c-fn">Dash</span>.search(<span class="c-str">&#39;file-filter&#39;</span>, { key: <span class="c-key">null</span>, onChange: (q) =&gt; files.filter(q) });
+&lt;/<span class="c-tag">script</span>&gt;</code></pre></figure>
+      <p>A click on a branch opens or closes it; on a leaf it is <code>onPick(row, event)</code>. The keys are those of a tree anywhere: Up and Down move, Right opens and goes in, Left closes and goes out, Home and End, <code>*</code> opens all the branches beside, and letters find a row. The focus stays on a row while the tree is redrawn. <code>menu</code> and <code>onMenu</code> work as on a list. <code>.filter(text or test)</code> shows the rows with the words, inside the branches they are in, and returns how many; an empty text shows all again, opened as before.</p>
+      <p><code>.update(items)</code>, <code>.items</code>, <code>.expand(keys, on)</code> (or <code>true</code> for all, <code>false</code> for none), <code>.expanded</code>, <code>.reveal(key, { focus })</code> (opens what it is in and shows it), <code>.redraw()</code> and <code>.destroy()</code> are for code; <code>onOpen(row, open)</code> says what the reader opened and closed.</p>
+    </section>
+
+    <section id="tree-pick" data-terms=".no-pick aria-checked aria-selected checkbox tri-state">
+      <h2>Trees to pick from</h2>
+      <p>With <code>select: 'one'</code> a click picks a row, whether it is a branch or a leaf; the arrow in front of a branch, or a second click on it, opens and closes it. <code>select: 'many'</code> gives each row a box: ticking a branch ticks every leaf in it, also the ones that aren't shown, and a branch of which some is ticked has a dash. <code>onSelect</code> gets the row, or the ticked leaves. <code>can(row)</code> says which may be picked, <code>selected</code> what is at the start, and <code>.select(keys)</code> changes it.</p>
+      <figure class="example" id="ex-8"><div class="example-view">
+<div class="grid">
+  <div class="panel"><div class="panel-head"><h3>Move to</h3></div><div id="move-to"></div></div>
+  <div class="panel"><div class="panel-head"><h3>May see</h3><span class="read" id="may-count">2 rights</span></div><div id="rights"></div></div>
+</div>
+<script>
+  Dash.tree('move-to', {
+    label: 'Move to', select: 'one', selected: 'mail', open: true,
+    items: [{ id: 'all', title: 'Everything', items: [{ id: 'sites', title: 'Sites', items: [{ id: 'shop', title: 'Shop' }, { id: 'blog', title: 'Blog' }] }, { id: 'mail', title: 'Mail' }] }],
+    onSelect: (r) => r && Dash.toast(`Move to ${r.title}`),
+  });
+  Dash.tree('rights', {
+    label: 'May see', select: 'many', selected: ['bill-read', 'srv-read'], open: 1,
+    items: [
+      { id: 'bill', title: 'Billing', items: [{ id: 'bill-read', title: 'See invoices' }, { id: 'bill-pay', title: 'Pay them' }] },
+      { id: 'srv', title: 'Servers', items: [{ id: 'srv-read', title: 'See them' }, { id: 'srv-restart', title: 'Restart them' }, { id: 'srv-remove', title: 'Remove them', sub: 'owners only', owner: true }] },
+    ],
+    can: (r) => !r.owner,
+    onSelect: (list) => { Dash.$('may-count').textContent = Dash.fmt.plural(list.length, 'right'); },
+  });
+</script>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;div class=&quot;grid&quot;&gt;
+  &lt;div class=&quot;panel&quot;&gt;&lt;div class=&quot;panel-head&quot;&gt;&lt;h3&gt;Move to&lt;/h3&gt;&lt;/div&gt;&lt;div id=&quot;move-to&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+  &lt;div class=&quot;panel&quot;&gt;&lt;div class=&quot;panel-head&quot;&gt;&lt;h3&gt;May see&lt;/h3&gt;&lt;span class=&quot;read&quot; id=&quot;may-count&quot;&gt;2 rights&lt;/span&gt;&lt;/div&gt;&lt;div id=&quot;rights&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;/div&gt;
+&lt;script&gt;
+  Dash.tree(&#39;move-to&#39;, {
+    label: &#39;Move to&#39;, select: &#39;one&#39;, selected: &#39;mail&#39;, open: true,
+    items: [{ id: &#39;all&#39;, title: &#39;Everything&#39;, items: [{ id: &#39;sites&#39;, title: &#39;Sites&#39;, items: [{ id: &#39;shop&#39;, title: &#39;Shop&#39; }, { id: &#39;blog&#39;, title: &#39;Blog&#39; }] }, { id: &#39;mail&#39;, title: &#39;Mail&#39; }] }],
+    onSelect: (r) =&gt; r &amp;&amp; Dash.toast(`Move to ${r.title}`),
+  });
+  Dash.tree(&#39;rights&#39;, {
+    label: &#39;May see&#39;, select: &#39;many&#39;, selected: [&#39;bill-read&#39;, &#39;srv-read&#39;], open: 1,
+    items: [
+      { id: &#39;bill&#39;, title: &#39;Billing&#39;, items: [{ id: &#39;bill-read&#39;, title: &#39;See invoices&#39; }, { id: &#39;bill-pay&#39;, title: &#39;Pay them&#39; }] },
+      { id: &#39;srv&#39;, title: &#39;Servers&#39;, items: [{ id: &#39;srv-read&#39;, title: &#39;See them&#39; }, { id: &#39;srv-restart&#39;, title: &#39;Restart them&#39; }, { id: &#39;srv-remove&#39;, title: &#39;Remove them&#39;, sub: &#39;owners only&#39;, owner: true }] },
+    ],
+    can: (r) =&gt; !r.owner,
+    onSelect: (list) =&gt; { Dash.$(&#39;may-count&#39;).textContent = Dash.fmt.plural(list.length, &#39;right&#39;); },
+  });
+&lt;/script&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;grid&quot;</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;panel&quot;</span>&gt;&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;panel-head&quot;</span>&gt;&lt;<span class="c-tag">h3</span>&gt;Move to&lt;/<span class="c-tag">h3</span>&gt;&lt;/<span class="c-tag">div</span>&gt;&lt;<span class="c-tag">div</span> <span class="c-attr">id</span>=<span class="c-str">&quot;move-to&quot;</span>&gt;&lt;/<span class="c-tag">div</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+  &lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;panel&quot;</span>&gt;&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;panel-head&quot;</span>&gt;&lt;<span class="c-tag">h3</span>&gt;May see&lt;/<span class="c-tag">h3</span>&gt;&lt;<span class="c-tag">span</span> <span class="c-attr">class</span>=<span class="c-str">&quot;read&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;may-count&quot;</span>&gt;2 rights&lt;/<span class="c-tag">span</span>&gt;&lt;/<span class="c-tag">div</span>&gt;&lt;<span class="c-tag">div</span> <span class="c-attr">id</span>=<span class="c-str">&quot;rights&quot;</span>&gt;&lt;/<span class="c-tag">div</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+&lt;/<span class="c-tag">div</span>&gt;
+&lt;<span class="c-tag">script</span>&gt;
+  <span class="c-fn">Dash</span>.tree(<span class="c-str">&#39;move-to&#39;</span>, {
+    label: <span class="c-str">&#39;Move to&#39;</span>, select: <span class="c-str">&#39;one&#39;</span>, selected: <span class="c-str">&#39;mail&#39;</span>, open: <span class="c-key">true</span>,
+    items: [{ id: <span class="c-str">&#39;all&#39;</span>, title: <span class="c-str">&#39;Everything&#39;</span>, items: [{ id: <span class="c-str">&#39;sites&#39;</span>, title: <span class="c-str">&#39;Sites&#39;</span>, items: [{ id: <span class="c-str">&#39;shop&#39;</span>, title: <span class="c-str">&#39;Shop&#39;</span> }, { id: <span class="c-str">&#39;blog&#39;</span>, title: <span class="c-str">&#39;Blog&#39;</span> }] }, { id: <span class="c-str">&#39;mail&#39;</span>, title: <span class="c-str">&#39;Mail&#39;</span> }] }],
+    onSelect: (r) =&gt; r &amp;&amp; <span class="c-fn">Dash</span>.toast(<span class="c-str">`Move to ${r.title}`</span>),
+  });
+  <span class="c-fn">Dash</span>.tree(<span class="c-str">&#39;rights&#39;</span>, {
+    label: <span class="c-str">&#39;May see&#39;</span>, select: <span class="c-str">&#39;many&#39;</span>, selected: [<span class="c-str">&#39;bill-read&#39;</span>, <span class="c-str">&#39;srv-read&#39;</span>], open: <span class="c-num">1</span>,
+    items: [
+      { id: <span class="c-str">&#39;bill&#39;</span>, title: <span class="c-str">&#39;Billing&#39;</span>, items: [{ id: <span class="c-str">&#39;bill-read&#39;</span>, title: <span class="c-str">&#39;See invoices&#39;</span> }, { id: <span class="c-str">&#39;bill-pay&#39;</span>, title: <span class="c-str">&#39;Pay them&#39;</span> }] },
+      { id: <span class="c-str">&#39;srv&#39;</span>, title: <span class="c-str">&#39;Servers&#39;</span>, items: [{ id: <span class="c-str">&#39;srv-read&#39;</span>, title: <span class="c-str">&#39;See them&#39;</span> }, { id: <span class="c-str">&#39;srv-restart&#39;</span>, title: <span class="c-str">&#39;Restart them&#39;</span> }, { id: <span class="c-str">&#39;srv-remove&#39;</span>, title: <span class="c-str">&#39;Remove them&#39;</span>, sub: <span class="c-str">&#39;owners only&#39;</span>, owner: <span class="c-key">true</span> }] },
+    ],
+    can: (r) =&gt; !r.owner,
+    onSelect: (list) =&gt; { <span class="c-fn">Dash</span>.$(<span class="c-str">&#39;may-count&#39;</span>).textContent = <span class="c-fn">Dash</span>.fmt.plural(list.length, <span class="c-str">&#39;right&#39;</span>); },
+  });
+&lt;/<span class="c-tag">script</span>&gt;</code></pre></figure>
+    </section>
+
+    <section id="tree-load" data-terms="lazy children load reload">
+      <h2>Trees that load as they open</h2>
+      <p>A row whose children are <code>true</code> has some that aren't there yet. <code>load(row)</code> gives them, or a promise of them, when it is first opened. While they are on their way the branch says so; if they can't be had it says why, with Try again. <code>.reload(key)</code> asks once more.</p>
+      <figure class="example" id="ex-9"><div class="example-view">
+<div class="panel" id="places"></div>
+<script>
+  const MORE = { eu: ['Germany', 'France', 'Ireland'], us: ['Oregon', 'Virginia'] };
+  Dash.tree('places', {
+    label: 'Places',
+    items: [{ id: 'eu', title: 'Europe', items: true }, { id: 'us', title: 'America', items: true }, { id: 'sea', title: 'At sea', items: true }],
+    load: async (row) => {
+      await new Promise((ok) => setTimeout(ok, 700)); // this would be Dash.api('/api/places/' + row.id)
+      if (!MORE[row.id]) throw new Error('no connection there');
+      return MORE[row.id].map((title) => ({ id: `${row.id}/${title}`, title }));
+    },
+  });
+</script>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;div class=&quot;panel&quot; id=&quot;places&quot;&gt;&lt;/div&gt;
+&lt;script&gt;
+  const MORE = { eu: [&#39;Germany&#39;, &#39;France&#39;, &#39;Ireland&#39;], us: [&#39;Oregon&#39;, &#39;Virginia&#39;] };
+  Dash.tree(&#39;places&#39;, {
+    label: &#39;Places&#39;,
+    items: [{ id: &#39;eu&#39;, title: &#39;Europe&#39;, items: true }, { id: &#39;us&#39;, title: &#39;America&#39;, items: true }, { id: &#39;sea&#39;, title: &#39;At sea&#39;, items: true }],
+    load: async (row) =&gt; {
+      await new Promise((ok) =&gt; setTimeout(ok, 700)); // this would be Dash.api(&#39;/api/places/&#39; + row.id)
+      if (!MORE[row.id]) throw new Error(&#39;no connection there&#39;);
+      return MORE[row.id].map((title) =&gt; ({ id: `${row.id}/${title}`, title }));
+    },
+  });
+&lt;/script&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;panel&quot;</span> <span class="c-attr">id</span>=<span class="c-str">&quot;places&quot;</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+&lt;<span class="c-tag">script</span>&gt;
+  <span class="c-key">const</span> MORE = { eu: [<span class="c-str">&#39;Germany&#39;</span>, <span class="c-str">&#39;France&#39;</span>, <span class="c-str">&#39;Ireland&#39;</span>], us: [<span class="c-str">&#39;Oregon&#39;</span>, <span class="c-str">&#39;Virginia&#39;</span>] };
+  <span class="c-fn">Dash</span>.tree(<span class="c-str">&#39;places&#39;</span>, {
+    label: <span class="c-str">&#39;Places&#39;</span>,
+    items: [{ id: <span class="c-str">&#39;eu&#39;</span>, title: <span class="c-str">&#39;Europe&#39;</span>, items: <span class="c-key">true</span> }, { id: <span class="c-str">&#39;us&#39;</span>, title: <span class="c-str">&#39;America&#39;</span>, items: <span class="c-key">true</span> }, { id: <span class="c-str">&#39;sea&#39;</span>, title: <span class="c-str">&#39;At sea&#39;</span>, items: <span class="c-key">true</span> }],
+    load: <span class="c-key">async</span> (row) =&gt; {
+      <span class="c-key">await</span> <span class="c-key">new</span> Promise((ok) =&gt; setTimeout(ok, <span class="c-num">700</span>)); <span class="c-com">// this would be Dash.api(&#39;/api/places/&#39; + row.id)</span>
+      <span class="c-key">if</span> (!MORE[row.id]) <span class="c-key">throw</span> <span class="c-key">new</span> Error(<span class="c-str">&#39;no connection there&#39;</span>);
+      <span class="c-key">return</span> MORE[row.id].map((title) =&gt; ({ id: <span class="c-str">`${row.id}/${title}`</span>, title }));
+    },
+  });
+&lt;/<span class="c-tag">script</span>&gt;</code></pre></figure>
+    </section>
+
+    <section id="facts" data-terms=".kv .facts dl dt dd">
+      <h2>Facts</h2>
+      <p><code>.kv</code> is a <code>dl</code> of names and values in columns (<code>--cols</code>, 2). <code>.facts</code> is a line of facts with dots between them, wrapping as it needs.</p>
+      <figure class="example" id="ex-10"><div class="example-view">
+<dl class="kv"><dt>Region</dt><dd>eu-west</dd><dt>Plan</dt><dd>Business</dd><dt>Created</dt><dd>Mar 3, 2025</dd><dt>Owner</dt><dd>Ada Lovelace</dd></dl>
+<div class="facts mt-3"><span>8 cores</span><span>32 GB</span><span>Ubuntu 24.04</span><span>203.0.113.10</span></div>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;dl class=&quot;kv&quot;&gt;&lt;dt&gt;Region&lt;/dt&gt;&lt;dd&gt;eu-west&lt;/dd&gt;&lt;dt&gt;Plan&lt;/dt&gt;&lt;dd&gt;Business&lt;/dd&gt;&lt;dt&gt;Created&lt;/dt&gt;&lt;dd&gt;Mar 3, 2025&lt;/dd&gt;&lt;dt&gt;Owner&lt;/dt&gt;&lt;dd&gt;Ada Lovelace&lt;/dd&gt;&lt;/dl&gt;
+&lt;div class=&quot;facts mt-3&quot;&gt;&lt;span&gt;8 cores&lt;/span&gt;&lt;span&gt;32 GB&lt;/span&gt;&lt;span&gt;Ubuntu 24.04&lt;/span&gt;&lt;span&gt;203.0.113.10&lt;/span&gt;&lt;/div&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">dl</span> <span class="c-attr">class</span>=<span class="c-str">&quot;kv&quot;</span>&gt;&lt;<span class="c-tag">dt</span>&gt;Region&lt;/<span class="c-tag">dt</span>&gt;&lt;<span class="c-tag">dd</span>&gt;eu-west&lt;/<span class="c-tag">dd</span>&gt;&lt;<span class="c-tag">dt</span>&gt;Plan&lt;/<span class="c-tag">dt</span>&gt;&lt;<span class="c-tag">dd</span>&gt;Business&lt;/<span class="c-tag">dd</span>&gt;&lt;<span class="c-tag">dt</span>&gt;Created&lt;/<span class="c-tag">dt</span>&gt;&lt;<span class="c-tag">dd</span>&gt;Mar 3, 2025&lt;/<span class="c-tag">dd</span>&gt;&lt;<span class="c-tag">dt</span>&gt;Owner&lt;/<span class="c-tag">dt</span>&gt;&lt;<span class="c-tag">dd</span>&gt;Ada Lovelace&lt;/<span class="c-tag">dd</span>&gt;&lt;/<span class="c-tag">dl</span>&gt;
+&lt;<span class="c-tag">div</span> <span class="c-attr">class</span>=<span class="c-str">&quot;facts mt-3&quot;</span>&gt;&lt;<span class="c-tag">span</span>&gt;8 cores&lt;/<span class="c-tag">span</span>&gt;&lt;<span class="c-tag">span</span>&gt;32 GB&lt;/<span class="c-tag">span</span>&gt;&lt;<span class="c-tag">span</span>&gt;Ubuntu 24.04&lt;/<span class="c-tag">span</span>&gt;&lt;<span class="c-tag">span</span>&gt;203.0.113.10&lt;/<span class="c-tag">span</span>&gt;&lt;/<span class="c-tag">div</span>&gt;</code></pre></figure>
+    </section>
+
+    <section id="timeline" data-terms=".timeline .timeline-head .timeline-title .timeline-time .timeline-text Dash.timeline">
+      <h2>Timelines</h2>
+      <p><code>Dash.timeline(items, { empty })</code> lists events on a line, newest first as given, each with a dot in its tone: <code>{ title, time, text, tone }</code>. A <code>time</code> that <code>Dash.time</code> can read shows as "12 min ago" and keeps itself current; other text shows as it is.</p>
+      <figure class="example" id="ex-11"><div class="example-view">
+<div id="events"></div>
+<script>
+  Dash.render('events', Dash.timeline([
+    { title: 'Deployed v2.4.1', time: Date.now() - 20 * 60e3, text: 'by Ada · 3 servers', tone: 'ok' },
+    { title: 'Error rate over 1%', time: Date.now() - 3 * 3600e3, text: 'Payments, eu-west, for 6 minutes', tone: 'bad' },
+    { title: 'Certificate renewed', time: 'Yesterday', tone: 'blue' },
+  ]));
+</script>
+</div><div class="example-bar"><button type="button" class="btn sm ghost" data-copy="&lt;div id=&quot;events&quot;&gt;&lt;/div&gt;
+&lt;script&gt;
+  Dash.render(&#39;events&#39;, Dash.timeline([
+    { title: &#39;Deployed v2.4.1&#39;, time: Date.now() - 20 * 60e3, text: &#39;by Ada · 3 servers&#39;, tone: &#39;ok&#39; },
+    { title: &#39;Error rate over 1%&#39;, time: Date.now() - 3 * 3600e3, text: &#39;Payments, eu-west, for 6 minutes&#39;, tone: &#39;bad&#39; },
+    { title: &#39;Certificate renewed&#39;, time: &#39;Yesterday&#39;, tone: &#39;blue&#39; },
+  ]));
+&lt;/script&gt;">Copy</button><button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div><pre class="example-code"><code>&lt;<span class="c-tag">div</span> <span class="c-attr">id</span>=<span class="c-str">&quot;events&quot;</span>&gt;&lt;/<span class="c-tag">div</span>&gt;
+&lt;<span class="c-tag">script</span>&gt;
+  <span class="c-fn">Dash</span>.render(<span class="c-str">&#39;events&#39;</span>, <span class="c-fn">Dash</span>.timeline([
+    { title: <span class="c-str">&#39;Deployed v2.4.1&#39;</span>, time: Date.now() - <span class="c-num">20</span> * <span class="c-num">60e3</span>, text: <span class="c-str">&#39;by Ada · 3 servers&#39;</span>, tone: <span class="c-str">&#39;ok&#39;</span> },
+    { title: <span class="c-str">&#39;Error rate over 1%&#39;</span>, time: Date.now() - <span class="c-num">3</span> * <span class="c-num">3600e3</span>, text: <span class="c-str">&#39;Payments, eu-west, for 6 minutes&#39;</span>, tone: <span class="c-str">&#39;bad&#39;</span> },
+    { title: <span class="c-str">&#39;Certificate renewed&#39;</span>, time: <span class="c-str">&#39;Yesterday&#39;</span>, tone: <span class="c-str">&#39;blue&#39;</span> },
+  ]));
+&lt;/<span class="c-tag">script</span>&gt;</code></pre></figure>
+    </section>
+    <nav class="docs-steps" aria-label="More pages"><a class="docs-step prev" href="labels.html"><span class="faint">Previous</span><b>Labels and badges</b></a><a class="docs-step next" href="tables.html"><span class="faint">Next</span><b>Tables</b></a></nav>
+  </main>
+</div>
+<script src="search.js"></script>
+<script src="docs.js"></script>
+</body>
+</html>

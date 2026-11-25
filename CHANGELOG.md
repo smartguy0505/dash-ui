@@ -2,6 +2,17 @@
 
 Dashboards keep a copy of `dash.css` and `dash.js`; the first line of each file says which version it is. Versions only add things: a page that worked with an older copy works the same with a newer one.
 
+## 1.14.0 (2026-11-25)
+
+Trees, lists to work with, and a sidebar that sorts its links.
+
+- `Dash.tree(el, { items })`: things inside things, with the keys of any tree. Picks one row or ticks many (a branch with some of it ticked shows a dash), filters, remembers what is open, loads branches as they open, and has a menu per row.
+- `Dash.list(el, { rows })`: the rows of `Dash.entries`, to pick from (one, many, ranges, all), to put in order (drag a grip by mouse or finger, arrow keys, or a menu; a move that can't be saved is put back), in groups, in parts that load, or in a box that scrolls.
+- `Dash.nav(el, items)`: a sidebar's links in groups that open and close, with a filter; the groups the reader opened are remembered. By hand: `details.nav-group` and `.nav-list`.
+- `Dash.spy(el)`: the link to the section being read is marked, and kept in view.
+- A menu opened by a right click stays open when the button is let go. On Linux and Mac the release closed it again, so `Dash.menu(event, …)` in a `contextmenu` handler didn't work with a real mouse there.
+- The docs: a sidebar of every component by class, with a filter, and a page of all components. Some sections moved (labels, lists, privacy and sign-in have pages of their own); old links go where they are now. The gallery has the same sidebar.
+
 ## 1.13.1 (2026-11-25)
 
 - What a screen reader is told about a form comes from a line that is on the page before it speaks (one for the page, one in a dialog); 1.13.0 made it and filled it in one go, which some readers skip.

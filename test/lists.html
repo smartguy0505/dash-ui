@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trees, lists and a classified sidebar</title>
+<link rel="stylesheet" href="../dash.css">
+<script src="../dash.js"></script>
+</head>
+<body>
+<header class="topbar"><button type="button" class="icon-btn" data-toggle-side aria-label="Pages">≡</button><div class="brand"><span class="mark">T</span><h1>Lists</h1></div>
+  <div class="top-right"><label class="search"><input class="input" id="side-q" type="search" aria-label="Filter"></label></div></header>
+<div class="shell offcanvas">
+  <nav class="sidebar" id="side" aria-label="Pages"></nav>
+  <main class="content">
+    <section id="trees"><h2>Trees</h2>
+      <p><label class="search"><input class="input" id="tree-q" type="search" aria-label="Filter files"></label></p>
+      <div class="grid">
+        <div class="panel"><h3>Files</h3><div id="files"></div></div>
+        <div class="panel"><h3>One</h3><div id="one"></div></div>
+        <div class="panel"><h3>Many</h3><div id="many"></div></div>
+        <div class="panel"><h3>Asked for</h3><div id="lazy"></div></div>
+      </div>
+    </section>
+    <section id="lists"><h2>Lists</h2>
+      <div class="grid">
+        <div class="panel"><h3>Rules, in order</h3><div id="rules"></div></div>
+        <div class="panel"><h3>People, one</h3><div id="people"></div></div>
+        <div class="panel"><h3>Servers, many</h3><div id="servers"></div></div>
+        <div class="panel"><h3>Events, in parts</h3><div id="events"></div></div>
+        <div class="panel"><h3>Plain</h3><div id="plain"></div></div>
+        <div class="panel"><h3>Asked for in parts</h3><div id="parts"></div></div>
+      </div>
+    </section>
+    <section id="end"><h2>The end</h2><div style="height:900px"></div></section>
+  </main>
+</div>
+<script>
+  const log = window.log = [];
+  const icon = (d) => `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="${d}"/></svg>`;
+  const FOLDER = icon('M1.5 4.5v8h13v-7h-7l-1.5-2h-4.5z'), FILE = icon('M3.5 1.5h6l3 3v10h-9z');
+  const FILES = [
+    { id: 'src', title: 'src', items: [
+      { id: 'src/app.js', title: 'app.js', sub: '12 KB' },
+      { id: 'src/parts', title: 'parts', items: [
+        { id: 'src/parts/table.js', title: 'table.js' },
+        { id: 'src/parts/a', title: 'deep', items: [{ id: 'src/parts/a/b', title: 'deeper', items: [{ id: 'src/parts/a/b/c', title: 'deepest <b>', items: [{ id: 'x', title: 'a file with quite a long name that has to be cut short somewhere.js' }] }] }] },
+      ] },
+    ] },
+    { id: 'test', title: 'test', items: [{ id: 'test/app.js', title: 'app.test.js' }] },
+    { id: 'readme', title: 'README.md', sub: '4 KB' },
+  ];
+  window.files = Dash.tree('files', { items: FILES, label: 'Files', open: ['src'], store: 'test-files', lead: (r, { branch }) => (branch ? FOLDER : FILE), end: (r) => (r.id === 'test' ? Dash.pill('Failing', 'bad') : r.id === 'readme' ? '<button type="button" class="link" id="own-btn">own</button>' : ''),
+    onPick: (r) => log.push('pick ' + r.id), onOpen: (r, on) => log.push((on ? 'open ' : 'close ') + r.id),
+    menu: (r) => ['Rename', { label: 'Delete', value: 'delete', tone: 'bad' }], onMenu: (v, r) => log.push(`menu ${v} ${r.id}`) });
+  window.one = Dash.tree('one', { items: FILES, label: 'One', open: true, select: 'one', selected: 'src/app.js', can: (r) => r.id !== 'readme', onSelect: (r) => log.push('one ' + (r && r.id)), onPick: (r) => log.push('go ' + r.id) });
+  window.many = Dash.tree('many', { items: FILES, label: 'Many', open: 2, select: 'many', selected: ['src/parts/table.js'], can: (r) => r.id !== 'readme', onSelect: (l) => log.push('many ' + l.map((r) => r.id).join('+')) });
+  window.answers = {};
+  window.lazy = Dash.tree('lazy', { items: [{ id: 'eu', title: 'Europe', items: true }, { id: 'us', title: 'America', items: true }, { id: 'none', title: 'Empty', items: true }, { id: 'plain', title: 'A leaf' }], label: 'Asked for', select: 'many',
+    onSelect: (l) => log.push('lazy ' + l.map((r) => r.id).join('+')),
+    load: (r) => { log.push('load ' + r.id); return new Promise((ok, no) => { answers[r.id] = { ok, no }; }); } });
+  Dash.search('tree-q', { key: null, onChange: (q) => { for (const t of [files, one, many, lazy]) t.filter(q); } });
+
+  const RULES = [['a', 'Block bots', 'All pages'], ['b', 'Cache pictures', 'One day'], ['c', 'Send to the old site', '/blog/*'], ['d', 'Ask for a login', '/admin/*'], ['e', 'Let the rest through', 'All pages']].map(([id, title, sub]) => ({ id, title, sub }));
+  window.save = null;
+  window.rules = Dash.list('rules', { rows: RULES, label: 'Rules', reorder: true, onMove: (rows, m) => { log.push(`move ${m.row.id} ${m.from}>${m.to} ${rows.map((r) => r.id).join('')}`); return save ? save() : undefined; },
+    menu: (r) => ['Edit', 'Remove'], onMenu: (v, r) => log.push(`rule ${v} ${r.id}`) });
+  const NAMES = ['Ada Lovelace', 'Grace Hopper', 'Alan Turing', 'Edsger Dijkstra', 'Barbara Liskov'];
+  window.people = Dash.list('people', { rows: NAMES.map((title, i) => ({ id: i + 1, title, sub: ['Owner', 'Admin', 'Viewer'][i % 3] })), label: 'People', select: 'one', selected: 2, lead: (r) => Dash.avatar(r.title),
+    can: (r) => r.id !== 3, onSelect: (r) => log.push('person ' + (r && r.id)), onPick: (r) => log.push('open ' + r.id) });
+  const SERVERS = Array.from({ length: 14 }, (_, i) => ({ id: 's' + (i + 1), title: `web-${i + 1}`, region: ['Frankfurt', 'Paris', 'Dublin'][i % 3], load: ((i * 37) % 90) / 100 }));
+  window.servers = Dash.list('servers', { rows: SERVERS, label: 'Servers', select: 'many', group: 'region', reorder: true, height: 260, end: (r) => (r.id === 's14' ? '<a href="#own" id="own-link">own</a>' : Dash.fmt.pct(r.load * 100, 0)), menu: () => ['Restart'], onMenu: (v, r) => log.push(`${v} ${r.id}`),
+    onSelect: (l) => log.push('servers ' + l.map((r) => r.id).join('+')), onMove: (l, m) => log.push(`server ${m.row.id} ${m.from}>${m.to}`) });
+  window.events = Dash.list('events', { rows: Array.from({ length: 57 }, (_, i) => ({ id: i, title: `Event ${i + 1}`, sub: 'x' })), more: 20, noun: 'event', onPick: (r) => log.push('event ' + r.id) });
+  window.plain = Dash.list('plain', { rows: RULES.slice(0, 2), href: (r) => '#' + r.id });
+  window.parts = Dash.list('parts', { label: 'Parts', more: 3, noun: 'part', load: (at) => { log.push('part ' + at); return new Promise((ok, no) => { answers.part = { ok, no }; }); } });
+
+  window.nav = Dash.nav('side', [
+    { label: 'Overview', href: '#top', icon: icon('M2 8l6-6 6 6v6H2z') },
+    { heading: 'Pieces' },
+    { label: 'Trees', icon: icon('M8 2v12M8 6h5M8 11h5'), badge: 4, items: [{ label: 'Files', href: '#trees' }, { label: 'One <b>', href: '#one', sub: 'Picks a row' }] },
+    { label: 'Lists', key: 'lists', items: [{ label: 'Rules', href: '#lists' }, { label: 'More', items: [{ label: 'The end', href: '#end' }, { label: 'A button', key: 'act' }] }] },
+    { heading: 'Other' },
+    { label: 'Busy', href: 'javascript:alert(1)', tone: 'warn', meta: '<span class="tone warn">91%</span>' },
+  ], { current: '#one', store: 'test-nav', onPick: (it) => log.push('nav ' + it.label) });
+  window.spy = Dash.spy('side', { onChange: (id) => log.push('at ' + id) });
+  Dash.search('side-q', { key: null, onChange: (q) => { window.found = nav.filter(q); } });
+</script>
+</body>
+</html>

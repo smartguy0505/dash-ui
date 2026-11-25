@@ -11,27 +11,35 @@
 //   <example frame>…</example>                   one that takes the whole screen (a bottom nav, a drawer): not put in the
 //     page, only printed; Phone and Other theme show it alone
 //   <utilities group="flex"></utilities>         the group's classes from tools/utils.mjs, with what each sets
+//   <components></components>                    every component by its class: a card per section of the pages under "Components"
+// A section's data-nav is its name in the sidebar, where its h2 is too long for that.
+import { createRequire } from 'node:module';
 import { readFileSync, writeFileSync, mkdirSync, copyFileSync, existsSync, readdirSync } from 'node:fs';
 import { groupList, WIDTHS, MAX_WIDTHS } from './utils.mjs';
 
 const root = new URL('../', import.meta.url);
 const read = (p) => readFileSync(new URL(p, root), 'utf8');
 const version = JSON.parse(read('package.json')).version;
+const Dash = createRequire(import.meta.url)('../dash.js');
 
 // [file, title, side group, one line for the page's head and the search]
 export const PAGES = [
   ['index', 'Getting started', 'Start', 'Two files and a page: what dash-ui is, how to add it, and how a page is put together.'],
+  ['components', 'All components', 'Start', 'Every component in the kit, by its class.'],
   ['colours', 'Colours and themes', 'Foundations', 'The palette as tokens, the tones every component takes, and light and dark.'],
-  ['layout', 'Page layout', 'Foundations', 'The top bar, the sidebar and its drawer, the page, grids, rows and the phone navigation.'],
-  ['text', 'Text and labels', 'Foundations', 'Text styles, status pills, tags, chips, ranks, changes, avatars, badges and tooltips.'],
+  ['layout', 'Page layout', 'Foundations', 'The top bar, the page, grids, rows and the phone navigation.'],
+  ['text', 'Text', 'Foundations', 'Text styles: sizes, tones, numbers, code, and text that is cut short.'],
   ['buttons', 'Buttons', 'Components', 'Buttons, icon buttons, links, segmented controls, menus, the floating button and spinners.'],
-  ['forms', 'Forms', 'Components', 'Inputs, fields, selects, input groups, checkboxes and radios, choices, switches, sliders, file drops, suggestions and dates.'],
-  ['surfaces', 'Panels and cards', 'Components', 'Panels, cards, stat tiles, callouts, banners, lists, accordions, empty states and loading lines.'],
-  ['navigation', 'Navigation', 'Components', 'Tabs, breadcrumbs, steps, pagers and timelines.'],
+  ['forms', 'Forms', 'Components', 'Inputs, fields, selects, input groups, checkboxes and radios, choices, switches, sliders, file drops, suggestions, dates, and saying what is wrong.'],
+  ['labels', 'Labels and badges', 'Components', 'Status pills, tags, chips, changes, ranks, avatars and badges.'],
+  ['lists', 'Lists and trees', 'Components', 'Lists to read, to pick from and to put in order, trees, facts and timelines.'],
   ['tables', 'Tables', 'Components', 'Tables with sorting, row states, sticky headers, and rows that become cards on a phone.'],
   ['charts', 'Charts and progress', 'Components', 'Bars, meters, legends, column charts, donuts, gauges, sparklines, lanes and progress.'],
-  ['overlays', 'Modals and popups', 'Components', 'Modals, dialogs, drawers, questions, popups and menus.'],
-  ['feedback', 'Feedback', 'Components', 'Toasts, notices, the live status, flashes and the sign-in page.'],
+  ['surfaces', 'Panels and cards', 'Components', 'Panels, cards, stat tiles, the big number, callouts, banners, accordions and dividers.'],
+  ['navigation', 'Navigation', 'Components', 'The sidebar with its groups and its drawer, the section being read, tabs, breadcrumbs, steps and pages.'],
+  ['overlays', 'Modals and popups', 'Components', 'Modals, dialogs, drawers, questions, popups, menus and tooltips.'],
+  ['feedback', 'Feedback', 'Components', 'Toasts, notices, the live status, flashes, empty states and loading lines.'],
+  ['privacy', 'Privacy and sign-in', 'Components', 'Hiding amounts and addresses behind an eye, and the sign-in page.'],
   ['helpers', 'dash.js helpers', 'JavaScript', 'Formatting, times, rendering, fetching and polling, the store, keys, search and the page hash.'],
   ['utilities', 'Utility classes', 'Utilities', 'dash-utils.css: what it is, how a utility beats the kit, variants, widths, dark and print.'],
   ['utilities-layout', 'Layout utilities', 'Utilities', 'Display, position, overflow, flex, grid and alignment.'],
@@ -84,20 +92,42 @@ const utilityTable = (title) => {
 };
 
 // ---- a page
-const sideNav = (current) => {
-  let group = '', out = '';
+const SECTION = /<section id="([^"]+)"(?: data-nav="([^"]*)")?(?: data-terms="([^"]*)")?[^>]*>\s*<h2[^>]*>([\s\S]*?)<\/h2>/g;
+const strip = (h) => h.replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
+const sectionsOf = (src) => [...src.replace(/<example[\s\S]*?<\/example>/g, '').matchAll(SECTION)] // (an example may hold sections of its own)
+ .map(([, id, nav, terms, h]) => ({ id, title: strip(h), nav: nav || strip(h), terms: (terms || '').split(/\s+/).filter(Boolean) }));
+const href = (file, id) => (file === 'index' ? './' : file + '.html') + (id ? '#' + id : '');
+// the sidebar: the pages by their class, each with its sections; on its own page a section is a link within it (Dash.spy marks it)
+const sideNav = (current, all) => {
+  const items = [];
+  let group = '';
   for (const [file, title, g] of PAGES) {
-    if (g !== group) { out += `<div class="side-head">${esc(g)}</div>`; group = g; }
-    out += `<a class="nav-item" href="${file === 'index' ? './' : file + '.html'}"${file === current ? ' aria-current="page"' : ''}><span class="nav-main"><span class="nav-name">${esc(title)}</span></span></a>`;
+    if (g !== group) { items.push({ heading: g }); group = g; }
+    const parts = all[file];
+    items.push(parts.length < 2 ? { label: title, href: href(file) }
+      : { label: title, key: file, open: file === current, items: parts.map((p) => ({ label: p.nav, href: file === current ? '#' + p.id : href(file, p.id) })) });
   }
-  return out;
+  return Dash.nav.html(items, { current: href(current) });
 };
+// every section of the pages under "Components", as cards by class
+const componentCards = (all) => PAGES.filter((p) => p[2] === 'Components').map(([file, title, , blurb]) => {
+  const src = read(`docs-src/${file}.html`);
+  const cards = all[file].map((p) => {
+    const at = src.indexOf(`<section id="${p.id}"`);
+    const text = strip(/<p>([\s\S]*?)<\/p>/.exec(src.slice(at))?.[1] || '');
+    const first = (/^.*?[.:!](?=\s+[A-Z.]|$)/.exec(text)?.[0] || text).replace(/:$/, '.');
+    return `<a class="card" href="${href(file, p.id)}" data-find="${esc(p.terms.join(' '))}"><div class="card-title">${esc(p.title)}</div><div class="card-sub">${esc(first)}</div></a>`;
+  }).join('\n');
+  return `    <section class="docs-class" id="${file}">\n      <h2><a class="docs-class-name" href="${href(file)}">${esc(title)}</a> <span class="count-badge">${all[file].length}</span></h2>\n      <p>${esc(blurb)}</p>\n      <div class="cards">${cards}</div>\n    </section>`;
+}).join('\n');
 
 export function build({ kit = '../', bare = false } = {}) {
   const pages = {}, index = [], terms = [];
+  const all = Object.fromEntries(PAGES.map(([file]) => [file, sectionsOf(read(`docs-src/${file}.html`))]));
   PAGES.forEach(([file, title, group, blurb], at) => {
     let src = read(`docs-src/${file}.html`);
     let n = 0;
+    src = src.replace('<components></components>', () => componentCards(all));
     src = src.replace(/<utilities group="([^"]+)"><\/utilities>/g, (m, t) => utilityTable(t));
     src = src.replace(/<example((?:\s+[\w-]+(?:="[^"]*")?)*)>([\s\S]*?)<\/example>/g, (m, attrs, body) => {
       const code = dedent(body);
@@ -112,18 +142,17 @@ export function build({ kit = '../', bare = false } = {}) {
         + `<button type="button" class="btn sm ghost" data-preview="phone">Phone</button><button type="button" class="btn sm ghost" data-preview="theme">Other theme</button></div>`
         + `<pre class="example-code"><code>${paintHtml(code)}</code></pre></figure>`;
     });
-    const sections = [...src.matchAll(/<section id="([^"]+)"(?: data-terms="([^"]*)")?[^>]*>\s*<h2[^>]*>([\s\S]*?)<\/h2>/g)];
-    const strip = (h) => h.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
-    const url = (h) => (file === 'index' ? './' : file + '.html') + (h ? '#' + h : '');
+    const sections = all[file];
+    const url = (h) => href(file, h);
     index.push({ t: title, p: group, u: url('') });
-    for (const [, id, t, h] of sections) {
-      index.push({ t: strip(h), p: title, u: url(id) });
-      for (const name of (t || '').split(/\s+/).filter(Boolean)) {
+    for (const { id, title: h, terms: names } of sections) {
+      index.push({ t: h, p: title, u: url(id) });
+      for (const name of names) {
         terms.push({ name, page: file, id });
-        index.push({ t: name, p: `${title} › ${strip(h)}`, u: url(id), k: 1 });
+        index.push({ t: name, p: `${title} › ${h}`, u: url(id), k: 1 });
       }
     }
-    const toc = sections.length > 1 ? `<nav class="chips docs-toc" aria-label="On this page">${sections.map(([, id, , h]) => `<a class="chip" href="#${id}">${esc(strip(h))}</a>`).join('')}</nav>` : '';
+    const toc = sections.length > 1 ? `<nav class="chips docs-toc" aria-label="On this page">${sections.map((p) => `<a class="chip" href="#${p.id}">${esc(p.title)}</a>`).join('')}</nav>` : '';
     const prev = PAGES[at - 1], next = PAGES[at + 1];
     const link = (p, rel) => (p ? `<a class="docs-step ${rel}" href="${p[0] === 'index' ? './' : p[0] + '.html'}"><span class="faint">${rel === 'prev' ? 'Previous' : 'Next'}</span><b>${esc(p[1])}</b></a>` : '<span></span>');
     const head = `<title>${file === 'index' ? 'dash-ui docs' : esc(title) + ' · dash-ui'}</title>\n<meta name="description" content="${esc(blurb)}">\n`
@@ -137,8 +166,11 @@ export function build({ kit = '../', bare = false } = {}) {
   </div>
 </header>
 <div class="shell offcanvas">
-  <nav class="sidebar" aria-label="Pages">${sideNav(file)}</nav>
-  <main class="content docs" id="top">
+  <nav class="sidebar" aria-label="Pages">
+    <label class="search docs-filter"><span class="sr-only">Filter the list</span><input class="input sm" id="docs-filter" type="search" placeholder="Filter components" autocomplete="off"></label>
+    <div id="docs-nav">${sideNav(file, all)}</div>
+  </nav>
+  <main class="content docs" id="top" data-page="${file}">
     <header class="docs-head"><p class="docs-group">${esc(group)}</p><h1>${esc(title)}</h1><p class="docs-blurb">${esc(blurb)}</p>${toc}</header>
 ${src.trim()}
     <nav class="docs-steps" aria-label="More pages">${link(prev, 'prev')}${link(next, 'next')}</nav>

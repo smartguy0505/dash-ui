@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trees and lists under a strict CSP</title>
+<link rel="stylesheet" href="../dash.css">
+<script src="../dash.js"></script>
+</head>
+<!-- test/behaviour.mjs serves this page with Content-Security-Policy: style-src 'self' -->
+<body>
+<div class="shell offcanvas"><nav class="sidebar" id="side" aria-label="Pages"></nav><main class="content">
+  <div class="panel" id="tree"></div>
+  <div class="panel" id="list"></div>
+  <section id="one"><h2>One</h2></section>
+</main></div>
+<script>
+  Dash.config.csp = true;
+  window.violations = [];
+  document.addEventListener('securitypolicyviolation', (e) => violations.push(e.violatedDirective));
+  const rows = Array.from({ length: 30 }, (_, i) => ({ id: i, title: 'Row ' + i, sub: 'x' }));
+  window.tree = Dash.tree('tree', { items: [{ id: 'a', title: 'A', items: rows }], select: 'many', lead: () => Dash.avatar('A B'), open: true, menu: () => ['x'] });
+  window.list = Dash.list('list', { rows, select: 'many', height: 200, reorder: true, lead: () => Dash.avatar('A B') });
+  window.nav = Dash.nav('side', [{ label: 'Parts', badge: 2, items: [{ label: 'One', href: '#one' }] }]);
+  window.spy = Dash.spy('side');
+</script>
+</body>
+</html>

@@ -1,0 +1,220 @@
+    <section id="entries" data-terms=".entries .entry .entry-lead .entry-text .entry-title .entry-sub .entry-end Dash.entries">
+      <h2>Lists</h2>
+      <p><code>Dash.entries(rows, options)</code> is a list of things, a line or two each: a <code>lead</code> (an avatar or an icon), a <code>title</code> and <code>sub</code>, and an <code>end</code> (a time, a pill). <code>title</code> and <code>sub</code> are keys or functions and are escaped; <code>lead</code> and <code>end</code> return HTML. <code>href: (row) =&gt; url</code> makes each a link, <code>button: true</code> a button (with <code>key</code> as its <code>data-key</code>, for a click handler and so a redraw keeps the focus). <code>wrap: true</code> lets long text wrap instead of ending in …; <code>empty</code> is the text when there are no rows.</p>
+      <example>
+        <div class="panel flush" id="people"></div>
+        <script>
+          const team = [
+            { id: 1, name: 'Ada Lovelace', role: 'Owner', seen: Date.now() - 5 * 60e3 },
+            { id: 2, name: 'Grace Hopper', role: 'Admin', seen: Date.now() - 3 * 3600e3 },
+            { id: 3, name: 'Alan Turing', role: 'Viewer · invited, not joined yet', seen: null },
+          ];
+          Dash.render('people', Dash.entries(team, {
+            title: 'name', sub: 'role', key: 'id', button: true, label: 'Team',
+            lead: (p) => Dash.avatar(p.name), end: (p) => (p.seen ? Dash.ago(p.seen) : Dash.pill('Invited', 'idle')),
+          }));
+          Dash.on('people', 'click', '[data-key]', (e, b) => Dash.toast(`Open person ${b.dataset.key}`));
+        </script>
+      </example>
+      <p>By hand: <code>ul.entries</code> › <code>li.entry</code> (or an <code>a.entry</code> or <code>button.entry</code> in the <code>li</code>) › <code>.entry-lead</code>, <code>.entry-text</code> with <code>.entry-title</code> and <code>.entry-sub</code>, <code>.entry-end</code>.</p>
+    </section>
+
+    <section id="pick-list" data-terms="Dash.list .picks .pick-box .entry-line .entry-own .row-dots listbox select menu">
+      <h2>Lists to pick from</h2>
+      <p><code>Dash.list(el, options)</code> writes the same rows and looks after them. It takes <code>rows</code>, <code>title</code>, <code>sub</code>, <code>lead</code>, <code>end</code> and <code>href</code> as <code>Dash.entries</code> does, and a <code>key</code> (<code>id</code>). With <code>select: 'one'</code> a click picks a row, with <code>'many'</code> it ticks one; <code>onSelect</code> gets the row, or the rows. <code>can(row)</code> says which may be picked. <code>menu(row)</code> gives a row a menu (its ⋯ button, a right click or Shift+F10), and <code>onMenu(value, row)</code> gets what was chosen.</p>
+      <example title="One of them">
+        <div class="panel" id="plans"></div>
+        <script>
+          Dash.list('plans', {
+            label: 'Plans', select: 'one', selected: 'team',
+            rows: [
+              { id: 'solo', title: 'Solo', sub: 'One person', price: 9 },
+              { id: 'team', title: 'Team', sub: 'Up to ten people', price: 49 },
+              { id: 'org', title: 'Organization', sub: 'Ask us', price: null },
+            ],
+            end: (r) => (r.price == null ? Dash.tag('Soon', 'plain') : Dash.esc(Dash.fmt.usd(r.price))),
+            can: (r) => r.price != null,
+            onSelect: (r) => Dash.toast(`${r.title} picked`),
+          });
+        </script>
+      </example>
+      <example title="Many, in groups, with a menu">
+        <div class="panel">
+          <div class="panel-head"><h3>Servers</h3><span class="read" id="picked-servers">2 picked</span></div>
+          <div id="server-list"></div>
+        </div>
+        <script>
+          const servers = [
+            { id: 'web-1', title: 'web-1', sub: '8 cores', region: 'Frankfurt', state: 'ok' },
+            { id: 'web-2', title: 'web-2', sub: '8 cores', region: 'Frankfurt', state: 'warn' },
+            { id: 'db-1', title: 'db-1', sub: '32 cores', region: 'Frankfurt', state: 'ok' },
+            { id: 'web-3', title: 'web-3', sub: '8 cores', region: 'Paris', state: 'ok' },
+            { id: 'db-2', title: 'db-2', sub: '16 cores', region: 'Paris', state: 'bad' },
+          ];
+          Dash.list('server-list', {
+            rows: servers, label: 'Servers', select: 'many', selected: ['web-1', 'db-2'], group: 'region',
+            end: (r) => Dash.pill({ ok: 'Healthy', warn: 'Busy', bad: 'Down' }[r.state], r.state),
+            menu: (r) => ['Open', 'Restart', '-', { label: 'Remove', value: 'remove', tone: 'bad' }],
+            onMenu: (v, r) => Dash.toast(`${v}: ${r.title}`),
+            onSelect: (list) => { Dash.$('picked-servers').textContent = `${list.length} picked`; },
+          });
+        </script>
+      </example>
+      <p>The arrow keys, Home, End and the first letters move between rows; Space picks. With <code>'many'</code>, Shift with a click or an arrow picks all between, and Ctrl+A (⌘A) all of them, then none. <code>onPick(row, event)</code> is a double click or Enter; without <code>select</code> it is a click. <code>group</code> is a field or a function whose values become headings. <code>.update(rows)</code> shows new rows and keeps what is picked, the focus and the scroll; <code>.filter(text or test)</code> shows those with the words, and returns how many. <code>.selected</code>, <code>.select(keys)</code>, <code>.rows</code>, <code>.shown</code>, <code>.count</code>, <code>.redraw()</code> and <code>.destroy()</code> are there too.</p>
+    </section>
+
+    <section id="reorder" data-terms=".entry-grip .drag-ghost .drag-from .drop-line .dragging reorder onMove drag sort">
+      <h2>Lists to put in order</h2>
+      <p><code>reorder: true</code> gives each row a grip. Drag it with a mouse or a finger (Escape calls it off), press the arrow keys on it, or click it for Move up, Move down and the ends. <code>onMove(rows, { row, from, to })</code> gets the rows in the new order. Return a promise while it is saved: if it rejects, or gives <code>false</code>, the row is put back and a toast says why. An update that comes during a drag or a save waits until it is over.</p>
+      <example>
+        <div class="panel" id="rules"></div>
+        <script>
+          Dash.list('rules', {
+            label: 'Rules, the first that fits counts', reorder: true,
+            rows: [
+              { id: 1, title: 'Block bots', sub: 'All pages' },
+              { id: 2, title: 'Keep pictures for a day', sub: '/img/*' },
+              { id: 3, title: 'Ask for a login', sub: '/admin/*' },
+              { id: 4, title: 'Let the rest through', sub: 'All pages' },
+            ],
+            onMove: (rows, { row, to }) => Dash.toast(`${row.title} is number ${to + 1} now`),
+            menu: () => ['Edit', 'Copy'], onMenu: (v, r) => Dash.toast(`${v}: ${r.title}`),
+          });
+        </script>
+      </example>
+      <p>With groups, a row moves within its own. In a list to pick from, Alt with an arrow moves the row with the focus. <code>.move(key, place)</code> does it from code. A screen reader hears the new place: “Block bots: 2 of 4”.</p>
+    </section>
+
+    <section id="long-lists" data-terms=".entries-group .entries-head .entries-foot .entries-scroll --entries-h more load">
+      <h2>Long lists</h2>
+      <p><code>more: 20</code> shows twenty rows and a button for the next twenty. <code>load(offset)</code> gives the rows from there on, or a promise of them: the first part is asked for at once, each further one with the button, and the end is a part shorter than <code>more</code>. A part that fails says so, with Try again; <code>.reload()</code> starts over. <code>height</code>, a number of pixels, makes it a box that scrolls under its headings.</p>
+      <example title="In parts, asked for as they are needed">
+        <div class="panel" id="event-list"></div>
+        <script>
+          const WHAT = ['Deployed', 'Restarted', 'Certificate renewed', 'Disk cleaned up'];
+          Dash.list('event-list', {
+            more: 4, noun: 'event', label: 'Events',
+            load: async (from) => {
+              await new Promise((ok) => setTimeout(ok, 600)); // this would be Dash.api('/api/events?from=' + from)
+              return Array.from({ length: Math.min(4, 10 - from) }, (_, i) => ({ id: from + i, title: WHAT[(from + i) % 4], sub: `web-${((from + i) % 3) + 1}` }));
+            },
+            end: (r) => Dash.ago(Date.now() - (r.id + 1) * 47 * 60e3),
+          });
+        </script>
+      </example>
+      <example title="In a box that scrolls">
+        <div class="panel" id="by-region"></div>
+        <script>
+          const CITY = ['Frankfurt', 'Paris', 'Dublin'];
+          Dash.list('by-region', {
+            rows: Array.from({ length: 18 }, (_, i) => ({ id: i, title: `web-${i + 1}`, city: CITY[i % 3], load: ((i * 37) % 90) / 100 })),
+            group: 'city', height: 240, label: 'Servers by city', end: (r) => Dash.esc(Dash.fmt.pct(r.load * 100, 0)),
+            onPick: (r) => Dash.toast(`Open ${r.title}`),
+          });
+        </script>
+      </example>
+    </section>
+
+    <section id="tree" data-terms="Dash.tree .tree .tree-item .tree-row .tree-turn .tree-lead .tree-text .tree-title .tree-sub .tree-end .tree-note tree treeitem hierarchy folders">
+      <h2>Trees</h2>
+      <p><code>Dash.tree(el, options)</code> shows things inside things. Each of <code>items</code> has an <code>id</code> and a <code>title</code>, and <code>items</code> of its own if it is a branch; <code>key</code>, <code>title</code>, <code>sub</code> and <code>children</code> name other fields, or are functions. <code>lead(row, { branch, open })</code> and <code>end(row)</code> are HTML: an icon, a pill. <code>open</code> says what is open at the start: keys, a number of levels, or <code>true</code> for all; <code>store: 'name'</code> remembers what the reader opened.</p>
+      <example title="A folder, with a filter">
+        <div class="panel">
+          <div class="panel-head"><h3>Files</h3><label class="search"><input class="input sm" id="file-filter" type="search" aria-label="Filter files" placeholder="Filter files"></label></div>
+          <div id="files"></div>
+        </div>
+        <script>
+          const icon = (d) => `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="${d}"/></svg>`;
+          const FOLDER = icon('M1.5 4.5v8h13v-7h-7l-1.5-2h-4.5z'), FILE = icon('M3.5 1.5h6l3 3v10h-9z');
+          const files = Dash.tree('files', {
+            label: 'Files', open: ['src'],
+            items: [
+              { id: 'src', title: 'src', items: [
+                { id: 'app', title: 'app.js', size: '12 KB' },
+                { id: 'parts', title: 'parts', items: [{ id: 'table', title: 'table.js', size: '31 KB' }, { id: 'chart', title: 'chart.js', size: '18 KB' }] },
+              ] },
+              { id: 'test', title: 'test', state: 'bad', items: [{ id: 'app-test', title: 'app.test.js', size: '6 KB', state: 'bad' }] },
+              { id: 'readme', title: 'README.md', size: '4 KB' },
+            ],
+            lead: (r, { branch }) => (branch ? FOLDER : FILE),
+            end: (r) => (r.state ? Dash.pill('Failing', r.state) : Dash.esc(r.size || '')),
+            onPick: (r) => Dash.toast(`Open ${r.title}`),
+            menu: () => ['Rename', { label: 'Delete', value: 'delete', tone: 'bad' }], onMenu: (v, r) => Dash.toast(`${v}: ${r.title}`),
+          });
+          Dash.search('file-filter', { key: null, onChange: (q) => files.filter(q) });
+        </script>
+      </example>
+      <p>A click on a branch opens or closes it; on a leaf it is <code>onPick(row, event)</code>. The keys are those of a tree anywhere: Up and Down move, Right opens and goes in, Left closes and goes out, Home and End, <code>*</code> opens all the branches beside, and letters find a row. The focus stays on a row while the tree is redrawn. <code>menu</code> and <code>onMenu</code> work as on a list. <code>.filter(text or test)</code> shows the rows with the words, inside the branches they are in, and returns how many; an empty text shows all again, opened as before.</p>
+      <p><code>.update(items)</code>, <code>.items</code>, <code>.expand(keys, on)</code> (or <code>true</code> for all, <code>false</code> for none), <code>.expanded</code>, <code>.reveal(key, { focus })</code> (opens what it is in and shows it), <code>.redraw()</code> and <code>.destroy()</code> are for code; <code>onOpen(row, open)</code> says what the reader opened and closed.</p>
+    </section>
+
+    <section id="tree-pick" data-terms=".no-pick aria-checked aria-selected checkbox tri-state">
+      <h2>Trees to pick from</h2>
+      <p>With <code>select: 'one'</code> a click picks a row, whether it is a branch or a leaf; the arrow in front of a branch, or a second click on it, opens and closes it. <code>select: 'many'</code> gives each row a box: ticking a branch ticks every leaf in it, also the ones that aren't shown, and a branch of which some is ticked has a dash. <code>onSelect</code> gets the row, or the ticked leaves. <code>can(row)</code> says which may be picked, <code>selected</code> what is at the start, and <code>.select(keys)</code> changes it.</p>
+      <example>
+        <div class="grid">
+          <div class="panel"><div class="panel-head"><h3>Move to</h3></div><div id="move-to"></div></div>
+          <div class="panel"><div class="panel-head"><h3>May see</h3><span class="read" id="may-count">2 rights</span></div><div id="rights"></div></div>
+        </div>
+        <script>
+          Dash.tree('move-to', {
+            label: 'Move to', select: 'one', selected: 'mail', open: true,
+            items: [{ id: 'all', title: 'Everything', items: [{ id: 'sites', title: 'Sites', items: [{ id: 'shop', title: 'Shop' }, { id: 'blog', title: 'Blog' }] }, { id: 'mail', title: 'Mail' }] }],
+            onSelect: (r) => r && Dash.toast(`Move to ${r.title}`),
+          });
+          Dash.tree('rights', {
+            label: 'May see', select: 'many', selected: ['bill-read', 'srv-read'], open: 1,
+            items: [
+              { id: 'bill', title: 'Billing', items: [{ id: 'bill-read', title: 'See invoices' }, { id: 'bill-pay', title: 'Pay them' }] },
+              { id: 'srv', title: 'Servers', items: [{ id: 'srv-read', title: 'See them' }, { id: 'srv-restart', title: 'Restart them' }, { id: 'srv-remove', title: 'Remove them', sub: 'owners only', owner: true }] },
+            ],
+            can: (r) => !r.owner,
+            onSelect: (list) => { Dash.$('may-count').textContent = Dash.fmt.plural(list.length, 'right'); },
+          });
+        </script>
+      </example>
+    </section>
+
+    <section id="tree-load" data-terms="lazy children load reload">
+      <h2>Trees that load as they open</h2>
+      <p>A row whose children are <code>true</code> has some that aren't there yet. <code>load(row)</code> gives them, or a promise of them, when it is first opened. While they are on their way the branch says so; if they can't be had it says why, with Try again. <code>.reload(key)</code> asks once more.</p>
+      <example>
+        <div class="panel" id="places"></div>
+        <script>
+          const MORE = { eu: ['Germany', 'France', 'Ireland'], us: ['Oregon', 'Virginia'] };
+          Dash.tree('places', {
+            label: 'Places',
+            items: [{ id: 'eu', title: 'Europe', items: true }, { id: 'us', title: 'America', items: true }, { id: 'sea', title: 'At sea', items: true }],
+            load: async (row) => {
+              await new Promise((ok) => setTimeout(ok, 700)); // this would be Dash.api('/api/places/' + row.id)
+              if (!MORE[row.id]) throw new Error('no connection there');
+              return MORE[row.id].map((title) => ({ id: `${row.id}/${title}`, title }));
+            },
+          });
+        </script>
+      </example>
+    </section>
+
+    <section id="facts" data-terms=".kv .facts dl dt dd">
+      <h2>Facts</h2>
+      <p><code>.kv</code> is a <code>dl</code> of names and values in columns (<code>--cols</code>, 2). <code>.facts</code> is a line of facts with dots between them, wrapping as it needs.</p>
+      <example>
+        <dl class="kv"><dt>Region</dt><dd>eu-west</dd><dt>Plan</dt><dd>Business</dd><dt>Created</dt><dd>Mar 3, 2025</dd><dt>Owner</dt><dd>Ada Lovelace</dd></dl>
+        <div class="facts mt-3"><span>8 cores</span><span>32 GB</span><span>Ubuntu 24.04</span><span>203.0.113.10</span></div>
+      </example>
+    </section>
+
+    <section id="timeline" data-terms=".timeline .timeline-head .timeline-title .timeline-time .timeline-text Dash.timeline">
+      <h2>Timelines</h2>
+      <p><code>Dash.timeline(items, { empty })</code> lists events on a line, newest first as given, each with a dot in its tone: <code>{ title, time, text, tone }</code>. A <code>time</code> that <code>Dash.time</code> can read shows as "12 min ago" and keeps itself current; other text shows as it is.</p>
+      <example>
+        <div id="events"></div>
+        <script>
+          Dash.render('events', Dash.timeline([
+            { title: 'Deployed v2.4.1', time: Date.now() - 20 * 60e3, text: 'by Ada · 3 servers', tone: 'ok' },
+            { title: 'Error rate over 1%', time: Date.now() - 3 * 3600e3, text: 'Payments, eu-west, for 6 minutes', tone: 'bad' },
+            { title: 'Certificate renewed', time: 'Yesterday', tone: 'blue' },
+          ]));
+        </script>
+      </example>
+    </section>

@@ -53,62 +53,13 @@
       </example>
     </section>
 
-    <section id="ips" data-terms=".ip .shown Dash.maskIps Dash.hideIps">
-      <h2>Hidden addresses</h2>
-      <p><code>Dash.maskIps(text)</code> escapes the text and blurs each IPv4 address in it, so they stay out of screen shares; a click or Enter on one shows every copy of that address on the page (<code>.ip.shown</code>). <code>Dash.hideIps(text)</code> writes <code>(IP hidden)</code> instead, for tooltips.</p>
+    <section id="empty" data-terms=".empty .empty-title .boxed .skel .wide .mid .short">
+      <h2>Empty and loading</h2>
+      <p><code>.empty</code> is what a list shows with nothing in it: an <code>.empty-title</code> (or <code>h2</code>), a line, and a button. <code>.empty.boxed</code> is a dashed box, for a whole page with nothing yet. <code>.skel</code> is a loading line (<code>.wide</code>, <code>.mid</code>, <code>.short</code>), until the data comes.</p>
       <example>
-        <p id="log-line"></p>
-        <script>
-          Dash.render('log-line', Dash.maskIps('Blocked 203.0.113.10 after 12 tries; 198.51.100.7 is allowed.'));
-        </script>
-      </example>
-    </section>
-
-    <section id="private" data-terms=".private .reveal data-private data-privacy data-values Dash.mask Dash.mask.text Dash.privacy Dash.privacy.on Dash.privacy.set Dash.privacy.toggle Dash.privacy.onChange Dash.privacy.button Dash.config.privacyKey hide-values balances blur eye">
-      <h2>Hidden values</h2>
-      <p>An eye in the top bar lets the reader hide amounts, names or account numbers before a meeting or a screenshot. While they are hidden the real ones aren't in the page at all: <code>Dash.mask(text)</code> writes a fixed blurred stand-in, so there is nothing to select, copy or find, and its length says nothing. The choice is remembered in this browser, and other open tabs follow it.</p>
-      <example>
-        <div class="row"><span class="muted">Balance</span> <b class="num" id="hide-total"></b> <span id="hide-change"></span> <span class="push" id="hide-eye"></span></div>
-        <div id="hide-table" style="margin-top:12px"></div>
-        <div class="field" style="margin:14px 0 0"><label for="hide-acct">Account number</label><input class="input mono" id="hide-acct" data-private value="4417 0092 1185"></div>
-        <script>
-          const draw = () => {
-            Dash.render('hide-total', Dash.mask('$12,480.20'));
-            Dash.render('hide-change', Dash.mask(Dash.chg(1.4, '+1.4%'), { html: true, as: '0.0%' }));
-          };
-          Dash.privacy.onChange(draw);
-          draw();
-          document.getElementById('hide-eye').innerHTML = Dash.privacy.button('balances');
-          Dash.table('hide-table', {
-            columns: [
-              { key: 'name', label: 'Account', main: true },
-              { key: 'balance', label: 'Balance', num: true, private: true, format: (v) => Dash.fmt.usd(v) },
-            ],
-            rows: [{ name: 'Main', balance: 9310.5 }, { name: 'Savings', balance: 3169.7 }],
-          });
-        </script>
-      </example>
-      <ul>
-        <li><code>Dash.mask(text, { html, as, label })</code>: the text (escaped), or the stand-in. <code>html: true</code> takes a builder's markup; <code>as</code> is the stand-in's text (<code>000.00</code>) and <code>label</code> what a screen reader hears (<code>hidden</code>). Nothing to hide (empty, or —) shows as it is.</li>
-        <li><code>Dash.mask.text(text, as)</code>: plain text for a <code>title</code>, a label, a chart's tooltip or a toast: the text, or <code>as</code> while values are hidden.</li>
-        <li><code>Dash.privacy.onChange(fn)</code>: draw again when the reader hides or shows them; it returns a function that stops it. <code>Dash.table</code> does it by itself for <a href="tables.html#table">columns</a> with <code>private: true</code> (or the stand-in's text).</li>
-        <li>The eye: <code>Dash.privacy.button('balances')</code>, or an empty <code>&lt;button class="icon-btn" data-privacy="balances"&gt;</code> in the page: "Hide balances", then "Show balances". A <code>data-privacy</code> button with its own words keeps them and is pressed while values are hidden. From code: <code>Dash.privacy.on</code>, <code>.set(true)</code>, <code>.toggle()</code>.</li>
-        <li>A text box with <code>data-private</code> shows dots until the reader clicks or types in it (Tab alone doesn't), and again when they leave it. The dots are only a look: the value is in the box.</li>
-        <li>It hides values from people looking at the screen; the page still has them. Keep the real ones out of <code>title</code>, <code>data-key</code> and <code>data-copy</code> yourself. <code>Dash.table</code>'s CSV holds them. Hiding drops a text selection and an open tooltip; a toast or a notice that names a value is the page's to dismiss, in <code>onChange</code>.</li>
-      </ul>
-    </section>
-
-    <section id="login" data-terms=".login-page .login .lead .note">
-      <h2>The sign-in page</h2>
-      <p>Put <code>.login-page</code> on the <code>body</code> and a <code>form.login</code> in it: a title, a <code>.lead</code> line, the fields, a <code>btn primary block</code> and a <code>.note</code> under it. <code>Dash.config.loginUrl</code> sends any request that comes back 401 there.</p>
-      <example frame title="A sign-in page">
-        <form class="login">
-          <h1>Fleet</h1>
-          <p class="lead">Sign in to see the servers.</p>
-          <div class="field"><label for="pw">Password</label><input class="input" type="password" id="pw" autocomplete="current-password" required></div>
-          <button type="submit" class="btn primary block">Sign in</button>
-          <p class="note">You stay signed in on this browser until you sign out.</p>
-        </form>
-        <script>document.body.classList.add('login-page');</script>
+        <div class="grid">
+          <div class="panel"><div class="empty"><span class="empty-title">No alerts</span><p>Alerts you set up show here.</p><button type="button" class="btn sm">Add an alert</button></div></div>
+          <div class="panel" aria-busy="true"><span class="skel wide"></span><span class="skel"></span><span class="skel mid"></span><span class="skel short"></span></div>
+        </div>
       </example>
     </section>

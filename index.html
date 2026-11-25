@@ -17,11 +17,17 @@
   .demo:last-child { margin-bottom: 0; }
   .demo-label { width: 100%; margin: 0 0 -2px; color: var(--faint); font-size: 12px; font-weight: 600; }
   .types > * { margin: 0 0 8px; }
-  .toc { margin-top: 10px; }
+  .content { max-width: 1320px; }
+  .side-find { display: block; margin: 4px 0 10px; }
+  .side-find .input { width: 100%; }
+  .section[id], .panel[id] { scroll-margin-top: calc(var(--topbar-h) + 14px); }
+  .menu-btn { display: none; }
+  @media (max-width: 900px) { .menu-btn { display: inline-grid; } }
 </style>
 </head>
 <body>
 <header class="topbar">
+  <button type="button" class="icon-btn menu-btn" data-toggle-side aria-label="Components"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3 5h12M3 9h12M3 13h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
   <div class="brand"><span class="mark">D</span><h1>dash-ui</h1></div>
   <span class="sub">One look for all my dashboards</span>
   <div class="top-right">
@@ -32,17 +38,17 @@
   </div>
 </header>
 
-<main class="page">
+<div class="shell offcanvas">
+<nav class="sidebar" aria-label="Components">
+  <label class="search side-find"><input class="input sm" id="side-find" type="search" placeholder="Filter components" aria-label="Filter components" autocomplete="off"></label>
+  <div id="side"></div>
+</nav>
+<main class="content">
   <div class="page-head">
     <h2 class="page-title">Components</h2>
     <p class="page-note">Everything on this page comes from <code>dash.css</code> and <code>dash.js</code>; the data is made up.
       Whole pages built with it: <a href="examples/overview.html">agent overview</a> · <a href="examples/portfolio.html">portfolio and table</a> ·
       <a href="examples/fleet.html">fleet status</a> · <a href="examples/login.html">sign-in</a> · <a href="examples/starter.html">starter page</a>.</p>
-    <nav class="chips toc" aria-label="Sections">
-      <a class="chip" href="#colours">Colours</a><a class="chip" href="#numbers">Numbers</a><a class="chip" href="#labels">Labels</a>
-      <a class="chip" href="#controls">Controls</a><a class="chip" href="#surfaces">Panels and cards</a><a class="chip" href="#tables">Tables</a>
-      <a class="chip" href="#charts">Charts</a><a class="chip" href="#more">Tabs and menus</a><a class="chip" href="#popups">Modals and popups</a><a class="chip" href="#forms">Forms, steps and lists</a><a class="chip" href="#feedback">Feedback</a>
-    </nav>
   </div>
 
   <!-- colours -->
@@ -76,46 +82,6 @@
       <div class="stat"><div class="label">p95 latency</div><div class="value">41 <small>ms</small></div><div class="note">target 60 ms</div></div>
       <div class="stat"><div class="label">Errors</div><div class="value tone bad">0.31%</div><div class="note">212 of 68,410</div></div>
       <button type="button" class="stat" data-copy="key_demoOnlyForTheGalleryPage0000000000"><div class="label">API key</div><div class="value mono" style="font-size:20px;line-height:1.7">key_de…000000</div><div class="note">click to copy</div></button>
-    </div>
-  </section>
-
-  <!-- labels -->
-  <section class="section" id="labels">
-    <h2 class="section-title">Labels</h2>
-    <div class="panel">
-      <div class="demo"><p class="demo-label">Pills: a status, with a dot</p>
-        <span class="pill blue"><span class="dot"></span>Working · 4m</span>
-        <span class="pill orange"><span class="dot pulse"></span>Needs you · 12s</span>
-        <span class="pill purple"><span class="dot"></span>Shell</span>
-        <span class="pill ok"><span class="dot"></span>Healthy</span>
-        <span class="pill warn"><span class="dot"></span>Stale</span>
-        <span class="pill bad"><span class="dot"></span>Down</span>
-        <span class="pill idle"><span class="dot hollow"></span>Closed 2h ago</span>
-        <button type="button" class="pill teal"><span class="dot"></span>Filter: running <span class="n">7</span></button>
-      </div>
-      <div class="demo"><p class="demo-label">Tags: small facts</p>
-        <span class="tag">default</span><span class="tag plain">eu-west</span><span class="tag accent">Opus 5.5</span><span class="tag blue">acct-b</span>
-        <span class="tag ok">primary</span><span class="tag warn">probation</span><span class="tag bad">blocked</span><span class="tag outline bad">blocked</span>
-        <span class="tag pink">ultra</span><span class="tag teal">SN 42</span>
-      </div>
-      <div class="demo"><p class="demo-label">Ranks, changes, chips</p>
-        <span id="ranks" class="row"></span>
-        <span class="chg up">+1.2345</span><span class="chg down">−0.0100</span><span class="chg flat">0</span>
-      </div>
-      <div class="demo">
-        <div class="chips" id="chips">
-          <button type="button" class="chip" data-value="all">All <span>58</span></button>
-          <button type="button" class="chip" data-value="eu">Europe <span>12</span></button>
-          <button type="button" class="chip" data-value="us">Americas <span>9</span></button>
-          <button type="button" class="chip" data-value="asia">Asia <span>6</span></button>
-        </div>
-        <span class="chip"><b>eu-west</b> <span>30%</span></span><span class="chip"><b>us-east</b> <span>25%</span></span>
-      </div>
-      <div class="demo types"><p class="demo-label">Text</p>
-        <div><span class="page-title" style="font-size:22px">Page title 22</span> · <b>Panel title 15</b> · body 15 · <span class="muted">muted</span> · <span class="faint">faint</span></div>
-        <div><span class="section-title" style="display:inline">Section title</span> · <code>code</code> · <kbd>/</kbd> · <span class="num">1,234.56 tabular</span> · <a href="#labels">a link</a></div>
-        <ul class="facts"><li>api · primary</li><li>p95 41 ms</li><li>since 09:14</li><li>3 restarts</li></ul>
-      </div>
     </div>
   </section>
 
@@ -170,37 +136,117 @@
     </div>
   </section>
 
-  <!-- surfaces -->
-  <section class="section" id="surfaces">
-    <h2 class="section-title">Panels and cards</h2>
-    <div class="banner" id="banner">
-      <span class="badge"><i></i></span>
-      <div class="grow"><div class="banner-title" id="banner-title">No incident right now</div>
-        <div class="banner-text" id="banner-text">Last one ended <b>2.4 h ago</b> on api-eu-west · 14 incidents in 3 days</div></div>
-      <button type="button" class="btn" id="banner-toggle">Simulate an incident</button>
-    </div>
-    <div class="grid" style="--cols:3">
+  <!-- forms, steps and lists (1.8) -->
+  <section class="section" id="forms">
+    <div class="section-head"><h2 class="section-title">Forms, steps and lists</h2><span class="sub">choices · select · input groups · Dash.slider · Dash.combobox · Dash.datepicker · drop zone · Dash.crumbs · Dash.stepper · Dash.avatars · badges · Dash.progress · Dash.entries · accordion</span></div>
+    <div class="grid">
       <div class="panel">
-        <div class="panel-head"><h3>Panel</h3><span class="read">updated 14:05</span></div>
-        <p style="margin:0 0 10px">A section with a head. The read on the right is muted, tabular.</p>
-        <div class="callout"><div class="callout-title">You</div>Check the billing page after the update.</div>
-        <div class="callout accent" style="margin-top:8px"><div class="callout-title">Claude</div>Done: 24/24 views equal.</div>
-        <p class="panel-note">A note under a panel.</p>
-      </div>
-      <div class="panel ring">
-        <div class="panel-head"><h3>Needs attention</h3><span class="pill orange"><span class="dot pulse"></span>2 waiting</span></div>
-        <div class="callout orange"><div class="callout-title">Waiting for</div>Approve <code>git push origin main</code></div>
-        <div class="callout bad" style="margin-top:8px"><div class="callout-title">Error</div>Registry returned 503 (scoring not enabled)</div>
-        <div class="callout warn solid" style="margin-top:8px">2 servers are on probation until 18:00 UTC.</div>
+        <div class="panel-head"><h3>Form pieces</h3></div>
+        <p class="field-label">Plan</p>
+        <div class="choices">
+          <label class="choice"><input type="radio" name="plan-demo" checked><span class="choice-body"><b>Team</b><span class="hint">Up to 20 people, shared dashboards</span></span></label>
+          <label class="choice"><input type="radio" name="plan-demo"><span class="choice-body"><b>Business</b><span class="hint">Single sign-on and audit log</span></span></label>
+        </div>
+        <div class="checks across" role="group" aria-label="Billing">
+          <label class="checkline"><input type="radio" name="bill-demo" checked> Monthly</label>
+          <label class="checkline"><input type="radio" name="bill-demo"> Yearly</label>
+        </div>
+        <div class="field"><label for="f-region">Region</label><span class="select"><select class="input" id="f-region"><option>eu-west (Frankfurt)</option><option>us-east (Virginia)</option></select></span></div>
+        <div class="field"><label for="f-limit">Monthly limit</label><div class="input-group"><span class="affix">$</span><input class="input" id="f-limit" value="250" inputmode="decimal"><span class="affix">USD</span><button type="button" class="btn">Set</button></div></div>
+        <div class="field" id="slider-demo"></div>
+        <div class="field"><label for="f-city">City</label><input class="input" id="f-city" placeholder="Start typing: ber, bu, am…" autocomplete="off"></div>
+        <div class="field"><label for="f-due">Due</label><input class="input" id="f-due" value="2026-12-04"></div>
+        <label class="dropzone"><input type="file" multiple><b>Drop a CSV here</b><span>or <u>choose files</u></span><span class="files"></span></label>
       </div>
       <div class="panel">
-        <div class="panel-head"><h3>Loading and empty</h3></div>
-        <span class="skel wide"></span><span class="skel"></span><span class="skel mid"></span>
-        <div class="empty"><span class="empty-title">No accounts yet</span><p>Add an account to start tracking it.</p><button type="button" class="btn primary">Add account</button></div>
+        <div class="panel-head"><h3>Steps, people, progress</h3></div>
+        <div class="demo" id="crumbs-demo"></div>
+        <div class="demo" id="stepper-demo"></div>
+        <div class="demo" id="avatars-demo"></div>
+        <div class="demo">
+          <button type="button" class="icon-btn" data-badge="3" aria-label="Messages, 3 new"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2.5 4h11v8h-11zM2.5 4 8 8.5 13.5 4" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></button>
+          <button type="button" class="icon-btn" data-badge="" aria-label="Alerts, new"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1 1.5H3L4 11ZM6.5 14h3" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></button>
+          <button type="button" class="btn" data-badge="12">Inbox</button>
+        </div>
+        <div class="vstack" id="progress-demo"></div>
+        <div class="divider">then</div>
+        <div id="stepper-v-demo"></div>
+      </div>
+      <div class="panel span-2">
+        <div class="panel-head"><h3>Lists and accordions</h3></div>
+        <div class="grid">
+          <div id="entries-demo"></div>
+          <div class="accordion">
+            <details name="faq-demo" open><summary>Why is a server grey?</summary><p>It hasn’t reported for five minutes. It turns red after fifteen.</p></details>
+            <details name="faq-demo"><summary>Can I move a server to another team?</summary><p>Yes: open it and choose Move. Its history moves with it.</p></details>
+            <details name="faq-demo"><summary>How long is history kept?</summary><p>Thirteen months, so a year can be compared with the one before.</p></details>
+          </div>
+        </div>
       </div>
     </div>
-    <div class="cards" style="margin-top:14px" id="cards"></div>
-    <div class="empty boxed" style="margin-top:14px">Nothing running. Agents show up here as soon as they start.</div>
+  </section>
+
+  <!-- labels -->
+  <section class="section" id="labels">
+    <h2 class="section-title">Labels</h2>
+    <div class="panel">
+      <div class="demo"><p class="demo-label">Pills: a status, with a dot</p>
+        <span class="pill blue"><span class="dot"></span>Working · 4m</span>
+        <span class="pill orange"><span class="dot pulse"></span>Needs you · 12s</span>
+        <span class="pill purple"><span class="dot"></span>Shell</span>
+        <span class="pill ok"><span class="dot"></span>Healthy</span>
+        <span class="pill warn"><span class="dot"></span>Stale</span>
+        <span class="pill bad"><span class="dot"></span>Down</span>
+        <span class="pill idle"><span class="dot hollow"></span>Closed 2h ago</span>
+        <button type="button" class="pill teal"><span class="dot"></span>Filter: running <span class="n">7</span></button>
+      </div>
+      <div class="demo"><p class="demo-label">Tags: small facts</p>
+        <span class="tag">default</span><span class="tag plain">eu-west</span><span class="tag accent">Opus 5.5</span><span class="tag blue">acct-b</span>
+        <span class="tag ok">primary</span><span class="tag warn">probation</span><span class="tag bad">blocked</span><span class="tag outline bad">blocked</span>
+        <span class="tag pink">ultra</span><span class="tag teal">SN 42</span>
+      </div>
+      <div class="demo"><p class="demo-label">Ranks, changes, chips</p>
+        <span id="ranks" class="row"></span>
+        <span class="chg up">+1.2345</span><span class="chg down">−0.0100</span><span class="chg flat">0</span>
+      </div>
+      <div class="demo">
+        <div class="chips" id="chips">
+          <button type="button" class="chip" data-value="all">All <span>58</span></button>
+          <button type="button" class="chip" data-value="eu">Europe <span>12</span></button>
+          <button type="button" class="chip" data-value="us">Americas <span>9</span></button>
+          <button type="button" class="chip" data-value="asia">Asia <span>6</span></button>
+        </div>
+        <span class="chip"><b>eu-west</b> <span>30%</span></span><span class="chip"><b>us-east</b> <span>25%</span></span>
+      </div>
+      <div class="demo types"><p class="demo-label">Text</p>
+        <div><span class="page-title" style="font-size:22px">Page title 22</span> · <b>Panel title 15</b> · body 15 · <span class="muted">muted</span> · <span class="faint">faint</span></div>
+        <div><span class="section-title" style="display:inline">Section title</span> · <code>code</code> · <kbd>/</kbd> · <span class="num">1,234.56 tabular</span> · <a href="#labels">a link</a></div>
+        <ul class="facts"><li>api · primary</li><li>p95 41 ms</li><li>since 09:14</li><li>3 restarts</li></ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- lists and trees -->
+  <section class="section" id="lists">
+    <div class="section-head"><h2 class="section-title">Lists and trees</h2><span class="sub">Dash.list · Dash.tree · drag, pick, filter, load as they open</span></div>
+    <div class="grid">
+      <div class="panel">
+        <div class="panel-head"><h3>Tree</h3><label class="search"><input class="input sm" id="tree-find" type="search" placeholder="Filter files" aria-label="Filter files"></label></div>
+        <div id="tree-demo"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h3>Tree to tick</h3><span class="read" id="tree-read"></span></div>
+        <div id="tree-pick"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h3>List to put in order</h3><span class="read">drag a grip, or press its arrow keys</span></div>
+        <div id="list-order"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h3>List to pick from</h3><span class="read" id="list-read"></span></div>
+        <div id="list-pick"></div>
+      </div>
+    </div>
   </section>
 
   <!-- tables -->
@@ -278,6 +324,39 @@
     </div>
   </section>
 
+  <!-- surfaces -->
+  <section class="section" id="surfaces">
+    <h2 class="section-title">Panels and cards</h2>
+    <div class="banner" id="banner">
+      <span class="badge"><i></i></span>
+      <div class="grow"><div class="banner-title" id="banner-title">No incident right now</div>
+        <div class="banner-text" id="banner-text">Last one ended <b>2.4 h ago</b> on api-eu-west · 14 incidents in 3 days</div></div>
+      <button type="button" class="btn" id="banner-toggle">Simulate an incident</button>
+    </div>
+    <div class="grid" style="--cols:3">
+      <div class="panel">
+        <div class="panel-head"><h3>Panel</h3><span class="read">updated 14:05</span></div>
+        <p style="margin:0 0 10px">A section with a head. The read on the right is muted, tabular.</p>
+        <div class="callout"><div class="callout-title">You</div>Check the billing page after the update.</div>
+        <div class="callout accent" style="margin-top:8px"><div class="callout-title">Claude</div>Done: 24/24 views equal.</div>
+        <p class="panel-note">A note under a panel.</p>
+      </div>
+      <div class="panel ring">
+        <div class="panel-head"><h3>Needs attention</h3><span class="pill orange"><span class="dot pulse"></span>2 waiting</span></div>
+        <div class="callout orange"><div class="callout-title">Waiting for</div>Approve <code>git push origin main</code></div>
+        <div class="callout bad" style="margin-top:8px"><div class="callout-title">Error</div>Registry returned 503 (scoring not enabled)</div>
+        <div class="callout warn solid" style="margin-top:8px">2 servers are on probation until 18:00 UTC.</div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h3>Loading and empty</h3></div>
+        <span class="skel wide"></span><span class="skel"></span><span class="skel mid"></span>
+        <div class="empty"><span class="empty-title">No accounts yet</span><p>Add an account to start tracking it.</p><button type="button" class="btn primary">Add account</button></div>
+      </div>
+    </div>
+    <div class="cards" style="margin-top:14px" id="cards"></div>
+    <div class="empty boxed" style="margin-top:14px">Nothing running. Agents show up here as soon as they start.</div>
+  </section>
+
   <!-- tabs, a table from columns, search, menus, tooltips, dialogs, timeline -->
   <section class="section" id="more">
     <div class="section-head"><h2 class="section-title">Tabs, menus, dialogs</h2><span class="sub">Dash.tabs · Dash.table from columns · Dash.search · .menu · data-tooltip · Dash.confirm and Dash.ask · Dash.timeline</span></div>
@@ -346,56 +425,6 @@
     <template id="pp-info"><p class="popup-title">p95 latency</p><p class="popup-text">95 of every 100 requests answered at least this fast. Here: <b>41 ms</b> over the last hour.</p></template>
   </section>
 
-  <!-- forms, steps and lists (1.8) -->
-  <section class="section" id="forms">
-    <div class="section-head"><h2 class="section-title">Forms, steps and lists</h2><span class="sub">choices · select · input groups · Dash.slider · Dash.combobox · Dash.datepicker · drop zone · Dash.crumbs · Dash.stepper · Dash.avatars · badges · Dash.progress · Dash.entries · accordion</span></div>
-    <div class="grid">
-      <div class="panel">
-        <div class="panel-head"><h3>Form pieces</h3></div>
-        <p class="field-label">Plan</p>
-        <div class="choices">
-          <label class="choice"><input type="radio" name="plan-demo" checked><span class="choice-body"><b>Team</b><span class="hint">Up to 20 people, shared dashboards</span></span></label>
-          <label class="choice"><input type="radio" name="plan-demo"><span class="choice-body"><b>Business</b><span class="hint">Single sign-on and audit log</span></span></label>
-        </div>
-        <div class="checks across" role="group" aria-label="Billing">
-          <label class="checkline"><input type="radio" name="bill-demo" checked> Monthly</label>
-          <label class="checkline"><input type="radio" name="bill-demo"> Yearly</label>
-        </div>
-        <div class="field"><label for="f-region">Region</label><span class="select"><select class="input" id="f-region"><option>eu-west (Frankfurt)</option><option>us-east (Virginia)</option></select></span></div>
-        <div class="field"><label for="f-limit">Monthly limit</label><div class="input-group"><span class="affix">$</span><input class="input" id="f-limit" value="250" inputmode="decimal"><span class="affix">USD</span><button type="button" class="btn">Set</button></div></div>
-        <div class="field" id="slider-demo"></div>
-        <div class="field"><label for="f-city">City</label><input class="input" id="f-city" placeholder="Start typing: ber, bu, am…" autocomplete="off"></div>
-        <div class="field"><label for="f-due">Due</label><input class="input" id="f-due" value="2026-12-04"></div>
-        <label class="dropzone"><input type="file" multiple><b>Drop a CSV here</b><span>or <u>choose files</u></span><span class="files"></span></label>
-      </div>
-      <div class="panel">
-        <div class="panel-head"><h3>Steps, people, progress</h3></div>
-        <div class="demo" id="crumbs-demo"></div>
-        <div class="demo" id="stepper-demo"></div>
-        <div class="demo" id="avatars-demo"></div>
-        <div class="demo">
-          <button type="button" class="icon-btn" data-badge="3" aria-label="Messages, 3 new"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2.5 4h11v8h-11zM2.5 4 8 8.5 13.5 4" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></button>
-          <button type="button" class="icon-btn" data-badge="" aria-label="Alerts, new"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1 1.5H3L4 11ZM6.5 14h3" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></button>
-          <button type="button" class="btn" data-badge="12">Inbox</button>
-        </div>
-        <div class="vstack" id="progress-demo"></div>
-        <div class="divider">then</div>
-        <div id="stepper-v-demo"></div>
-      </div>
-      <div class="panel span-2">
-        <div class="panel-head"><h3>Lists and accordions</h3></div>
-        <div class="grid">
-          <div id="entries-demo"></div>
-          <div class="accordion">
-            <details name="faq-demo" open><summary>Why is a server grey?</summary><p>It hasn’t reported for five minutes. It turns red after fifteen.</p></details>
-            <details name="faq-demo"><summary>Can I move a server to another team?</summary><p>Yes: open it and choose Move. Its history moves with it.</p></details>
-            <details name="faq-demo"><summary>How long is history kept?</summary><p>Thirteen months, so a year can be compared with the one before.</p></details>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
   <!-- feedback -->
   <section class="section" id="feedback">
     <h2 class="section-title">Feedback</h2>
@@ -422,6 +451,7 @@
 
   <footer class="footer"><p>dash-ui · plain CSS and JS, no build step. See README.md for the class and helper reference.</p></footer>
 </main>
+</div>
 
 <dialog class="dialog" id="dialog">
   <form class="dialog-body" method="dialog">
@@ -739,6 +769,56 @@
   Dash.render('stepper-v-demo', Dash.stepper([{ label: 'Upload', sub: '3 files, 12 MB' }, { label: 'Check', sub: 'Two rows had no date' }, { label: 'Import' }], 1, { vertical: true, tone: 'teal' }));
   const people = [{ id: 1, name: 'Ada Lovelace', role: 'Owner', seen: Date.now() - 5 * 60e3 }, { id: 2, name: 'Grace Hopper', role: 'Admin', seen: Date.now() - 3 * 3600e3 },
     { id: 3, name: 'Alan Turing', role: 'Viewer', seen: Date.now() - 4 * 86400e3 }];
+  // 1.14: trees and lists
+  const ICON = (d) => `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="${d}"/></svg>`;
+  const FOLDER = ICON('M1.5 4.5v8h13v-7h-7l-1.5-2h-4.5z'), FILE = ICON('M3.5 1.5h6l3 3v10h-9z');
+  const treeDemo = Dash.tree('tree-demo', {
+    label: 'Files', open: ['src'], lead: (r, { branch }) => (branch ? FOLDER : FILE), end: (r) => (r.state ? Dash.pill('Failing', r.state) : esc(r.size || '')),
+    items: [
+      { id: 'src', title: 'src', items: [{ id: 'app', title: 'app.js', size: '12 KB' }, { id: 'parts', title: 'parts', items: [{ id: 'table', title: 'table.js', size: '31 KB' }, { id: 'chart', title: 'chart.js', size: '18 KB' }] }] },
+      { id: 'test', title: 'test', state: 'bad', items: [{ id: 'app-test', title: 'app.test.js', size: '6 KB', state: 'bad' }] },
+      { id: 'logs', title: 'logs', items: true },
+      { id: 'readme', title: 'README.md', size: '4 KB' },
+    ],
+    load: () => new Promise((ok) => setTimeout(() => ok(['mon', 'tue', 'wed'].map((d) => ({ id: d, title: `${d}.log`, size: '2 MB' }))), 700)),
+    menu: () => ['Rename', { label: 'Delete', value: 'delete', tone: 'bad' }], onMenu: (v, r) => Dash.toast(`${v}: ${r.title}`),
+    onPick: (r) => Dash.toast(`Open ${r.title}`),
+  });
+  Dash.search('tree-find', { key: null, onChange: (q) => treeDemo.filter(q) });
+  const rights = (list) => { $('tree-read').textContent = fmt.plural(list.length, 'right'); };
+  rights(Dash.tree('tree-pick', {
+    label: 'Rights', select: 'many', selected: ['see', 'restart'], open: true, can: (r) => !r.owner, onSelect: rights,
+    items: [{ id: 'servers', title: 'Servers', items: [{ id: 'see', title: 'See them' }, { id: 'restart', title: 'Restart them' }, { id: 'remove', title: 'Remove them', sub: 'owners only', owner: true }] },
+      { id: 'billing', title: 'Billing', items: [{ id: 'invoices', title: 'See invoices' }, { id: 'pay', title: 'Pay them' }] }],
+  }).selected);
+  Dash.list('list-order', {
+    label: 'Rules, the first that fits counts', reorder: true, menu: () => ['Edit', 'Copy'], onMenu: (v, r) => Dash.toast(`${v}: ${r.title}`),
+    rows: [{ id: 1, title: 'Block bots', sub: 'All pages' }, { id: 2, title: 'Keep pictures for a day', sub: '/img/*' }, { id: 3, title: 'Ask for a login', sub: '/admin/*' }, { id: 4, title: 'Let the rest through', sub: 'All pages' }],
+    onMove: (rows, { row, to }) => Dash.toast(`${row.title} is number ${to + 1} now`),
+  });
+  const pickedRows = (list) => { $('list-read').textContent = `${list.length} picked`; };
+  pickedRows(Dash.list('list-pick', {
+    label: 'Servers', select: 'many', selected: ['web-1'], group: 'region', height: 300, onSelect: pickedRows,
+    rows: ['web-1', 'web-2', 'db-1', 'web-3', 'db-2', 'web-4', 'web-5'].map((title, i) => ({ id: title, title, region: i < 3 ? 'Frankfurt' : i < 5 ? 'Paris' : 'Dublin', state: ['ok', 'warn', 'ok', 'ok', 'bad', 'ok', 'ok'][i] })),
+    end: (r) => Dash.pill({ ok: 'Healthy', warn: 'Busy', bad: 'Down' }[r.state], r.state),
+  }).selected);
+
+  // the sidebar: every section by its class, with its panels
+  const CLASSES = [['Foundations', ['colours', 'numbers']], ['Components', ['controls', 'forms', 'labels', 'lists', 'tables', 'charts', 'surfaces', 'more', 'popups', 'feedback']]];
+  const slug = (t) => t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  const side = Dash.nav('side', CLASSES.flatMap(([heading, ids]) => [{ heading }, ...ids.map((id) => {
+    const section = $(id), label = section.querySelector('.section-title').textContent;
+    const parts = [...section.querySelectorAll('.panel > .panel-head:first-child > h3')].map((h) => {
+      const panel = h.closest('.panel');
+      panel.id = panel.id || `${id}-${slug(h.textContent)}`;
+      return { label: h.textContent, href: '#' + panel.id };
+    });
+    if (parts.length) parts[0].href = '#' + id; // its first panel is where it begins
+    return parts.length > 1 ? { label, key: id, items: [...parts] } : { label, href: '#' + id };
+  })]), { store: 'gallery.side' });
+  Dash.spy('side');
+  Dash.search('side-find', { key: null, onChange: (q) => side.filter(q) });
+
   Dash.render('entries-demo', Dash.entries(people, { title: 'name', sub: 'role', key: 'id', button: true, lead: (p) => Dash.avatar(p.name), end: (p) => Dash.ago(p.seen) }));
 </script>
 </body>

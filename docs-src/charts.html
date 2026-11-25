@@ -78,7 +78,7 @@
         <li>A series can also be <code>dashed: true</code> (a forecast, last week), filled with <code>area: true</code>, and have its own <code>gap</code>.</li>
         <li><code>min</code> is 0 unless the data goes below it; <code>min: 'auto'</code> fits the data, a number fixes it, and <code>max</code> too. <code>ticks</code> is about how many steps the axis has, <code>format</code> writes the values, <code>yFormat</code> the axis when it needs shorter ones.</li>
         <li><code>from</code> and <code>to</code> set the range (the data's ends otherwise); a line that crosses them is cut there. <code>gap</code> (in ms) breaks a line at a longer silence. <code>refs: [{ value, label, tone }]</code> draws limits across. <code>when: (t) =&gt; text</code> writes the readout's time.</li>
-        <li><code>private: true</code> hides the numbers with <a href="feedback.html#private">the reader's eye</a>; the shape stays.</li>
+        <li><code>private: true</code> hides the numbers with <a href="privacy.html#private">the reader's eye</a>; the shape stays.</li>
         <li>For a screen reader the chart is a slider: it hears each point as the arrow keys move, and a summary before it. <code>label</code> names it.</li>
         <li>The handle: <code>.update(series, options)</code> (or call <code>Dash.lines</code> again on the same box: the reader stays at their point), <code>.redraw()</code>, <code>.csv()</code>, <code>.download(name)</code>. <code>Dash.lines.html(series, options)</code> is the markup alone, with no crosshair. A few thousand points per series is fine; send averages for more.</li>
       </ul>

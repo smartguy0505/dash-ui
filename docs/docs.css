@@ -15,6 +15,19 @@
 .docs-head h1 { margin: 0; font-size: 28px; line-height: 1.2; letter-spacing: -.01em; text-wrap: balance; }
 .docs-blurb { max-width: 68ch; margin: 8px 0 0; color: var(--muted); font-size: 15.5px; }
 .docs-toc { margin-top: 14px; }
+@media (min-width: 901px) { .docs-toc { display: none; } } /* the sidebar shows the page's sections there */
+.docs-filter { display: block; width: 100%; margin: 4px 0 10px; }
+.docs-filter .input { width: 100%; }
+/* all components, by their class */
+.docs-class-name { color: inherit; text-decoration: none; }
+.docs-class-name:hover { text-decoration: underline; text-underline-offset: 4px; }
+.docs-class .count-badge { vertical-align: 3px; }
+.docs-class .cards { margin-top: 12px; --card-min: 220px; }
+.docs-class .card-title { overflow: visible; white-space: normal; font-size: 15.5px; line-height: 1.3; }
+.docs-class .card-sub { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
+.docs-find { display: flex; align-items: center; gap: 12px; margin: 0 0 26px; }
+.docs-find .search { flex: 1; max-width: 420px; }
+.docs-find .input { width: 100%; }
 .docs-toc .chip, .docs .cards > a.card { color: inherit; text-decoration: none; }
 
 /* the docs' own text: the sections' direct children, so nothing here reaches into an example */

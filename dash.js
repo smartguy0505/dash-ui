@@ -1,4 +1,4 @@
-/* dash-ui 1.13.1 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
+/* dash-ui 1.14.0 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
    A plain script with no dependencies: a script tag for dash.js in <head> gives window.Dash, and puts the
    saved light/dark choice on the page before it paints. In Node, require('./dash.js') returns the same object
    (the parts that need a page are skipped).
@@ -8,7 +8,7 @@
 (function (root) {
   'use strict';
   const hasDom = typeof document !== 'undefined';
-  const Dash = { version: '1.13.1', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side', privacyKey: 'dash.private', csp: false } };
+  const Dash = { version: '1.14.0', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side', privacyKey: 'dash.private', csp: false } };
 
   // ---- basics
 
@@ -2075,6 +2075,7 @@
   // No code: <button type="button" data-popup="more"> opens the content of <template id="more"> (or of any element).
   const nativePop = hasDom && typeof HTMLElement === 'function' && typeof HTMLElement.prototype.showPopover === 'function';
   let lastPress = { target: null, x: 0, y: 0, seq: 0 }; // the last pointer press (wired below)
+  let pressed = false; // a button or a finger is down
   let clickOf = -1; // the press whose click is being handled now (-1: none, or a key's click)
   const followAnchor = (old) => { // the copy of an element that a redraw put in its place, or null
     const k = keyOf(old);
@@ -2095,6 +2096,7 @@
     requestAnimationFrame(tick);
   };
   Dash.popup = (anchor, content, { placement = 'bottom', align = 'start', offset = 6, width, cls = '', label, role = 'dialog', focus = false, onClose } = {}) => {
+    const event0 = anchor;
     let at = null;
     let near = null;
     if (anchor && typeof anchor === 'object' && !anchor.nodeType) { // a point, or the event of a right-click
@@ -2117,8 +2119,12 @@
     if (role) box.setAttribute('role', role);
     if (label) box.setAttribute('aria-label', label);
     if (width) box.style.width = width;
-    if (nativePop) box.setAttribute('popover', 'auto'); else box.hidden = true;
+    // a right click whose button is still down (Linux and Mac show menus at the press): its release would close the
+    // popup again, so until then it is one that nothing closes by itself
+    const early = nativePop && Boolean(at) && pressed && event0.type === 'contextmenu';
+    if (nativePop) box.setAttribute('popover', early ? 'manual' : 'auto'); else box.hidden = true;
     let done = false;
+    let turning = false; // from the one kind to the other
     let own = false; // closed by .close(), not by a click outside or Escape
     let shown = 0;
     let last = '';
@@ -2193,9 +2199,22 @@
     if (anchor) setAnchor(anchor);
     shown = lastPress.seq; // presses after this one can close it
     if (nativePop) {
-      box.addEventListener('beforetoggle', (e) => { if (e.newState === 'closed' && !own) shutByPress(); });
-      box.addEventListener('toggle', (e) => { if (e.newState === 'closed') finish(null); });
+      box.addEventListener('beforetoggle', (e) => { if (e.newState === 'closed' && !own && !turning) shutByPress(); });
+      box.addEventListener('toggle', (e) => { if (e.newState === 'closed' && !turning) finish(null); });
       try { box.showPopover(); } catch { /* not in the page */ }
+      if (early) {
+        const free = () => setTimeout(() => {
+          for (const t of ['pointerup', 'pointercancel']) removeEventListener(t, free, true);
+          if (done || turning || box.getAttribute('popover') === 'auto') return;
+          const had = box.contains(document.activeElement) && document.activeElement;
+          turning = true;
+          box.setAttribute('popover', 'auto'); // this hides it
+          try { box.showPopover(); } catch { /* not in the page any more */ }
+          if (had) had.focus({ preventScroll: true });
+          setTimeout(() => { turning = false; if (!done && !box.matches(':popover-open')) finish(null); }, 0);
+        }, 0);
+        for (const t of ['pointerup', 'pointercancel']) addEventListener(t, free, true);
+      }
     } else box.hidden = false;
     popups.push(p);
     place();
@@ -2410,6 +2429,35 @@
     node.classList.add('flash');
   };
 
+  // a line for screen readers: on the page before it speaks, outside what is drawn again, and in its dialog if it is in one
+  // (from outside a modal nothing is heard)
+  const voiceOf = (node) => {
+    const root = node.closest('dialog') || document.body;
+    let v = [...root.children].find((x) => 'dashVoice' in x.dataset);
+    if (!v) {
+      v = document.createElement('div');
+      v.className = 'sr-only';
+      v.dataset.dashVoice = '';
+      v.setAttribute('role', 'status');
+      root.append(v);
+    }
+    return v;
+  };
+
+  // the typed words in bold where they are in a text, as HTML
+  const markWords = (text, q) => {
+    const words = String(q).toLowerCase().split(/\s+/).filter(Boolean);
+    if (!words.length) return esc(text);
+    const low = text.toLowerCase(), hit = new Array(text.length).fill(false);
+    for (const w of words) { const i = low.indexOf(w); if (i >= 0) hit.fill(true, i, i + w.length); }
+    let out = '', on = false;
+    for (let i = 0; i < text.length; i++) {
+      if (hit[i] !== on) { out += on ? '</mark>' : '<mark>'; on = hit[i]; }
+      out += esc(text[i]);
+    }
+    return out + (on ? '</mark>' : '');
+  };
+
   // ---- a text box with suggestions (1.9)
   // Dash.combobox(input, { options, onPick }): options is a list (strings, or { value, label, sub }), or a function
   // (query) => a list or a promise of one, asked as the reader types (for a server search). The suggestions open as the
@@ -2434,19 +2482,6 @@
     input.setAttribute('autocomplete', 'off');
     let shown = [], active = -1, open = false, picked = null, seq = 0, timer = 0;
     const optEl = (i) => box.querySelector(`[data-i="${i}"]`);
-    // the typed words in bold where they are in a suggestion
-    const marked = (text, q) => {
-      const words = String(q).toLowerCase().split(/\s+/).filter(Boolean);
-      if (!words.length) return esc(text);
-      const low = text.toLowerCase(), hit = new Array(text.length).fill(false);
-      for (const w of words) { const i = low.indexOf(w); if (i >= 0) hit.fill(true, i, i + w.length); }
-      let out = '', on = false;
-      for (let i = 0; i < text.length; i++) {
-        if (hit[i] !== on) { out += on ? '</mark>' : '<mark>'; on = hit[i]; }
-        out += esc(text[i]);
-      }
-      return out + (on ? '</mark>' : '');
-    };
     const place = () => {
       if (!open) return;
       const r = input.getBoundingClientRect();
@@ -2496,7 +2531,7 @@
       active = -1;
       input.removeAttribute('aria-activedescendant');
       box.innerHTML = shown.length
-        ? shown.map((o, i) => `<div class="combo-option" role="option" id="${box.id}-${i}" data-i="${i}" aria-selected="false"><span>${marked(o.label, q)}</span>`
+        ? shown.map((o, i) => `<div class="combo-option" role="option" id="${box.id}-${i}" data-i="${i}" aria-selected="false"><span>${markWords(o.label, q)}</span>`
           + `${o.sub ? `<span class="combo-sub">${esc(o.sub)}</span>` : ''}</div>`).join('')
         : `<div class="combo-empty" role="option" aria-disabled="true" aria-selected="false">${esc(note || empty)}</div>`;
       show();
@@ -2703,6 +2738,1025 @@
     };
   };
 
+  // ---- a sidebar's links in groups, and the section being read (1.14)
+
+  // Dash.nav('side', [
+  //   { label: 'Overview', href: './', icon: svg },
+  //   { heading: 'Manage' },
+  //   { label: 'Servers', badge: 2, items: [{ label: 'web-1', sub: 'Frankfurt', href: '#web-1' }, { label: 'web-2', href: '#web-2', tone: 'warn' }] },
+  // ], { current: '#web-1', store: 'nav' })
+  // An item is a link (href) or a button; with items it is a group that opens and closes (groups can hold groups). key
+  // names it (its href or label otherwise); icon and meta are HTML, the rest is text. current: the key of the page the
+  // reader is on; its groups are open. store remembers the groups the reader opened and closed. onPick(item, event) runs
+  // for a click on an item. Without items, it takes the links that are already in the element.
+  // .update(items), .current(key), .filter(text) keeps the items that have the words, and says how many; '' shows all again.
+  const navKey = (it) => String(it.key ?? it.href ?? it.label ?? '');
+  const navIs = (it, cur) => cur != null && (typeof cur === 'function' ? Boolean(cur(it)) : navKey(it) === String(cur));
+  const navHolds = (it, cur) => (it.items ? it.items.some((x) => navHolds(x, cur)) : navIs(it, cur));
+  const navParts = (it) => `${it.icon ? `<span class="nav-icon">${it.icon}</span>` : ''}<span class="nav-main"><span class="nav-name">${esc(it.label ?? '')}</span>`
+    + `${it.sub != null && it.sub !== '' ? `<span class="nav-sub">${esc(it.sub)}</span>` : ''}</span>${it.meta ? `<span class="nav-meta">${it.meta}</span>` : ''}`
+    + `${it.badge != null && it.badge !== '' ? `<span class="count-badge">${esc(it.badge)}</span>` : ''}`;
+  // the items' HTML on its own (escaped like every builder); open: { key: true | false } for the groups
+  const navHtml = (items, { current, open = {} } = {}) => (items || []).map((it) => {
+    if (it.heading != null) return `<div class="side-head">${esc(it.heading)}${it.badge != null && it.badge !== '' ? ` <span class="count-badge">${esc(it.badge)}</span>` : ''}</div>`;
+    const cls = `nav-item${it.tone ? ` attn ${esc(it.tone)}` : ''}`, title = it.title ? ` title="${esc(it.title)}"` : '', k = navKey(it);
+    if (it.items) {
+      const on = navHolds(it, current) || (Object.hasOwn(open, k) ? open[k] : Boolean(it.open));
+      return `<details class="nav-group" data-key="nav ${esc(k)}"${on ? ' open' : ''}><summary class="${cls}"${title}>${navParts(it)}</summary><div class="nav-list">${navHtml(it.items, { current, open })}</div></details>`;
+    }
+    const at = `class="${cls}" data-key="${esc(k)}"${title}${navIs(it, current) ? ' aria-current="page"' : ''}`;
+    return it.href != null ? `<a ${at} href="${esc(safeHref(it.href))}">${navParts(it)}</a>` : `<button type="button" ${at}${it.disabled ? ' disabled' : ''}>${navParts(it)}</button>`;
+  }).join('');
+
+  // brings a link into view inside the box it scrolls in, without moving the page
+  const showIn = (x) => {
+    let box = x.parentElement;
+    while (box && box !== document.body && !(box.scrollHeight > box.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(box).overflowY))) box = box.parentElement;
+    if (!box || box === document.body || box === document.documentElement) return;
+    const a = x.getBoundingClientRect(), b = box.getBoundingClientRect();
+    if (a.top < b.top + 8) box.scrollTop -= b.top + 8 - a.top; else if (a.bottom > b.bottom - 8) box.scrollTop += a.bottom - b.bottom + 8;
+  };
+
+  Dash.nav = (target, items, { current, store, onPick } = {}) => {
+    const node = el(target);
+    if (!node || !hasDom) return null;
+    node.__dashNav?.abort();
+    const { signal } = (node.__dashNav = new AbortController());
+    const read = store ? Dash.store.get(store) : null;
+    const saved = read && typeof read === 'object' && !Array.isArray(read) ? { ...read } : {};
+    let cur = current, query = '', before = null, none = null;
+    const groups = () => [...node.querySelectorAll('details.nav-group')];
+    const keyOfGroup = (d) => (d.dataset.key || '').replace(/^nav /, '') || (d.querySelector(':scope > summary .nav-name')?.textContent ?? '');
+    const links = () => [...node.querySelectorAll('.nav-item')].filter((x) => x.tagName !== 'SUMMARY');
+    const openTo = (x) => { for (let d = x.parentElement.closest('details.nav-group'); d && node.contains(d); d = d.parentElement.closest('details.nav-group')) d.open = true; };
+    const hit = (x) => Dash.match({ t: `${x.textContent} ${x.dataset.find || ''}` }, query, ['t']);
+    const sift = (box, whole) => { // how many of its links stay
+      let n = 0, head = null, under = 0;
+      const endHead = () => { if (head) head.hidden = Boolean(query) && !under; };
+      for (const x of box.children) {
+        if (x.classList.contains('side-head')) { endHead(); head = x; under = 0; continue; }
+        let k = 0;
+        if (x.matches('details.nav-group')) {
+          k = sift(x.querySelector(':scope > .nav-list'), whole || hit(x.querySelector(':scope > summary')));
+          x.hidden = Boolean(query) && !k;
+          x.open = query ? k > 0 : before ? before.get(keyOfGroup(x)) ?? x.open : x.open;
+        } else if (x.matches('.nav-item')) {
+          k = whole || hit(x) ? 1 : 0;
+          x.hidden = Boolean(query) && !k;
+        }
+        n += k;
+        under += k;
+      }
+      endHead();
+      return n;
+    };
+    const filter = (text) => {
+      query = String(text ?? '').trim();
+      if (query && !before) before = new Map(groups().map((d) => [keyOfGroup(d), d.open]));
+      const n = sift(node, false);
+      if (!query) before = null;
+      if (!none && query) {
+        none = document.createElement('p');
+        none.className = 'nav-none';
+        none.setAttribute('role', 'status');
+      }
+      if (none) {
+        if (none.parentNode !== node) node.append(none);
+        none.textContent = query && !n ? 'Nothing by that name' : '';
+      }
+      return n;
+    };
+    const mark = () => {
+      const at = [];
+      for (const x of links()) {
+        const on = cur != null && typeof cur !== 'function' && [x.dataset.key, x.getAttribute('href')].includes(String(cur));
+        if (on) { x.setAttribute('aria-current', 'page'); at.push(x); } else if (cur !== undefined && typeof cur !== 'function' && x.getAttribute('aria-current') === 'page') x.removeAttribute('aria-current');
+        else if (x.getAttribute('aria-current') === 'page') at.push(x);
+      }
+      for (const x of at) openTo(x);
+      if (at[0]) showIn(at[0]);
+    };
+    const draw = () => {
+      if (!items) return;
+      if (none) none.remove();
+      Dash.render(node, navHtml(items, { current: cur, open: saved }));
+      if (query) filter(query);
+    };
+    if (!items) for (const d of groups()) { const k = keyOfGroup(d); if (Object.hasOwn(saved, k)) d.open = Boolean(saved[k]); }
+    draw();
+    mark();
+    node.addEventListener('click', (e) => {
+      const x = e.target.closest('.nav-item');
+      if (!x || !node.contains(x)) return;
+      if (x.tagName === 'SUMMARY') {
+        const d = x.parentElement;
+        setTimeout(() => { // once it has opened or closed
+          if (query || !store) return;
+          saved[keyOfGroup(d)] = d.open;
+          Dash.store.set(store, saved);
+        });
+        return;
+      }
+      if (!onPick || !items) return;
+      const find = (list) => { for (const it of list) { const f = it.items ? find(it.items) : it.heading == null && navKey(it) === x.dataset.key ? it : null; if (f) return f; } return null; };
+      const it = find(items);
+      if (it) onPick(it, e);
+    }, { signal });
+    return {
+      el: node,
+      update(next) { items = next || []; draw(); mark(); },
+      current(k) { cur = k ?? null; mark(); },
+      filter,
+      stop() { filter(''); node.__dashNav?.abort(); },
+    };
+  };
+  Dash.nav.html = navHtml;
+
+  // Marks the link to the section being read, as the page scrolls: Dash.spy('toc'), where the element holds links to ids on
+  // this page. The link gets aria-current="location" (a .nav-item, a .chip and a .link show it) and is kept in view in its
+  // own box. offset: how far under the top bar a section has to be to count. onChange(id) runs when it changes.
+  Dash.spy = (target, { offset = 24, onChange } = {}) => {
+    const node = el(target);
+    if (!node || !hasDom) return null;
+    node.__dashSpy?.abort();
+    const { signal } = (node.__dashSpy = new AbortController());
+    const page = (u) => u.split('#')[0];
+    let now = null, held = null, from = 0, due = 0;
+    const pairs = () => [...node.querySelectorAll('a[href*="#"]')].flatMap((a) => {
+      const i = a.href.indexOf('#');
+      if (page(a.href) !== page(location.href)) return [];
+      const s = document.getElementById(dec(a.href.slice(i + 1)));
+      return s && s.getClientRects().length ? [{ a, s, id: s.id }] : [];
+    });
+    const look = () => {
+      due = 0;
+      const list = pairs();
+      const bar = document.querySelector('.topbar');
+      const line = (bar && getComputedStyle(bar).position === 'sticky' ? bar.getBoundingClientRect().bottom : 0) + offset;
+      const tops = list.map((p) => ({ ...p, top: p.s.getBoundingClientRect().top }));
+      let at = held ? tops.find((p) => p.id === held) : null; // one the reader clicked, until they scroll on
+      if (!at) {
+        const end = document.documentElement.scrollHeight - innerHeight - scrollY < 2 && scrollY > 2; // the last ones can't reach the line
+        const past = tops.filter((p) => p.top <= (end ? innerHeight - 40 : line));
+        at = past.length ? past.reduce((a, b) => (b.top >= a.top ? b : a)) : tops.reduce((a, b) => (a && a.top <= b.top ? a : b), null);
+      }
+      const id = at ? at.id : null;
+      for (const p of list) {
+        if (p.id === id) { if (p.a.getAttribute('aria-current') !== 'page') p.a.setAttribute('aria-current', 'location'); } else if (p.a.getAttribute('aria-current') === 'location') p.a.removeAttribute('aria-current');
+      }
+      if (id === now) return;
+      now = id;
+      if (at && !node.contains(document.activeElement)) showIn(at.a);
+      if (onChange) onChange(id);
+    };
+    const soon = () => { if (!due) due = requestAnimationFrame(look); };
+    let quiet = 0;
+    const hold = (id) => { held = id; from = NaN; clearTimeout(quiet); quiet = setTimeout(() => { from = scrollY; }, 400); soon(); };
+    window.addEventListener('scroll', () => {
+      if (held != null) {
+        if (Number.isNaN(from)) { clearTimeout(quiet); quiet = setTimeout(() => { from = scrollY; }, 160); } else if (Math.abs(scrollY - from) > 4) held = null; // (still on its way there)
+      }
+      soon();
+    }, { passive: true, signal });
+    window.addEventListener('resize', soon, { signal });
+    window.addEventListener('hashchange', () => hold(dec(location.hash.slice(1))), { signal });
+    node.addEventListener('click', (e) => {
+      const a = e.target.closest('a[href*="#"]');
+      const p = a && pairs().find((x) => x.a === a);
+      if (p) hold(p.id);
+    }, { signal });
+    if (location.hash) hold(dec(location.hash.slice(1))); else look();
+    return { get current() { return now; }, update: look, stop() { node.__dashSpy?.abort(); clearTimeout(quiet); cancelAnimationFrame(due); } };
+  };
+
+  // a press on a link, a button or a box that a page put into a row is that one's, not the row's
+  const inRow = (t, row) => { const own = t.closest('a, button, input, select, textarea, label, summary'); return Boolean(own) && own !== row && row.contains(own); };
+
+  // ---- trees (1.14)
+
+  // Things inside things: Dash.tree('files', { items: [{ id: 'src', title: 'src', items: [{ id: 'src/app.js', title: 'app.js' }] }] })
+  // key, title, sub and children are fields or functions (id, title, sub, items); lead and end are HTML (an icon, a pill).
+  // open: keys, a number of levels, or true; store remembers what is open. A row whose children are true has some that
+  // load(row) gives (or promises) when it is first opened. select: 'one' picks a row, 'many' ticks boxes (a branch is ticked
+  // when all of it is); can(row) says which may be. onSelect(row or rows), onOpen(row, open), onPick(row, event) for a leaf
+  // that is clicked (with select: double-clicked, or Enter). menu(row) gives a row's menu (right click, Shift+F10, its ⋯ button),
+  // onMenu(value, row) what was chosen. Keys: arrows, Home, End, Enter, Space, * (opens all beside), the first letters.
+  Dash.tree = (target, { items = [], key = 'id', title = 'title', children = 'items', sub = 'sub', lead, end, load, open = [], select, selected = [], can = () => true,
+    onSelect, onOpen, onPick, menu, onMenu, store, label, empty = 'Nothing here yet' } = {}) => {
+    const node = el(target);
+    if (!node || !hasDom) return null;
+    node.__dashTree?.destroy();
+    const control = new AbortController();
+    const uid = 'dash-tree-' + ++ids;
+    const get = (f, r) => (typeof f === 'function' ? f(r) : f != null && r ? r[f] : null);
+    const many = select === 'many', one = select === 'one';
+    let data = items || [];
+    let top = []; // the top rows; every row: { id, row, up, level, kids (a list, or null for a leaf), ask (load() has them) }
+    let all = new Map();
+    const got = new Map(); // id → the rows load() gave; asked: id → { failed } while they are on their way, or why they aren't there
+    const asked = new Map();
+    const nums = new Map(); // id → a number for its element's id
+    const opened = new Set();
+    const picked = new Set(); // one: the row; many: leaves, and branches whose items aren't there yet
+    const saved = store ? Dash.store.get(store) : null;
+    if (Array.isArray(saved)) for (const k of saved) opened.add(String(k)); else if (Array.isArray(open)) for (const k of open) opened.add(String(k));
+    const deep = Array.isArray(saved) ? 0 : open === true ? Infinity : typeof open === 'number' ? open : 0;
+    let cur = null, curUp = []; // the row Tab goes to, and the ones it is in
+    let query = null; // a test for rows, while filtered
+    let words = '';
+    const turned = new Map(); // what the reader opened and closed while it is filtered
+
+    const branch = (n) => n.kids !== null || n.ask;
+    const build = () => {
+      const was = all;
+      all = new Map();
+      const walk = (rows, up, level) => (rows || []).map((row) => {
+        const id = String(get(key, row));
+        const n = { id, row, up, level, kids: null, ask: false, hit: false, under: false };
+        all.set(id, n);
+        const own = get(children, row), given = own === true && load ? got.get(id) : undefined;
+        if (Array.isArray(own) && own.length) n.kids = walk(own, n, level + 1);
+        else if (given) n.kids = walk(given, n, level + 1); // (none of them: still a branch, that says so)
+        else n.ask = own === true && Boolean(load);
+        if (level <= deep && branch(n) && !n.ask && !was.has(id)) opened.add(id);
+        return n;
+      });
+      top = walk(data, null, 1);
+      for (const m of [got, asked, nums]) for (const id of [...m.keys()]) if (!all.has(id)) m.delete(id);
+      for (const id of [...opened]) if (!all.has(id) && was.has(id)) opened.delete(id);
+      for (const id of [...picked]) {
+        const n = all.get(id);
+        if (!n) { if (was.has(id)) picked.delete(id); continue; }
+        if (many && n.kids) { picked.delete(id); for (const x of allLeaves(n)) picked.add(x.id); } // its items came: they are ticked
+      }
+      if (query) sift();
+    };
+    // the rows that may be ticked under a row (or the row itself); while filtered, the ones that show
+    const leaves = (n) => (n.kids ? kidsOf(n).flatMap(leaves) : can(n.row) ? [n] : []);
+    const allLeaves = (n) => (n.kids ? n.kids.flatMap(allLeaves) : can(n.row) ? [n] : []);
+    const choose = (keys) => {
+      for (const k of [].concat(keys ?? []).map(String)) {
+        const n = all.get(k);
+        if (n && many) for (const x of allLeaves(n)) picked.add(x.id); else if (n && one && can(n.row)) { picked.clear(); picked.add(k); }
+      }
+    };
+    const kidsOf = (n) => (query && n.under ? n.kids.filter((k) => k.hit || k.under) : n.kids);
+    const isOpen = (n) => branch(n) && (query ? turned.get(n.id) ?? n.under : opened.has(n.id));
+    const topSeen = () => (query ? top.filter((n) => n.hit || n.under) : top);
+    const sift = () => {
+      let n = 0;
+      const walk = (x) => {
+        x.hit = Boolean(query(x.row));
+        if (x.hit) n++;
+        x.under = false;
+        for (const k of x.kids || []) if (walk(k)) x.under = true;
+        return x.hit || x.under;
+      };
+      top.forEach(walk);
+      return n;
+    };
+    const stateOf = (n) => { // of a box: true, false or 'mixed'
+      if (!n.kids) return picked.has(n.id);
+      const l = leaves(n), k = l.filter((x) => picked.has(x.id)).length;
+      return k > 0 && k === l.length ? true : k ? 'mixed' : false;
+    };
+    const mayPick = (n) => (many && n.kids ? leaves(n).length > 0 : can(n.row));
+    const titleOf = (n) => String(get(title, n.row) ?? '');
+
+    const note = (n, level, what) => `<li class="tree-item tree-note" role="treeitem" tabindex="-1" data-key="dash-note ${esc(n.id)}" data-note="${esc(n.id)}" aria-level="${level}" aria-setsize="1" aria-posinset="1">`
+      + `<div class="tree-row"><span class="tree-turn"></span>${what}</div></li>`;
+    const rowHtml = (n, i, list) => {
+      const on = isOpen(n), b = branch(n), s = get(sub, n.row), l = lead ? lead(n.row, { open: on, branch: b }) : '', e = end ? end(n.row) : '';
+      if (!nums.has(n.id)) nums.set(n.id, ++ids);
+      const name = `${uid}-${nums.get(n.id)}`;
+      return `<li class="tree-item" role="treeitem" tabindex="-1" data-key="${esc(n.id)}" aria-level="${n.level}" aria-setsize="${list.length}" aria-posinset="${i + 1}"${b ? ` aria-expanded="${on}"` : ''}`
+        + ` aria-labelledby="${name}${e ? ` ${name}e` : ''}"${menu ? ' aria-haspopup="menu"' : ''}><div class="tree-row"><span class="tree-turn"></span>${many ? '<span class="pick-box"></span>' : ''}`
+        + `${l ? `<span class="tree-lead">${l}</span>` : ''}<span class="tree-text" id="${name}"><span class="tree-title">${markWords(titleOf(n), words)}</span>`
+        + `${s != null && s !== '' ? ` <span class="tree-sub">${esc(s)}</span>` : ''}</span>${e ? `<span class="tree-end" id="${name}e">${e}</span>` : ''}${menu ? '<span class="row-dots" data-dots aria-hidden="true">⋯</span>' : ''}</div>`
+        + `${on ? `<ul role="group">${inside(n)}</ul>` : ''}</li>`;
+    };
+    const inside = (n) => {
+      const a = asked.get(n.id);
+      if (a && a.failed) return note(n, n.level + 1, `<span class="tree-text">Couldn’t load this: ${esc(a.failed)} <u>Try again</u></span>`);
+      if (n.ask) return note(n, n.level + 1, '<span class="spinner" aria-hidden="true"></span><span class="tree-text">Loading…</span>');
+      return n.kids.length ? kidsOf(n).map(rowHtml).join('') : note(n, n.level + 1, '<span class="tree-text">Nothing here</span>');
+    };
+    const html = () => {
+      const list = topSeen();
+      if (!list.length) return `<div class="empty">${esc(query && top.length ? 'Nothing by that name' : empty)}</div>`;
+      return `<ul class="tree" role="tree"${label ? ` aria-label="${esc(label)}"` : ''}${many ? ' aria-multiselectable="true"' : ''}>${list.map(rowHtml).join('')}</ul>`;
+    };
+    const lis = () => [...node.querySelectorAll('.tree-item')];
+    const liOf = (id) => (id == null ? null : node.querySelector(`.tree-item[data-key="${CSS.escape(id)}"]`));
+    const nodeOf = (li) => (li ? all.get(li.dataset.key) : null);
+    const note0 = (li) => { // the row Tab goes to from now on
+      cur = li.dataset.key;
+      curUp = [];
+      for (let p = li.parentElement.closest('.tree-item'); p && node.contains(p); p = p.parentElement.closest('.tree-item')) curUp.push(p.dataset.key);
+    };
+    // what isn't in the markup: the boxes and the picked row, and where Tab goes
+    const settle = () => {
+      const list = lis();
+      let at = liOf(cur) || curUp.map(liOf).find(Boolean) || (one ? list.find((li) => picked.has(li.dataset.key)) : null) || list[0];
+      for (const li of list) {
+        li.tabIndex = li === at ? 0 : -1;
+        const n = nodeOf(li);
+        if (!n || !(many || one)) continue;
+        const may = mayPick(n);
+        if (many && may) li.setAttribute('aria-checked', String(stateOf(n)));
+        if (one && may) li.setAttribute('aria-selected', String(picked.has(n.id)));
+        if (!may && !branch(n)) li.setAttribute('aria-disabled', 'true'); else li.removeAttribute('aria-disabled');
+        if (!may) { li.removeAttribute('aria-checked'); li.removeAttribute('aria-selected'); }
+        li.classList.toggle('no-pick', !may);
+      }
+      if (at) note0(at);
+    };
+    const go = (li) => {
+      if (!li) return;
+      for (const x of node.querySelectorAll('.tree-item[tabindex="0"]')) x.tabIndex = -1;
+      li.tabIndex = 0;
+      note0(li);
+      li.focus({ preventScroll: true });
+      li.querySelector('.tree-row').scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    };
+    const draw = (force = false) => {
+      const held = node.contains(document.activeElement) && document.activeElement !== node;
+      const markup = html();
+      Dash.render(node, markup, { force: force && node.__dashHtml !== markup });
+      if (node.__dashHtml === markup) settle();
+      if (held && !node.contains(document.activeElement)) go(liOf(cur));
+    };
+    const keep = () => { if (store) Dash.store.set(store, [...opened]); };
+    const ask = (n) => {
+      if (!n.ask || (asked.has(n.id) && !asked.get(n.id).failed)) return;
+      const mine = {};
+      asked.set(n.id, mine);
+      const here = () => asked.get(n.id) === mine && !control.signal.aborted;
+      Promise.resolve().then(() => load(n.row)).then((rows) => {
+        if (!here()) return;
+        asked.delete(n.id);
+        got.set(n.id, Array.isArray(rows) ? rows : []);
+        build();
+        askOpen();
+        draw();
+      }, (e) => {
+        if (!here()) return;
+        mine.failed = (e && e.message) || String(e);
+        draw();
+      });
+    };
+    const askOpen = () => { for (const n of all.values()) if (n.ask && opened.has(n.id) && !asked.has(n.id)) ask(n); }; // (remembered as open, or opened by code)
+    const turn = (n, on) => {
+      if (!n || !branch(n) || isOpen(n) === on) return;
+      if (query) turned.set(n.id, on); else if (on) opened.add(n.id); else opened.delete(n.id);
+      if (on) ask(n);
+      draw(true);
+      if (!query) keep();
+      if (onOpen) onOpen(n.row, on);
+    };
+    const chosen = () => [...all.values()].filter((n) => picked.has(n.id)).map((n) => n.row);
+    const tell = () => { if (onSelect) onSelect(one ? chosen()[0] ?? null : chosen()); };
+    const tick = (n) => {
+      if (!mayPick(n)) return;
+      if (one) {
+        if (picked.has(n.id)) return;
+        picked.clear();
+        picked.add(n.id);
+      } else {
+        const l = leaves(n), on = stateOf(n) !== true;
+        for (const x of l) if (on) picked.add(x.id); else picked.delete(x.id);
+      }
+      settle();
+      tell();
+    };
+    const retry = (li) => {
+      const n = li && all.get(li.dataset.note);
+      if (n && asked.get(n.id)?.failed) { go(liOf(n.id)); ask(n); draw(); }
+    };
+    const act = (n, e) => { // a click on a row, or Enter
+      const enter = e.type === 'keydown';
+      if (one) {
+        const was = picked.has(n.id);
+        tick(n);
+        if (branch(n) && (enter || !mayPick(n) || was || !isOpen(n))) turn(n, !isOpen(n));
+        if (enter && !branch(n) && onPick) onPick(n.row, e);
+      } else if (many && !enter && mayPick(n)) tick(n);
+      else if (branch(n)) turn(n, !isOpen(n));
+      else if (onPick) onPick(n.row, e);
+      else if (many) tick(n);
+    };
+    const openMenu = async (n, at) => {
+      const list = menu(n.row);
+      if (!list || !list.length) return;
+      const v = await Dash.menu(at, list);
+      if (v != null && onMenu && all.has(n.id)) onMenu(v, all.get(n.id).row);
+    };
+    const on = (type, fn) => node.addEventListener(type, fn, { signal: control.signal });
+    on('click', (e) => {
+      const row = e.target.closest('.tree-row');
+      const li = row && row.parentElement;
+      if (!li || !node.contains(li)) return;
+      const n = nodeOf(li);
+      if (!n) { retry(li); return; }
+      if (inRow(e.target, row)) return;
+      go(li);
+      if (e.target.closest('[data-dots]')) openMenu(n, e.target.closest('[data-dots]'));
+      else if (e.target.closest('.tree-turn') && branch(n)) turn(n, !isOpen(n));
+      else act(n, e);
+    });
+    on('dblclick', (e) => {
+      const n = nodeOf(e.target.closest('.tree-row')?.parentElement);
+      if (n && one && onPick && !branch(n) && !e.target.closest('.tree-turn, [data-dots]')) onPick(n.row, e);
+    });
+    on('mousedown', (e) => { if (e.detail > 1 && e.target.closest('.tree-row')) e.preventDefault(); }); // a double click selects no text
+    on('focusin', (e) => {
+      const li = e.target;
+      if (!li.classList.contains('tree-item') || li.tabIndex === 0) return;
+      for (const x of node.querySelectorAll('.tree-item[tabindex="0"]')) x.tabIndex = -1;
+      li.tabIndex = 0;
+      note0(li);
+    });
+    if (menu) on('contextmenu', (e) => {
+      const n = nodeOf(e.target.closest('.tree-item'));
+      if (!n) return;
+      e.preventDefault();
+      const li = liOf(n.id);
+      go(li);
+      openMenu(n, e.clientX || e.clientY ? e : li.firstElementChild);
+    });
+    let typed = '', typing = 0;
+    on('keydown', (e) => {
+      const li = e.target;
+      if (!li.classList || !li.classList.contains('tree-item') || e.altKey || e.ctrlKey || e.metaKey) return;
+      const list = lis(), i = list.indexOf(li), n = nodeOf(li);
+      let to;
+      if (e.key === 'ArrowDown') to = list[i + 1] || null;
+      else if (e.key === 'ArrowUp') to = list[i - 1] || null;
+      else if (e.key === 'Home') to = list[0];
+      else if (e.key === 'End') to = list[list.length - 1];
+      else if (e.key === 'ArrowRight') { if (n && branch(n)) { if (!isOpen(n)) turn(n, true); else to = list[i + 1]; } to = to || null; } else if (e.key === 'ArrowLeft') {
+        if (n && branch(n) && isOpen(n)) { turn(n, false); to = null; } else to = li.parentElement.closest('.tree-item') || null;
+      } else if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        if (!n) retry(li); else if (e.key === 'Enter') act(n, e); else if (many || one) tick(n); else act(n, e);
+        return;
+      } else if (e.key === '*') {
+        e.preventDefault();
+        for (const x of n ? (n.up ? kidsOf(n.up) : topSeen()) : []) if (branch(x)) turn(x, true);
+        return;
+      } else if (menu && n && ((e.shiftKey && e.key === 'F10') || e.key === 'ContextMenu')) {
+        e.preventDefault();
+        openMenu(n, li.firstElementChild);
+        return;
+      } else if (e.key.length === 1) { // the first letters of a row that shows
+        clearTimeout(typing);
+        typing = setTimeout(() => { typed = ''; }, 600);
+        const k = e.key.toLowerCase();
+        typed = typed && [...typed].every((c) => c === k) ? k : typed + k;
+        const names = (x) => { const m = nodeOf(x); return m ? titleOf(m).toLowerCase() : ''; };
+        const later = list.slice(i + (typed.length === 1 ? 1 : 0)).concat(list.slice(0, i + 1)).find((x) => names(x).startsWith(typed));
+        if (!later) return;
+        e.preventDefault();
+        e.stopPropagation(); // (not a shortcut of the page as well)
+        go(later);
+        return;
+      } else return;
+      e.preventDefault();
+      if (to) go(to);
+    });
+    const handle = {
+      el: node,
+      update(next) { data = next || []; const n = picked.size; build(); askOpen(); draw(); if (picked.size < n) queueMicrotask(tell); },
+      get items() { return data; },
+      // one: the row (or null); many: the ticked rows, leaves only. select(keys) picks those and no others
+      get selected() { return one ? chosen()[0] ?? null : chosen(); },
+      select(keys) {
+        const was = new Set(picked);
+        picked.clear();
+        choose(keys);
+        settle();
+        if (picked.size !== was.size || [...picked].some((k) => !was.has(k))) tell();
+      },
+      // the open rows; expand(key or keys) opens, expand(keys, false) closes; expand(true) opens all that is here, expand(false) closes all
+      get expanded() { return [...all.values()].filter((n) => branch(n) && opened.has(n.id)).map((n) => n.row); },
+      expand(which, to = true) {
+        if (which === false) opened.clear();
+        else if (which === true) { for (const n of all.values()) if (n.kids) opened.add(n.id); } else {
+          for (const k of [].concat(which ?? []).map(String)) {
+            const n = all.get(k);
+            if (!n || !branch(n)) continue;
+            if (to) { opened.add(k); ask(n); } else opened.delete(k);
+          }
+        }
+        draw();
+        keep();
+      },
+      // keeps the rows that have the words (or pass a test), with what they are in; '' or null shows all again. → how many have them
+      filter(q) {
+        const f = typeof q === 'function' ? q : String(q ?? '').trim() ? (r) => Dash.match({ t: get(title, r), s: get(sub, r) }, q, ['t', 's']) : null;
+        if (!f || !query || words !== (typeof q === 'string' ? q.trim() : '')) turned.clear();
+        query = f;
+        words = f && typeof q === 'string' ? q.trim() : '';
+        const n = query ? sift() : all.size;
+        draw();
+        return n;
+      },
+      // opens what the row is in, and brings it into view
+      reveal(k, { focus = false } = {}) {
+        const n = all.get(String(k));
+        if (!n) return false;
+        for (let p = n.up; p; p = p.up) { opened.add(p.id); if (query) turned.set(p.id, true); }
+        cur = n.id;
+        curUp = [];
+        draw();
+        keep();
+        const li = liOf(n.id);
+        if (!li) return false;
+        if (focus) go(li); else li.firstElementChild.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        return true;
+      },
+      // asks load(row) again
+      reload(k) {
+        const n = all.get(String(k));
+        if (!n || !load) return;
+        got.delete(n.id);
+        asked.delete(n.id);
+        build();
+        if (opened.has(n.id)) ask(all.get(n.id));
+        draw();
+      },
+      redraw() { draw(); },
+      destroy() {
+        if (control.signal.aborted) return;
+        control.abort();
+        clearTimeout(typing);
+        node.textContent = '';
+        node.__dashHtml = undefined;
+        node.__dashTree = undefined;
+      },
+    };
+    node.__dashTree = handle;
+    build();
+    choose(selected);
+    askOpen();
+    draw();
+    return handle;
+  };
+
+  // ---- lists that can be picked from, put in order and shown in parts (1.14)
+
+  // Dragging a row by its grip: a copy follows the pointer, a line shows where it would go. zones() are the boxes it may be
+  // dropped in, rowsIn(zone) their rows; onDrop(zone, index) once it is let go, index among the zone's other rows. Escape calls
+  // it off. → a promise of whether it was dragged (a press that didn't move is a click).
+  const dragRow = (e, row, { zones, rowsIn, onStart, onDrop, onEnd }) => {
+    const x0 = e.clientX, y0 = e.clientY, id = e.pointerId, box = row.getBoundingClientRect();
+    let ghost = null, spot = null, x = x0, y = y0, frame = 0;
+    const line = document.createElement('i');
+    line.className = 'drop-line';
+    const scroller = (z) => {
+      for (let p = z; p && p !== document.body; p = p.parentElement) if (p.scrollHeight > p.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(p).overflowY)) return p;
+      return document.scrollingElement;
+    };
+    const find = () => {
+      const all = zones().map((z) => ({ z, r: z.getBoundingClientRect() }));
+      const far = (v, a, b) => Math.max(a - v, 0, v - b);
+      const { z } = all.reduce((a, b) => (far(x, b.r.left, b.r.right) * 2 + far(y, b.r.top, b.r.bottom) < far(x, a.r.left, a.r.right) * 2 + far(y, a.r.top, a.r.bottom) ? b : a));
+      const list = rowsIn(z).filter((r) => r !== row), rects = list.map((r) => r.getBoundingClientRect());
+      let i = rects.findIndex((r) => y < r.top + r.height / 2);
+      if (i < 0) i = list.length;
+      const zr = z.getBoundingClientRect();
+      const at = !list.length ? zr.top + 6 : i < list.length ? rects[i].top : rects[i - 1].bottom;
+      spot = { z, i };
+      if (line.parentNode !== z) z.append(line);
+      line.style.top = Math.round(at - zr.top - z.clientTop + z.scrollTop) + 'px';
+    };
+    const step = () => { // near an edge of what scrolls: it scrolls on
+      const s = scroller(spot.z), view = s === document.scrollingElement ? { top: 0, bottom: innerHeight } : s.getBoundingClientRect();
+      const d = y < view.top + 48 ? y - view.top - 48 : y > view.bottom - 48 ? y - view.bottom + 48 : 0;
+      if (d) { s.scrollTop += clamp(d / 4, -14, 14); find(); }
+      frame = requestAnimationFrame(step);
+    };
+    const begin = () => {
+      const shell = row.parentElement.cloneNode(false);
+      for (const a of ['id', 'role', 'data-zone', 'data-drop']) shell.removeAttribute(a); // a copy is no box to drop in
+      shell.classList.add('drag-ghost');
+      shell.setAttribute('aria-hidden', 'true');
+      const copy = row.cloneNode(true);
+      for (const n of [copy, ...copy.querySelectorAll('[id], [data-key]')]) { n.removeAttribute('id'); n.removeAttribute('data-key'); }
+      shell.append(copy);
+      Object.assign(shell.style, { width: box.width + 'px', left: box.left + 'px', top: box.top + 'px' });
+      ghost = shell;
+      (row.closest('dialog, [popover]') || document.body).append(ghost);
+      row.classList.add('drag-from');
+      document.documentElement.classList.add('dragging');
+      if (onStart) onStart();
+      find();
+      frame = requestAnimationFrame(step);
+    };
+    return new Promise((resolve) => {
+      const control = new AbortController(), { signal } = control;
+      const finish = (drop) => {
+        control.abort();
+        cancelAnimationFrame(frame);
+        const was = Boolean(ghost);
+        if (ghost) {
+          ghost.remove();
+          line.remove();
+          row.classList.remove('drag-from');
+          document.documentElement.classList.remove('dragging');
+          // the click that ends a drag isn't one
+          const stop = (c) => { c.stopPropagation(); c.preventDefault(); };
+          window.addEventListener('click', stop, { capture: true, once: true });
+          setTimeout(() => window.removeEventListener('click', stop, { capture: true }));
+          if (drop && spot && row.isConnected) onDrop(spot.z, spot.i);
+          if (onEnd) onEnd();
+        }
+        resolve(was);
+      };
+      window.addEventListener('pointermove', (m) => {
+        if (m.pointerId !== id) return;
+        x = m.clientX;
+        y = m.clientY;
+        if (!ghost) { if (Math.hypot(x - x0, y - y0) < 5) return; begin(); }
+        m.preventDefault();
+        ghost.style.transform = `translate(${x - x0}px, ${y - y0}px)`;
+        find();
+      }, { signal, passive: false });
+      window.addEventListener('pointerup', (u) => { if (u.pointerId === id) finish(true); }, { signal });
+      window.addEventListener('pointercancel', (u) => { if (u.pointerId === id) finish(false); }, { signal });
+      window.addEventListener('blur', () => finish(false), { signal });
+      window.addEventListener('keydown', (k) => { if (k.key === 'Escape' && ghost) { k.preventDefault(); k.stopPropagation(); finish(false); } }, { signal, capture: true });
+    });
+  };
+  const GRIP = '<svg width="10" height="16" viewBox="0 0 10 16" fill="currentColor" aria-hidden="true"><circle cx="2.5" cy="3" r="1.4"/><circle cx="7.5" cy="3" r="1.4"/><circle cx="2.5" cy="8" r="1.4"/><circle cx="7.5" cy="8" r="1.4"/><circle cx="2.5" cy="13" r="1.4"/><circle cx="7.5" cy="13" r="1.4"/></svg>';
+
+  // Dash.list('rules', { rows, title: 'name', sub: 'when' }): the rows of Dash.entries (title, sub, lead, end, href), and:
+  // select: 'one' | 'many' picks rows (arrows, Space, Shift for a range, mod+A); can(row) says which; onSelect(row or rows).
+  // onPick(row, event): a row is clicked, or Enter (with select: double-clicked, or Enter). group: a field or a function; its
+  // values are headings. reorder: true gives rows a grip to drag (arrow keys on it, or Alt+arrows on a picked list's row);
+  // onMove(rows, { row, from, to }) has the new order; false or an error puts it back. menu(row) is a row's menu, onMenu(value,
+  // row) what was chosen. more: 20 shows 20 rows and a button for 20 more; with load(offset) it asks for them. height: a
+  // number of pixels it scrolls in. .update(rows) .rows .shown .selected .select(keys) .filter(text or test) .count .move(key, to)
+  Dash.list = (target, { rows, key = 'id', title = 'title', sub = 'sub', lead, end, href, group, select, selected = [], can = () => true, onSelect, onPick, reorder = false, onMove,
+    menu, onMenu, more = 0, load, filter, height, wrap = false, noun = 'row', label, empty = 'Nothing here yet' } = {}) => {
+    const node = el(target);
+    if (!node || !hasDom) return null;
+    node.__dashList?.destroy();
+    const control = new AbortController();
+    const uid = 'dash-list-' + ++ids;
+    const get = (f, r) => (typeof f === 'function' ? f(r) : f != null && r ? r[f] : null);
+    const idOf = (r) => String(get(key, r));
+    const many = select === 'many', one = select === 'one', picking = many || one;
+    const size = more || (load ? 20 : 0);
+    let data = rows || [];
+    let shown = [];
+    let limit = size;
+    let test = null, words = '';
+    let cur = null, anchor = null; // the row Tab goes to; where a range starts
+    let part = null; // a part that is asked for: { busy, failed }
+    let whole = !load; // there is no more to ask for
+    let dragging = false, held = null, moving = 0; // an update that came while a row is dragged, or its move is being saved
+    const picked = new Set(selected == null ? [] : [].concat(selected).map(String));
+    const titleOf = (r) => String(get(title, r) ?? '');
+    let known = null, knownOf = null; // the rows by their key
+    const rowOf = (id) => {
+      if (knownOf !== data) { known = new Map(data.map((r) => [idOf(r), r])); knownOf = data; }
+      return known.get(id) || null;
+    };
+
+    const setTest = (q) => {
+      test = typeof q === 'function' ? q : String(q ?? '').trim() ? (r) => Dash.match({ t: get(title, r), s: get(sub, r) }, q, ['t', 's']) : null;
+      words = test && typeof q === 'string' ? q.trim() : '';
+    };
+    if (filter != null) setTest(filter);
+    const visible = () => (test ? data.filter(test) : data);
+    const groupsOf = (list) => {
+      if (group == null) return [{ name: null, rows: list }];
+      const m = new Map();
+      for (const r of list) { const g = String(get(group, r) ?? ''); if (!m.has(g)) m.set(g, []); m.get(g).push(r); }
+      return [...m].map(([name, l]) => ({ name, rows: l }));
+    };
+    const ordered = () => groupsOf(visible()).flatMap((g) => g.rows);
+    const inner = (r) => {
+      const s = get(sub, r), l = lead ? lead(r) : '', e = end ? end(r) : '';
+      return `${l ? `<span class="entry-lead">${l}</span>` : ''}<span class="entry-text"><span class="entry-title">${markWords(titleOf(r), words)}</span>`
+        + `${s != null && s !== '' ? `<span class="entry-sub">${esc(s)}</span>` : ''}</span>${e ? `<span class="entry-end">${e}</span>` : ''}`;
+    };
+    const rowHtml = (r) => {
+      const k = esc(idOf(r)), name = esc(titleOf(r));
+      if (picking) {
+        return `<li class="entry" role="option" tabindex="-1" data-key="${k}"${reorder ? ' aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"' : ''}>${reorder ? `<span class="entry-grip" data-grip aria-hidden="true">${GRIP}</span>` : ''}`
+          + `${many ? '<span class="pick-box"></span>' : ''}${inner(r)}${menu ? '<span class="row-dots" data-dots aria-hidden="true">⋯</span>' : ''}</li>`;
+      }
+      const grip = reorder ? `<button type="button" class="icon-btn entry-grip" data-grip data-key="dash-grip ${k}" aria-label="Move ${name}" aria-keyshortcuts="ArrowUp ArrowDown">${GRIP}</button>` : '';
+      const dots = menu ? `<button type="button" class="icon-btn row-dots" data-dots data-key="dash-dots ${k}" aria-haspopup="menu" aria-label="More for ${name}">⋯</button>` : '';
+      const h = href ? get(href, r) : null;
+      const body = h != null ? `<a class="entry" href="${esc(safeHref(h))}" data-key="dash-row ${k}">${inner(r)}</a>` : onPick ? `<button type="button" class="entry" data-key="dash-row ${k}">${inner(r)}</button>` : grip || dots ? `<div class="entry">${inner(r)}</div>` : '';
+      return body ? `<li class="${grip || dots ? 'entry-line' : 'entry-own'}" data-key="${k}">${grip}${body}${dots}</li>` : `<li class="entry" data-key="${k}">${inner(r)}</li>`;
+    };
+    const html = () => {
+      const list = ordered();
+      shown = size && limit < list.length ? list.slice(0, limit) : list;
+      const name = label ? ` aria-label="${esc(label)}"` : '';
+      const rest = list.length - shown.length;
+      const cls = `entries${wrap ? ' wrap' : ''}${picking ? ' picks' : ''}`;
+      const box = `${picking ? ` role="listbox"${name}${many ? ' aria-multiselectable="true"' : ''}` : ''}`;
+      let out;
+      if (!shown.length) out = load && !whole && !part?.failed && !test ? '' : `<div class="empty">${esc(test && data.length ? 'Nothing by that name' : empty)}</div>`;
+      else if (group == null) out = `<ul class="${cls}" data-zone=""${box || name}>${shown.map(rowHtml).join('')}</ul>`;
+      else {
+        const gs = groupsOf(shown).map((g, i) => {
+          const h = `${uid}-g${i}`;
+          return `<div class="entries-group"${picking ? ` role="group" aria-labelledby="${h}"` : ''}><div class="entries-head" id="${h}">${esc(g.name)}</div>`
+            + `<ul class="${cls}" data-zone="${esc(g.name)}"${picking ? ' role="none"' : ` aria-labelledby="${h}"`}>${g.rows.map(rowHtml).join('')}</ul></div>`;
+        }).join('');
+        out = picking ? `<div class="picks"${box}>${gs}</div>` : gs;
+      }
+      const n = Math.min(size, rest);
+      const foot = part && part.busy ? `<span class="spinner" aria-hidden="true"></span> ${data.length ? 'Loading more…' : 'Loading…'}`
+        : part && part.failed ? `Couldn’t load ${data.length ? 'more' : 'this'}: ${esc(part.failed)} <button type="button" class="btn sm" data-more>Try again</button>`
+          : rest > 0 ? `<button type="button" class="btn sm ghost" data-more data-key="dash-more">Show ${n === rest ? `the last ${fmt.int(n)}` : `${fmt.int(n)} more`} of ${fmt.int(list.length)}</button>`
+            : !whole && !test ? '<button type="button" class="btn sm ghost" data-more data-key="dash-more">Show more</button>' : '';
+      return `${height ? `<div class="entries-scroll" data-key="dash-list-scroll" tabindex="${picking ? -1 : 0}">${out}</div>` : out}${foot ? `<div class="entries-foot">${foot}</div>` : ''}`;
+    };
+    const options = () => [...node.querySelectorAll('[role="option"]')];
+    const liOf = (id) => (id == null ? null : node.querySelector(`li[data-key="${CSS.escape(id)}"]`));
+    const settle = () => {
+      if (!picking) return;
+      const list = options();
+      const at = liOf(cur) || list.find((o) => picked.has(o.dataset.key)) || list[0];
+      for (const o of list) {
+        const may = can(rowOf(o.dataset.key) ?? {});
+        o.tabIndex = o === at ? 0 : -1;
+        o.setAttribute('aria-selected', String(picked.has(o.dataset.key)));
+        if (may) o.removeAttribute('aria-disabled'); else { o.setAttribute('aria-disabled', 'true'); }
+      }
+      if (at) cur = at.dataset.key;
+    };
+    const go = (li) => {
+      if (!li) return;
+      for (const x of node.querySelectorAll('[role="option"][tabindex="0"]')) x.tabIndex = -1;
+      li.tabIndex = 0;
+      cur = li.dataset.key;
+      li.focus({ preventScroll: true });
+      li.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    };
+    const draw = (force = false) => {
+      const had = document.activeElement, inside = had && had !== node && node.contains(had);
+      const order = inside && picking ? options().map((o) => o.dataset.key) : null, at = cur;
+      const markup = html();
+      Dash.render(node, markup, { force: force && node.__dashHtml !== markup });
+      if (node.__dashHtml === markup) settle();
+      if (inside && !node.contains(document.activeElement)) { // the row with the focus is gone: the next one
+        if (picking) {
+          const i = order.indexOf(at), next = [...order.slice(i + 1), ...order.slice(0, Math.max(i, 0)).reverse()].find((k) => liOf(k));
+          go(liOf(next) || options()[0]);
+        } else node.querySelector('button')?.focus({ preventScroll: true });
+      }
+    };
+    const chosen = () => data.filter((r) => picked.has(idOf(r)));
+    const tell = () => { if (onSelect) onSelect(one ? chosen()[0] ?? null : chosen()); };
+    const changed = (was) => picked.size !== was.size || [...picked].some((k) => !was.has(k));
+    const pick = (list, on) => {
+      const was = new Set(picked);
+      if (one) { const r = list.find(can); if (!r) return; picked.clear(); picked.add(idOf(r)); } else for (const r of list) if (can(r)) { if (on) picked.add(idOf(r)); else picked.delete(idOf(r)); }
+      settle();
+      if (changed(was)) tell();
+    };
+    const range = (id) => {
+      const list = shown.map(idOf), a = list.indexOf(anchor ?? id), b = list.indexOf(id);
+      return a < 0 || b < 0 ? [] : shown.slice(Math.min(a, b), Math.max(a, b) + 1);
+    };
+    const take = (id, e) => { // a click on a row that can be picked, or Space
+      const r = rowOf(id);
+      if (!r) return;
+      if (one) pick([r], true); else if (e.shiftKey && anchor != null) pick(range(id), true); else { pick([r], !picked.has(id)); anchor = id; }
+    };
+    // a row to another place: before the row with the key `before` (null: the last)
+    const place = async (r, before) => {
+      if (moving) return;
+      const was = data.slice(), from = was.indexOf(r);
+      const next = was.filter((x) => x !== r);
+      const to = before == null ? next.length : next.indexOf(before);
+      if (from < 0 || to < 0 || to === from) return;
+      next.splice(to, 0, r);
+      data = next;
+      draw(true);
+      const li = liOf(idOf(r));
+      if (li) li.scrollIntoView({ block: 'nearest' });
+      const peers = groupsOf(visible()).find((g) => g.rows.includes(r))?.rows ?? [];
+      voiceOf(node).textContent = `${titleOf(r)}: ${peers.indexOf(r) + 1} of ${peers.length}`;
+      if (!onMove) return;
+      moving++;
+      let no = false, why = null;
+      try { no = (await onMove(next.slice(), { row: r, from, to })) === false; } catch (e) { no = true; why = e; }
+      moving--;
+      if (control.signal.aborted) return;
+      if (held) { data = held; held = null; afterUpdate(); } else if (no) { data = was; draw(true); }
+      if (no) {
+        voiceOf(node).textContent = `${titleOf(r)} was put back`;
+        if (why) Dash.toast((why && why.message) || String(why), { tone: 'bad' });
+      }
+    };
+    const peersOf = (r) => groupsOf(visible()).find((g) => g.rows.includes(r))?.rows ?? [];
+    // to place i among these others: down goes right after the one before, up right before the one after, so that the rows of
+    // other groups in between stay where they are
+    const among = (r, rest, i) => {
+      const now = rest.filter((x) => data.indexOf(x) < data.indexOf(r)).length;
+      if (i === now || i < 0 || i > rest.length) return;
+      const at = data.filter((x) => x !== r);
+      place(r, i > now ? at[at.indexOf(rest[i - 1]) + 1] ?? null : rest[i]);
+    };
+    const shift = (r, i) => among(r, peersOf(r).filter((x) => x !== r), i);
+    const step = (r, by) => shift(r, peersOf(r).indexOf(r) + by);
+    const moveMenu = async (r, at) => {
+      const i = peersOf(r).indexOf(r), n = peersOf(r).length;
+      const v = await Dash.menu(at, [{ label: 'Move to the top', value: 0, disabled: i === 0 }, { label: 'Move up', value: i - 1, disabled: i === 0 },
+        { label: 'Move down', value: i + 1, disabled: i === n - 1 }, { label: 'Move to the end', value: n - 1, disabled: i === n - 1 }]);
+      if (v != null && data.includes(r)) shift(r, Number(v));
+    };
+    const openMenu = async (r, at) => {
+      const list = menu(r);
+      if (!list || !list.length) return;
+      const v = await Dash.menu(at, list);
+      if (v != null && onMenu) onMenu(v, rowOf(idOf(r)) || r);
+    };
+    const ask = async () => {
+      if (!load || whole || (part && part.busy)) return;
+      const mine = (part = { busy: true });
+      draw();
+      let got = null;
+      try { got = await load(data.length); } catch (e) { mine.failed = (e && e.message) || String(e); }
+      if (part !== mine || control.signal.aborted) return;
+      mine.busy = false;
+      if (!mine.failed) {
+        part = null;
+        got = Array.isArray(got) ? got : [];
+        if (got.length < size) whole = true;
+        const have = new Set(data.map(idOf));
+        const fresh = got.filter((r) => !have.has(idOf(r)));
+        const first = data.length ? fresh[0] : null;
+        data = data.concat(fresh);
+        limit = Math.max(limit, data.length);
+        draw(true);
+        if (first) voiceOf(node).textContent = `${fmt.plural(fresh.length, noun)} more`;
+      } else draw(true);
+    };
+    const afterUpdate = () => {
+      const now = new Set(data.map(idOf)), lost = [...picked].filter((k) => !now.has(k) || !can(rowOf(k)));
+      for (const k of lost) picked.delete(k);
+      draw();
+      if (lost.length && picking) queueMicrotask(tell);
+    };
+    const on = (type, fn, opts = {}) => node.addEventListener(type, fn, { signal: control.signal, ...opts });
+    on('click', (e) => {
+      const b = e.target.closest('[data-more]');
+      if (b && node.contains(b)) {
+        if (b.textContent === 'Try again' || limit >= ordered().length) ask(); else {
+          const next = ordered()[limit];
+          limit += size;
+          draw(true);
+          if (next) { // on with the first new row
+            const li = liOf(idOf(next));
+            if (picking) go(li); else (li?.querySelector('button') || node.querySelector('[data-more]'))?.focus({ preventScroll: true });
+          }
+        }
+        return;
+      }
+      const li = e.target.closest('li[data-key]');
+      const r = li && node.contains(li) ? rowOf(li.dataset.key) : null;
+      if (!r || (picking && inRow(e.target, li))) return;
+      const dots = e.target.closest('[data-dots]'), grip = e.target.closest('[data-grip]');
+      if (picking) go(li);
+      if (dots) openMenu(r, dots);
+      else if (grip) moveMenu(r, grip);
+      else if (picking) take(idOf(r), e);
+      else if (onPick && e.target.closest('.entry')) onPick(r, e);
+    });
+    on('dblclick', (e) => {
+      const li = e.target.closest('[role="option"]');
+      const r = li && rowOf(li.dataset.key);
+      if (r && onPick && !e.target.closest('[data-dots], [data-grip]')) onPick(r, e);
+    });
+    on('mousedown', (e) => { if (picking && (e.shiftKey || e.detail > 1) && e.target.closest('[role="option"]')) e.preventDefault(); }); // a range selects no text
+    on('focusin', (e) => {
+      if (e.target.getAttribute('role') !== 'option' || e.target.tabIndex === 0) return;
+      for (const x of node.querySelectorAll('[role="option"][tabindex="0"]')) x.tabIndex = -1;
+      e.target.tabIndex = 0;
+      cur = e.target.dataset.key;
+    });
+    if (menu) on('contextmenu', (e) => {
+      const li = e.target.closest('li[data-key]');
+      const r = li && rowOf(li.dataset.key);
+      if (!r) return;
+      e.preventDefault();
+      if (picking) go(li);
+      openMenu(r, e.clientX || e.clientY ? e : li);
+    });
+    if (reorder) on('pointerdown', (e) => {
+      const grip = e.target.closest('[data-grip]');
+      const li = grip && grip.closest('li[data-key]');
+      const r = li && rowOf(li.dataset.key);
+      if (!r || e.button || dragging || moving) return;
+      if (e.pointerType !== 'touch') e.preventDefault(); // (no text selected on the way; the grip still gets its click)
+      const zone = li.parentElement;
+      dragRow(e, li, {
+        zones: () => [zone],
+        rowsIn: (z) => [...z.children].filter((x) => x.matches('li[data-key]')),
+        onStart: () => { dragging = true; },
+        onDrop: (z, i) => among(r, [...z.children].filter((x) => x.matches('li[data-key]') && x !== li).map((x) => rowOf(x.dataset.key)), i),
+        onEnd: () => {
+          dragging = false;
+          if (held && !moving) { data = held; held = null; afterUpdate(); }
+        },
+      });
+    });
+    let typed = '', typing = 0;
+    on('keydown', (e) => {
+      const grip = !picking && e.target.closest('[data-grip]');
+      if (grip) {
+        const r = rowOf(grip.closest('li[data-key]').dataset.key);
+        if (!r || !['ArrowUp', 'ArrowDown'].includes(e.key) || e.altKey || e.ctrlKey || e.metaKey) return;
+        e.preventDefault();
+        step(r, e.key === 'ArrowUp' ? -1 : 1);
+        return;
+      }
+      const li = e.target;
+      if (!picking || li.getAttribute('role') !== 'option') return;
+      const id = li.dataset.key, r = rowOf(id), list = options(), i = list.indexOf(li);
+      if (!r) return;
+      if (reorder && e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) { e.preventDefault(); step(r, e.key === 'ArrowUp' ? -1 : 1); return; }
+      if (menu && ((e.shiftKey && e.key === 'F10') || e.key === 'ContextMenu')) { e.preventDefault(); openMenu(r, li); return; }
+      if (many && (e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === 'a') {
+        e.preventDefault();
+        const l = shown.filter(can);
+        pick(l, !l.every((x) => picked.has(idOf(x))));
+        return;
+      }
+      if (e.altKey || e.ctrlKey || e.metaKey) return;
+      const to = { ArrowDown: list[i + 1], ArrowUp: list[i - 1], Home: list[0], End: list[list.length - 1] };
+      if (e.key in to) {
+        e.preventDefault();
+        const next = to[e.key];
+        if (!next) return;
+        if (many && e.shiftKey && anchor == null) anchor = id;
+        go(next);
+        if (many && e.shiftKey) pick(range(next.dataset.key), true); else anchor = null;
+      } else if (e.key === ' ') {
+        e.preventDefault();
+        take(id, e);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (onPick) onPick(r, e); else take(id, e);
+      } else if (e.key.length === 1) {
+        clearTimeout(typing);
+        typing = setTimeout(() => { typed = ''; }, 600);
+        const k = e.key.toLowerCase();
+        typed = typed && [...typed].every((c) => c === k) ? k : typed + k;
+        const later = list.slice(i + (typed.length === 1 ? 1 : 0)).concat(list.slice(0, i + 1)).find((x) => titleOf(rowOf(x.dataset.key)).toLowerCase().startsWith(typed));
+        if (!later) return;
+        e.preventDefault();
+        e.stopPropagation(); // (not a shortcut of the page as well)
+        go(later);
+      }
+    });
+    const handle = {
+      el: node,
+      update(next) { if (dragging || moving) { held = next || []; return; } data = next || []; if (load && !data.length) { whole = false; } afterUpdate(); },
+      get rows() { return data; },
+      get shown() { return shown; },
+      get selected() { return one ? chosen()[0] ?? null : chosen(); },
+      select(keys) {
+        if (!picking) return;
+        const was = new Set(picked), want = new Set([].concat(keys ?? []).map(String));
+        picked.clear();
+        for (const r of data) if (want.has(idOf(r)) && can(r) && !(one && picked.size)) picked.add(idOf(r));
+        settle();
+        if (changed(was)) tell();
+      },
+      filter(q) { setTest(q); limit = size; draw(true); return visible().length; },
+      get count() { return { shown: visible().length, total: data.length }; },
+      move(k, to) { const r = rowOf(String(k)); if (r) shift(r, to); },
+      // asks load() for everything again
+      reload() { if (!load) return; data = []; whole = false; part = null; limit = size; ask(); },
+      redraw() { draw(true); },
+      destroy() {
+        if (control.signal.aborted) return;
+        control.abort();
+        clearTimeout(typing);
+        node.textContent = '';
+        node.style.removeProperty('--entries-h');
+        node.__dashHtml = undefined;
+        node.__dashList = undefined;
+      },
+    };
+    node.__dashList = handle;
+    if (reorder || load) voiceOf(node);
+    if (height) node.style.setProperty('--entries-h', Number(height) + 'px'); // (on the box itself: a refresh keeps its place)
+    if (load && !data.length) ask(); else draw();
+    return handle;
+  };
+
   // ---- forms that say what is wrong (1.13)
   // Dash.form(form, { rules, onSubmit }): checks a form's fields and puts what is wrong under each, instead of the
   // browser's bubbles. The fields' own checks count (required, type="email", minlength, pattern, min, max, step), and
@@ -2898,18 +3952,7 @@
     };
     // for a screen reader whose reader has already moved on: a line that is there before it speaks, outside the form (which
     // may be drawn again), in its dialog if it is in one (from outside a modal one nothing is heard)
-    const voice = () => {
-      const root = form.closest('dialog') || document.body;
-      let v = [...root.children].find((x) => 'dashVoice' in x.dataset);
-      if (!v) {
-        v = document.createElement('div');
-        v.className = 'sr-only';
-        v.dataset.dashVoice = '';
-        v.setAttribute('role', 'status');
-        root.append(v);
-      }
-      return v;
-    };
+    const voice = () => voiceOf(form);
     const announce = (text) => { voice().textContent = text; };
 
     // what is wrong with a field: text, or a promise of it when a rule has to ask. mayAsk: false uses only answers that are in.
@@ -3244,6 +4287,20 @@
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ready); else ready();
     if (typeof matchMedia !== 'undefined') matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => Dash.theme.apply());
 
+    const setRail = (rail) => { // the sidebar as a rail of icons, or whole again
+      for (const s of document.querySelectorAll('.shell')) s.classList.toggle('collapsed', rail);
+      for (const b of document.querySelectorAll('[data-toggle-side]')) b.setAttribute('aria-expanded', String(!rail));
+      Dash.store.set(Dash.config.sideKey, rail ? 'rail' : 'open');
+      document.dispatchEvent(new CustomEvent('dash:side', { detail: { collapsed: rail } })); // for pages that lay out by it
+    };
+    // a group in the rail: there is no room to open it in, so the sidebar comes back with the group open
+    document.addEventListener('click', (e) => {
+      const s = e.target.closest && e.target.closest('.shell.collapsed > .sidebar .nav-group > summary');
+      if (!s || drawerShell()) return;
+      e.preventDefault();
+      s.parentElement.open = true;
+      setRail(false);
+    });
     document.addEventListener('click', async (e) => {
       const t = e.target;
       if (!t.closest) return;
@@ -3279,12 +4336,8 @@
         const shell = drawerShell();
         sideDrawer(shell, !shell.classList.contains('side-open'), hit);
       } else if ((hit = t.closest('[data-toggle-side]'))) {
-        const shells = document.querySelectorAll('.shell');
-        const rail = !(shells[0] && shells[0].classList.contains('collapsed'));
-        for (const s of shells) s.classList.toggle('collapsed', rail);
-        hit.setAttribute('aria-expanded', String(!rail));
-        Dash.store.set(Dash.config.sideKey, rail ? 'rail' : 'open');
-        document.dispatchEvent(new CustomEvent('dash:side', { detail: { collapsed: rail } })); // for pages that lay out by it
+        const shell = document.querySelector('.shell');
+        setRail(!(shell && shell.classList.contains('collapsed')));
       } else if ((hit = t.closest('[data-popup]'))) {
         const src = document.getElementById(hit.dataset.popup);
         if (src) Dash.popup(hit, src.tagName === 'TEMPLATE' ? src.content.cloneNode(true) : src.innerHTML);
@@ -3304,7 +4357,9 @@
     document.addEventListener('pointerdown', (e) => {
       lastPress = { target: e.target, x: e.clientX, y: e.clientY, seq: lastPress.seq + 1 };
       if (!nativePop) for (const p of popups.slice().reverse()) if (!p.el.contains(e.target)) p.dismiss();
+      pressed = true;
     }, true);
+    for (const t of ['pointerup', 'pointercancel']) document.addEventListener(t, () => { pressed = false; }, true);
     document.addEventListener('click', (e) => {
       clickOf = e.detail ? lastPress.seq : -1; // a click from a key (detail 0) has no press
       setTimeout(() => { clickOf = -1; });
@@ -3481,7 +4536,7 @@
       const t = e.target;
       const open = document.querySelector('.shell.offcanvas.side-open');
       if (!open || !t.closest) return;
-      if (t === open || (t.closest('.sidebar') && t.closest('a[href], .nav-item') && open.contains(t))) sideDrawer(open, false);
+      if (t === open || (t.closest('.sidebar') && t.closest('a[href], .nav-item:not(summary)') && open.contains(t))) sideDrawer(open, false);
     });
     document.addEventListener('keydown', (e) => {
       if (e.key !== 'Escape') return;

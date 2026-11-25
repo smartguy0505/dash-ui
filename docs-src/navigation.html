@@ -1,3 +1,91 @@
+    <section id="sidebar" data-terms=".shell .sidebar .content .side-head .nav-item .nav-icon .nav-main .nav-name .nav-sub .nav-meta .attn .collapsed data-toggle-side --side-w dash:side">
+      <h2>A sidebar</h2>
+      <p><code>.shell</code> puts a <code>.sidebar</code> beside the <code>.content</code>. The sidebar holds <code>.side-head</code> labels and <code>.nav-item</code> links or buttons. An item has an optional <code>.nav-icon</code>, a <code>.nav-main</code> with a <code>.nav-name</code> and a <code>.nav-sub</code>, and a <code>.nav-meta</code> on the right. <code>aria-current="page"</code> marks where the reader is; <code>.attn</code> with a tone tints one that needs a look.</p>
+      <example title="A sidebar (shown here at its own height)">
+        <div class="shell">
+          <nav class="sidebar h-auto static" aria-label="Places">
+            <div class="side-head">Servers <span class="count-badge">3</span></div>
+            <a class="nav-item" href="#sidebar" aria-current="page"><span class="nav-main"><span class="nav-name">Overview</span></span></a>
+            <a class="nav-item" href="#sidebar"><span class="nav-main"><span class="nav-name">web-1</span><span class="nav-sub">Frankfurt</span></span><span class="nav-meta"><span>42%</span></span></a>
+            <a class="nav-item attn warn" href="#sidebar"><span class="nav-main"><span class="nav-name">web-2</span><span class="nav-sub">Busy for 12 min</span></span><span class="nav-meta"><span class="tone warn">91%</span></span></a>
+          </nav>
+          <main class="content"><p class="muted">The page's content.</p></main>
+        </div>
+      </example>
+      <p>A button with <code>data-toggle-side</code> folds the sidebar to a 64 px rail of icons (<code>.shell.collapsed</code>) and back; the choice is remembered (<code>Dash.config.sideKey</code>), and <code>document</code> gets a <code>dash:side</code> event with <code>e.detail.collapsed</code>. <code>--side-w</code> sets the sidebar's width.</p>
+    </section>
+
+    <section id="side-groups" data-nav="Sidebar groups" data-terms="Dash.nav Dash.nav.html .nav-group .nav-list .nav-none menu classes categories">
+      <h2>Groups in the sidebar</h2>
+      <p><code>Dash.nav(el, items, { current, store, onPick })</code> writes a sidebar's links from data. An item is <code>{ label, href }</code> (or a <code>key</code> instead of a link, for a button), with an optional <code>sub</code>, <code>icon</code> and <code>meta</code> (HTML), <code>badge</code> and <code>tone</code>. <code>{ heading }</code> is a label between them, and an item with <code>items</code> a group that opens and closes. <code>current</code> is the address or key of the page the reader is on: its link is marked and its group open. <code>store: 'name'</code> remembers the groups they opened.</p>
+      <example title="A sidebar with groups and a filter">
+        <div class="shell">
+          <nav class="sidebar h-auto static" aria-label="Pages" id="side-demo">
+            <label class="search mb-2"><input class="input sm" id="side-filter" type="search" aria-label="Filter pages" placeholder="Filter pages"></label>
+            <div id="side-links"></div>
+          </nav>
+          <main class="content"><p class="muted">The page's content.</p></main>
+        </div>
+        <script>
+          const side = Dash.nav('side-links', [
+            { label: 'Overview', href: '#overview' },
+            { heading: 'Machines' },
+            { label: 'Servers', badge: 4, items: [
+              { label: 'Web', href: '#web', meta: '3' },
+              { label: 'Databases', href: '#databases', sub: 'One is busy', tone: 'warn' },
+            ] },
+            { label: 'Networks', items: [{ label: 'Addresses', href: '#addresses' }, { label: 'Firewall', href: '#firewall' }] },
+            { heading: 'Account' },
+            { label: 'People', href: '#people' },
+          ], { current: '#web' });
+          Dash.search('side-filter', { key: null, onChange: (q) => side.filter(q) });
+        </script>
+      </example>
+      <p><code>.filter(text)</code> shows the links with the words, inside their groups and under their headings, and returns how many. <code>.current(key)</code> marks another page, <code>.update(items)</code> writes new links. Folded to the rail, a group shows its icon, and a click on it brings the sidebar back with the group open.</p>
+      <p>By hand, or from a server: a group is <code>&lt;details class="nav-group"&gt;</code> with <code>&lt;summary class="nav-item"&gt;</code> and a <code>.nav-list</code> of <code>.nav-item</code>s, and it needs no code. <code>Dash.nav(el, null, options)</code> takes links that are already in the page and adds the rest, and <code>Dash.nav.html(items, { current })</code> gives the HTML as text, in Node too.</p>
+    </section>
+
+    <section id="drawer" data-terms=".offcanvas .side-open Dash.side Dash.side.open Dash.side.close">
+      <h2>The sidebar as a drawer</h2>
+      <p>Add <code>.offcanvas</code> to the shell and, from 900 px down, the sidebar becomes a drawer over the page. The same <code>data-toggle-side</code> button opens it there (and still folds the rail on a wider screen). While it's open, the rest of the page is inert; Escape, a click outside it or a link inside closes it, and the focus goes back to the button. These docs use it: make the window narrow and press ≡.</p>
+      <example frame title="A page with a drawer">
+        <header class="topbar">
+          <button type="button" class="side-toggle" data-toggle-side aria-label="Pages">≡</button>
+          <div class="brand"><span class="mark">F</span><h1>Fleet</h1></div>
+        </header>
+        <div class="shell offcanvas">
+          <nav class="sidebar" aria-label="Pages">
+            <a class="nav-item" href="#" aria-current="page"><span class="nav-main"><span class="nav-name">Overview</span></span></a>
+            <a class="nav-item" href="#"><span class="nav-main"><span class="nav-name">Servers</span></span></a>
+            <a class="nav-item" href="#"><span class="nav-main"><span class="nav-name">Alerts</span></span></a>
+          </nav>
+          <main class="content"><p>Press ≡ to open the drawer; Escape or a click beside it closes it.</p></main>
+        </div>
+      </example>
+      <p><code>Dash.side.open()</code> and <code>Dash.side.close()</code> do it from code; <code>open</code> returns <code>false</code> on a wider screen, where there is no drawer.</p>
+    </section>
+
+    <section id="spy" data-nav="Section being read" data-terms="Dash.spy scrollspy aria-current location toc">
+      <h2>Marking the section being read</h2>
+      <p><code>Dash.spy(el, { offset, onChange })</code> follows the reader down a long page: of the links in <code>el</code> to parts of this page, the one to the part being read gets <code>aria-current="location"</code>. A <code>.nav-item</code>, a <code>.chip</code> and a <code>.link</code> show it, and a list of links that scrolls keeps it in view. One that is clicked stays marked until the reader scrolls on. The sidebar of these docs is one: it shows where you are on this page.</p>
+      <example frame title="A page with its parts beside it">
+        <header class="topbar"><div class="brand"><span class="mark">G</span><h1>Guide</h1></div></header>
+        <div class="shell">
+          <nav class="sidebar" aria-label="Parts" id="parts"></nav>
+          <main class="content">
+            <section id="start"><h2>Start</h2><p class="h-96">Scroll down.</p></section>
+            <section id="more"><h2>More</h2><p class="h-96">Further.</p></section>
+            <section id="end"><h2>The end</h2><p class="h-96">That was it.</p></section>
+          </main>
+        </div>
+        <script>
+          Dash.nav('parts', [{ label: 'Start', href: '#start' }, { label: 'More', href: '#more' }, { label: 'The end', href: '#end' }]);
+          Dash.spy('parts');
+        </script>
+      </example>
+      <p><code>offset</code> is how many pixels under the top bar a part has to reach to count (24). <code>.current</code> is its id, <code>.update()</code> looks again after the page changed, and <code>.stop()</code> ends it.</p>
+    </section>
+
     <section id="tabs" data-terms=".tabs data-tab Dash.tabs .count-badge">
       <h2>Tabs</h2>
       <p><code>.tabs</code> is a row of buttons with <code>data-value</code> over panels with a matching <code>data-tab</code>. <code>Dash.tabs(el, { value, store, hash, panels, onChange })</code> shows the chosen panel and hides the others; arrow keys move between tabs. <code>store</code> remembers the tab, <code>hash: 'view'</code> keeps it in the address (<code>#view=list</code>) so a link or a reload opens it, and <code>panels</code> says where the panels are when a page has two sets. It returns <code>{ value, set(v) }</code>. A <code>.count-badge</code> in a tab holds a count.</p>
@@ -63,21 +151,6 @@
           Dash.on('page-bar', 'click', '[data-page]', (e, b) => { page = Number(b.dataset.page); draw(); });
           Dash.on('page-bar', 'change', '[data-per-page]', (e, s) => { perPage = Number(s.value); page = 1; draw(); });
           draw();
-        </script>
-      </example>
-    </section>
-
-    <section id="timeline" data-terms=".timeline .timeline-head .timeline-title .timeline-time .timeline-text Dash.timeline">
-      <h2>Timelines</h2>
-      <p><code>Dash.timeline(items, { empty })</code> lists events on a line, newest first as given, each with a dot in its tone: <code>{ title, time, text, tone }</code>. A <code>time</code> that <code>Dash.time</code> can read shows as "12 min ago" and keeps itself current; other text shows as it is.</p>
-      <example>
-        <div id="events"></div>
-        <script>
-          Dash.render('events', Dash.timeline([
-            { title: 'Deployed v2.4.1', time: Date.now() - 20 * 60e3, text: 'by Ada · 3 servers', tone: 'ok' },
-            { title: 'Error rate over 1%', time: Date.now() - 3 * 3600e3, text: 'Payments, eu-west, for 6 minutes', tone: 'bad' },
-            { title: 'Certificate renewed', time: 'Yesterday', tone: 'blue' },
-          ]));
         </script>
       </example>
     </section>

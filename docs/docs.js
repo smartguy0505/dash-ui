@@ -34,6 +34,42 @@
   matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', name);
   new MutationObserver(name).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
+  // a link to a section that has moved to another page since goes there
+  const MOVED = {
+    text: { pills: 'labels', tags: 'labels', chips: 'labels', changes: 'labels', avatars: 'labels', badges: 'labels', tooltips: 'overlays' },
+    surfaces: { facts: 'lists', entries: 'lists', empty: 'feedback' },
+    navigation: { timeline: 'lists' },
+    layout: { sidebar: 'navigation', drawer: 'navigation' },
+    feedback: { private: 'privacy', ips: 'privacy', login: 'privacy' },
+  };
+  const moved = () => {
+    const id = location.hash.slice(1), to = MOVED[document.querySelector('main')?.dataset.page]?.[id];
+    if (to && !document.getElementById(id)) location.replace(new URL(`${to}.html#${id}`, location.href.split('#')[0]).href);
+  };
+  moved();
+  window.addEventListener('hashchange', moved);
+
+  // the sidebar: its groups are remembered, its box filters it, and the section being read is marked
+  const side = document.getElementById('docs-nav');
+  if (side && Dash.nav) {
+    const nav = Dash.nav(side, null, { current: side.querySelector('[aria-current="page"]')?.getAttribute('href'), store: 'dash-docs-nav' });
+    Dash.spy(side);
+    Dash.search('docs-filter', { key: null, onChange: (text) => nav.filter(text) });
+  }
+
+  // all components: the box shows the ones with the words in their name, their text, or their classes and functions
+  const find = document.getElementById('docs-find');
+  if (find) {
+    const cards = [...document.querySelectorAll('.docs-class .card')], count = document.getElementById('docs-found');
+    Dash.search(find, { key: null, onChange: (text) => {
+      let n = 0;
+      for (const c of cards) { c.hidden = !Dash.match({ t: c.textContent, f: c.dataset.find }, text, ['t', 'f']); if (!c.hidden) n += 1; }
+      for (const s of document.querySelectorAll('.docs-class')) s.hidden = !s.querySelector('.card:not([hidden])');
+      count.textContent = text ? (n ? Dash.fmt.plural(n, 'component') : 'Nothing by that name') : `${cards.length} components`;
+    } });
+    count.textContent = `${cards.length} components`;
+  }
+
   // search every page, section and name (docs/search.js)
   const q = document.getElementById('docs-search');
   if (q && window.DOCS_INDEX && Dash.combobox) {
