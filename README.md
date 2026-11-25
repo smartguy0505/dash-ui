@@ -55,6 +55,7 @@ All data in them is made up. `node tools/shots.mjs` takes them again.
 | `examples/login.html` | the sign-in page |
 | `examples/starter.html` | the smallest useful page; copy it to start a new dashboard |
 | `examples/utilities.html` | a page laid out with `dash-utils.css` and no CSS of its own |
+| `CONTRIBUTING.md` | how to change the kit: for people and for coding agents |
 
 To look at them:
 
@@ -648,4 +649,5 @@ The tests cover the formatters, sorting, paging, escaping in every builder, and 
 npm i --no-save playwright-core && npx playwright-core install --only-shell chromium
 npm run screens            # SHOTS=1 npm run screens also saves the screenshots to screens/
 npm run behaviour
+node test/only.mjs 1.17    # only the parts of it with that in their name
 ```
