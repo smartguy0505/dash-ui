@@ -2,6 +2,15 @@
 
 Dashboards keep a copy of `dash.css` and `dash.js`; the first line of each file says which version it is. Versions only add things: a page that worked with an older copy works the same with a newer one.
 
+## 1.18.1 (2026-11-26)
+
+- `Dash.modal({ dismissable: false, unsaved: true })`: a phone's back button (or `requestClose()`) asked "Discard your changes?" and, after Discard, closed a modal that can't be dismissed. It stays open now and asks nothing, as with Escape. A page's own dialog that keeps itself open in its `cancel` listener isn't asked about either.
+- A close asked for while "Discard your changes?" is open doesn't open a second question.
+- `<form data-unsaved>` watched while one of its fields already has the focus (its attribute set then, or the script loaded late): the first key counts. It was taken for where the field starts.
+- `tr.dim`: a switch in a dimmed row looks as it does in the others; one that was on was grey, like one that is off. Labels and what is in them keep their colours; their text is still faint.
+- `button.pill` under the mouse gets a ring in its colour instead of a stronger tint. Its text on the 20 % tint was 4.1–4.3:1 in light (every tone) and 4.48:1 for `accent` in dark; with the ring it stays as at rest (4.6:1 or more). 1.17.3's check looked at pages as they open; this was found by pressing and pointing at everything in the gallery, the examples and the docs, light and dark.
+- The docs say that a page saving by itself (its own `fetch`) calls `.saved()` when it has.
+
 ## 1.18.0 (2026-11-26)
 
 - `Dash.unsaved(form)`: changes a reader would lose. Once a field with a name is changed, the form gets `data-dirty`, an `.unsaved-note` in it shows ("Unsaved changes"), and leaving the page asks first (the browser's own question; not on the form's own submit). A dialog with a changed form asks "Discard your changes?" before ×, Cancel, Escape, a click outside or a phone's back button close it; Escape asks every time, also where browsers stop letting a page hold a dialog open after the first one or two. What the page fills in doesn't count, so a form filled or drawn again by the page isn't changed. `.saved()`, a reset, or putting the fields back make it clean.

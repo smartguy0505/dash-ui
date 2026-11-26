@@ -323,7 +323,7 @@ Surfaces and text: `--bg`, `--card`, `--soft` (a block inside a card, table head
 - `td.actions` (and `th.actions`): a row's buttons, at the right and as narrow as they are. On a stacked card they sit in its top-right corner; `--actions-w` on the table (96 px) keeps the title clear of them.
 - Row states:
   - `tr.marked`: a bar on the left plus a tint, blue unless a tone is added;
-  - `tr.dim`: faded, with its text faint and its colours grey;
+  - `tr.dim`: faded, with its text faint and its colours grey (links, buttons, fields and switches keep theirs);
   - `tr.sub`: rows that belong to the one above;
   - `tr.group`: a heading row;
   - `tr.cut`: a dashed cut line;
@@ -563,7 +563,7 @@ if (await Dash.unsaved.leave()) showAnother(); // a view the page changes by its
 
 - A form is changed once the reader has changed a field with a `name` (the kit's fields too); putting it back makes it clean. It gets `data-dirty`, and an `.unsaved-note` in it shows. What the page puts in a field is where it starts, so a form filled or drawn again by the page isn't changed by that.
 - While a form is changed, leaving the page asks (the browser's own question), except by its own submit. A dialog with a changed form asks "Discard your changes?" before ×, Cancel, Escape, a click outside or a phone's back button close it; its actions and the page's `close()` don't ask.
-- Clean again: `.saved()`, a successful `onSubmit` (with `Dash.form`'s `unsaved: true`), a reset, or Discard. `<form data-unsaved>` needs no code. `Dash.unsaved.leave(within)` is `true` at once, or asks. `Dash.unsaved.text` has the words.
+- Clean again: `.saved()` (a page that saves by its own `fetch` calls it), a successful `onSubmit` (with `Dash.form`'s `unsaved: true`), a reset, or Discard. `<form data-unsaved>` needs no code. `Dash.unsaved.leave(within)` is `true` at once, or asks. `Dash.unsaved.text` has the words.
 - Handle: `el`, `dirty`, `changed` (names), `saved()`, `destroy()`. `onChange(dirty, handle)` when it flips. `m.unsaved` and `form.unsaved` are the handles `Dash.modal` and `Dash.form` made.
 
 **`Dash.modal`.** For more than a question: a form that saves, details that keep updating, a long list.

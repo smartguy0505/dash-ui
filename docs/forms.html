@@ -11,10 +11,10 @@
 <script src="../dash.js"></script>
 </head>
 <body>
-<!-- dash-ui 1.18.0 docs, written by tools/docs.mjs from docs-src/forms.html: edit that, not this -->
+<!-- dash-ui 1.18.1 docs, written by tools/docs.mjs from docs-src/forms.html: edit that, not this -->
 <header class="topbar">
   <button type="button" class="icon-btn docs-menu" data-toggle-side aria-label="Pages"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3 5h12M3 9h12M3 13h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
-  <a class="brand" href="./"><span class="mark">d</span><h1>dash-ui</h1></a><span class="tag plain docs-version">1.18.0</span>
+  <a class="brand" href="./"><span class="mark">d</span><h1>dash-ui</h1></a><span class="tag plain docs-version">1.18.1</span>
   <div class="top-right">
     <label class="search docs-search"><span class="sr-only">Search the docs</span><svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.6"/><path d="m11 11 3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><input class="input" type="search" id="docs-search" placeholder="Search" aria-keyshortcuts="/"><kbd class="docs-key">/</kbd></label>
     <div class="seg" role="group" aria-label="Theme"><button type="button" data-theme-set="system">Auto</button><button type="button" data-theme-set="light">Light</button><button type="button" data-theme-set="dark">Dark</button></div>
@@ -486,7 +486,7 @@
         <li><b>What counts</b>: fields with a <code>name</code> (what a form sends), the kit’s too (a tag box, a date). A search box without a name doesn’t. What the page puts in a field is where it starts: a form filled after it is watched, or drawn again with new values, isn’t changed by that. Only what the reader changes is.</li>
         <li><b>Leaving the page</b>: the browser asks while a form is changed, but not when the form’s own submit takes the reader away, and not for a form in a dialog that has closed. Browsers ask only once the reader has done something on the page, and in their own words.</li>
         <li><b>Dialogs</b>: one with a changed form in it asks “Discard your changes?” before ×, Cancel, Escape, a click outside or a phone’s back button close it. Its other buttons don’t ask, nor does the page’s own <code>close()</code>. <code>Dash.modal({ unsaved: true })</code> also shows “Unsaved changes” in its foot.</li>
-        <li><b>Without code</b>: <code>&lt;form data-unsaved&gt;</code> is watched from the reader’s first press or focus in it. With <code>Dash.form(form, { unsaved: true })</code>, a successful <code>onSubmit</code> is saved.</li>
+        <li><b>Without code</b>: <code>&lt;form data-unsaved&gt;</code> is watched from the reader’s first press or focus in it. With <code>Dash.form(form, { unsaved: true })</code>, a successful <code>onSubmit</code> is saved. A page that saves by itself, with its own <code>fetch</code>, calls <code>.saved()</code> once it has: <code>Dash.unsaved(form).saved()</code>.</li>
         <li><b>A page that changes what it shows by itself</b> (another view, another record): <code>if (await Dash.unsaved.leave()) show(next)</code>. It is <code>true</code> at once when nothing is changed, and otherwise asks; <code>leave(element)</code> asks only about the forms in it.</li>
         <li><b>Words</b>: <code>Dash.unsaved.text</code> has the question and its buttons, to translate them. A form drawn again as a whole is followed by its <code>id</code>.</li>
       </ul>

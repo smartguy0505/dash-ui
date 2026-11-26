@@ -1,4 +1,4 @@
-/* dash-ui 1.18.0: the look shared by my dashboards (agents, fleet, leaderboard, payouts, balances).
+/* dash-ui 1.18.1: the look shared by my dashboards (agents, fleet, leaderboard, payouts, balances).
    Warm neutral backgrounds, white panels, tinted status colours, light and dark from the system setting
    (or data-theme="light|dark" on <html>). No build step, no dependencies: link this file, or paste it into a page.
    MIT licence, (c) 2026 Smart Guy, https://github.com/smartguy0505/dash-ui
@@ -256,7 +256,7 @@ button.stat:hover { border-color: var(--blue); }
 :where(.pill) { --c: var(--idle); }
 .pill.lg { gap: 5px; padding: 1px 10px; font-size: 15px; font-weight: 700; }
 button.pill { border: 0; }
-button.pill:hover { background: color-mix(in srgb, var(--c) 20%, var(--card)); }
+button.pill:hover { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--c) 55%, transparent); } /* a ring, not a stronger tint: the text on 20 % was 4.1-4.3:1 in light */
 .pill .n { font-variant-numeric: tabular-nums; }
 
 .tag { flex: none; display: inline-flex; align-items: center; gap: 5px; padding: 0 7px; border-radius: 6px; background: color-mix(in srgb, var(--c) 12%, var(--card));
@@ -445,9 +445,9 @@ details > summary:hover { color: var(--text); }
 .table tr.marked td { background: color-mix(in srgb, var(--c) 8%, var(--card)); }
 .table tr.marked td:first-child { box-shadow: inset 3px 0 0 var(--c); }
 :where(.table tr.marked) { --c: var(--blue); }
-.table tr.dim td { color: var(--faint); } /* faded, and still readable: its text faint, its colours grey, pictures and bars paler */
-.table tr.dim td :where(:not(a, a *, button, button *, .btn, .btn *, input, select, textarea)) { --c: var(--faint); color: var(--faint); }
-.table tr.dim td :where(img, svg, canvas, video, .bar, .meter, .split, .spark):not(button *, .btn *) { opacity: .55; }
+.table tr.dim td { color: var(--faint); } /* faded, and still readable: its text faint, its colours grey, pictures and bars paler; its controls as they are */
+.table tr.dim td :where(:not(a, a *, button, button *, .btn, .btn *, input, select, textarea, label, label *)) { --c: var(--faint); color: var(--faint); }
+.table tr.dim td :where(img, svg, canvas, video, .bar, .meter, .split, .spark):not(button *, .btn *, label *) { opacity: .55; }
 /* rows that belong to the row above (servers under a service, holdings under an account) */
 .table tr.sub td { padding-top: 6px; padding-bottom: 6px; background: color-mix(in srgb, var(--soft) 55%, var(--card)); color: var(--muted); font-size: 13px; }
 /* a heading row inside the body, and a dashed cut line */

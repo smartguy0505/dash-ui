@@ -1,4 +1,4 @@
-/* dash-ui 1.18.0 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
+/* dash-ui 1.18.1 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
    A plain script with no dependencies: a script tag for dash.js in <head> gives window.Dash, and puts the
    saved light/dark choice on the page before it paints. In Node, require('./dash.js') returns the same object
    (the parts that need a page are skipped). MIT licence, (c) 2026 Smart Guy, https://github.com/smartguy0505/dash-ui
@@ -8,7 +8,7 @@
 (function (root) {
   'use strict';
   const hasDom = typeof document !== 'undefined';
-  const Dash = { version: '1.18.0', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side', privacyKey: 'dash.private', csp: false } };
+  const Dash = { version: '1.18.1', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side', privacyKey: 'dash.private', csp: false } };
 
   // ---- basics
 
@@ -5479,7 +5479,14 @@
   };
   Dash.unsaved.leave = async (within) => { const list = unsavedIn(within && el(within)); return !list.length || askDiscard(list); };
   // a dialog closed by the reader (×, Cancel, Escape, a click outside): null when it can just close, else a promise of yes or no
-  const mayClose = (d) => { const list = unsavedIn(d); return list.length ? askDiscard(list) : null; };
+  const asking = new WeakSet(); // (one question at a time for a dialog)
+  const mayClose = (d) => {
+    const list = unsavedIn(d);
+    if (!list.length) return null;
+    if (asking.has(d)) return Promise.resolve(false);
+    asking.add(d);
+    return askDiscard(list).finally(() => asking.delete(d));
+  };
   const closeAsked = (d) => { const q = mayClose(d); if (!q) d.close(); else q.then((yes) => { if (yes && d.open) d.close(); }); };
 
   // ---- menus and tooltips (wired below; no code needed)
@@ -5828,7 +5835,7 @@
       if (!f.__dashUnsaved && f.matches('form[data-unsaved]')) Dash.unsaved(f);
       return f.__dashUnsaved || null;
     };
-    for (const type of ['focusin', 'pointerdown']) document.addEventListener(type, (e) => { const w = unsavedOf(e.target); if (w) w.__me.look(); }, true);
+    for (const type of ['focusin', 'pointerdown', 'beforeinput']) document.addEventListener(type, (e) => { const w = unsavedOf(e.target); if (w) w.__me.look(); }, true);
     for (const type of ['input', 'change']) document.addEventListener(type, (e) => { const w = unsavedOf(e.target); if (w) w.__me.input(e.target); }, true);
     document.addEventListener('reset', (e) => { const w = e.target.__dashUnsaved; if (w) setTimeout(() => { if (!e.defaultPrevented) w.saved(); }); }); // (it is put back after the event)
     document.addEventListener('submit', (e) => { // one that goes on is saved (a dialog's own buttons), or leaves the page: no question
@@ -5846,13 +5853,16 @@
       e.preventDefault();
       q.then((yes) => { if (yes && d.open) d.close(); });
     });
-    document.addEventListener('cancel', (e) => { // a close the browser asks for in another way (a phone's back button)
+    document.addEventListener('cancel', (e) => { // a close the browser asks for in another way (a phone's back button) ...
       const d = e.target;
-      if (d.tagName !== 'DIALOG' || !e.cancelable || e.defaultPrevented) return;
-      const q = mayClose(d);
-      if (!q) return;
-      e.preventDefault();
-      q.then((yes) => { if (yes && d.open) d.close(); });
+      if (d.tagName !== 'DIALOG' || !e.cancelable) return;
+      d.addEventListener('cancel', (c) => { // ... asks after the dialog's own listeners, which may keep it open (Dash.modal's dismissable: false)
+        if (c !== e || c.defaultPrevented) return;
+        const q = mayClose(d);
+        if (!q) return;
+        c.preventDefault();
+        q.then((yes) => { if (yes && d.open) d.close(); });
+      }, { once: true });
     }, true); // (it doesn't bubble)
     // <form data-validate>: at load (what the server wrote into it is marked then), or once one that comes later is used
     const validated = (f) => { if (f && f.matches && f.matches('form[data-validate]') && !f.__dashForm) Dash.form(f); };

@@ -4952,6 +4952,75 @@ let reference;
   }
 }
 
+// ---- 1.18.1 a switch in a dimmed row, and a pill under the mouse (test/tools.html), read off the screen
+{
+  for (const colorScheme of ['light', 'dark']) {
+    const ctx = await browser.newContext({ viewport: { width: 900, height: 700 }, deviceScaleFactor: 2, colorScheme, locale: 'en-US', reducedMotion: 'reduce' });
+    const tab = await ctx.newPage();
+    tab.setDefaultTimeout(5000);
+    tab.on('pageerror', (e) => errors.push(e.message));
+    await tab.goto(url.replace('behaviour.html', 'tools.html'), { waitUntil: 'load' });
+    await tab.evaluate(() => {
+      const box = document.createElement('div');
+      box.style.cssText = 'position:fixed;z-index:999;inset:0 0 auto;padding:20px;background:var(--bg)';
+      const row = (cls, i) => `<tr${cls}><td class="main" id="t${i}">Savings</td><td><label class="switch"><input type="checkbox" checked><span class="track" id="s${i}"></span><span class="sr-only">Count in the total</span></label></td></tr>`;
+      box.innerHTML = `<table class="table"><tbody>${row('', 0)}${row(' class="dim"', 1)}</tbody></table>`;
+      document.body.append(box);
+    });
+    // the colour of a picture at a point (x, y from 0 to 1)
+    const colour = async (q, x, y) => {
+      const png = (await tab.locator(q).screenshot()).toString('base64');
+      return tab.evaluate(async ([b64, x, y]) => {
+        const img = new Image();
+        img.src = 'data:image/png;base64,' + b64;
+        await img.decode();
+        const g = Object.assign(document.createElement('canvas'), { width: img.width, height: img.height }).getContext('2d');
+        g.drawImage(img, 0, 0);
+        return [...g.getImageData(Math.floor(img.width * x), Math.floor(img.height * y), 1, 1).data].slice(0, 3);
+      }, [png, x, y]);
+    };
+    const near = (a, b) => a.every((v, i) => Math.abs(v - b[i]) <= 3);
+    const on = [await colour('#s0', 0.25, 0.5), await colour('#s1', 0.25, 0.5)];
+    const text = [await tab.evaluate(() => getComputedStyle(document.getElementById('t0')).color), await tab.evaluate(() => getComputedStyle(document.getElementById('t1')).color)];
+    check(`1.18.1 a switch that is on looks on in a dimmed row too, and the row's text is still faint, ${colorScheme}`, near(on[0], on[1]) && text[0] !== text[1], JSON.stringify({ on, text }));
+    // a pill that is a button, under the mouse: its text as readable as at rest, and something shows it
+    const tones = ['ok', 'warn', 'bad', 'blue', 'accent', 'teal', 'purple', 'orange', 'pink', 'idle', 'gold', 'silver', 'bronze'];
+    await tab.evaluate((tones) => {
+      const box = document.createElement('div');
+      box.style.cssText = 'position:fixed;z-index:1000;inset:120px 0 auto;display:flex;flex-wrap:wrap;gap:12px;padding:20px;background:var(--card)';
+      box.innerHTML = tones.map((t) => `<button type="button" class="pill ${t}" id="pill-${t}">Filter: ${t} <span class="n">7</span></button>`).join('');
+      document.body.append(box);
+    }, tones);
+    const inside = async (q) => { // a picture of the middle of the pill: its text and its tint
+      const r = await tab.locator(q).boundingBox();
+      return (await tab.screenshot({ clip: { x: r.x + r.width * 0.12, y: r.y + 3, width: r.width * 0.76, height: r.height - 6 } })).toString('base64');
+    };
+    const spread = (b64) => tab.evaluate(async (b64) => {
+      const img = new Image();
+      img.src = 'data:image/png;base64,' + b64;
+      await img.decode();
+      const g = Object.assign(document.createElement('canvas'), { width: img.width, height: img.height }).getContext('2d');
+      g.drawImage(img, 0, 0);
+      const d = g.getImageData(0, 0, img.width, img.height).data;
+      const lum = (i) => [0.2126, 0.7152, 0.0722].reduce((sum, w, n) => { const v = d[i + n] / 255; return sum + w * (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4); }, 0);
+      let low = 1, high = 0;
+      for (let i = 0; i < d.length; i += 4) { const l = lum(i); low = Math.min(low, l); high = Math.max(high, l); }
+      return Math.round((high + 0.05) / (low + 0.05) * 100) / 100;
+    }, b64);
+    const hovered = [], changed = [];
+    for (const t of tones) {
+      await tab.mouse.move(5, 5);
+      const before = (await tab.locator('#pill-' + t).screenshot()).toString('base64');
+      const r = await tab.locator('#pill-' + t).boundingBox();
+      await tab.mouse.move(r.x + r.width / 2, r.y + r.height / 2);
+      hovered.push(await spread(await inside('#pill-' + t)));
+      changed.push((await tab.locator('#pill-' + t).screenshot()).toString('base64') !== before);
+    }
+    check(`1.18.1 a pill under the mouse: its text is 4.5:1 or more in every tone, and it looks different, ${colorScheme}`, hovered.every((x) => x >= 4.5 && x < 12) && changed.every(Boolean), tones.map((t, i) => `${t} ${hovered[i]}${changed[i] ? '' : ' (same)'}`).join(', '));
+    await ctx.close();
+  }
+}
+
 // ---- 1.18 unsaved changes (test/unsaved.html), with real typing, clicks and keys
 {
   const test = async (name, fn) => {
@@ -5022,7 +5091,12 @@ let reference;
     await tab.click('#again input');
     await tab.keyboard.press('Backspace');
     out.push(await state(tab, 'again'), await tab.evaluate(() => again.el === document.getElementById('again')), await logged(tab));
-    return is(out, ['clean', 'clean', 'From the server', 'clean', 'name (note)', 'again true', 'clean', true, 'again false']);
+    await tab.evaluate(() => document.querySelector('main').insertAdjacentHTML('beforeend', '<form id="late"><input class="input" name="name" value="Late" aria-label="Late name"><span class="unsaved-note">Unsaved changes</span></form>'));
+    await tab.click('#late input');
+    await tab.evaluate(() => document.getElementById('late').setAttribute('data-unsaved', '')); // watched from now on, while its field has the focus
+    await tab.keyboard.type('r'); // the first key counts too
+    out.push(await state(tab, 'late'));
+    return is(out, ['clean', 'clean', 'From the server', 'clean', 'name (note)', 'again true', 'clean', true, 'again false', 'name (note)']);
   });
 
   await test('leaving the page: the browser asks while a form is changed, not when it is clean, and not on the form\'s own submit', async (tab, asked) => {
@@ -5086,6 +5160,9 @@ let reference;
     await tab.keyboard.press('Escape');
     await wait(tab);
     out.push(await dialogs(tab), await tab.evaluate(() => document.activeElement.textContent));
+    await tab.evaluate(() => m.el.requestClose()); // meanwhile: one question at a time
+    await wait(tab);
+    out.push(await dialogs(tab));
     await tab.keyboard.press('Escape'); // in the question: no
     await wait(tab);
     out.push(await dialogs(tab));
@@ -5110,7 +5187,7 @@ let reference;
     await button(tab, 'Discard').click();
     await wait(tab);
     out.push(await dialogs(tab), await logged(tab), await tab.evaluate(() => m.unsaved.dirty));
-    return is(out, ['Edit*', true, 'Edit* > Discard your changes?', 'Keep editing', 'Edit*', 'Edit* > Discard your changes?', 'Edit* > Discard your changes?', 'Edit* > Discard your changes?', 'Edit* > Discard your changes?', '', 'none', 'closed null', false]);
+    return is(out, ['Edit*', true, 'Edit* > Discard your changes?', 'Keep editing', 'Edit* > Discard your changes?', 'Edit*', 'Edit* > Discard your changes?', 'Edit* > Discard your changes?', 'Edit* > Discard your changes?', 'Edit* > Discard your changes?', '', 'none', 'closed null', false]);
   });
 
   await test('Escape again and again: it asks each time (the browser lets a page stop only the first ones)', async (tab) => {
@@ -5151,7 +5228,10 @@ let reference;
     await tab.keyboard.press('Escape');
     await wait(tab);
     out.push(await dialogs(tab));
-    return is(out, ['none', 'closed null', 'Edit*', 0, 1, 0, 'Edit*', 'none', 'closed save', 'none', 'closed page', 'Edit*']);
+    await tab.evaluate(() => m.el.requestClose()); // a phone's back button: it stays, and nothing is asked
+    await wait(tab);
+    out.push(await dialogs(tab));
+    return is(out, ['none', 'closed null', 'Edit*', 0, 1, 0, 'Edit*', 'none', 'closed save', 'none', 'closed page', 'Edit*', 'Edit*']);
   });
 
   await test('Dash.unsaved.leave(): yes at once when nothing is changed; else it asks, and says what the reader chose', async (tab) => {
