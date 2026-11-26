@@ -1,4 +1,4 @@
-/* dash-ui 1.18.1 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
+/* dash-ui 1.18.2 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
    A plain script with no dependencies: a script tag for dash.js in <head> gives window.Dash, and puts the
    saved light/dark choice on the page before it paints. In Node, require('./dash.js') returns the same object
    (the parts that need a page are skipped). MIT licence, (c) 2026 Smart Guy, https://github.com/smartguy0505/dash-ui
@@ -8,7 +8,7 @@
 (function (root) {
   'use strict';
   const hasDom = typeof document !== 'undefined';
-  const Dash = { version: '1.18.1', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side', privacyKey: 'dash.private', csp: false } };
+  const Dash = { version: '1.18.2', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side', privacyKey: 'dash.private', csp: false } };
 
   // ---- basics
 
@@ -5477,7 +5477,15 @@
     for (const w of list) w.saved();
     return true;
   };
-  Dash.unsaved.leave = async (within) => { const list = unsavedIn(within && el(within)); return !list.length || askDiscard(list); };
+  let leaving = null; // the question leave() has open: a call meanwhile (a double click on a link) adds its forms and gets the same answer
+  Dash.unsaved.leave = async (within) => {
+    const list = unsavedIn(within && el(within));
+    if (!list.length) return true;
+    if (leaving) { for (const w of list) leaving.list.add(w); return leaving.answer; }
+    const all = new Set(list);
+    leaving = { list: all, answer: askDiscard(all).finally(() => { leaving = null; }) };
+    return leaving.answer;
+  };
   // a dialog closed by the reader (×, Cancel, Escape, a click outside): null when it can just close, else a promise of yes or no
   const asking = new WeakSet(); // (one question at a time for a dialog)
   const mayClose = (d) => {

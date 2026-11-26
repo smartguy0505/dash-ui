@@ -3664,7 +3664,7 @@ let reference;
   const did = () => at(() => window.eval('did').splice(0).join(' | '));
 
   // ---- the command palette
-  const pal = () => at(() => { const d = document.querySelector('dialog.palette'); return d ? [...d.querySelectorAll('.palette-group, .palette-item, .palette-empty')].map((x) => (x.classList.contains('palette-group') ? `[${x.textContent}]` : (x.getAttribute('aria-selected') === 'true' ? '>' : '') + (x.querySelector('.palette-name') || x).textContent)).join(' ') : 'closed'; });
+  const pal = () => at(() => { const d = document.querySelector('dialog.palette[open]'); return d ? [...d.querySelectorAll('.palette-group, .palette-item, .palette-empty')].map((x) => (x.classList.contains('palette-group') ? `[${x.textContent}]` : (x.getAttribute('aria-selected') === 'true' ? '>' : '') + (x.querySelector('.palette-name') || x).textContent)).join(' ') : 'closed'; });
   await tab.focus('#find');
   await press('Control+k');
   const k1 = await at(() => { const d = document.querySelector('dialog.palette'), i = document.activeElement; return [d.matches(':modal'), d.getAttribute('aria-label'), i.getAttribute('role'), i.getAttribute('aria-controls') === d.querySelector('[role="listbox"]').id, document.getElementById(i.getAttribute('aria-activedescendant')).querySelector('.palette-name').textContent, d.querySelectorAll('[role="group"][aria-labelledby]').length, window.eval('palette').isOpen].join(); });
@@ -3760,10 +3760,11 @@ let reference;
   const keeps = await at(() => document.activeElement.tagName);
   await tab.click('.palette-item:has-text("Server report")');
   const k19 = [await did(), await pal()].join();
+  const gone19 = await tab.waitForFunction(() => !document.querySelector('dialog.palette'), null, { timeout: 2000 }).then(() => 'removed', () => 'still in the page'); // (it is taken out on its close event)
   await tab.click('#find');
   await tab.mouse.click(20, 700);
   await tick();
-  check('1.16 palette: by mouse: pointing chooses, a click does it, one beside it closes; what is off does nothing', k16 && k17 && k18 && keeps === 'INPUT' && k19 === 'report,closed' && (await pal()) === 'closed', [k16, k17, k18, keeps, k19, await pal()].join());
+  check('1.16 palette: by mouse: pointing chooses, a click does it, one beside it closes; what is off does nothing', k16 && k17 && k18 && keeps === 'INPUT' && k19 === 'report,closed' && gone19 === 'removed' && (await pal()) === 'closed', [k16, k17, k18, keeps, k19, gone19, await pal()].join());
   const more = await at(async () => {
     const p = window.eval('palette'), out = [];
     p.open('rep'); out.push(document.querySelector('.palette input').value, document.querySelectorAll('.palette-item').length);
@@ -5249,7 +5250,17 @@ let reference;
     await button(tab, 'Discard').click();
     await wait(tab);
     out.push(await tab.evaluate(() => went), await state(tab), await tab.inputValue('#p-name'));
-    return is(out, [true, 'none', 'Discard your changes?', false, 'name (note)', true, true, 'clean', 'Adax']);
+    await tab.click('#p-name');
+    await tab.keyboard.type('z');
+    await tab.click('#l-name');
+    await tab.keyboard.type('z');
+    await tab.evaluate(() => { window.went = []; for (const id of ['profile', 'later']) Dash.unsaved.leave(id).then((v) => went.push(v)); }); // a second call while it asks: one question, for both
+    await wait(tab);
+    out.push(await dialogs(tab));
+    await tab.getByRole('button', { name: 'Discard', exact: true }).last().click();
+    await wait(tab);
+    out.push(await dialogs(tab), await tab.evaluate(() => went.join()), await state(tab), await state(tab, 'later'));
+    return is(out, [true, 'none', 'Discard your changes?', false, 'name (note)', true, true, 'clean', 'Adax', 'Discard your changes?', 'none', 'true,true', 'clean', 'clean']);
   });
 
   await test('a page\'s own dialog: Escape and a close the browser asks for (a phone\'s back button) ask; one the page closes doesn\'t keep the reader on the page', async (tab, asked) => {

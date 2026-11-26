@@ -1,4 +1,4 @@
-/* dash-ui 1.18.1 docs: what the search box finds (written by tools/docs.mjs) */
+/* dash-ui 1.18.2 docs: what the search box finds (written by tools/docs.mjs) */
 window.DOCS_INDEX = [
   {"t":"Getting started","p":"Start","u":"./"},
   {"t":"What it is","p":"Getting started","u":"./#what"},

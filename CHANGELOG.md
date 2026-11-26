@@ -2,6 +2,11 @@
 
 Dashboards keep a copy of `dash.css` and `dash.js`; the first line of each file says which version it is. Versions only add things: a page that worked with an older copy works the same with a newer one.
 
+## 1.18.2 (2026-11-26)
+
+- `Dash.unsaved.leave()` called again while its question is open (a double click on a link) opened a second question. Now it gets the same answer, and the forms it names are discarded with the others.
+- 1.18.1's search for low text under the mouse measured about half of what it pressed. Run again with every one measured (1530 presses in the gallery, the examples and the docs, light and dark, each read 300 ms after), it found nothing more.
+
 ## 1.18.1 (2026-11-26)
 
 - `Dash.modal({ dismissable: false, unsaved: true })`: a phone's back button (or `requestClose()`) asked "Discard your changes?" and, after Discard, closed a modal that can't be dismissed. It stays open now and asks nothing, as with Escape. A page's own dialog that keeps itself open in its `cancel` listener isn't asked about either.
