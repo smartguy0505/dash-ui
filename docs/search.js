@@ -1,4 +1,4 @@
-/* dash-ui 1.17.3 docs: what the search box finds (written by tools/docs.mjs) */
+/* dash-ui 1.18.0 docs: what the search box finds (written by tools/docs.mjs) */
 window.DOCS_INDEX = [
   {"t":"Getting started","p":"Start","u":"./"},
   {"t":"What it is","p":"Getting started","u":"./#what"},
@@ -260,6 +260,18 @@ window.DOCS_INDEX = [
   {"t":"rules","p":"Forms › Checking a form","u":"forms.html#validation","k":1},
   {"t":"errors","p":"Forms › Checking a form","u":"forms.html#validation","k":1},
   {"t":"onSubmit","p":"Forms › Checking a form","u":"forms.html#validation","k":1},
+  {"t":"Unsaved changes","p":"Forms","u":"forms.html#unsaved"},
+  {"t":"Dash.unsaved","p":"Forms › Unsaved changes","u":"forms.html#unsaved","k":1},
+  {"t":"Dash.unsaved.leave","p":"Forms › Unsaved changes","u":"forms.html#unsaved","k":1},
+  {"t":"Dash.unsaved.text","p":"Forms › Unsaved changes","u":"forms.html#unsaved","k":1},
+  {"t":".unsaved-note","p":"Forms › Unsaved changes","u":"forms.html#unsaved","k":1},
+  {"t":"data-unsaved","p":"Forms › Unsaved changes","u":"forms.html#unsaved","k":1},
+  {"t":"data-dirty","p":"Forms › Unsaved changes","u":"forms.html#unsaved","k":1},
+  {"t":"unsaved","p":"Forms › Unsaved changes","u":"forms.html#unsaved","k":1},
+  {"t":"changes","p":"Forms › Unsaved changes","u":"forms.html#unsaved","k":1},
+  {"t":"discard","p":"Forms › Unsaved changes","u":"forms.html#unsaved","k":1},
+  {"t":"beforeunload","p":"Forms › Unsaved changes","u":"forms.html#unsaved","k":1},
+  {"t":"leave","p":"Forms › Unsaved changes","u":"forms.html#unsaved","k":1},
   {"t":"Richer fields","p":"Components","u":"fields.html"},
   {"t":"Numbers with − and +","p":"Richer fields","u":"fields.html#numbers"},
   {"t":".num-field","p":"Richer fields › Numbers with − and +","u":"fields.html#numbers","k":1},

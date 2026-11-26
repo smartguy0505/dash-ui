@@ -2,6 +2,13 @@
 
 Dashboards keep a copy of `dash.css` and `dash.js`; the first line of each file says which version it is. Versions only add things: a page that worked with an older copy works the same with a newer one.
 
+## 1.18.0 (2026-11-26)
+
+- `Dash.unsaved(form)`: changes a reader would lose. Once a field with a name is changed, the form gets `data-dirty`, an `.unsaved-note` in it shows ("Unsaved changes"), and leaving the page asks first (the browser's own question; not on the form's own submit). A dialog with a changed form asks "Discard your changes?" before ×, Cancel, Escape, a click outside or a phone's back button close it; Escape asks every time, also where browsers stop letting a page hold a dialog open after the first one or two. What the page fills in doesn't count, so a form filled or drawn again by the page isn't changed. `.saved()`, a reset, or putting the fields back make it clean.
+- `<form data-unsaved>`: the same without code. `Dash.form(el, { unsaved: true })`: a successful `onSubmit` is saved. `Dash.modal({ unsaved: true })`: "Unsaved changes" in its foot.
+- `Dash.unsaved.leave(within)`: for a page that changes what it shows by itself; `true` at once, or after the reader chose to discard. `Dash.unsaved.text`: the words.
+- `.unsaved-note`, in the warn colour after a dot (a line of the system's ink in high contrast).
+
 ## 1.17.3 (2026-11-26)
 
 All text is 4.5:1 or better on what is behind it now, so three things look a little different:

@@ -1,4 +1,4 @@
-/* dash-ui 1.17.3 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
+/* dash-ui 1.18.0 helpers: formatting, small HTML builders, charts, toasts, fetch and polling for the dashboards.
    A plain script with no dependencies: a script tag for dash.js in <head> gives window.Dash, and puts the
    saved light/dark choice on the page before it paints. In Node, require('./dash.js') returns the same object
    (the parts that need a page are skipped). MIT licence, (c) 2026 Smart Guy, https://github.com/smartguy0505/dash-ui
@@ -8,7 +8,7 @@
 (function (root) {
   'use strict';
   const hasDom = typeof document !== 'undefined';
-  const Dash = { version: '1.17.3', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side', privacyKey: 'dash.private', csp: false } };
+  const Dash = { version: '1.18.0', config: { loginUrl: null, themeKey: 'dash.theme', sideKey: 'dash.side', privacyKey: 'dash.private', csp: false } };
 
   // ---- basics
 
@@ -1940,12 +1940,14 @@
   // there too (m.form is its handle; rules: {} for just the fields' own checks). Buttons
   // of your own in the body need type="button". An error thrown by onAction shows in the foot (so does m.error(text)).
   // dismissable: false drops the × and ignores Escape and clicks outside: only its buttons or m.close() end it.
+  // unsaved: true (1.18): once a field is changed, "Unsaved changes" shows in the foot, and ×, Cancel, Escape or a click
+  // outside ask before the changes are lost (m.unsaved is its Dash.unsaved handle). Its actions don't ask.
   // text: a line under the title. focus: a selector (the first field by default). onClose({ value, fields }).
   // update({ body }) redraws like Dash.render: what the reader is typing, the focus and the scroll stay.
   // Handle: el, body (the part that scrolls), fields(), update({ title, text, body, actions }), error(text),
   // close(value), closed (a promise of { value, fields }; value is null after ×, Cancel, Escape or a click outside).
   Dash.modal = ({ title = '', text = '', body = '', actions = [], cancel = '', size = 'md', drawer = false, dismissable = true,
-    focus, onAction, onClose, cls = '', rules } = {}) => {
+    focus, onAction, onClose, cls = '', rules, unsaved = false } = {}) => {
     const d = document.createElement('dialog');
     d.className = 'modal' + (cls ? ' ' + cls : '');
     d.dataset.size = size;
@@ -1971,11 +1973,11 @@
     const checks = rules ? Dash.form(form, { rules }) : null;
     const error = (msg) => { if (checks) checks.error('', msg); else { const e = q('.modal-error'); if (e) e.textContent = msg || ''; } };
     const drawFoot = () => {
-      foot.innerHTML = '<span class="modal-error" role="alert"></span>'
+      foot.innerHTML = '<span class="modal-error" role="alert"></span>' + (unsaved ? `<span class="unsaved-note">${esc(Dash.unsaved.text.note)}</span>` : '')
         + (cancel ? `<button type="button" class="btn ghost" data-dismiss>${esc(cancel)}</button>` : '')
         + acts.map((a) => `<button type="${a.primary ? 'submit' : 'button'}" class="btn${a.primary || a.tone ? ' primary' : ''}${a.tone ? ' ' + esc(a.tone) : ''}">${esc(a.label)}</button>`).join('');
       [...foot.querySelectorAll('.btn:not([data-dismiss])')].forEach((b, i) => { b.__dashAct = acts[i]; });
-      foot.hidden = !cancel && !acts.length;
+      foot.hidden = !cancel && !acts.length && !unsaved;
     };
     const update = ({ title: t, text: x, body: b, actions: a } = {}) => {
       if (t != null) { title = String(t); q('.modal-title').textContent = title; }
@@ -1991,6 +1993,7 @@
       if (done) return;
       done = true;
       const out = { value: result, fields: fields() };
+      if (handle.unsaved) handle.unsaved.destroy();
       d.remove();
       if (onClose) onClose(out);
       resolveClosed(out);
@@ -2026,9 +2029,10 @@
     });
     d.addEventListener('cancel', (e) => { if (!dismissable) e.preventDefault(); });
     d.addEventListener('close', finish);
-    const handle = { el: d, body: bodyEl, form: checks, fields, update, error, close, closed };
+    const handle = { el: d, body: bodyEl, form: checks, fields, update, error, close, closed, unsaved: null };
     drawFoot();
     update({ title, text, body });
+    if (unsaved) handle.unsaved = Dash.unsaved(form); // (1.18) where the fields start: as the body has them now
     document.body.appendChild(d);
     openModal(d);
     const first = focus ? d.querySelector(focus) : bodyEl.querySelector('input:not([type="hidden"]), select, textarea');
@@ -4964,10 +4968,11 @@
       if (now && now.tagName === 'FORM') { if (now.__dashForm) followed.delete(f); else f.move(now); }
     }
   };
-  Dash.form = (target, { rules = {}, onSubmit } = {}) => {
+  Dash.form = (target, { rules = {}, onSubmit, unsaved = false } = {}) => {
     let form = el(target);
     if (!form || form.tagName !== 'FORM') return null;
     if (form.__dashForm) form.__dashForm.destroy(); // made again: the new rules
+    const keep = unsaved && hasDom && !form.__dashUnsaved ? Dash.unsaved(form) : null; // (1.18)
     let bubbles = true;
     const state = new Map(); // by field: { touched, text, wait, run, value, page, asked }. By name, so a redraw keeps it
     const marks = new WeakMap(); // control: what we put on it
@@ -5246,6 +5251,7 @@
     const clear = () => { state.clear(); Object.assign(line, { page: '', rule: '', lost: '' }); announce(''); paint(); };
     const handle = {
       get el() { return form; },
+      get unsaved() { return form.__dashUnsaved || null; },
       values, error, fail, clear,
       get errors() {
         const out = units().map((u) => [u.name, (state.get(u.key) || {}).text]).filter(([k, t]) => k && t);
@@ -5261,6 +5267,7 @@
         delete form.dataset.dashForm;
         delete form.__dashForm;
         followed.delete(me);
+        if (keep) keep.destroy();
       },
     };
     const fresh = () => { // fields redrawn: the marks and messages go on the new ones
@@ -5319,7 +5326,7 @@
           try {
             await Dash.busy(btn, async () => {
               if (!(await ok)) return;
-              if (onSubmit) await onSubmit(values(), handle, by); else on = true;
+              if (onSubmit) { await onSubmit(values(), handle, by); if (form.__dashUnsaved) form.__dashUnsaved.saved(); } else on = true;
             });
           } catch (x) { fail(x); } finally { busy = false; }
           if (held && (!document.activeElement || document.activeElement === document.body)) (btn.isConnected ? btn : document.getElementById(btn.id) || btn).focus({ preventScroll: true }); // (a busy button lets go of the focus)
@@ -5366,6 +5373,114 @@
     cantCheck: (why) => `Couldn’t check this: ${why}`,
     count: (n) => `${fmt.plural(n, 'field')} to fix`,
   };
+
+  // ---- unsaved changes (1.18)
+
+  // Dash.unsaved('profile') watches a form. Once the reader has made a field with a name different from what it was,
+  // the form is changed: it gets data-dirty, an .unsaved-note in it shows, and leaving the page asks first (the browser's
+  // own question). Putting the field back makes it clean again; so do .saved(), a reset, and a submit that goes on (also a
+  // dialog's own button). Discard doesn't put the fields back: a dialog the page opens again, it fills again.
+  // A dialog with a changed form in it asks "Discard your changes?" before ×, Cancel, Escape or a click outside close it;
+  // its other buttons, and the page's own close(), don't ask. What the page puts in a field is where it starts: a form
+  // filled after it is watched, or drawn again with new values, isn't changed by that.
+  // No code: <form data-unsaved>. Dash.form(el, { unsaved: true }) and Dash.modal({ unsaved: true }) do it too; what
+  // onSubmit or onAction saves without an error is saved. onChange(dirty, handle) when that flips.
+  // Dash.unsaved.leave(within) asks before the page changes what it shows by itself: a promise of true (nothing was
+  // changed, or the reader chose to discard it). The words: Dash.unsaved.text. A form drawn again as a whole is followed
+  // by its id. Handle: { el, dirty, changed (the names), saved(), destroy() }
+  const watching = new Set();
+  let unloadOn = false, lastSubmit = null;
+  const shown = (w) => { const f = w.form(); return Boolean(f) && !f.closest('dialog:not([open])'); }; // (one in a closed dialog is gone for the reader)
+  const onUnload = (e) => {
+    const s = lastSubmit; // (a submit that goes on is saved after it, but Firefox asks before that)
+    const left = [...watching].filter((w) => w.dirty && shown(w) && !(s && s.form === w.form() && !s.e.defaultPrevented && Date.now() - s.at < 3000));
+    if (!left.length) return;
+    e.preventDefault();
+    e.returnValue = ''; // (older browsers)
+  };
+  const unloadGuard = () => {
+    const need = [...watching].some((w) => w.dirty);
+    if (need === unloadOn || !hasDom) return;
+    unloadOn = need; // only while something is changed: a page with this listener isn't kept for the back button
+    if (need) window.addEventListener('beforeunload', onUnload); else window.removeEventListener('beforeunload', onUnload);
+  };
+  // the value of each field with a name, as text: several of a name (radios, checkboxes) are one
+  const snapshot = (form) => {
+    const out = new Map(), seen = new Map();
+    for (const e of form.elements) {
+      if (!/^(INPUT|SELECT|TEXTAREA)$/.test(e.tagName) || /^(submit|button|reset|image)$/.test(e.type) || e.__dashPart) continue;
+      const name = e.__dashName || e.name;
+      if (!name) continue;
+      if (/^(radio|checkbox)$/.test(e.type)) {
+        const was = out.get(name);
+        out.set(name, (was ? was + '\u0001' : '') + (e.checked ? e.value : ''));
+        continue;
+      }
+      const n = (seen.get(name) || 0) + 1;
+      seen.set(name, n);
+      const v = e.__dashValue ? JSON.stringify(e.__dashValue()) ?? '' : e.type === 'file' ? [...e.files].map((f) => `${f.name} ${f.size}`).join('\u0001')
+        : e.tagName === 'SELECT' && e.multiple ? [...e.selectedOptions].map((o) => o.value).join('\u0001') : e.value;
+      out.set(n > 1 ? `${name}\u0002${n}` : name, v);
+    }
+    return out;
+  };
+  Dash.unsaved = (target, { onChange } = {}) => {
+    let form = el(target);
+    if (!form || form.tagName !== 'FORM' || !hasDom) return null;
+    if (form.__dashUnsaved) return form.__dashUnsaved;
+    const start = snapshot(form), touched = new Set(); // where each field starts, and the names the reader changed
+    let dirty = false, changed = [];
+    const nameOf = (k) => k.split('\u0002')[0];
+    const now = () => { // the form, or the one drawn in its place
+      if (!form.isConnected && form.id) { const f = document.getElementById(form.id); if (f && f.tagName === 'FORM' && !f.__dashUnsaved) { delete form.__dashUnsaved; form.removeAttribute('data-dirty'); form = f; form.__dashUnsaved = handle; } }
+      return form;
+    };
+    const look = () => {
+      const f = now(), values = snapshot(f);
+      for (const [k, v] of values) if (!touched.has(nameOf(k)) || !start.has(k)) start.set(k, v); // what the page put there
+      changed = [...new Set([...values].filter(([k, v]) => start.get(k) !== v).map(([k]) => nameOf(k)))];
+      const was = dirty;
+      dirty = changed.length > 0;
+      f.toggleAttribute('data-dirty', dirty);
+      if (dirty !== was) { unloadGuard(); if (onChange) onChange(dirty, handle); }
+    };
+    const saved = () => {
+      touched.clear();
+      for (const [k, v] of snapshot(now())) start.set(k, v);
+      look();
+    };
+    const handle = {
+      get el() { return now(); },
+      get dirty() { return dirty; },
+      get changed() { return changed.slice(); },
+      saved,
+      destroy() { watching.delete(me); now().removeAttribute('data-dirty'); delete now().__dashUnsaved; if (dirty) { dirty = false; unloadGuard(); } },
+    };
+    const me = { // what the page wiring calls
+      form: () => (now().isConnected ? form : null),
+      get dirty() { return dirty; },
+      input(e) { const name = e.__dashName || e.name; if (name) touched.add(name); look(); },
+      look, saved,
+    };
+    form.__dashUnsaved = handle;
+    handle.__me = me;
+    watching.add(me);
+    look();
+    return handle;
+  };
+  Dash.unsaved.text = { note: 'Unsaved changes', ask: 'Discard your changes?', text: 'What you changed here hasn’t been saved.', discard: 'Discard', keep: 'Keep editing' };
+  // the changed forms in an element (or the page): ask the reader first. → true: go on (the forms count as saved now)
+  const unsavedIn = (within) => [...watching].filter((w) => w.dirty && w.form() && (!within || within === document || within.contains(w.form())));
+  const askDiscard = async (list) => {
+    const t = Dash.unsaved.text;
+    if (!(await Dash.confirm(t.text, { title: t.ask, ok: t.discard, cancel: t.keep, tone: 'bad' }))) return false;
+    for (const w of list) w.saved();
+    return true;
+  };
+  Dash.unsaved.leave = async (within) => { const list = unsavedIn(within && el(within)); return !list.length || askDiscard(list); };
+  // a dialog closed by the reader (×, Cancel, Escape, a click outside): null when it can just close, else a promise of yes or no
+  const mayClose = (d) => { const list = unsavedIn(d); return list.length ? askDiscard(list) : null; };
+  const closeAsked = (d) => { const q = mayClose(d); if (!q) d.close(); else q.then((yes) => { if (yes && d.open) d.close(); }); };
 
   // ---- menus and tooltips (wired below; no code needed)
   //
@@ -5495,13 +5610,13 @@
       } else if ((hit = t.closest('[data-dismiss]'))) {
         const pop = popups.slice().reverse().find((p) => p.el.contains(hit));
         const box = hit.closest('dialog, .notice, [data-dismissable]');
-        if (pop) pop.close(); else if (box && box.tagName === 'DIALOG') box.close(); else if (box) box.remove();
+        if (pop) pop.close(); else if (box && box.tagName === 'DIALOG') closeAsked(box); else if (box) box.remove();
       } else if (t.tagName === 'DIALOG' && t.matches('.dialog, .drawer, .modal') && lastPress.target === t
         && !/^(none|closerequest)$/i.test(t.getAttribute('closedby') || '')) {
         // a click on the backdrop (outside the box) closes it, when the press started there too: not a drag out of a field
         const r = t.getBoundingClientRect();
         const out = (x, y) => x < r.left || x > r.right || y < r.top || y > r.bottom;
-        if (out(e.clientX, e.clientY) && out(lastPress.x, lastPress.y)) t.close();
+        if (out(e.clientX, e.clientY) && out(lastPress.x, lastPress.y)) closeAsked(t);
       }
     });
     // the last press: where a click started, and (with no popovers in the browser) a press outside a popup closes it
@@ -5704,6 +5819,41 @@
     });
     document.addEventListener('focusout', (e) => { const f = formOf(e); if (f) left(f, e.target); });
     document.addEventListener('reset', (e) => { const f = e.target.__dashForm; if (f) setTimeout(() => { if (!e.defaultPrevented) f.clear(); }); });
+    // ---- 1.18: unsaved changes. <form data-unsaved> is watched from the reader's first press or focus in it, so what the
+    // page fills in before that is where it starts.
+    const unsavedOf = (t) => {
+      const f = t && (t.form || (t.closest && t.closest('form')));
+      if (!f) return null;
+      if (!f.__dashUnsaved && f.id) for (const w of watching) w.form(); // one drawn in place of a watched one takes its watcher
+      if (!f.__dashUnsaved && f.matches('form[data-unsaved]')) Dash.unsaved(f);
+      return f.__dashUnsaved || null;
+    };
+    for (const type of ['focusin', 'pointerdown']) document.addEventListener(type, (e) => { const w = unsavedOf(e.target); if (w) w.__me.look(); }, true);
+    for (const type of ['input', 'change']) document.addEventListener(type, (e) => { const w = unsavedOf(e.target); if (w) w.__me.input(e.target); }, true);
+    document.addEventListener('reset', (e) => { const w = e.target.__dashUnsaved; if (w) setTimeout(() => { if (!e.defaultPrevented) w.saved(); }); }); // (it is put back after the event)
+    document.addEventListener('submit', (e) => { // one that goes on is saved (a dialog's own buttons), or leaves the page: no question
+      lastSubmit = { form: e.target, e, at: Date.now() };
+      const w = e.target.__dashUnsaved;
+      if (w) setTimeout(() => { if (!e.defaultPrevented) w.saved(); });
+    }, true);
+    document.addEventListener('keydown', (e) => { // Escape in a dialog with changes: ask first. (Not by its cancel event alone: after
+      // two or so, browsers close the dialog without letting the page stop it.) A popup or menu open in it takes the key.
+      if (e.key !== 'Escape' || e.defaultPrevented || e.isComposing) return;
+      const d = topModal();
+      if (!d || popups.length || /^none$/i.test(d.getAttribute('closedby') || '')) return; // (an open menu has taken it already)
+      const q = mayClose(d);
+      if (!q) return;
+      e.preventDefault();
+      q.then((yes) => { if (yes && d.open) d.close(); });
+    });
+    document.addEventListener('cancel', (e) => { // a close the browser asks for in another way (a phone's back button)
+      const d = e.target;
+      if (d.tagName !== 'DIALOG' || !e.cancelable || e.defaultPrevented) return;
+      const q = mayClose(d);
+      if (!q) return;
+      e.preventDefault();
+      q.then((yes) => { if (yes && d.open) d.close(); });
+    }, true); // (it doesn't bubble)
     // <form data-validate>: at load (what the server wrote into it is marked then), or once one that comes later is used
     const validated = (f) => { if (f && f.matches && f.matches('form[data-validate]') && !f.__dashForm) Dash.form(f); };
     const wireForms = () => { for (const f of document.querySelectorAll('form[data-validate]')) validated(f); };

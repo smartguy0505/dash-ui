@@ -4952,6 +4952,280 @@ let reference;
   }
 }
 
+// ---- 1.18 unsaved changes (test/unsaved.html), with real typing, clicks and keys
+{
+  const test = async (name, fn) => {
+    const ctx = await browser.newContext({ viewport: { width: 1100, height: 900 }, locale: 'en-US', reducedMotion: 'reduce' });
+    const tab = await ctx.newPage();
+    tab.setDefaultTimeout(4000);
+    tab.on('pageerror', (e) => errors.push(e.message));
+    const asked = []; // the browser's own question before the page is left
+    tab.on('dialog', async (d) => { asked.push(d.type()); await d.dismiss(); });
+    await tab.goto(url.replace('behaviour.html', 'unsaved.html'), { waitUntil: 'load' });
+    let t;
+    try {
+      const [ok, detail] = await Promise.race([fn(tab, asked), new Promise((_, no) => { t = setTimeout(() => no(new Error('it takes too long')), 25000); })]);
+      check('1.18 unsaved: ' + name, ok, detail);
+    } catch (e) { check('1.18 unsaved: ' + name, false, 'threw ' + String(e && e.message).split('\n')[0]); }
+    clearTimeout(t);
+    await ctx.close();
+  };
+  const is = (got, want) => [JSON.stringify(got) === JSON.stringify(want), JSON.stringify(got)];
+  const wait = (tab, ms = 60) => tab.waitForTimeout(ms);
+  // what the reader sees: the changed fields of a form (or "clean"), and whether its note shows
+  const state = (tab, id = 'profile') => tab.evaluate((k) => {
+    const f = document.getElementById(k), note = f.querySelector('.unsaved-note');
+    return `${f.hasAttribute('data-dirty') ? (f.__dashUnsaved ? f.__dashUnsaved.changed.join('+') : '?') : 'clean'}${note && note.checkVisibility() ? ' (note)' : ''}`;
+  }, id);
+  const dialogs = (tab) => tab.evaluate(() => [...document.querySelectorAll('dialog[open]')].map((d) => d.querySelector('h2').textContent + (d.querySelector('form[data-dirty]') ? '*' : '')).join(' > ') || 'none');
+  const logged = (tab) => tab.evaluate(() => log.splice(0).join(' | '));
+  const button = (tab, name) => tab.getByRole('button', { name, exact: true });
+
+  await test('a field changed, and put back: changed, then clean again; the note shows meanwhile', async (tab) => {
+    const out = [await state(tab)];
+    await tab.click('#p-name');
+    await tab.keyboard.type('x');
+    out.push(await state(tab));
+    await tab.keyboard.press('Backspace');
+    out.push(await state(tab));
+    await tab.click('#p-about');
+    await tab.keyboard.press('End');
+    await tab.keyboard.type('!');
+    await tab.click('#p-mail');
+    await tab.click('text=Large');
+    await tab.selectOption('#p-plan', 'Team');
+    await tab.click('#profile .tag-box-in');
+    await tab.keyboard.type('two,');
+    out.push(await state(tab));
+    await tab.keyboard.press('Backspace'); // the tag again
+    await tab.click('#p-mail');
+    await tab.click('text=Small');
+    await tab.selectOption('#p-plan', 'Free');
+    await tab.click('#p-about');
+    await tab.keyboard.press('End');
+    await tab.keyboard.press('Backspace');
+    out.push(await state(tab));
+    return is(out, ['clean', 'name (note)', 'clean', 'about+plan+mail+size+tags (note)', 'clean']);
+  });
+
+  await test('a field without a name, what the page puts in, and a form drawn again with new values don\'t count; one drawn anew is followed by its id', async (tab) => {
+    await tab.click('#p-find');
+    await tab.keyboard.type('zz');
+    await tab.click('#l-name');
+    const out = [await state(tab), await state(tab, 'later'), await tab.inputValue('#l-name')];
+    await tab.evaluate(() => draw('Second'));
+    await tab.click('#again input');
+    out.push(await state(tab, 'again'));
+    await tab.keyboard.type('!');
+    out.push(await state(tab, 'again'), await logged(tab));
+    await tab.evaluate(() => { document.getElementById('redrawn').innerHTML = '<form id="again"><input class="input" name="name" value="Second!" aria-label="Name"><span class="unsaved-note">Unsaved changes</span></form>'; });
+    await tab.click('#again input');
+    await tab.keyboard.press('Backspace');
+    out.push(await state(tab, 'again'), await tab.evaluate(() => again.el === document.getElementById('again')), await logged(tab));
+    return is(out, ['clean', 'clean', 'From the server', 'clean', 'name (note)', 'again true', 'clean', true, 'again false']);
+  });
+
+  await test('leaving the page: the browser asks while a form is changed, not when it is clean, and not on the form\'s own submit', async (tab, asked) => {
+    const out = [];
+    await tab.click('#p-name');
+    await tab.keyboard.type('x');
+    await tab.click('#away');
+    await wait(tab, 300);
+    out.push(asked.splice(0).join(), tab.url().split('/').pop());
+    await tab.click('#p-go');
+    await tab.waitForURL(/board\.html/);
+    out.push(asked.splice(0).join() || 'no question', tab.url().split('/').pop().split('?')[0]);
+    await tab.goBack({ waitUntil: 'load' });
+    await tab.click('#p-name');
+    await tab.keyboard.type('y');
+    await tab.keyboard.press('Backspace');
+    await tab.click('#away');
+    await tab.waitForURL(/board\.html/);
+    out.push(asked.splice(0).join() || 'no question');
+    return is(out, ['beforeunload', 'unsaved.html', 'no question', 'board.html', 'no question']);
+  });
+
+  await test('a reset puts the form back, and it is clean', async (tab) => {
+    await tab.click('#p-name');
+    await tab.keyboard.type('x');
+    await tab.click('#p-mail');
+    const out = [await state(tab)];
+    await tab.click('#p-reset');
+    await wait(tab);
+    out.push(await state(tab), await tab.inputValue('#p-name'));
+    return is(out, ['name+mail (note)', 'clean', 'Ada']);
+  });
+
+  await test('Dash.form with unsaved: changed until onSubmit is done; still changed when it fails', async (tab, asked) => {
+    await tab.click('#l-name');
+    await tab.keyboard.press('End');
+    await tab.keyboard.type('!');
+    await tab.click('#l-save');
+    await wait(tab);
+    const out = [await state(tab, 'later')];
+    await tab.evaluate(() => hold.no(new Error('Not saved')));
+    await wait(tab);
+    out.push(await state(tab, 'later'));
+    await tab.click('#l-save');
+    await wait(tab);
+    await tab.evaluate(() => hold.ok());
+    await wait(tab);
+    out.push(await state(tab, 'later'), await tab.evaluate(() => later.unsaved.dirty));
+    await tab.click('#away');
+    await tab.waitForURL(/board\.html/);
+    out.push(asked.join() || 'no question');
+    return is(out, ['name (note)', 'name (note)', 'clean', false, 'no question']);
+  });
+
+  await test('a modal with changes asks before ×, Cancel, Escape and a click outside; Keep editing keeps them; Discard closes it', async (tab) => {
+    await tab.evaluate(() => openEditor());
+    await tab.click('#m-name');
+    await tab.keyboard.press('End');
+    await tab.keyboard.type('-2');
+    const out = [await dialogs(tab), await tab.evaluate(() => document.querySelector('dialog[open] .unsaved-note').checkVisibility())];
+    await tab.keyboard.press('Escape');
+    await wait(tab);
+    out.push(await dialogs(tab), await tab.evaluate(() => document.activeElement.textContent));
+    await tab.keyboard.press('Escape'); // in the question: no
+    await wait(tab);
+    out.push(await dialogs(tab));
+    await tab.keyboard.press('Escape'); // and again
+    await wait(tab);
+    out.push(await dialogs(tab));
+    await button(tab, 'Keep editing').click();
+    await wait(tab);
+    await tab.click('dialog[open] .modal-x');
+    await wait(tab);
+    out.push(await dialogs(tab));
+    await button(tab, 'Keep editing').click();
+    await wait(tab);
+    await tab.locator('dialog[open] .modal-foot').getByRole('button', { name: 'Cancel' }).click();
+    await wait(tab);
+    out.push(await dialogs(tab));
+    await button(tab, 'Keep editing').click();
+    await wait(tab);
+    await tab.mouse.click(6, 6); // outside the box
+    await wait(tab);
+    out.push(await dialogs(tab), await logged(tab));
+    await button(tab, 'Discard').click();
+    await wait(tab);
+    out.push(await dialogs(tab), await logged(tab), await tab.evaluate(() => m.unsaved.dirty));
+    return is(out, ['Edit*', true, 'Edit* > Discard your changes?', 'Keep editing', 'Edit*', 'Edit* > Discard your changes?', 'Edit* > Discard your changes?', 'Edit* > Discard your changes?', 'Edit* > Discard your changes?', '', 'none', 'closed null', false]);
+  });
+
+  await test('Escape again and again: it asks each time (the browser lets a page stop only the first ones)', async (tab) => {
+    await tab.evaluate(() => openEditor());
+    await tab.keyboard.type('x');
+    const seen = [];
+    for (let i = 0; i < 6; i++) { await tab.keyboard.press('Escape'); await wait(tab); seen.push(await dialogs(tab)); }
+    return is(seen, ['Edit* > Discard your changes?', 'Edit*', 'Edit* > Discard your changes?', 'Edit*', 'Edit* > Discard your changes?', 'Edit*']);
+  });
+
+  await test('a modal without changes closes at once; with changes its actions, its close() and a menu\'s Escape don\'t ask', async (tab) => {
+    await tab.evaluate(() => openEditor());
+    await tab.keyboard.press('Escape');
+    await wait(tab);
+    const out = [await dialogs(tab), await logged(tab)];
+    await tab.evaluate(() => openEditor());
+    await tab.keyboard.type('x');
+    await tab.click('dialog[open] summary');
+    await tab.keyboard.press('Escape');
+    await wait(tab);
+    out.push(await dialogs(tab), await tab.evaluate(() => document.querySelectorAll('details.menu[open]').length));
+    await tab.click('dialog[open] [data-popup]');
+    await wait(tab);
+    const popped = await tab.locator('.popup').count();
+    await tab.keyboard.press('Escape');
+    await wait(tab);
+    out.push(popped, await tab.locator('.popup').count(), await dialogs(tab));
+    await tab.locator('dialog[open] .modal-foot').getByRole('button', { name: 'Save' }).click();
+    await wait(tab);
+    out.push(await dialogs(tab), await logged(tab));
+    await tab.evaluate(() => openEditor());
+    await tab.keyboard.type('y');
+    await tab.evaluate(() => m.close('page'));
+    await wait(tab);
+    out.push(await dialogs(tab), await logged(tab));
+    await tab.evaluate(() => openEditor({ dismissable: false }));
+    await tab.keyboard.type('z');
+    await tab.keyboard.press('Escape');
+    await wait(tab);
+    out.push(await dialogs(tab));
+    return is(out, ['none', 'closed null', 'Edit*', 0, 1, 0, 'Edit*', 'none', 'closed save', 'none', 'closed page', 'Edit*']);
+  });
+
+  await test('Dash.unsaved.leave(): yes at once when nothing is changed; else it asks, and says what the reader chose', async (tab) => {
+    const out = [await tab.evaluate(() => Dash.unsaved.leave()), await dialogs(tab)];
+    await tab.click('#p-name');
+    await tab.keyboard.type('x');
+    await tab.evaluate(() => { window.went = 'waiting'; Dash.unsaved.leave().then((v) => { window.went = v; }); });
+    await wait(tab);
+    out.push(await dialogs(tab));
+    await button(tab, 'Keep editing').click();
+    await wait(tab);
+    out.push(await tab.evaluate(() => went), await state(tab), await tab.evaluate(() => Dash.unsaved.leave('later')));
+    await tab.evaluate(() => { Dash.unsaved.leave('profile').then((v) => { window.went = v; }); });
+    await wait(tab);
+    await button(tab, 'Discard').click();
+    await wait(tab);
+    out.push(await tab.evaluate(() => went), await state(tab), await tab.inputValue('#p-name'));
+    return is(out, [true, 'none', 'Discard your changes?', false, 'name (note)', true, true, 'clean', 'Adax']);
+  });
+
+  await test('a page\'s own dialog: Escape and a close the browser asks for (a phone\'s back button) ask; one the page closes doesn\'t keep the reader on the page', async (tab, asked) => {
+    await tab.evaluate(() => document.getElementById('own').showModal());
+    await tab.click('#own input');
+    await tab.keyboard.type('y');
+    await tab.keyboard.press('Escape');
+    await wait(tab);
+    const out = [await dialogs(tab)];
+    await button(tab, 'Keep editing').click();
+    await wait(tab);
+    await tab.evaluate(() => document.getElementById('own').requestClose()); // as Android's back button does
+    await wait(tab);
+    out.push(await dialogs(tab));
+    await button(tab, 'Keep editing').click();
+    await wait(tab);
+    await tab.evaluate(() => document.getElementById('own').close()); // the page's own
+    out.push(await dialogs(tab), await state(tab, 'own-form'));
+    await tab.click('#away');
+    await tab.waitForURL(/board\.html/);
+    out.push(asked.join() || 'no question');
+    return is(out, ['Own* > Discard your changes?', 'Own* > Discard your changes?', 'none', 'name', 'no question']);
+  });
+
+  await test('a submit that goes on is saved: a dialog\'s own button closes it, and opened again it is clean', async (tab) => {
+    await tab.evaluate(() => document.getElementById('own').showModal());
+    await tab.click('#own input');
+    await tab.keyboard.type('y');
+    const out = [await state(tab, 'own-form')];
+    await button(tab, 'OK').click();
+    await wait(tab);
+    out.push(await dialogs(tab), await state(tab, 'own-form'));
+    await tab.evaluate(() => { document.querySelector('#own input').value = 'Another'; document.getElementById('own').showModal(); }); // filled again by the page
+    await tab.keyboard.press('Escape');
+    await wait(tab);
+    out.push(await dialogs(tab));
+    return is(out, ['name', 'none', 'clean', 'none']);
+  });
+
+  await test('destroy(): no mark and no question after it, and a form drawn in its place isn\'t watched; Dash.unsaved on a form that has one gives that one', async (tab, asked) => {
+    await tab.click('#p-name');
+    await tab.keyboard.type('x');
+    const out = [await state(tab), await tab.evaluate(() => Dash.unsaved('profile') === document.getElementById('profile').__dashUnsaved)];
+    await tab.evaluate(() => Dash.unsaved('profile').destroy());
+    out.push(await state(tab));
+    await tab.evaluate(() => { again.destroy(); document.getElementById('redrawn').innerHTML = '<form id="again"><input class="input" name="name" value="New" aria-label="Name"></form>'; });
+    await tab.click('#again input');
+    await tab.keyboard.type('!');
+    out.push(await state(tab, 'again'), await logged(tab));
+    await tab.click('#away');
+    await tab.waitForURL(/board\.html/);
+    out.push(asked.join() || 'no question');
+    return is(out, ['name (note)', true, 'clean', 'clean', '', 'no question']);
+  });
+}
+
 await browser.close();
 server.close();
 for (const e of errors) results.push({ name: 'page error', ok: false, detail: e });

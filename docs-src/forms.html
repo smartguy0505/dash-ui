@@ -198,3 +198,38 @@
         </script>
       </example>
     </section>
+
+    <section id="unsaved" data-terms="Dash.unsaved Dash.unsaved.leave Dash.unsaved.text .unsaved-note data-unsaved data-dirty unsaved changes discard beforeunload leave">
+      <h2>Unsaved changes</h2>
+      <p><code>Dash.unsaved(form)</code> watches a form. Once the reader has changed a field with a <code>name</code>, the form gets <code>data-dirty</code>, an <code>.unsaved-note</code> in it shows, and leaving the page asks first (that question is the browser’s own). Putting the field back as it was makes the form clean again; so do <code>.saved()</code>, a reset, and a submit that goes on. Type in the form below, then try to close the tab, or open the modal, change it and press Escape.</p>
+      <example title="A settings form, and the same in a modal">
+        <form class="panel" id="prefs" style="max-width: 460px">
+          <div class="panel-head"><h3>Notifications</h3><span class="unsaved-note">Unsaved changes</span></div>
+          <div class="field"><label for="pr-mail">Send to</label><input class="input" id="pr-mail" name="mail" type="email" value="ops@example.com"></div>
+          <label class="checkline"><input type="checkbox" name="daily" checked> A summary every morning</label>
+          <label class="checkline"><input type="checkbox" name="down"> When a server goes down</label>
+          <div class="row mt-3"><button class="btn primary">Save</button><button type="reset" class="btn ghost">Undo changes</button><button type="button" class="btn ghost" id="pr-modal">In a modal…</button></div>
+        </form>
+        <script>
+          Dash.form('prefs', {
+            unsaved: true, // what onSubmit saves without an error is saved
+            onSubmit: async (values) => { await new Promise((ok) => setTimeout(ok, 500)); Dash.toast('Saved'); }, // Dash.api('/api/prefs', { method: 'PUT', json: values })
+          });
+          Dash.$('pr-modal').addEventListener('click', () => Dash.modal({
+            title: 'Rename web-1', cancel: 'Cancel', unsaved: true,
+            body: '<div class="field"><label for="pm-host">Name</label><input class="input" id="pm-host" name="name" value="web-1"></div>',
+            actions: [{ label: 'Rename', value: 'save', primary: true }],
+            onAction: async (value, m) => { Dash.toast(`Renamed to ${m.fields().name}`); },
+          }));
+        </script>
+      </example>
+      <ul>
+        <li><b>What counts</b>: fields with a <code>name</code> (what a form sends), the kit’s too (a tag box, a date). A search box without a name doesn’t. What the page puts in a field is where it starts: a form filled after it is watched, or drawn again with new values, isn’t changed by that. Only what the reader changes is.</li>
+        <li><b>Leaving the page</b>: the browser asks while a form is changed, but not when the form’s own submit takes the reader away, and not for a form in a dialog that has closed. Browsers ask only once the reader has done something on the page, and in their own words.</li>
+        <li><b>Dialogs</b>: one with a changed form in it asks “Discard your changes?” before ×, Cancel, Escape, a click outside or a phone’s back button close it. Its other buttons don’t ask, nor does the page’s own <code>close()</code>. <code>Dash.modal({ unsaved: true })</code> also shows “Unsaved changes” in its foot.</li>
+        <li><b>Without code</b>: <code>&lt;form data-unsaved&gt;</code> is watched from the reader’s first press or focus in it. With <code>Dash.form(form, { unsaved: true })</code>, a successful <code>onSubmit</code> is saved.</li>
+        <li><b>A page that changes what it shows by itself</b> (another view, another record): <code>if (await Dash.unsaved.leave()) show(next)</code>. It is <code>true</code> at once when nothing is changed, and otherwise asks; <code>leave(element)</code> asks only about the forms in it.</li>
+        <li><b>Words</b>: <code>Dash.unsaved.text</code> has the question and its buttons, to translate them. A form drawn again as a whole is followed by its <code>id</code>.</li>
+      </ul>
+      <p>It returns <code>{ el, dirty, changed, saved(), destroy() }</code>: <code>changed</code> is the names of the changed fields; <code>onChange(dirty, handle)</code>, an option, is told when it flips. <code>Dash.unsaved</code> on a form that is already watched gives the same handle.</p>
+    </section>

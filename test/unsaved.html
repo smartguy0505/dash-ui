@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unsaved changes</title>
+<link rel="stylesheet" href="../dash.css">
+<script src="../dash.js"></script>
+</head>
+<body>
+<header class="topbar"><div class="brand"><span class="mark">U</span><h1>Unsaved changes</h1></div><a id="away" href="board.html">Boards</a></header>
+<main class="page">
+  <form class="panel" id="profile" data-unsaved action="board.html" method="get">
+    <div class="panel-head"><h2>Profile</h2><span class="unsaved-note">Unsaved changes</span></div>
+    <div class="field"><label for="p-name">Name</label><input class="input" id="p-name" name="name" value="Ada"></div>
+    <div class="field"><label for="p-about">About</label><textarea class="input" id="p-about" name="about">Writes notes.</textarea></div>
+    <div class="field"><label for="p-plan">Plan</label><span class="select"><select class="input" id="p-plan" name="plan"><option>Free</option><option>Team</option></select></span></div>
+    <label class="checkline"><input type="checkbox" id="p-mail" name="mail" checked> Mail me</label>
+    <fieldset class="checks"><legend>Size</legend><label class="checkline"><input type="radio" name="size" value="s" checked> Small</label><label class="checkline"><input type="radio" name="size" value="l"> Large</label></fieldset>
+    <div class="field"><label for="p-tags">Tags</label><input class="input" id="p-tags" name="tags"></div>
+    <input type="search" id="p-find" aria-label="Find (no name: not saved)">
+    <button class="btn primary" id="p-go">Save and go</button> <button type="reset" class="btn" id="p-reset">Reset</button>
+  </form>
+
+  <form class="panel" id="later"><div class="field"><label for="l-name">Name</label><input class="input" id="l-name" name="name"></div><span class="unsaved-note">Unsaved changes</span><button class="btn primary" id="l-save">Save</button></form>
+
+  <div id="redrawn"></div>
+  <template id="help"><p>Names are short.</p></template>
+  <dialog class="dialog" id="own"><form class="dialog-body" method="dialog" id="own-form" data-unsaved><h2>Own</h2><input class="input" name="name" value="x" aria-label="Name"><div class="dialog-actions"><button class="btn primary" value="ok">OK</button></div></form></dialog>
+</main>
+<script>
+  Dash.tagbox('p-tags', { value: ['one'] });
+  window.log = [];
+  window.hold = null; // the save's answer, given by the test
+  // filled in by the page after it is watched: where it starts
+  const later = Dash.form('later', {
+    unsaved: true,
+    onSubmit: () => new Promise((ok, no) => { window.hold = { ok, no }; }),
+  });
+  later.el.querySelector('[name="name"]').value = 'From the server';
+  window.later = later;
+  const draw = (name) => Dash.render('redrawn', `<form class="panel" id="again"><input class="input" name="name" value="${Dash.esc(name)}" aria-label="Name"><span class="unsaved-note">Unsaved changes</span></form>`);
+  draw('First');
+  window.draw = draw;
+  window.again = Dash.unsaved('again', { onChange: (dirty) => log.push('again ' + dirty) });
+  window.openEditor = (more = {}) => {
+    window.m = Dash.modal({
+      title: 'Edit', cancel: 'Cancel', unsaved: true,
+      body: '<div class="field"><label for="m-name">Name</label><input class="input" id="m-name" name="name" value="web-1"></div><details class="menu"><summary class="btn">More</summary><div class="menu-list"><button type="button">One</button></div></details> <button type="button" class="btn" data-popup="help">Help</button>',
+      actions: [{ label: 'Save', value: 'save', primary: true }], ...more,
+    });
+    m.closed.then(({ value }) => log.push('closed ' + value));
+    return m;
+  };
+</script>
+</body>
+</html>

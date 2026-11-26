@@ -1,4 +1,4 @@
-/* dash-ui 1.17.3: utility classes (optional, after dash.css). Written by tools/utils.mjs from the kit's tokens: edit that, not this. */
+/* dash-ui 1.18.0: utility classes (optional, after dash.css). Written by tools/utils.mjs from the kit's tokens: edit that, not this. */
 /* Every rule is .name:not(#\#): the :not() counts as an id, so a utility beats the kit's own rules without !important. */
 /* MIT licence, (c) 2026 Smart Guy, https://github.com/smartguy0505/dash-ui */
 

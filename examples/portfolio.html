@@ -61,7 +61,7 @@
     <div class="field"><label for="e-name">Name</label><input class="input" id="e-name" name="name" placeholder="Savings" required></div>
     <div class="field"><label for="e-addr">Account ID</label><input class="input mono" id="e-addr" name="id" placeholder="acct_…" spellcheck="false" data-private><div class="err"></div></div>
     <label class="checkline"><input type="checkbox" id="e-total" name="total" checked>Count in the total</label>
-    <div class="dialog-actions"><button type="button" class="btn ghost" data-dismiss>Cancel</button><button type="submit" class="btn primary">Save</button></div>
+    <div class="dialog-actions"><span class="unsaved-note">Unsaved changes</span><button type="button" class="btn ghost" data-dismiss>Cancel</button><button type="submit" class="btn primary">Save</button></div>
   </form>
 </dialog>
 
@@ -198,6 +198,7 @@
   }
   $('add').addEventListener('click', () => openEditor(null));
   const editor = Dash.form('editor-form', {
+    unsaved: true, // Cancel, Escape or a click outside ask before what was typed is lost
     rules: {
       id: (text) => !/^acct_[a-z2-9]{20}$/.test(text.trim()) && !(editing && text.trim() === editing.id) && 'That isn’t a valid account ID (acct_ and 20 letters or digits).',
     },

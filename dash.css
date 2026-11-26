@@ -1,4 +1,4 @@
-/* dash-ui 1.17.3: the look shared by my dashboards (agents, fleet, leaderboard, payouts, balances).
+/* dash-ui 1.18.0: the look shared by my dashboards (agents, fleet, leaderboard, payouts, balances).
    Warm neutral backgrounds, white panels, tinted status colours, light and dark from the system setting
    (or data-theme="light|dark" on <html>). No build step, no dependencies: link this file, or paste it into a page.
    MIT licence, (c) 2026 Smart Guy, https://github.com/smartguy0505/dash-ui
@@ -1385,6 +1385,14 @@ button.entry-grip { width: 30px; height: 30px; }
 .board-tall .board { max-height: var(--board-h); grid-template-rows: minmax(0, 1fr); }
 .board-tall .board-zone { overflow-y: auto; scrollbar-width: thin; }
 
+/* ---- unsaved changes (1.18) ----
+   <span class="unsaved-note">Unsaved changes</span> anywhere in a form that Dash.unsaved watches: it shows while the form
+   has changes (form[data-dirty]), in the warn colour after a dot. Among a dialog's buttons it keeps to their left. */
+.unsaved-note { display: none; align-items: center; gap: 7px; color: var(--warn); font-size: 13.5px; font-weight: 600; }
+.unsaved-note::before { content: ''; flex: none; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+form[data-dirty] .unsaved-note { display: inline-flex; }
+.modal-foot > .unsaved-note, .dialog-actions > .unsaved-note { margin-inline-end: auto; }
+
 /* ---- smaller screens ---- */
 @media (max-width: 900px) {
   .shell { display: block; }
@@ -1438,6 +1446,7 @@ button.entry-grip { width: 30px; height: 30px; }
   .table-pick-all.stack-md { display: flex; }
 }
 @media (max-width: 640px) {
+  .modal-foot > .unsaved-note, .dialog-actions > .unsaved-note { flex-basis: 100%; } /* a line of its own, above the buttons */
   .topbar { position: static; padding: 10px 16px; gap: 6px 14px; } /* it wraps to two or three lines here: too tall to pin */
   .topbar .sub { display: none; }
   .topstat { flex-wrap: wrap; max-width: 100%; }
@@ -1529,6 +1538,7 @@ button.entry-grip { width: 30px; height: 30px; }
   .pill, .tag, .rank, .count-badge, .avatar, .callout, .toast, .tooltip { outline: 1px solid CanvasText; outline-offset: -1px; }
   .ring, .banner.active, .nav-item.attn { outline: 2px solid CanvasText; outline-offset: -2px; }
   .dropzone.over { outline: 2px solid Highlight; outline-offset: -2px; }
+  .unsaved-note::before { forced-color-adjust: none; background: CanvasText; }
   .table tr.marked { outline: 2px solid Highlight; outline-offset: -2px; } /* a row, or a card on a phone */
   .stepper > li[aria-current="step"]::before { outline: 2px solid CanvasText; outline-offset: 2px; }
   .nav-item[aria-current="location"] .nav-name { text-decoration: underline; }

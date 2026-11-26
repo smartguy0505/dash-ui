@@ -725,7 +725,7 @@
   const pickedTag = (v) => { $('pp-picked').textContent = v == null ? 'Closed without a choice' : `Picked: ${v}`; };
   $('pm-edit').addEventListener('click', () => {
     const m = Dash.modal({
-      title: 'Edit api-eu-west-1', text: 'Changes apply on the next check.', cancel: 'Cancel',
+      title: 'Edit api-eu-west-1', text: 'Changes apply on the next check.', cancel: 'Cancel', unsaved: true,
       body: `<div class="field"><label for="pm-name">Name</label><input class="input" id="pm-name" name="name" value="api-eu-west-1" required></div>
         <div class="field"><label for="pm-region">Region</label><select class="input" id="pm-region" name="region"><option>eu-west</option><option>us-east</option><option>ap-south</option></select></div>
         <label class="checkline"><input type="checkbox" name="alerts" checked> Alert me when it goes down</label>`,

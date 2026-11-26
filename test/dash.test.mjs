@@ -754,6 +754,13 @@ test('1.9: Dash.combobox and Dash.datepicker are there, and do nothing without a
   assert.equal(Dash.datepicker('nowhere'), null);
 });
 
+test('1.18: Dash.unsaved is there, does nothing without a page, and its words can be changed', async () => {
+  assert.equal(Dash.unsaved('nowhere'), null);
+  assert.equal(await Dash.unsaved.leave(), true); // nothing is watched: nothing to ask
+  assert.deepEqual(Object.keys(Dash.unsaved.text).sort(), ['ask', 'discard', 'keep', 'note', 'text']);
+  assert.equal(Dash.form('nowhere', { unsaved: true }), null);
+});
+
 // ---- the docs site (docs-src/ → docs/ by tools/docs.mjs)
 
 const docsGen = await import(new URL('tools/docs.mjs', root).href);
