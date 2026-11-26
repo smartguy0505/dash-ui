@@ -2,6 +2,16 @@
 
 Dashboards keep a copy of `dash.css` and `dash.js`; the first line of each file says which version it is. Versions only add things: a page that worked with an older copy works the same with a newer one.
 
+## 1.17.3 (2026-11-26)
+
+All text is 4.5:1 or better on what is behind it now, so three things look a little different:
+
+- Avatars: the tint behind the letters is 14 % of the colour, not 16 %. The letters of `ok`, `teal`, `gold`, `bronze`, `silver` and `pink` avatars were 4.4–4.5:1 in light, and are 4.5–4.7:1.
+- `.rank`: the "of 14" after the place is lighter by weight, not faded. It was 3.2–3.7:1 in light and 4.2–5.1:1 in dark, and is as readable as the place.
+- `tr.dim`: a dimmed row has faint text, and its colours (pills, tags, ranks, dots) turn grey; pictures, sparklines and bars in it are still faded. Its text was faded with the row: 2.5–3.8:1 in light. Links and buttons in it keep their colours.
+- The docs' example of a tint is `bg-bad/10` (`bg-bad/20` under bad text was 4.1:1).
+- The layout test looks at all the text of every page now, not only faint and accent text.
+
 ## 1.17.2 (2026-11-25)
 
 - `.seg.solid`: the number in a part chosen with `aria-current="page"` or `aria-selected="true"` is as readable as in one that is pressed. It was faint on the dark fill: 4.7:1 in light and 3.3:1 in dark, and 3.0 and 2.5 with 1.17.1's colours.

@@ -340,7 +340,7 @@ test('the version is the same in dash.css, dash.js, Dash.version and package.jso
 });
 
 // WCAG contrast. Every tone is AA (4.5) as text on a card and on its own tint, at every tint strength the kit puts
-// tone text on (10-14%: nav highlight, tag/tint, pill, rank), and muted and faint text on everything text stands on: a card,
+// tone text on (10%, and those of the rules below: tag, pill, rank, avatar …), and muted and faint text on everything text stands on: a card,
 // the page, a block, the track of a .seg, a row that is selected, marked or pointed at, a callout. test/screens.mjs looks at the pages.
 test('dash.css: colour contrast', () => {
   const block = (re) => Object.fromEntries([...css.match(re)[1].matchAll(/--([\w-]+):\s*(#[0-9a-f]{6})/gi)].map((m) => [m[1], m[2]]));
@@ -351,6 +351,10 @@ test('dash.css: colour contrast', () => {
   const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
   const tint = (c, base, p) => c.map((v, i) => Math.round(v * p + base[i] * (1 - p)));
   const tones = ['accent', 'ok', 'warn', 'bad', 'blue', 'teal', 'purple', 'orange', 'pink', 'gold', 'silver', 'bronze', 'idle'];
+  // every rule that puts the tone's own colour on its tint (pill, tag, rank, avatar …), at the strength it uses
+  const strengths = [...new Set([...css.matchAll(/\{[^{}]*background: color-mix\(in srgb, var\(--c\) (\d+)%, var\(--card\)\)[^{}]*\}/g)]
+    .filter((m) => /[;{]\s*color: var\(--c\)/.test(m[0])).map((m) => Number(m[1]) / 100))];
+  assert.ok(strengths.length >= 3 && strengths.includes(0.14), `found the tints tone text stands on: ${strengths}`);
   for (const [name, t] of [['light', light], ['dark', dark]]) {
     const card = rgb(t.card);
     assert.ok(ratio(rgb(t.text), card) >= 7, `${name} text`);
@@ -364,12 +368,10 @@ test('dash.css: colour contrast', () => {
     for (const k of tones) {
       const c = rgb(t[k]);
       assert.ok(ratio(c, card) >= 4.8, `${name} ${k} on a card: ${ratio(c, card).toFixed(2)}`);
-      for (const p of [0.10, 0.12, 0.13, 0.14]) {
-        assert.ok(ratio(c, tint(c, card, p)) >= 4.5, `${name} ${k} on its ${p * 100}% tint: ${ratio(c, tint(c, card, p)).toFixed(2)}`);
+      for (const p of [0.10, ...strengths]) {
+        assert.ok(ratio(c, tint(c, card, p)) >= 4.5, `${name} ${k} on its ${Math.round(p * 100)}% tint: ${ratio(c, tint(c, card, p)).toFixed(2)}`);
       }
     }
-    // an avatar's tint is 16%: accent is dark enough for that too
-    assert.ok(ratio(rgb(t.accent), tint(rgb(t.accent), card, 0.16)) >= 4.5, `${name} accent in an avatar`);
   }
 });
 

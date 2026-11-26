@@ -108,7 +108,7 @@ For a new component; a fix needs the steps that apply.
 ```sh
 npm test                           # 2 s: formats, escaping, the palettes, that docs/ is up to date and complete
 npm run behaviour                  # some minutes: every component in a real browser
-npm run screens                    # some minutes: every page at four widths, light and dark: nothing scrolls sideways, no errors, faint text readable
+npm run screens                    # some minutes: every page at four widths, light and dark: nothing scrolls sideways, no errors, all text readable
 node test/only.mjs 1.17            # only the parts of behaviour.mjs with that in their name (no name: lists them)
 KIT=/some/dir npm run behaviour    # (or screens) with dash.css, dash.js and dash-utils.css from another folder
 ```
@@ -146,5 +146,4 @@ Everything above, and:
 
 - The suites in Firefox and Safari. So far they only run in Chromium.
 - A pass with a real screen reader (NVDA, VoiceOver, TalkBack).
-- Text contrast that is still low: the letters of `teal`, `gold`, `bronze` and `pink` avatars (4.4–4.5 : 1), and the small "of 14" in a rank (3.2–4.3 : 1).
 - Examples: whole pages that use the kit for something new.

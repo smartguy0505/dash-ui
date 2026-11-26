@@ -1,4 +1,4 @@
-/* dash-ui 1.17.2: the look shared by my dashboards (agents, fleet, leaderboard, payouts, balances).
+/* dash-ui 1.17.3: the look shared by my dashboards (agents, fleet, leaderboard, payouts, balances).
    Warm neutral backgrounds, white panels, tinted status colours, light and dark from the system setting
    (or data-theme="light|dark" on <html>). No build step, no dependencies: link this file, or paste it into a page.
    MIT licence, (c) 2026 Smart Guy, https://github.com/smartguy0505/dash-ui
@@ -270,7 +270,7 @@ button.pill:hover { background: color-mix(in srgb, var(--c) 20%, var(--card)); }
 .rank { display: inline-flex; align-items: center; justify-content: center; gap: .25em; min-width: 26px; height: 22px; padding: 0 7px; border-radius: 999px;
   background: color-mix(in srgb, var(--c) 14%, var(--card)); color: var(--c); font-size: 12.5px; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
 :where(.rank) { --c: var(--muted); }
-.rank span { font-weight: 600; opacity: .8; }
+.rank span { font-weight: 500; } /* lighter by weight, not by fading: faded it was under 4.5 : 1 */
 .gold { --c: var(--gold); } .silver { --c: var(--silver); } .bronze { --c: var(--bronze); }
 
 /* chips: a row of choices or facts, as pills with a border */
@@ -445,7 +445,9 @@ details > summary:hover { color: var(--text); }
 .table tr.marked td { background: color-mix(in srgb, var(--c) 8%, var(--card)); }
 .table tr.marked td:first-child { box-shadow: inset 3px 0 0 var(--c); }
 :where(.table tr.marked) { --c: var(--blue); }
-.table tr.dim td { opacity: .55; }
+.table tr.dim td { color: var(--faint); } /* faded, and still readable: its text faint, its colours grey, pictures and bars paler */
+.table tr.dim td :where(:not(a, a *, button, button *, .btn, .btn *, input, select, textarea)) { --c: var(--faint); color: var(--faint); }
+.table tr.dim td :where(img, svg, canvas, video, .bar, .meter, .split, .spark):not(button *, .btn *) { opacity: .55; }
 /* rows that belong to the row above (servers under a service, holdings under an account) */
 .table tr.sub td { padding-top: 6px; padding-bottom: 6px; background: color-mix(in srgb, var(--soft) 55%, var(--card)); color: var(--muted); font-size: 13px; }
 /* a heading row inside the body, and a dashed cut line */
@@ -924,7 +926,7 @@ textarea.input.autosize { min-height: 62px; max-height: var(--max-h, 320px); fie
 /* a person or a thing: Dash.avatar('Ada Lovelace') writes <span class="avatar purple" title="Ada Lovelace">AL</span>; or put an <img> inside.
    .sm .lg .square; .avatars overlaps a few (Dash.avatars) */
 .avatar { flex: none; display: inline-grid; place-items: center; width: 32px; height: 32px; overflow: hidden; border-radius: 50%;
-  background: color-mix(in srgb, var(--c) 16%, var(--card)); color: var(--c); font-size: 12.5px; font-weight: 700; line-height: 1; letter-spacing: .02em;
+  background: color-mix(in srgb, var(--c) 14%, var(--card)); color: var(--c); font-size: 12.5px; font-weight: 700; line-height: 1; letter-spacing: .02em;
   vertical-align: middle; user-select: none; }
 :where(.avatar) { --c: var(--muted); }
 .avatar img { display: block; width: 100%; height: 100%; object-fit: cover; }
